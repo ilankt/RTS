@@ -1,0 +1,236 @@
+import pygame
+from core.config import TILE_WIDTH, TOP_BAR_HEIGHT
+from entities.objects import Building, Unit, Resource, ConstructionSite
+
+
+class RenderingSystem:
+    """Handles drawing and visual rendering of game objects"""
+    
+    def __init__(self, game):
+        self.game = game
+        self.sprite_manager = game.sprite_manager
+        self.selection_manager = game.selection_manager
+        self.floating_ui = game.floating_ui
+        self.building_system = game.building_system
+        
+        # Colors
+        self.DARK_GRAY = (40, 40, 40)
+        self.MAP_GRAY = (60, 60, 60)
+    
+    def draw_frame(self, screen, map_surface, camera, delta_time=1/60.0):
+        """Draw a complete frame"""
+        # Clear backgrounds
+        screen.fill(self.DARK_GRAY)
+        map_surface.fill(self.MAP_GRAY)
+        
+        # Draw map
+        self.game.game_map.draw(map_surface, camera)
+        
+        # Draw all game objects
+        self._draw_all_objects(map_surface, camera)
+        
+        # Draw UI overlays
+        self._draw_ui_overlays(map_surface, camera)
+        
+        # Draw building preview
+        if self.building_system.building_placement_mode and self.building_system.building_preview_pos:
+            self.building_system.draw_building_preview(map_surface, camera)
+        
+        # Draw floating UI elements
+        self.floating_ui.draw_all_floating_ui(map_surface, camera, delta_time)
+        
+        # Blit map to screen
+        screen.blit(map_surface, (0, TOP_BAR_HEIGHT))
+        
+        # Draw UI panels
+        self.game.minimap.draw(screen)
+        self.game.ui_manager.draw_ui_panel(screen)
+        self.game.ui_manager.draw_top_bar(screen)
+        self.game.ai_debug_panel.draw(screen)
+    
+    def _draw_all_objects(self, map_surface, camera):
+        """Draw all game objects (buildings, units, resources, construction sites)"""
+        # Gather all objects and sort by Y position for proper depth ordering
+        all_objects = (self.game.resources + 
+                      self.game.buildings + 
+                      self.game.units + 
+                      self.game.construction_sites)
+        all_objects.sort(key=lambda obj: obj.y)
+        
+        for obj in all_objects:
+            self._draw_object(obj, map_surface, camera)
+    
+    def _draw_object(self, obj, map_surface, camera):
+        """Draw a single game object"""
+        draw_x = (obj.x * camera.zoom) + camera.x
+        draw_y = (obj.y * camera.zoom) + camera.y
+        
+        sprite_to_draw = self._get_object_sprite(obj)
+        
+        if sprite_to_draw:
+            self._render_sprite(sprite_to_draw, obj, draw_x, draw_y, camera, map_surface)
+    
+    def _get_object_sprite(self, obj):
+        """Get the appropriate sprite for an object"""
+        sprite_to_draw = None
+        
+        if isinstance(obj, Building):
+            player_index = self.game.players.index(obj.player)
+            sprite_to_draw = self.sprite_manager.get_building_sprite(obj.name, player_index)
+        elif isinstance(obj, Resource):
+            sprite_to_draw = self.sprite_manager.get_resource_sprite(obj.name)
+        elif isinstance(obj, Unit):
+            sprite_to_draw = obj.get_current_sprite()
+        elif isinstance(obj, ConstructionSite):
+            # Use construction sprite with player tinting
+            player_index = self.game.players.index(obj.player)
+            sprite_to_draw = self.sprite_manager.get_building_sprite("construction", player_index)
+        
+        return sprite_to_draw
+    
+    def _render_sprite(self, sprite, obj, draw_x, draw_y, camera, map_surface):
+        """Render a sprite at the specified position"""
+        sprite_w, sprite_h = sprite.get_size()
+        scale = (obj.size[0] * TILE_WIDTH) / sprite_w
+        scaled_width = int(sprite_w * scale * camera.zoom)
+        scaled_height = int(sprite_h * scale * camera.zoom)
+        
+        # Only scale if necessary to avoid performance issues
+        if (scaled_width, scaled_height) != (sprite_w, sprite_h):
+            scaled_sprite = pygame.transform.scale(sprite, (scaled_width, scaled_height))
+        else:
+            scaled_sprite = sprite
+        
+        blit_x = draw_x - (scaled_width / 2)
+        blit_y = draw_y - (scaled_height / 2)
+        
+        map_surface.blit(scaled_sprite, (blit_x, blit_y))
+    
+    def _draw_ui_overlays(self, map_surface, camera):
+        """Draw UI overlays on the map surface"""
+        # Draw selection circles
+        self.selection_manager.draw_selection_circles(map_surface, camera)
+        
+        # Draw attack target indicators
+        self.selection_manager.draw_attack_targets(map_surface, camera)
+        
+        # Draw LOS debug visualization
+        self.selection_manager.draw_los_debug(map_surface, camera)
+        
+        # Draw unit paths (debug mode only)
+        self.selection_manager.draw_unit_paths(map_surface, camera)
+        
+        # Draw selection box if active
+        self.selection_manager.draw_selection_box(map_surface)
+    
+    def draw_debug_info(self, screen, font=None):
+        """Draw debug information on screen"""
+        if not self.game.debug_overlay:
+            return
+            
+        if font is None:
+            font = pygame.font.Font(None, 24)
+        
+        debug_info = []
+        debug_info.append(f"FPS: {self.game.clock.get_fps():.1f}")
+        debug_info.append(f"Units: {len(self.game.units)}")
+        debug_info.append(f"Buildings: {len(self.game.buildings)}")
+        debug_info.append(f"Resources: {len(self.game.resources)}")
+        debug_info.append(f"Construction Sites: {len(self.game.construction_sites)}")
+        debug_info.append(f"Camera Zoom: {self.game.camera.zoom:.2f}")
+        debug_info.append(f"Camera Pos: ({self.game.camera.x:.1f}, {self.game.camera.y:.1f})")
+        
+        # Draw debug text
+        y_offset = 10
+        for line in debug_info:
+            text_surface = font.render(line, True, (255, 255, 0))
+            screen.blit(text_surface, (10, y_offset))
+            y_offset += 25
+    
+    def draw_grid_overlay(self, map_surface, camera):
+        """Draw grid overlay for debugging"""
+        if not self.game.debug_overlay:
+            return
+            
+        # Draw pathfinding grid
+        from core.config import GRID_SIZE
+        grid_color = (100, 100, 100, 128)
+        
+        # Calculate visible grid range
+        start_x = int(-camera.x / camera.zoom / GRID_SIZE) - 1
+        end_x = int((-camera.x + map_surface.get_width()) / camera.zoom / GRID_SIZE) + 1
+        start_y = int(-camera.y / camera.zoom / GRID_SIZE) - 1
+        end_y = int((-camera.y + map_surface.get_height()) / camera.zoom / GRID_SIZE) + 1
+        
+        # Draw vertical lines
+        for x in range(start_x, end_x):
+            screen_x = x * GRID_SIZE * camera.zoom + camera.x
+            if 0 <= screen_x <= map_surface.get_width():
+                pygame.draw.line(map_surface, grid_color, 
+                               (screen_x, 0), (screen_x, map_surface.get_height()))
+        
+        # Draw horizontal lines
+        for y in range(start_y, end_y):
+            screen_y = y * GRID_SIZE * camera.zoom + camera.y
+            if 0 <= screen_y <= map_surface.get_height():
+                pygame.draw.line(map_surface, grid_color,
+                               (0, screen_y), (map_surface.get_width(), screen_y))
+    
+    def draw_object_bounds(self, map_surface, camera):
+        """Draw bounding circles for all objects"""
+        if not self.game.debug_overlay:
+            return
+            
+        all_objects = (self.game.units + self.game.buildings + 
+                      self.game.resources + self.game.construction_sites)
+        
+        for obj in all_objects:
+            # Calculate screen position
+            screen_x = int(obj.x * camera.zoom + camera.x)
+            screen_y = int(obj.y * camera.zoom + camera.y)
+            radius = int(obj.radius * camera.zoom)
+            
+            # Choose color based on object type
+            if isinstance(obj, Unit):
+                color = (0, 255, 0)  # Green for units
+            elif isinstance(obj, Building):
+                color = (0, 0, 255)  # Blue for buildings
+            elif isinstance(obj, Resource):
+                color = (255, 255, 0)  # Yellow for resources
+            else:
+                color = (255, 0, 255)  # Magenta for construction sites
+            
+            # Draw circle (only if visible)
+            if (screen_x + radius >= 0 and screen_x - radius <= map_surface.get_width() and
+                screen_y + radius >= 0 and screen_y - radius <= map_surface.get_height()):
+                pygame.draw.circle(map_surface, color, (screen_x, screen_y), radius, 1)
+    
+    def get_visible_objects(self, camera, map_surface):
+        """Get all objects that are currently visible on screen"""
+        visible_objects = []
+        
+        # Calculate visible bounds
+        left = -camera.x / camera.zoom
+        right = (-camera.x + map_surface.get_width()) / camera.zoom
+        top = -camera.y / camera.zoom
+        bottom = (-camera.y + map_surface.get_height()) / camera.zoom
+        
+        all_objects = (self.game.units + self.game.buildings + 
+                      self.game.resources + self.game.construction_sites)
+        
+        for obj in all_objects:
+            # Check if object is within visible bounds (with some margin for object size)
+            margin = obj.radius
+            if (obj.x + margin >= left and obj.x - margin <= right and
+                obj.y + margin >= top and obj.y - margin <= bottom):
+                visible_objects.append(obj)
+        
+        return visible_objects
+    
+    def is_position_visible(self, position, camera, map_surface):
+        """Check if a position is visible on screen"""
+        screen_x = position[0] * camera.zoom + camera.x
+        screen_y = position[1] * camera.zoom + camera.y
+        
+        return (0 <= screen_x <= map_surface.get_width() and
+                0 <= screen_y <= map_surface.get_height())

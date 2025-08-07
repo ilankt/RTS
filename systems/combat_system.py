@@ -1,0 +1,252 @@
+import math
+from core.config import DEBUG_MOVEMENT
+
+
+class CombatSystem:
+    """Handles combat targeting, attack positioning, and combat logic"""
+    
+    def __init__(self, game):
+        self.game = game
+        self.game_map = game.game_map
+        
+    def find_optimal_attack_position(self, unit, target, other_attackers):
+        """Find optimal attack position for unit when multiple units are attacking the same target"""
+        target_x, target_y = target.x, target.y
+        attack_range = unit.get_effective_attack_range("positioning")  # Use standardized positioning range
+        
+        # Generate potential attack positions in a circle around the target
+        num_positions = 8  # Check 8 positions around the target
+        best_position = None
+        best_score = float('-inf')
+        
+        for i in range(num_positions):
+            angle = (i / num_positions) * 2 * math.pi
+            pos_x = target_x + math.cos(angle) * attack_range
+            pos_y = target_y + math.sin(angle) * attack_range
+            
+            # Check if position is valid (not in water/lava, not blocked by buildings)
+            hex_coord = self.game_map.world_to_grid(pos_x, pos_y)
+            if not hex_coord:
+                continue
+            col, row = hex_coord
+            if row < 0 or row >= self.game_map.height or col < 0 or col >= self.game_map.width:
+                continue
+            tile_type = self.game_map.grid[row][col]
+            if tile_type in {"water", "lava"}:
+                continue
+            
+            # Check for collision with buildings
+            blocked_by_building = False
+            for building in self.game.buildings:
+                dist_to_building = math.sqrt((building.x - pos_x)**2 + (building.y - pos_y)**2)
+                if dist_to_building < (building.radius + unit.radius):
+                    blocked_by_building = True
+                    break
+            if blocked_by_building:
+                continue
+            
+            # Score this position based on:
+            # 1. Distance to other attacking units (farther is better)
+            # 2. Distance to current unit position (closer is better)
+            # 3. Line of sight to target
+            
+            score = 0
+            
+            # Distance to other attackers (farther is better)
+            min_dist_to_attacker = float('inf')
+            for other in other_attackers:
+                dist = math.sqrt((other.x - pos_x)**2 + (other.y - pos_y)**2)
+                min_dist_to_attacker = min(min_dist_to_attacker, dist)
+            
+            if min_dist_to_attacker < unit.radius * 3:  # Too close to other units
+                score -= 100
+            else:
+                score += min(min_dist_to_attacker, unit.radius * 6)  # Cap the benefit
+            
+            # Distance to current position (closer is better)
+            dist_to_current = math.sqrt((unit.x - pos_x)**2 + (unit.y - pos_y)**2)
+            score += max(0, 200 - dist_to_current)  # Prefer closer positions
+            
+            # Check line of sight to target
+            obstacles = (self.game.buildings + 
+                        [u for u in self.game.units if u != unit and u != target] + 
+                        self.game.resources)
+            
+            # Create temporary unit at this position to check LOS
+            temp_unit = type('TempUnit', (), {
+                'x': pos_x, 'y': pos_y, 'radius': unit.radius,
+                'has_line_of_sight': unit.has_line_of_sight
+            })()
+            
+            if temp_unit.has_line_of_sight(target, self.game_map, obstacles):
+                score += 50  # Bonus for clear LOS
+            
+            if score > best_score:
+                best_score = score
+                best_position = (pos_x, pos_y)
+        
+        return best_position
+    
+    def evaluate_combat_targets(self, unit):
+        """Evaluate potential combat targets for a unit"""
+        # Find all enemy units and buildings in range
+        potential_targets = []
+        
+        for other_unit in self.game.units:
+            if other_unit.player != unit.player:
+                distance = unit.get_distance_to(other_unit)
+                if distance <= unit.get_effective_attack_range("search"):
+                    potential_targets.append((other_unit, distance))
+        
+        for building in self.game.buildings:
+            if building.player != unit.player:
+                distance = unit.get_distance_to(building)
+                if distance <= unit.get_effective_attack_range("search"):
+                    potential_targets.append((building, distance))
+        
+        # Sort by distance
+        potential_targets.sort(key=lambda x: x[1])
+        
+        return potential_targets
+    
+    def handle_combat_engagement(self, unit, target):
+        """Handle a unit engaging a target in combat"""
+        # Check if target is still valid
+        if target.hp <= 0:
+            unit.current_target = None
+            unit.is_engaging = False
+            unit.status = "idle"
+            return False
+        
+        # Check if we can attack
+        if unit.can_attack(target):
+            # Unit attacking target
+            unit.start_attack(target)
+            return True
+        
+        # Need to move closer
+        unit.is_engaging = True
+        return False
+    
+    def update_combat_units(self, delta_time):
+        """Update all combat-capable units"""
+        for unit in self.game.units:
+            if hasattr(unit, 'update_combat'):
+                unit.update_combat(delta_time)
+                
+                # Auto-engage nearby enemies if idle
+                if unit.status == "idle" and not unit.current_target:
+                    targets = self.evaluate_combat_targets(unit)
+                    if targets and unit.player.auto_attack:
+                        # Engage closest enemy
+                        target, _ = targets[0]
+                        unit.current_target = target
+                        unit.is_engaging = True
+                        if DEBUG_MOVEMENT:
+                            # Auto-engaging target
+                            pass
+                
+                # Handle ongoing engagements
+                if unit.is_engaging and unit.current_target:
+                    self.handle_combat_engagement(unit, unit.current_target)
+    
+    def calculate_damage(self, attacker, target):
+        """Calculate damage dealt from attacker to target"""
+        # Base damage
+        base_damage = attacker.get_attack_damage()
+        
+        # Apply type effectiveness
+        effectiveness = self.get_type_effectiveness(attacker.attack_type, target.armor_type)
+        
+        # Apply armor reduction
+        armor_reduction = 1.0 - (target.armor * 0.05)  # 5% reduction per armor point
+        armor_reduction = max(0.1, armor_reduction)  # Minimum 10% damage
+        
+        # Calculate final damage
+        final_damage = base_damage * effectiveness * armor_reduction
+        
+        return int(final_damage)
+    
+    def get_type_effectiveness(self, attack_type, armor_type):
+        """Get damage effectiveness multiplier based on attack and armor types"""
+        effectiveness_table = {
+            ("slash", "light"): 1.5,
+            ("pierce", "heavy"): 1.5,
+            ("siege", "fortified"): 2.0,
+            ("slash", "heavy"): 0.75,
+            ("pierce", "fortified"): 0.5,
+            ("siege", "light"): 0.5,
+        }
+        
+        return effectiveness_table.get((attack_type, armor_type), 1.0)
+    
+    def handle_unit_death(self, unit):
+        """Handle cleanup when a unit dies"""
+        # Clear any units targeting this one
+        for other_unit in self.game.units:
+            if hasattr(other_unit, 'current_target') and other_unit.current_target == unit:
+                other_unit.current_target = None
+                other_unit.is_engaging = False
+                if hasattr(other_unit, 'in_combat'):
+                    other_unit.in_combat = False
+        
+        # Remove from game lists
+        if unit in self.game.units:
+            self.game.units.remove(unit)
+        
+        # Award experience to killer if applicable
+        if hasattr(unit, 'last_attacker') and unit.last_attacker:
+            if hasattr(unit.last_attacker, 'gain_experience'):
+                exp_value = getattr(unit, 'exp_value', 10)
+                unit.last_attacker.gain_experience(exp_value)
+    
+    def handle_building_destruction(self, building):
+        """Handle cleanup when a building is destroyed"""
+        # Clear any units targeting this building
+        for unit in self.game.units:
+            if hasattr(unit, 'current_target') and unit.current_target == building:
+                unit.current_target = None
+                unit.is_engaging = False
+                if hasattr(unit, 'in_combat'):
+                    unit.in_combat = False
+        
+        # Remove from game lists
+        if building in self.game.buildings:
+            self.game.buildings.remove(building)
+        
+        # Cancel any production queues
+        if hasattr(building, 'production_queue'):
+            building.production_queue.clear()
+    
+    def get_units_in_combat(self):
+        """Get all units currently in combat"""
+        combat_units = []
+        for unit in self.game.units:
+            if hasattr(unit, 'in_combat') and unit.in_combat:
+                combat_units.append(unit)
+            elif hasattr(unit, 'is_engaging') and unit.is_engaging:
+                combat_units.append(unit)
+        return combat_units
+    
+    def get_combat_statistics(self, player):
+        """Get combat statistics for a player"""
+        stats = {
+            'units_in_combat': 0,
+            'enemies_killed': 0,
+            'buildings_destroyed': 0,
+            'damage_dealt': 0,
+            'damage_taken': 0
+        }
+        
+        for unit in self.game.units:
+            if unit.player == player:
+                if hasattr(unit, 'in_combat') and unit.in_combat:
+                    stats['units_in_combat'] += 1
+                if hasattr(unit, 'kills'):
+                    stats['enemies_killed'] += unit.kills
+                if hasattr(unit, 'damage_dealt'):
+                    stats['damage_dealt'] += unit.damage_dealt
+                if hasattr(unit, 'damage_taken'):
+                    stats['damage_taken'] += unit.damage_taken
+        
+        return stats

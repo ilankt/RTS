@@ -1,0 +1,96 @@
+[
+    {
+        "name": "barracks",
+        "sprite": "assets/sprites/Buildings/Barracks.png",
+        "size": [1.5,1.5],
+        "hp": 1000,
+        "build_duration": 10,
+        "armor_type": "fortified",
+        "armor_value": 5,
+        "costs": {
+            "gold": 150,
+            "wood": 100,
+            "stone": 50
+        }
+    },
+    {
+        "name": "castle",
+        "sprite": "assets/sprites/Buildings/Castle.png",
+        "size": [2.5,2.5],
+        "hp": 5000,
+        "build_duration": 50,
+        "armor_type": "fortified",
+        "armor_value": 10,
+        "costs": {
+            "gold": 500,
+            "wood": 200,
+            "stone": 300
+        }
+    },
+    {
+        "name": "farm",
+        "sprite": "assets/sprites/Buildings/Farm.png",
+        "size": [1,1],
+        "hp": 250,
+        "build_duration": 5,
+        "armor_type": "fortified",
+        "armor_value": 1,
+        "costs": {
+            "wood": 75
+        }
+    },
+    {
+        "name": "house",
+        "sprite": "assets/sprites/Buildings/House.png",
+        "size": [1,1],
+        "hp": 500,
+        "build_duration": 5,
+        "armor_type": "fortified",
+        "armor_value": 2,
+        "costs": {
+            "gold": 50,
+            "wood": 50
+        }
+    },
+    {
+        "name": "lumbermill",
+        "sprite": "assets/sprites/Buildings/Lumbermill.png",
+        "size": [1.5,1.5],
+        "hp": 750,
+        "build_duration": 8,
+        "armor_type": "fortified",
+        "armor_value": 4,
+        "costs": {
+            "gold": 100,
+            "wood": 150
+        }
+    },
+    {
+        "name": "mine",
+        "sprite": "assets/sprites/Buildings/Mine.png",
+        "size": [1.5,1.5],
+        "hp": 750,
+        "build_duration": 8,
+        "armor_type": "fortified",
+        "armor_value": 4,
+        "costs": {
+            "gold": 100,
+            "wood": 100,
+            "stone": 50
+        }
+    },
+    {
+        "name": "quarry",
+        "sprite": "assets/sprites/Buildings/Quarry.png",
+        "size": [1.5,1.5],
+        "hp": 750,
+        "build_duration": 8,
+        "armor_type": "fortified",
+        "armor_value": 4,
+        "costs": {
+            "gold": 100,
+            "wood": 50,
+            "stone": 100
+        }
+    }
+]

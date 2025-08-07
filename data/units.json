@@ -1,0 +1,81 @@
+[
+    {
+        "name": "worker",
+        "size": [1,1],
+        "hp": 100,
+        "movement_speed": 40,
+        "can_build": true,
+        "can_attack": false,
+        "build_time": 5,
+        "icon": "assets/ui/Units/worker_icon.png",
+        "costs": {
+            "gold": 50
+        },
+        "min_damage": 0,
+        "max_damage": 0,
+        "attack_type": "slash",
+        "armor_type": "light",
+        "armor_value": 0,
+        "attack_speed": 0,
+        "attack_range": 0,
+        "animations": {
+            "idle": "assets/sprites/Units/Worker/Idle.png",
+            "run": "assets/sprites/Units/Worker/Run.png",
+            "gather": "assets/sprites/Units/Worker/Gather.png",
+            "build": "assets/sprites/Units/Worker/Gather.png"
+        }
+    },
+    {
+        "name": "warrior",
+        "size": [1,1],
+        "hp": 250,
+        "movement_speed": 50,
+        "attack": 10,
+        "can_attack": true,
+        "build_time": 8,
+        "icon": "assets/ui/Units/warrior_icon.png",
+        "costs": {
+            "gold": 100,
+            "wood": 25
+        },
+        "min_damage": 18,
+        "max_damage": 22,
+        "attack_type": "slash",
+        "armor_type": "heavy",
+        "armor_value": 4,
+        "attack_speed": 1.2,
+        "attack_range": 48,
+        "animations": {
+            "idle": "assets/sprites/Units/Warrior/Warrior_Idle.png",
+            "run": "assets/sprites/Units/Warrior/Warrior_Run.png",
+            "attack": "assets/sprites/Units/Warrior/Warrior_Attack.png",
+            "guard": "assets/sprites/Units/Warrior/Warrior_Guard.png"
+        }
+    },
+    {
+        "name": "archer",
+        "size": [1,1],
+        "hp": 150,
+        "movement_speed": 60,
+        "attack": 7,
+        "can_attack": true,
+        "build_time": 7,
+        "icon": "assets/ui/Units/archer_icon.png",
+        "costs": {
+            "gold": 75,
+            "wood": 50
+        },
+        "min_damage": 12,
+        "max_damage": 16,
+        "attack_type": "pierce",
+        "armor_type": "light",
+        "armor_value": 1,
+        "attack_speed": 1.0,
+        "attack_range": 200,
+        "animations": {
+            "idle": "assets/sprites/Units/Archer/Archer_Idle.png",
+            "run": "assets/sprites/Units/Archer/Archer_Run.png",
+            "shoot": "assets/sprites/Units/Archer/Archer_Shoot.png"
+        }
+    }
+]
