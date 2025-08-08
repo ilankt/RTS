@@ -39,7 +39,7 @@ class GatheringManager:
                 if building.food_timer >= FARM_FOOD_INTERVAL:
                     food_amount = FARM_FOOD_AMOUNT
                     if building.player:
-                        building.player.resources["food"] += food_amount
+                        building.player.resources["food"] += int(food_amount)
                         
                     # Add floating notification
                     if hasattr(self.game, 'floating_ui') and self.game.floating_ui:
@@ -175,7 +175,7 @@ class GatheringManager:
             dropped_type = worker.resource_type
             
             if worker.player:
-                worker.player.resources[worker.resource_type] += worker.resource_amount
+                worker.player.resources[worker.resource_type] += int(worker.resource_amount)
                 
             # Debug: Worker dropped off resources
             

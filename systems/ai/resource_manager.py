@@ -234,6 +234,28 @@ class ResourceManager:
             self.priority_set_time = current_time
             return self.current_priority_resource
     
+    def _find_closest_resource_to_position(self, resource_type: str, x: float, y: float, memory: dict) -> Optional[Tuple[Any, float]]:
+        """Find the closest resource of given type to a position"""
+        if resource_type not in memory["resource_locations"]:
+            return None
+            
+        resources = memory["resource_locations"][resource_type]
+        if not resources:
+            return None
+            
+        closest = None
+        min_distance = float('inf')
+        
+        for resource in resources:
+            if hasattr(resource, 'amount_remaining') and resource.amount_remaining <= 0:
+                continue
+            distance = math.sqrt((resource.x - x)**2 + (resource.y - y)**2)
+            if distance < min_distance:
+                min_distance = distance
+                closest = resource
+                
+        return (closest, min_distance) if closest else None
+
     def get_optimal_worker_assignment(self, workers: List) -> Dict:
         """Calculate optimal worker distribution across resources with caching"""
         current_time = time.time()
@@ -260,7 +282,7 @@ class ResourceManager:
             print(f"AI {self.player.name}: No available resources for worker assignment")
             return assignments
         
-        # New strategy: Ensure resource diversity for first few workers
+        # New strategy: Consider distance when assigning workers
         if len(workers) <= 4:
             # For 4 or fewer workers, prioritize having at least one worker on each available resource
             # Check current distribution to see which resources need workers
@@ -274,16 +296,46 @@ class ResourceManager:
             # Find resources with no workers first
             unassigned_resources = [res for res in available_resources if resource_worker_counts.get(res, 0) == 0]
             
-            # Create ordered list: unassigned resources first, then others
-            ordered_resources = unassigned_resources + [res for res in available_resources if res not in unassigned_resources]
+            # For each worker, find the closest available resource type
+            # But ensure diversity by tracking assignments
+            assigned_counts = {res: 0 for res in available_resources}
             
-            # Assign workers to ensure diversity
-            for i, worker in enumerate(workers):
-                res_type = ordered_resources[i % len(ordered_resources)]
-                assignments[res_type].append(worker)
+            for worker in workers:
+                best_resource = None
+                best_distance = float('inf')
                 
-            print(f"AI {self.player.name}: Early game diversity assignment - distributed {len(workers)} workers")
-            print(f"AI {self.player.name}: Prioritized unassigned resources: {unassigned_resources}")
+                # First pass: check unassigned resource types
+                for res_type in unassigned_resources:
+                    if assigned_counts[res_type] == 0:  # No one assigned yet this round
+                        result = self._find_closest_resource_to_position(res_type, worker.x, worker.y, memory)
+                        if result:
+                            _, distance = result
+                            # Penalize very distant resources
+                            if distance < 200 or (distance < best_distance and distance < 400):
+                                best_distance = distance
+                                best_resource = res_type
+                
+                # Second pass: if all unassigned types are far, check all types
+                if best_resource is None:
+                    for res_type in available_resources:
+                        result = self._find_closest_resource_to_position(res_type, worker.x, worker.y, memory)
+                        if result:
+                            _, distance = result
+                            # Add penalty for already assigned resources to encourage diversity
+                            effective_distance = distance + (assigned_counts[res_type] * 100)
+                            if effective_distance < best_distance:
+                                best_distance = effective_distance
+                                best_resource = res_type
+                
+                if best_resource:
+                    assignments[best_resource].append(worker)
+                    assigned_counts[best_resource] += 1
+                    # Remove from unassigned if someone got assigned
+                    if best_resource in unassigned_resources and assigned_counts[best_resource] > 0:
+                        unassigned_resources.remove(best_resource)
+                
+            print(f"AI {self.player.name}: Distance-aware diversity assignment - distributed {len(workers)} workers")
+            print(f"AI {self.player.name}: Assignment counts: {assigned_counts}")
         else:
             # For more workers, use priority-based assignment
             priority_resource = self.get_priority_resource(15.0)  # Shorter horizon for performance

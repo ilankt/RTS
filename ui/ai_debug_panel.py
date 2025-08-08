@@ -189,7 +189,7 @@ class AIDebugPanel:
         for resource, amount in resources.items():
             if resource_line:
                 resource_line += " | "
-            resource_line += f"{resource.title()}: {amount}"
+            resource_line += f"{resource.title()}: {int(amount)}"
         
         if resource_line:
             resource_text = self.resource_font.render(resource_line, True, self.text_color)

@@ -500,7 +500,7 @@ class UIManager:
                 if unit.name == "worker" and hasattr(unit, 'resource_amount') and unit.resource_amount > 0:
                     resource_display = unit.resource_type.replace('_', ' ').title() if unit.resource_type else 'Unknown'
                     capacity_text = self.small_font.render(
-                        f"Carrying: {unit.resource_amount} {resource_display}", 
+                        f"Carrying: {int(unit.resource_amount)} {resource_display}", 
                         True, (255, 200, 100)
                     )
                     panel_surface.blit(capacity_text, (10, y_offset))
