@@ -9,7 +9,8 @@
         "build_time": 5,
         "icon": "assets/ui/Units/worker_icon.png",
         "costs": {
-            "gold": 50
+            "gold": 50,
+            "food": 25
         },
         "min_damage": 0,
         "max_damage": 0,
@@ -36,7 +37,8 @@
         "icon": "assets/ui/Units/warrior_icon.png",
         "costs": {
             "gold": 100,
-            "wood": 25
+            "wood": 25,
+            "food": 50
         },
         "min_damage": 18,
         "max_damage": 22,
@@ -63,7 +65,8 @@
         "icon": "assets/ui/Units/archer_icon.png",
         "costs": {
             "gold": 75,
-            "wood": 50
+            "wood": 50,
+            "food": 40
         },
         "min_damage": 12,
         "max_damage": 16,

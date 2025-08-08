@@ -119,6 +119,13 @@ class EconomyModule(AIModule):
             if self._can_afford(building_type):
                 possible_actions.append({"action": "build_resource_building", "score": score, "params": {"building_type": building_type}})
 
+        # Action: Build Barracks
+        # Build barracks when we have at least 3 workers and no barracks yet
+        barracks_count = len(memory["buildings"].get("barracks", []))
+        if worker_count >= 3 and barracks_count == 0 and self._can_afford("barracks"):
+            # High priority to ensure military progression
+            possible_actions.append({"action": "build_barracks", "score": 85})
+
         # 3. Assign idle workers to gather resources
         if all_idle_workers:
             assignments = self.resource_manager.get_optimal_worker_assignment(all_idle_workers)
@@ -135,6 +142,8 @@ class EconomyModule(AIModule):
                 tasks.append({"action": "train_worker", "priority": 0.8, "target": memory["buildings"]["castle"], "params": {}})
             elif action_type == "build_house":
                 tasks.append({"action": "build_house", "priority": 0.85, "target": None, "params": {}})
+            elif action_type == "build_barracks":
+                tasks.append({"action": "build_barracks", "priority": 0.85, "target": None, "params": {}})
             elif action_type == "build_resource_building":
                 tasks.append({"action": "build_resource_building", "priority": 0.7, "target": None, "params": best_action["params"]})
 
@@ -174,7 +183,8 @@ class EconomyModule(AIModule):
             
         unit_count = len([u for u in self.game.units if u.player == self.player])
         
-        if building_count < 3 or unit_count < 5:
+        # More lenient thresholds: 2 buildings OR 3 units for mid-game
+        if building_count < 2 and unit_count < 3:
             return "early"
         elif building_count < 8 or unit_count < 15:
             return "mid"
@@ -213,9 +223,9 @@ class EconomyModule(AIModule):
     
     def _calculate_ideal_workers(self, game_phase: str) -> int:
         """Calculate ideal number of workers for current game phase - limited for military focus"""
-        # Reduced worker counts to leave population for military
-        phase_workers = {"early": 4, "mid": 6, "late": 7}  # Reduced from 5,8,10
-        return phase_workers.get(game_phase, 4)
+        # Increased early game workers to 5 to ensure barracks can be built
+        phase_workers = {"early": 5, "mid": 6, "late": 7}
+        return phase_workers.get(game_phase, 5)
     
     def _should_build_resource_building(self, resource_needs: Dict[str, float]) -> bool:
         """Determine if we should build a resource building"""
@@ -335,6 +345,24 @@ class EconomyModule(AIModule):
             if resources:
                 # Find closest resource
                 closest = min(resources, key=lambda r: math.sqrt((r.x - worker.x)**2 + (r.y - worker.y)**2))
+                distance = math.sqrt((closest.x - worker.x)**2 + (closest.y - worker.y)**2)
+                
+                # Check if resource is too far (>250 units) and we should build a resource building
+                if distance > 250:
+                    resource_to_building = {"gold": "mine", "wood": "lumbermill", "stone": "quarry"}
+                    building_type = resource_to_building.get(resource_type)
+                    
+                    if building_type:
+                        # Count existing buildings
+                        existing = sum(1 for b in memory["buildings"]["resource_buildings"] if b.name == building_type)
+                        existing += sum(1 for s in self.game.construction_sites 
+                                      if s.player == self.player and s.building_name == building_type)
+                        
+                        # If we have less than 2 of this building type and can afford it, prioritize building
+                        if existing < 2 and self._can_afford(building_type):
+                            # Don't gather, instead suggest building
+                            print(f"AI {self.player.name}: Resource {resource_type} too far ({distance:.0f} units), need {building_type}")
+                            return False
                 
                 # Command worker to gather
                 self.ai_system._command_worker_gather(worker, closest)
@@ -487,15 +515,32 @@ class EconomyModule(AIModule):
         for s in self.game.construction_sites:
             if s.player == self.player and s.building_name in existing_buildings: existing_buildings[s.building_name] += 1
 
-        # Score Farm
-        if resource_needs.get("food", 0) > 0.5 and existing_buildings["farm"] < 2:
-            scores["farm"] = 70 + resource_needs["food"] * 20
+        # Check distance to nearest resources for distance bonus
+        castle = memory["buildings"]["castle"]
+        distance_bonuses = {}
+        if castle:
+            resource_to_building = {"gold": "mine", "wood": "lumbermill", "stone": "quarry"}
+            for res_type, building_type in resource_to_building.items():
+                if res_type in memory["resource_locations"] and memory["resource_locations"][res_type]:
+                    nearest_dist = min(math.sqrt((r.x - castle.x)**2 + (r.y - castle.y)**2) 
+                                     for r in memory["resource_locations"][res_type])
+                    # Add distance bonus if resources are far (>200 units)
+                    if nearest_dist > 200:
+                        distance_bonuses[building_type] = 20
 
-        # Score deposit-based buildings
+        # Score Farm with higher base and lower threshold
+        if resource_needs.get("food", 0) > 0.3 and existing_buildings["farm"] < 2:
+            scores["farm"] = 85 + resource_needs["food"] * 20
+
+        # Score deposit-based buildings with higher base scores
         resource_to_building = {"gold": "mine", "wood": "lumbermill", "stone": "quarry"}
         for res_type, building_type in resource_to_building.items():
-            if resource_needs.get(res_type, 0) > 0.4 and existing_buildings[building_type] == 0:
-                scores[building_type] = 60 + resource_needs[res_type] * 30
+            # Lower threshold (0.2) and allow up to 2 of each type
+            if resource_needs.get(res_type, 0) > 0.2 and existing_buildings[building_type] < 2:
+                base_score = 85  # Increased from 60
+                need_bonus = resource_needs[res_type] * 30
+                distance_bonus = distance_bonuses.get(building_type, 0)
+                scores[building_type] = base_score + need_bonus + distance_bonus
 
         return scores
     

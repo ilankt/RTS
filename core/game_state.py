@@ -251,8 +251,8 @@ class GameState:
         for _ in range(extra_stone):
             self._place_random_resource("stone", spawn_locations, min_distance=15)
         
-        for _ in range(extra_wood):
-            self._place_random_resource("wood", spawn_locations, min_distance=10)
+        # Instead of individual trees, create forest clusters
+        self._place_forest_clusters(extra_wood, spawn_locations)
     
     def _place_resource_near_spawn(self, resource_type, spawn_r, spawn_c, min_dist, max_dist, count):
         """Place a specific number of resources near a spawn location"""
@@ -298,6 +298,82 @@ class GameState:
                         placed += 1
             
             attempts += 1
+    
+    def _place_forest_clusters(self, total_trees, spawn_locations):
+        """Place trees in natural forest clusters instead of scattered individual trees"""
+        # Calculate number of forests based on total trees
+        avg_trees_per_forest = 15  # Average 15 trees per forest
+        num_forests = max(2, int(total_trees / avg_trees_per_forest))
+        
+        forests_placed = 0
+        attempts = 0
+        max_attempts = num_forests * 50
+        
+        while forests_placed < num_forests and attempts < max_attempts:
+            attempts += 1
+            
+            # Find a suitable center for the forest
+            center_r = random.randint(5, self.game.game_map.height - 6)
+            center_c = random.randint(5, self.game.game_map.width - 6)
+            
+            # Check if too close to spawn locations
+            too_close_to_spawn = False
+            for spawn_r, spawn_c in spawn_locations:
+                dist = math.sqrt((center_r - spawn_r)**2 + (center_c - spawn_c)**2)
+                if dist < 8:  # Keep forests at least 8 tiles from spawns
+                    too_close_to_spawn = True
+                    break
+            
+            if too_close_to_spawn:
+                continue
+            
+            # Check terrain suitability for forest center
+            terrain = self.game.game_map.grid[center_r][center_c]
+            if terrain not in {"grass", "forest", "plains"}:
+                continue
+            
+            # Place a cluster of trees around this center
+            trees_in_this_forest = random.randint(10, 20)
+            trees_placed = 0
+            
+            # Use a more organic placement pattern
+            for i in range(trees_in_this_forest * 3):  # More attempts for denser forests
+                if trees_placed >= trees_in_this_forest:
+                    break
+                
+                # Use gaussian distribution for more natural clustering
+                angle = random.uniform(0, 2 * math.pi)
+                # Distance with normal distribution - most trees near center
+                distance = abs(random.gauss(0, 2))  # Mean 0, std dev 2
+                distance = min(distance, 5)  # Cap at 5 tiles from center
+                
+                dr = int(distance * math.sin(angle))
+                dc = int(distance * math.cos(angle))
+                r = center_r + dr
+                c = center_c + dc
+                
+                # Check bounds
+                if not (2 <= r < self.game.game_map.height - 2 and 
+                       2 <= c < self.game.game_map.width - 2):
+                    continue
+                
+                # Check terrain
+                terrain = self.game.game_map.grid[r][c]
+                if terrain not in {"grass", "forest", "plains"}:
+                    continue
+                
+                world_pos = self.game.game_map.grid_to_world(c, r)
+                
+                # Use smaller collision radius for trees within forests (allow denser placement)
+                tree_collision_radius = 8  # Reduced from 16 for denser forests
+                if not self._check_collision_with_objects(world_pos[0], world_pos[1], tree_collision_radius):
+                    resource = self._create_instance_from_template(self.game.game_data["resources"]["wood"])
+                    resource.x, resource.y = world_pos
+                    self.game.resources.append(resource)
+                    trees_placed += 1
+            
+            if trees_placed > 5:  # Only count as successful if we placed at least 5 trees
+                forests_placed += 1
     
     def _place_random_resource(self, resource_type, spawn_locations, min_distance):
         """Place a resource randomly on the map, away from spawn locations"""
