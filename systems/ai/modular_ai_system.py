@@ -144,7 +144,11 @@ class ModularAISystem:
                         module.update(delta_time)
                 
                     # Check if enough time has passed for task execution
-                    if current_time - self.last_task_time[player] >= self.task_cooldown:
+                    # Also check if any module has force_next_update set
+                    force_update = any(hasattr(m, 'force_next_update') and m.force_next_update 
+                                     for m in modules.values())
+                    
+                    if current_time - self.last_task_time[player] >= self.task_cooldown or force_update:
                         # Collect tasks from all modules
                         all_tasks = []
                         for module_name, module in modules.items():

@@ -274,12 +274,22 @@ class ResourceManager:
         early_game_resources = ["gold", "wood", "food"]  # Core early game resources
         if self.game_time > 600:  # After 10 minutes, include stone
             early_game_resources.append("stone")
+        
+        # Check if economy module has far resources marked
+        far_resources = set()
+        economy_module = self.ai_system.player_modules.get(self.player, {}).get("economy")
+        if economy_module and hasattr(economy_module, 'far_resources_need_buildings'):
+            far_resources = economy_module.far_resources_need_buildings
             
         available_resources = [r for r in early_game_resources
-                             if r in memory["resource_locations"] and memory["resource_locations"][r]]
+                             if r in memory["resource_locations"] and memory["resource_locations"][r]
+                             and r not in far_resources]  # Exclude far resources that need buildings
+        
+        if far_resources:
+            print(f"AI {self.player.name}: Excluding far resources from assignment: {far_resources}")
         
         if not available_resources:
-            print(f"AI {self.player.name}: No available resources for worker assignment")
+            print(f"AI {self.player.name}: No available resources for worker assignment (far resources excluded: {far_resources})")
             return assignments
         
         # New strategy: Consider distance when assigning workers

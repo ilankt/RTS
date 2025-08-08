@@ -46,6 +46,9 @@ class EconomyModule(AIModule):
         self.stuck_detection_threshold = 5.0  # Consider stuck after 5 seconds
         self.position_tolerance = 5.0  # Pixels - if worker hasn't moved this much, consider stuck
         
+        # Track resources that need buildings
+        self.far_resources_need_buildings = set()  # Set of resource types that need buildings
+        
     def update(self, delta_time: float) -> None:
         """Update module and resource manager"""
         super().update(delta_time)
@@ -117,8 +120,12 @@ class EconomyModule(AIModule):
         # Action: Build Resource Buildings
         building_scores = self._score_resource_buildings(resource_needs)
         print(f"AI {self.player.name}: Resource building scores: {building_scores}")
+        print(f"AI {self.player.name}: Far resources needing buildings: {self.far_resources_need_buildings}")
         for building_type, score in building_scores.items():
-            if self._can_afford(building_type):
+            costs = self.ai_system.cost_data.get(building_type, {})
+            can_afford = self._can_afford(building_type)
+            print(f"AI {self.player.name}: {building_type} - score: {score}, costs: {costs}, can afford: {can_afford}")
+            if can_afford:
                 possible_actions.append({"action": "build_resource_building", "score": score, "params": {"building_type": building_type}})
 
         # Action: Build Barracks
@@ -141,10 +148,18 @@ class EconomyModule(AIModule):
             possible_actions.append({"action": "build_barracks", "score": barracks_score})
             print(f"AI {self.player.name}: Added barracks to possible actions with score {barracks_score} (base 85 + worker bonus {worker_bonus})")
 
-        # 3. Assign idle workers to gather resources
+        # 3. Check for far resources before assigning workers
+        # First, identify which resources are too far and need buildings
+        self._check_far_resources(memory)
+        
+        # 4. Assign idle workers to gather resources (but not from far resources that need buildings)
         if all_idle_workers:
             assignments = self.resource_manager.get_optimal_worker_assignment(all_idle_workers)
             for resource_type, workers in assignments.items():
+                # Skip assignment if this resource type needs a building
+                if resource_type in self.far_resources_need_buildings:
+                    print(f"AI {self.player.name}: Skipping {resource_type} gathering - needs building first")
+                    continue
                 for worker in workers:
                     tasks.append({"action": "gather_resource", "priority": 0.95, "target": worker, "params": {"resource_type": resource_type}})
 
@@ -166,7 +181,19 @@ class EconomyModule(AIModule):
             elif action_type == "build_barracks":
                 tasks.append({"action": "build_barracks", "priority": 0.85, "target": None, "params": {"building_type": "barracks"}})
             elif action_type == "build_resource_building":
-                tasks.append({"action": "build_resource_building", "priority": 0.7, "target": None, "params": best_action["params"]})
+                # Boost priority if this building is needed for far resources
+                building_type = best_action["params"]["building_type"]
+                building_to_resource = {"mine": "gold", "lumbermill": "wood", "quarry": "stone"}
+                resource_type = building_to_resource.get(building_type)
+                
+                if resource_type and resource_type in self.far_resources_need_buildings:
+                    # Very high priority for buildings needed for far resources
+                    priority = 0.98
+                    print(f"AI {self.player.name}: Boosting {building_type} priority to {priority} - needed for far {resource_type}")
+                else:
+                    priority = 0.7
+                    
+                tasks.append({"action": "build_resource_building", "priority": priority, "target": None, "params": best_action["params"]})
 
         return tasks
     
@@ -175,7 +202,12 @@ class EconomyModule(AIModule):
         action = task["action"]
         
         if action == "gather_resource":
-            return self._execute_gather_resource(task)
+            result = self._execute_gather_resource(task)
+            if not result:
+                # If gather failed (likely due to distance), force immediate update
+                self.force_next_update = True
+                print(f"AI {self.player.name}: Gather task failed, forcing immediate update")
+            return result
         elif action == "train_worker":
             return self._execute_train_worker(task)
         elif action == "plan_worker_training":
@@ -360,35 +392,17 @@ class EconomyModule(AIModule):
         resource_type = task["params"]["resource_type"]
         memory = self.ai_system.player_memory[self.player]
         
+        # This shouldn't happen due to our filtering, but double-check
+        if resource_type in self.far_resources_need_buildings:
+            print(f"AI {self.player.name}: Skipping gather execution for {resource_type} - building needed")
+            return False
+        
         if resource_type in memory["resource_locations"]:
             resources = memory["resource_locations"][resource_type]
             
             if resources:
                 # Find closest resource
                 closest = min(resources, key=lambda r: math.sqrt((r.x - worker.x)**2 + (r.y - worker.y)**2))
-                distance = math.sqrt((closest.x - worker.x)**2 + (closest.y - worker.y)**2)
-                
-                # Check if resource is too far (>200 units) and we should build a resource building
-                if distance > 200:
-                    resource_to_building = {"gold": "mine", "wood": "lumbermill", "stone": "quarry"}
-                    building_type = resource_to_building.get(resource_type)
-                    
-                    if building_type:
-                        # Count existing buildings
-                        existing = sum(1 for b in memory["buildings"]["resource_buildings"] if b.name == building_type)
-                        existing += sum(1 for s in self.game.construction_sites 
-                                      if s.player == self.player and s.building_name == building_type)
-                        
-                        # If we have less than 2 of this building type, prioritize building
-                        if existing < 2:
-                            # Don't gather from far resources - force building instead
-                            print(f"AI {self.player.name}: Resource {resource_type} too far ({distance:.0f} units), refusing to gather - need {building_type}")
-                            # Mark this as a high priority need
-                            self.force_next_update = True
-                            return False
-                        # If we already have 2 buildings but resource still far, warn but continue
-                        elif distance > 400:
-                            print(f"AI {self.player.name}: Warning - gathering {resource_type} from very far ({distance:.0f} units)")
                 
                 # Command worker to gather
                 self.ai_system._command_worker_gather(worker, closest)
@@ -561,9 +575,12 @@ class EconomyModule(AIModule):
                                      for r in memory["resource_locations"][res_type])
                     # Add significant distance bonus if resources are far
                     if nearest_dist > 400:
-                        distance_bonuses[building_type] = 50  # Very high priority
+                        distance_bonuses[building_type] = 70  # Very high priority
                     elif nearest_dist > 200:
-                        distance_bonuses[building_type] = 35  # High priority
+                        distance_bonuses[building_type] = 50  # High priority
+                        # Also mark this resource as needing a building
+                        if res_type not in self.far_resources_need_buildings:
+                            print(f"AI {self.player.name}: Adding distance bonus for {building_type} - {res_type} is {nearest_dist:.0f} units away")
 
         # Score Farm with higher base and lower threshold
         if resource_needs.get("food", 0) > 0.3 and existing_buildings["farm"] < 2:
@@ -572,12 +589,55 @@ class EconomyModule(AIModule):
         # Score deposit-based buildings with higher base scores
         resource_to_building = {"gold": "mine", "wood": "lumbermill", "stone": "quarry"}
         for res_type, building_type in resource_to_building.items():
-            # Lower threshold (0.2) and allow up to 2 of each type
-            if resource_needs.get(res_type, 0) > 0.2 and existing_buildings[building_type] < 2:
-                base_score = 70  # Reduced from 85 to make barracks more competitive
+            # Check if this resource type has far deposits that need buildings
+            if res_type in self.far_resources_need_buildings and existing_buildings[building_type] < 2:
+                # CRITICAL priority - we can't gather without this building
+                base_score = 150  # Very high base when needed for far resources
+                scores[building_type] = base_score + distance_bonuses.get(building_type, 0)
+                print(f"AI {self.player.name}: CRITICAL - {building_type} needed for far {res_type}, score: {scores[building_type]}")
+            # Normal scoring for optional buildings
+            elif resource_needs.get(res_type, 0) > 0.2 and existing_buildings[building_type] < 2:
+                base_score = 70  # Normal base score
                 need_bonus = resource_needs[res_type] * 30
                 distance_bonus = distance_bonuses.get(building_type, 0)
                 scores[building_type] = base_score + need_bonus + distance_bonus
 
         return scores
+    
+    def _check_far_resources(self, memory: Dict[str, Any]) -> None:
+        """Check which resource types are too far and need buildings"""
+        self.far_resources_need_buildings.clear()
+        
+        # Only check if we have a castle
+        castle = memory["buildings"]["castle"]
+        if not castle:
+            return
+            
+        # Mapping of resources to buildings
+        resource_to_building = {"gold": "mine", "wood": "lumbermill", "stone": "quarry"}
+        
+        # Check each resource type
+        for res_type, building_type in resource_to_building.items():
+            if res_type not in memory["resource_locations"]:
+                continue
+                
+            resources = memory["resource_locations"][res_type]
+            if not resources:
+                continue
+                
+            # Find nearest resource distance
+            nearest_dist = min(math.sqrt((r.x - castle.x)**2 + (r.y - castle.y)**2) 
+                             for r in resources)
+            
+            # Check if we need a building for this resource
+            if nearest_dist > 200:
+                # Count existing buildings of this type
+                existing = sum(1 for b in memory["buildings"]["resource_buildings"] if b.name == building_type)
+                existing += sum(1 for s in self.game.construction_sites 
+                              if s.player == self.player and s.building_name == building_type)
+                
+                # If we have less than 2 buildings for this far resource, mark it as needing a building
+                if existing < 2:
+                    self.far_resources_need_buildings.add(res_type)
+                    print(f"AI {self.player.name}: {res_type} resources are far ({nearest_dist:.0f} units), need {building_type}")
     
