@@ -1,6 +1,6 @@
 """Smart resource management system for AI"""
 import math
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from collections import defaultdict
 import time
 
