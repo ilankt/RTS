@@ -92,5 +92,24 @@
             "wood": 50,
             "stone": 100
         }
+    },
+    {
+        "name": "watchtower",
+        "sprite": "assets/sprites/Buildings/Watchtower.png",
+        "size": [2,2],
+        "hp": 1500,
+        "build_duration": 15,
+        "armor_type": "fortified",
+        "armor_value": 6,
+        "can_attack": true,
+        "min_damage": 14,
+        "max_damage": 18,
+        "attack_type": "pierce",
+        "attack_speed": 1.5,
+        "attack_range": 175,
+        "costs": {
+            "wood": 150,
+            "stone": 100
+        }
     }
 ]

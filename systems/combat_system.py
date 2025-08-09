@@ -8,6 +8,8 @@ class CombatSystem:
     def __init__(self, game):
         self.game = game
         self.game_map = game.game_map
+        self.projectile_system = None  # Will be set after projectile system is created
+        self.attack_trackers = {}  # Track last attack time for each attacker
         
     def find_optimal_attack_position(self, unit, target, other_attackers):
         """Find optimal attack position for unit when multiple units are attacking the same target"""
@@ -128,8 +130,40 @@ class CombatSystem:
         unit.is_engaging = True
         return False
     
+    def check_for_attacks_and_spawn_projectiles(self):
+        """Check all units and buildings for recent attacks and spawn projectiles"""
+        if not self.projectile_system:
+            return
+            
+        # Check all units
+        for unit in self.game.units:
+            if hasattr(unit, 'in_combat') and unit.in_combat and hasattr(unit, 'last_attack_time'):
+                # Check if this is a new attack
+                unit_id = id(unit)
+                if unit_id not in self.attack_trackers or self.attack_trackers[unit_id] < unit.last_attack_time:
+                    # New attack detected!
+                    self.attack_trackers[unit_id] = unit.last_attack_time
+                    if unit.current_target and unit.current_target.hp > 0:
+                        # Calculate damage for the projectile
+                        damage = unit.calculate_damage(unit.current_target) if hasattr(unit, 'calculate_damage') else 10
+                        self.create_attack_projectile(unit, unit.current_target, damage)
+        
+        # Check all buildings
+        for building in self.game.buildings:
+            if hasattr(building, 'can_attack') and building.can_attack and hasattr(building, 'in_combat') and building.in_combat and hasattr(building, 'last_attack_time'):
+                # Check if this is a new attack
+                building_id = id(building)
+                if building_id not in self.attack_trackers or self.attack_trackers[building_id] < building.last_attack_time:
+                    # New attack detected!
+                    self.attack_trackers[building_id] = building.last_attack_time
+                    if building.current_target and building.current_target.hp > 0:
+                        # Calculate damage for the projectile
+                        damage = building.calculate_damage(building.current_target) if hasattr(building, 'calculate_damage') else 10
+                        self.create_attack_projectile(building, building.current_target, damage)
+    
     def update_combat_units(self, delta_time):
-        """Update all combat-capable units"""
+        """Update all combat-capable units and buildings"""
+        # Update units
         for unit in self.game.units:
             if hasattr(unit, 'update_combat'):
                 unit.update_combat(delta_time)
@@ -149,6 +183,41 @@ class CombatSystem:
                 # Handle ongoing engagements
                 if unit.is_engaging and unit.current_target:
                     self.handle_combat_engagement(unit, unit.current_target)
+        
+        # Update defensive buildings (watchtowers, etc.)
+        for building in self.game.buildings:
+            if hasattr(building, 'can_attack') and building.can_attack:
+                # Update building combat
+                if hasattr(building, 'update_combat'):
+                    building.update_combat(delta_time)
+                
+                # Auto-target enemies if not already attacking
+                if not building.current_target or building.current_target.hp <= 0:
+                    # Find enemies in range
+                    potential_targets = []
+                    
+                    # Check enemy units
+                    for unit in self.game.units:
+                        if unit.player != building.player:
+                            distance = ((building.x - unit.x) ** 2 + (building.y - unit.y) ** 2) ** 0.5
+                            if distance <= building.attack_range:
+                                potential_targets.append((unit, distance))
+                    
+                    # Check enemy buildings
+                    for other_building in self.game.buildings:
+                        if other_building.player != building.player:
+                            distance = ((building.x - other_building.x) ** 2 + (building.y - other_building.y) ** 2) ** 0.5
+                            if distance <= building.attack_range:
+                                potential_targets.append((other_building, distance))
+                    
+                    # Sort by distance and engage closest
+                    if potential_targets:
+                        potential_targets.sort(key=lambda x: x[1])
+                        target, _ = potential_targets[0]
+                        building.start_attack(target)
+        
+        # Check for new attacks and spawn projectiles
+        self.check_for_attacks_and_spawn_projectiles()
     
     def calculate_damage(self, attacker, target):
         """Calculate damage dealt from attacker to target"""
@@ -217,6 +286,11 @@ class CombatSystem:
         # Cancel any production queues
         if hasattr(building, 'production_queue'):
             building.production_queue.clear()
+    
+    def create_attack_projectile(self, attacker, target, damage):
+        """Create a projectile for an attack"""
+        if self.projectile_system:
+            self.projectile_system.create_projectile(attacker, target, damage)
     
     def get_units_in_combat(self):
         """Get all units currently in combat"""

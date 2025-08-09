@@ -65,6 +65,27 @@ class MilitaryModule(AIModule):
         if not memory["buildings"]["barracks"] and self._can_afford("barracks"):
             if len(memory["gathering_workers"]) + len(memory["idle_workers"]) > 3: # Require a stable economy
                 tasks.append({"action": "build_barracks", "priority": 0.8, "target": None, "params": {}})
+        
+        # 2b. Build watchtowers for defense when we have a barracks and some military units
+        if memory["buildings"]["barracks"]:
+            watchtower_count = sum(1 for b in memory["buildings"].get("all", []) 
+                                  if hasattr(b, 'name') and b.name == "watchtower")
+            military_unit_count = len(memory["military_units"])
+            
+            # Build watchtowers based on game progression
+            # First watchtower after 2 military units, second after 5, third after 8
+            desired_watchtowers = 0
+            if military_unit_count >= 2:
+                desired_watchtowers = 1
+            if military_unit_count >= 5:
+                desired_watchtowers = 2
+            if military_unit_count >= 8:
+                desired_watchtowers = 3
+                
+            if watchtower_count < desired_watchtowers and self._can_afford("watchtower"):
+                # Higher priority if under threat
+                priority = 0.85 if threat_level > 0.3 else 0.65
+                tasks.append({"action": "build_watchtower", "priority": priority, "target": None, "params": {}})
 
         # 3. Train military units if a barracks exists.
         if memory["buildings"]["barracks"]:
@@ -90,6 +111,8 @@ class MilitaryModule(AIModule):
             return self._execute_defend_base(task)
         elif action == "build_barracks":
             return self._execute_build_barracks(task)
+        elif action == "build_watchtower":
+            return self._execute_build_watchtower(task)
         elif action == "train_military":
             return self._execute_train_military(task)
         elif action == "form_units":
@@ -275,6 +298,11 @@ class MilitaryModule(AIModule):
     def _execute_build_barracks(self, task: Dict[str, Any]) -> bool:
         """Build a barracks"""
         self.ai_system._build_structure(self.player, "barracks")
+        return True
+    
+    def _execute_build_watchtower(self, task: Dict[str, Any]) -> bool:
+        """Build a watchtower at a strategic defensive position"""
+        self.ai_system._build_structure(self.player, "watchtower")
         return True
     
     def _execute_train_military(self, task: Dict[str, Any]) -> bool:

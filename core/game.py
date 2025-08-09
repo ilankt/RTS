@@ -25,6 +25,7 @@ from systems.building_system import BuildingSystem
 from systems.rendering_system import RenderingSystem
 from systems.unit_watchdog import UnitWatchdog
 from systems.ai import ModularAISystem
+from systems.projectile_system import ProjectileSystem
 
 
 class Game:
@@ -78,6 +79,10 @@ class Game:
         self.rendering_system = RenderingSystem(self)
         self.unit_watchdog = UnitWatchdog(self)
         self.ai_system = ModularAISystem(self)
+        self.projectile_system = ProjectileSystem(self)
+        
+        # Link projectile system to combat system
+        self.combat_system.projectile_system = self.projectile_system
         
         # Other components
         self.minimap = Minimap(self, MINIMAP_WIDTH, MINIMAP_HEIGHT)
@@ -286,6 +291,12 @@ class Game:
         
         # Update unit movement and combat
         self._update_units(self.delta_time)
+        
+        # Update combat system (for both units and buildings)
+        self.combat_system.update_combat_units(self.delta_time)
+        
+        # Update projectiles
+        self.projectile_system.update(self.delta_time)
         
         # Remove destroyed objects
         self._cleanup_destroyed_objects()

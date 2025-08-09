@@ -529,6 +529,43 @@ class UIManager:
                     panel_surface.blit(hp_text, (10, y_offset))
                     y_offset += 30
                 
+                # Combat stats for buildings that can attack (like watchtowers)
+                obj = selected_info["object"]
+                if (selected_info["type"] == "Building" and 
+                    hasattr(obj, 'can_attack') and obj.can_attack):
+                    y_offset += 10  # Add some spacing
+                    
+                    # Combat stats header
+                    combat_header = self.font.render("Combat Stats:", True, (255, 200, 100))
+                    panel_surface.blit(combat_header, (10, y_offset))
+                    y_offset += 25
+                    
+                    # Damage range and type
+                    damage_text = self.stat_font.render(
+                        f"Damage: {obj.min_damage}-{obj.max_damage} ({obj.attack_type.title()})", 
+                        True, (255, 200, 100)
+                    )
+                    panel_surface.blit(damage_text, (10, y_offset))
+                    y_offset += 20
+                    
+                    # Attack range
+                    range_text = self.stat_font.render(f"Range: {obj.attack_range}", True, (100, 200, 255))
+                    panel_surface.blit(range_text, (10, y_offset))
+                    y_offset += 20
+                    
+                    # Attack speed
+                    speed_text = self.stat_font.render(f"Attack Speed: {obj.attack_speed:.1f}/s", True, (200, 255, 100))
+                    panel_surface.blit(speed_text, (10, y_offset))
+                    y_offset += 20
+                    
+                    # Armor info
+                    armor_text = self.stat_font.render(
+                        f"Armor: {obj.armor_type.title()} ({obj.armor_value})", 
+                        True, (200, 200, 200)
+                    )
+                    panel_surface.blit(armor_text, (10, y_offset))
+                    y_offset += 25
+                
             
             # Draw action buttons for units
             if selected_info["type"] == "Unit" and selected_info["object"].player == self.game.players[0]:
@@ -1091,8 +1128,8 @@ class UIManager:
             with open('data/buildings.json', 'r') as f:
                 buildings_data = json.load(f)
             
-            # Reorder buildings: House, Farm, Lumbermill, Mine, Quarry, Barracks, Castle
-            building_order = ["house", "farm", "lumbermill", "mine", "quarry", "barracks", "castle"]
+            # Reorder buildings: House, Farm, Lumbermill, Mine, Quarry, Barracks, Watchtower, Castle
+            building_order = ["house", "farm", "lumbermill", "mine", "quarry", "barracks", "watchtower", "castle"]
             buildable_buildings = []
             for building_name in building_order:
                 for building in buildings_data:

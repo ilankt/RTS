@@ -522,14 +522,22 @@ class ModularAISystem:
                 
             building_template = self.game.game_data["buildings"][building_type]
             
-            # Create building_data dict
+            # Create building_data dict with ALL properties including combat
             building_data = {
                 'name': building_type,
                 'size': building_template.size,
                 'hp': building_template.hp,
                 'sprite': building_template.sprite,
                 'build_duration': building_template.build_duration,
-                'costs': costs
+                'costs': costs,
+                'armor_type': getattr(building_template, 'armor_type', 'fortified'),
+                'armor_value': getattr(building_template, 'armor_value', 0),
+                'can_attack': getattr(building_template, 'can_attack', False),
+                'min_damage': getattr(building_template, 'min_damage', 0),
+                'max_damage': getattr(building_template, 'max_damage', 0),
+                'attack_type': getattr(building_template, 'attack_type', 'slash'),
+                'attack_speed': getattr(building_template, 'attack_speed', 1.0),
+                'attack_range': getattr(building_template, 'attack_range', 0)
             }
             
             construction_site = ConstructionSite(

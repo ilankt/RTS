@@ -20,7 +20,8 @@ class GameObject:
 
 class Building(GameObject):
     def __init__(self, name, size, hp, sprite, build_duration, x=0, y=0, radius=0, player=None, costs=None, 
-                 armor_type="light", armor_value=0):
+                 armor_type="light", armor_value=0, can_attack=False, min_damage=0, max_damage=0, 
+                 attack_type="slash", attack_speed=1.0, attack_range=0):
         super().__init__(name, size, hp, sprite, x, y, radius, player)
         self.build_duration = build_duration
         self.costs = costs or {}
@@ -28,6 +29,19 @@ class Building(GameObject):
         # Armor properties
         self.armor_type = armor_type
         self.armor_value = armor_value
+        
+        # Combat properties (for defensive buildings like watchtowers)
+        self.can_attack = can_attack
+        self.min_damage = min_damage
+        self.max_damage = max_damage
+        self.attack_type = attack_type
+        self.attack_speed = attack_speed
+        self.attack_range = attack_range
+        
+        # Combat state
+        self.current_target = None
+        self.last_attack_time = 0
+        self.in_combat = False
         
         # Unit production system
         self.production_queue = []  # Queue of units to produce
@@ -41,6 +55,80 @@ class Building(GameObject):
             "barracks": ["warrior", "archer"]
         }
         return production_map.get(self.name, [])
+    
+    def can_attack_target(self, target):
+        """Check if this building can attack the target"""
+        if not self.can_attack:
+            return False
+        
+        # Check if target is valid and alive
+        if not target or target.hp <= 0:
+            return False
+        
+        # Check if target belongs to enemy
+        if target.player == self.player:
+            return False
+        
+        # Check range
+        distance = ((self.x - target.x) ** 2 + (self.y - target.y) ** 2) ** 0.5
+        return distance <= self.attack_range
+    
+    def calculate_damage(self, target):
+        """Calculate damage dealt to target based on attack and armor types"""
+        # Base damage (random between min and max)
+        base_damage = random.randint(self.min_damage, self.max_damage)
+        
+        # Get target armor
+        target_armor_type = getattr(target, 'armor_type', 'light')
+        target_armor_value = getattr(target, 'armor_value', 0)
+        
+        # Attack type effectiveness matrix
+        effectiveness = {
+            "slash": {"light": 1.5, "heavy": 1.0, "fortified": 0.5},
+            "pierce": {"light": 1.0, "heavy": 1.5, "fortified": 0.5},
+            "siege": {"light": 0.75, "heavy": 1.0, "fortified": 2.0}
+        }
+        
+        # Apply type effectiveness
+        multiplier = effectiveness.get(self.attack_type, {}).get(target_armor_type, 1.0)
+        damage = base_damage * multiplier
+        
+        # Apply armor reduction
+        damage = max(1, damage - target_armor_value)  # Minimum 1 damage
+        
+        return int(damage)
+    
+    def start_attack(self, target):
+        """Begin attacking a target"""
+        self.current_target = target
+        self.in_combat = True
+    
+    def update_combat(self, delta_time):
+        """Handle attack timing and execution for defensive buildings"""
+        if not hasattr(self, 'can_attack') or not self.can_attack or not self.in_combat or not self.current_target:
+            return
+        
+        # Check if target is still valid and in range
+        if not self.can_attack_target(self.current_target):
+            # Target moved out of range or died
+            self.current_target = None
+            self.in_combat = False
+            return
+        
+        # Check if enough time has passed to attack again
+        current_time = pygame.time.get_ticks() / 1000.0
+        time_between_attacks = 1.0 / self.attack_speed
+        
+        if current_time - self.last_attack_time >= time_between_attacks:
+            # Perform attack
+            damage = self.calculate_damage(self.current_target)
+            self.current_target.hp -= damage
+            self.last_attack_time = current_time
+            
+            # Check if target is destroyed
+            if self.current_target.hp <= 0:
+                self.current_target = None
+                self.in_combat = False
 
 class Unit(GameObject):
     def __init__(self, name, size, hp, movement_speed, attack, animations, x=0, y=0, radius=0, player=None, can_build=False, can_attack=False,
@@ -422,7 +510,25 @@ def load_game_data():
     for b in buildings_data:
         # Calculate radius based on size[0] and TILE_WIDTH
         radius = b['size'][0] * TILE_WIDTH / 2
-        game_data["buildings"][b['name']] = Building(x=0, y=0, radius=radius, **b)
+        game_data["buildings"][b['name']] = Building(
+            name=b['name'],
+            size=b['size'],
+            hp=b['hp'],
+            sprite=b['sprite'],
+            build_duration=b['build_duration'],
+            x=0, 
+            y=0, 
+            radius=radius,
+            costs=b.get('costs', {}),
+            armor_type=b.get('armor_type', 'fortified'),
+            armor_value=b.get('armor_value', 0),
+            can_attack=b.get('can_attack', False),
+            min_damage=b.get('min_damage', 0),
+            max_damage=b.get('max_damage', 0),
+            attack_type=b.get('attack_type', 'slash'),
+            attack_speed=b.get('attack_speed', 1.0),
+            attack_range=b.get('attack_range', 0)
+        )
 
     for u in units_data:
         # Calculate radius based on size[0] and TILE_WIDTH

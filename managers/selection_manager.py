@@ -944,6 +944,31 @@ class SelectionManager:
                 outer_x = screen_x + radius * math.cos(rad)
                 outer_y = screen_y + radius * math.sin(rad)
                 pygame.draw.line(surface, color, (int(inner_x), int(inner_y)), (int(outer_x), int(outer_y)), 2)
+            
+            # Draw attack range for buildings that can attack (like watchtowers)
+            if hasattr(obj, 'can_attack') and obj.can_attack and hasattr(obj, 'attack_range'):
+                # Choose color based on ownership - green for player, red for enemy
+                if hasattr(obj, 'player') and obj.player:
+                    if obj.player.human:
+                        range_color = (0, 255, 0, 64)  # Semi-transparent green
+                    else:
+                        range_color = (255, 0, 0, 64)  # Semi-transparent red
+                else:
+                    range_color = (255, 255, 255, 64)  # Semi-transparent white
+                
+                # Draw attack range circle
+                attack_radius = int(obj.attack_range * camera.zoom)
+                
+                # Create a surface for semi-transparent circle
+                range_surface = pygame.Surface((attack_radius * 2 + 4, attack_radius * 2 + 4), pygame.SRCALPHA)
+                pygame.draw.circle(range_surface, range_color, (attack_radius + 2, attack_radius + 2), attack_radius, 2)
+                
+                # Draw the range circle
+                surface.blit(range_surface, (int(screen_x - attack_radius - 2), int(screen_y - attack_radius - 2)))
+                
+                # Also draw a solid outline
+                outline_color = range_color[:3]  # Remove alpha
+                pygame.draw.circle(surface, outline_color, (int(screen_x), int(screen_y)), attack_radius, 1)
     
     def get_selected_unit_names(self):
         """Get names of selected units"""

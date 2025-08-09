@@ -122,6 +122,10 @@ class RenderingSystem:
         
         # Draw selection box if active
         self.selection_manager.draw_selection_box(map_surface)
+        
+        # Draw projectiles
+        if hasattr(self.game, 'projectile_system') and self.game.projectile_system:
+            self.game.projectile_system.draw(map_surface, camera)
     
     def draw_debug_info(self, screen, font=None):
         """Draw debug information on screen"""

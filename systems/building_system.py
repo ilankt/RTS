@@ -235,7 +235,15 @@ class BuildingSystem:
                         y=site.y,
                         radius=site.radius,
                         player=site.player,
-                        costs=site.building_data.get('costs', {})
+                        costs=site.building_data.get('costs', {}),
+                        armor_type=site.building_data.get('armor_type', 'fortified'),
+                        armor_value=site.building_data.get('armor_value', 0),
+                        can_attack=site.building_data.get('can_attack', False),
+                        min_damage=site.building_data.get('min_damage', 0),
+                        max_damage=site.building_data.get('max_damage', 0),
+                        attack_type=site.building_data.get('attack_type', 'slash'),
+                        attack_speed=site.building_data.get('attack_speed', 1.0),
+                        attack_range=site.building_data.get('attack_range', 0)
                     )
                     
                     self.game.buildings.append(building_class)
