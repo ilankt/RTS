@@ -16,6 +16,7 @@ class UIManager:
         self.build_button_rect = None
         self.cancel_construction_rect = None
         self.show_building_menu = False
+        self.show_building_category = None  # None, 'economy', or 'military'
         self.building_buttons = []
         self.selected_building_type = None
         self.building_buttons_populated = False  # Track if buttons are ready
@@ -58,6 +59,12 @@ class UIManager:
                 pygame.image.load("assets/ui/build_icon.png").convert_alpha(), (60, 60))
             self.action_icons['cancel'] = pygame.transform.smoothscale(
                 pygame.image.load("assets/ui/cancel_icon.png").convert_alpha(), (24, 24))
+            
+            # Load building category icons
+            self.action_icons['build_econ'] = pygame.transform.smoothscale(
+                pygame.image.load("assets/ui/build_econ_icon.png").convert_alpha(), (70, 70))
+            self.action_icons['build_mil'] = pygame.transform.smoothscale(
+                pygame.image.load("assets/ui/build_mil_icon.png").convert_alpha(), (70, 70))
         except:
             # Icons not loaded yet, will use text buttons as fallback
             pass
@@ -574,6 +581,7 @@ class UIManager:
                 # Close building menu if non-builder unit is selected or no unit selected
                 if self.show_building_menu:
                     self.show_building_menu = False
+                    self.show_building_category = None
                     self.building_buttons = []
                     self.building_buttons_populated = False
                         
@@ -646,6 +654,7 @@ class UIManager:
             # No selection - close building menu
             if self.show_building_menu:
                 self.show_building_menu = False
+                self.show_building_category = None
                 self.building_buttons = []
                 self.building_buttons_populated = False
             no_selection_text = self.font.render("No Selection", True, (150, 150, 150))
@@ -776,13 +785,6 @@ class UIManager:
     
     def draw_building_menu(self, screen):
         """Draw the building selection menu"""
-        # Load building data
-        with open('data/buildings.json', 'r') as f:
-            buildings_data = json.load(f)
-        
-        # Include all buildings (castle is now buildable)
-        buildable_buildings = buildings_data
-        
         # Define UI panel area (same as main UI panel)
         ui_x = SCREEN_WIDTH - MINIMAP_WIDTH
         ui_y = MINIMAP_HEIGHT
@@ -794,9 +796,90 @@ class UIManager:
         menu_surface.fill((50, 50, 50))
         pygame.draw.rect(menu_surface, (100, 100, 100), (0, 0, ui_width, ui_height), 2)
         
-        # Draw title
-        title_text = self.small_font.render("Buildings", True, (255, 255, 255))
-        menu_surface.blit(title_text, (8, 8))
+        padding = 6
+        
+        if self.show_building_category is None:
+            # Show category selection
+            title_text = self.small_font.render("Building Categories", True, (255, 255, 255))
+            menu_surface.blit(title_text, (8, 8))
+            
+            # Draw category buttons
+            button_y = 40
+            button_size = 85
+            button_spacing = 8
+            
+            # Economy button
+            econ_button_x = (ui_width - button_size * 2 - button_spacing) // 2
+            econ_button_rect = pygame.Rect(econ_button_x, button_y, button_size, button_size)
+            
+            # Military button
+            mil_button_x = econ_button_x + button_size + button_spacing
+            mil_button_rect = pygame.Rect(mil_button_x, button_y, button_size, button_size)
+            
+            # Get current mouse position for hover detection
+            mouse_pos = pygame.mouse.get_pos()
+            mouse_in_menu = (mouse_pos[0] - ui_x, mouse_pos[1] - ui_y)
+            
+            # Draw economy button
+            econ_hover = econ_button_rect.collidepoint(mouse_in_menu)
+            button_color = (100, 100, 100) if econ_hover else (70, 70, 70)
+            border_color = (255, 255, 0) if econ_hover else (150, 150, 150)
+            border_width = 3 if econ_hover else 1
+            
+            pygame.draw.rect(menu_surface, button_color, econ_button_rect)
+            pygame.draw.rect(menu_surface, border_color, econ_button_rect, border_width)
+            
+            # Draw economy icon or text
+            if 'build_econ' in self.action_icons:
+                icon = self.action_icons['build_econ']
+                icon_rect = icon.get_rect(center=econ_button_rect.center)
+                menu_surface.blit(icon, icon_rect)
+            else:
+                text = self.button_font.render("Economy", True, (255, 255, 255))
+                text_rect = text.get_rect(center=econ_button_rect.center)
+                menu_surface.blit(text, text_rect)
+            
+            # Draw economy label
+            label = self.small_font.render("Economy", True, (255, 255, 255))
+            label_rect = label.get_rect(centerx=econ_button_rect.centerx, top=econ_button_rect.bottom + 5)
+            menu_surface.blit(label, label_rect)
+            
+            # Draw military button
+            mil_hover = mil_button_rect.collidepoint(mouse_in_menu)
+            button_color = (100, 100, 100) if mil_hover else (70, 70, 70)
+            border_color = (255, 255, 0) if mil_hover else (150, 150, 150)
+            border_width = 3 if mil_hover else 1
+            
+            pygame.draw.rect(menu_surface, button_color, mil_button_rect)
+            pygame.draw.rect(menu_surface, border_color, mil_button_rect, border_width)
+            
+            # Draw military icon or text
+            if 'build_mil' in self.action_icons:
+                icon = self.action_icons['build_mil']
+                icon_rect = icon.get_rect(center=mil_button_rect.center)
+                menu_surface.blit(icon, icon_rect)
+            else:
+                text = self.button_font.render("Military", True, (255, 255, 255))
+                text_rect = text.get_rect(center=mil_button_rect.center)
+                menu_surface.blit(text, text_rect)
+            
+            # Draw military label
+            label = self.small_font.render("Military", True, (255, 255, 255))
+            label_rect = label.get_rect(centerx=mil_button_rect.centerx, top=mil_button_rect.bottom + 5)
+            menu_surface.blit(label, label_rect)
+            
+            # Store button rects for click detection (adjusted for screen position)
+            self.category_buttons = {
+                'economy': pygame.Rect(ui_x + econ_button_rect.x, ui_y + econ_button_rect.y, 
+                                     econ_button_rect.width, econ_button_rect.height),
+                'military': pygame.Rect(ui_x + mil_button_rect.x, ui_y + mil_button_rect.y, 
+                                      mil_button_rect.width, mil_button_rect.height)
+            }
+        else:
+            # Show buildings for selected category
+            title = "Economy Buildings" if self.show_building_category == 'economy' else "Military Buildings"
+            title_text = self.small_font.render(title, True, (255, 255, 255))
+            menu_surface.blit(title_text, (8, 8))
         
         # Draw building buttons with icons (use pre-populated button list)
         if not self.building_buttons_populated:
@@ -910,27 +993,39 @@ class UIManager:
             # Check cancel button
             if hasattr(self, 'cancel_building_menu_rect') and self.cancel_building_menu_rect.collidepoint(pos):
                 self.show_building_menu = False
+                self.show_building_category = None
                 self.selected_building_type = None
                 self.building_buttons = []  # Clear buttons when menu is closed
                 self.building_buttons_populated = False
                 return True
-                
-            # Check building buttons
-            for i, button_info in enumerate(self.building_buttons):
-                if button_info['click_rect'].collidepoint(pos):
-                    print(f"Clicked on building {i}: {button_info['building']['name']}, can_afford: {button_info['can_afford']}")
-                    if button_info['can_afford']:
-                        print(f"Selecting building: {button_info['building']['name']}")
-                        self.selected_building_type = button_info['building']
-                        self.show_building_menu = False
-                        self.building_buttons = []  # Clear buttons when menu is closed
-                        self.building_buttons_populated = False
-                        # Notify game to enter building placement mode
-                        self.game.enter_building_placement_mode(self.selected_building_type)
+            
+            # Check category buttons if no category selected
+            if self.show_building_category is None and hasattr(self, 'category_buttons'):
+                for category, rect in self.category_buttons.items():
+                    if rect.collidepoint(pos):
+                        self.show_building_category = category
+                        self.building_buttons_populated = False  # Force repopulation
+                        self._populate_building_buttons()
                         return True
-                    else:
-                        print(f"Cannot afford building: {button_info['building']['name']}")
-                        return True  # Still consume the click even if can't afford
+            
+            # Check building buttons if category is selected
+            if self.show_building_category is not None:
+                for i, button_info in enumerate(self.building_buttons):
+                    if button_info['click_rect'].collidepoint(pos):
+                        print(f"Clicked on building {i}: {button_info['building']['name']}, can_afford: {button_info['can_afford']}")
+                        if button_info['can_afford']:
+                            print(f"Selecting building: {button_info['building']['name']}")
+                            self.selected_building_type = button_info['building']
+                            self.show_building_menu = False
+                            self.show_building_category = None
+                            self.building_buttons = []  # Clear buttons when menu is closed
+                            self.building_buttons_populated = False
+                            # Notify game to enter building placement mode
+                            self.game.enter_building_placement_mode(self.selected_building_type)
+                            return True
+                        else:
+                            print(f"Cannot afford building: {button_info['building']['name']}")
+                            return True  # Still consume the click even if can't afford
         
         # Check unit production button clicks
         if hasattr(self, 'unit_production_buttons') and self.unit_production_buttons:
@@ -943,8 +1038,11 @@ class UIManager:
                 if button['action'] == 'build':
                     self.show_building_menu = not self.show_building_menu
                     if self.show_building_menu:
-                        self._populate_building_buttons()  # Populate immediately when menu opens
+                        self.show_building_category = None  # Reset to category selection
+                        self.building_buttons = []  # Clear any existing buttons
+                        self.building_buttons_populated = False
                     else:
+                        self.show_building_category = None
                         self.building_buttons = []  # Clear buttons when menu is closed
                         self.building_buttons_populated = False
                 elif button['action'] == 'move':
@@ -1128,8 +1226,21 @@ class UIManager:
             with open('data/buildings.json', 'r') as f:
                 buildings_data = json.load(f)
             
-            # Reorder buildings: House, Farm, Lumbermill, Mine, Quarry, Barracks, Watchtower, Castle
-            building_order = ["house", "farm", "lumbermill", "mine", "quarry", "barracks", "watchtower", "castle"]
+            # Define building categories
+            economy_buildings = ["house", "farm", "lumbermill", "mine", "quarry"]
+            military_buildings = ["barracks", "watchtower", "castle"]
+            
+            # Filter buildings based on category
+            if self.show_building_category == 'economy':
+                building_order = economy_buildings
+            elif self.show_building_category == 'military':
+                building_order = military_buildings
+            else:
+                # If no category selected, don't show any buildings
+                self.building_buttons = []
+                self.building_buttons_populated = True
+                return
+            
             buildable_buildings = []
             for building_name in building_order:
                 for building in buildings_data:
