@@ -114,6 +114,8 @@ AI_STARTING_RESOURCES = {
 # Debug Configuration
 DEBUG_PATHFINDING = False  # Enable/disable pathfinding debug output
 DEBUG_MOVEMENT = False     # Enable/disable movement debug output
+DEBUG_TO_FILE = True       # Enable/disable debug output to file
+DEBUG_FILE_PATH = "debug.dat"  # Path to debug output file
 
 # Cursor Configuration
 CURSOR_SIZE = 48  # Size in pixels for command mode cursors (configurable)
@@ -121,3 +123,9 @@ SMART_CURSORS_ENABLED = True  # Enable automatic cursor switching based on conte
 
 # Ghosting duration for stuck units (in milliseconds)
 GHOST_DURATION = 2000
+
+# Game speed settings
+DEFAULT_GAME_SPEED = 1.0
+MIN_GAME_SPEED = 1.0
+MAX_GAME_SPEED = 5.0
+GAME_SPEED_INCREMENT = 1.0

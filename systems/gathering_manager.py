@@ -97,9 +97,24 @@ class GatheringManager:
                 worker.gathering_target = None
         else:
             # Resource depleted or invalid
-            pass
+            print(f"Worker at ({worker.x:.0f}, {worker.y:.0f}) stopped gathering - resource depleted or invalid")
+            
+            # Clear gathering state
             worker.is_gathering = False
             worker.gathering_target = None
+            worker.status = "idle"
+            
+            # Clear any movement state
+            worker.destination = None
+            worker.path = None
+            worker.path_index = 0
+            worker.path_target = None
+            worker.is_engaging = False
+            
+            # Remove worker from resource's gatherer list if resource still exists
+            if hasattr(worker, 'gathering_target') and worker.gathering_target and hasattr(worker.gathering_target, 'gatherers'):
+                if worker in worker.gathering_target.gatherers:
+                    worker.gathering_target.gatherers.remove(worker)
     
     def start_gathering(self, worker, resource):
         """Start a worker gathering from a resource"""

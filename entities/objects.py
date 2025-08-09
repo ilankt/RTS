@@ -187,7 +187,7 @@ class Unit(GameObject):
     def set_animations(self, animations):
         self.animations = animations
 
-    def update_animation(self):
+    def update_animation(self, delta_time=None):
         # Use build animation if building, otherwise use current status
         animation_status = "build" if self.is_building and "build" in self.animations else self.status
         
@@ -203,10 +203,10 @@ class Unit(GameObject):
                 num_frames = len(self.animations[animation_status].frames)
                 time_per_attack = 1000.0 / self.attack_speed  # Total time for one attack in ms
                 time_per_frame = time_per_attack / num_frames  # Time per animation frame
-                self.animations[animation_status].update(custom_speed=time_per_frame)
+                self.animations[animation_status].update(custom_speed=time_per_frame, delta_time=delta_time)
             else:
                 # Use default animation speed for non-combat animations
-                self.animations[animation_status].update()
+                self.animations[animation_status].update(delta_time=delta_time)
 
     def get_current_sprite(self):
         # Use build animation if building, otherwise use current status

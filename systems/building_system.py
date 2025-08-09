@@ -212,15 +212,21 @@ class BuildingSystem:
     
     def update_construction(self, delta_time):
         """Update construction progress for all construction sites"""
+        from utils.debug_logger import debug_log
         completed_sites = []
         
         for site in self.game.construction_sites:
+            # Log construction site status
+            builder_info = f"builder={site.builder}, is_building={site.builder.is_building if site.builder else 'N/A'}"
+            debug_log.log(f"Checking construction site at ({site.x:.0f}, {site.y:.0f}) - {builder_info}", "BUILD_UPDATE")
+            
             if site.builder and site.builder.is_building:
                 # Update construction progress with player's build speed bonus
                 build_speed = delta_time
                 if hasattr(site, 'player') and site.player:
                     build_speed *= site.player.build_speed_bonus
                 site.construction_progress += build_speed
+                debug_log.log(f"  Construction progress: {site.construction_progress:.2f}/{site.construction_duration} (+{build_speed:.3f})", "BUILD_UPDATE")
                 
                 # Check if construction is complete
                 if site.construction_progress >= site.construction_duration:

@@ -14,8 +14,8 @@ class MovementSystem:
         
     def update_unit_movement(self, unit, delta_time):
         """Main movement update for a single unit"""
-        # Update animation
-        unit.update_animation()
+        # Update animation with delta_time
+        unit.update_animation(delta_time)
         
         # Update combat if applicable
         if hasattr(unit, 'update_combat'):
@@ -28,9 +28,9 @@ class MovementSystem:
         
         # Handle path following
         if unit.path and unit.path_index < len(unit.path):
-            self._follow_path(unit)
+            self._follow_path(unit, delta_time)
         elif unit.destination and not unit.path:
-            self._move_direct(unit)
+            self._move_direct(unit, delta_time)
         
         
     
@@ -350,23 +350,62 @@ class MovementSystem:
         if (hasattr(unit, 'building_target') and unit.building_target and not unit.is_building):
             build_distance = math.sqrt((unit.x - unit.building_target.x)**2 + 
                                      (unit.y - unit.building_target.y)**2)
-            required_distance = unit.radius + unit.building_target.radius - 10
+            required_distance = unit.radius + unit.building_target.radius - 5
             
             # Add tolerance for stuck units
             if hasattr(unit, '_stuck_detector') and unit._stuck_detector['stuck_timer'] >= 60:
                 tolerance = unit.get_target_tolerance("movement")
                 required_distance += tolerance
+                print(f"Worker stuck approaching construction - increased tolerance to {required_distance:.1f}")
+            
+            # Debug stuck workers with building targets
+            if not unit.path and not unit.destination and unit.status == "idle":
+                from utils.debug_logger import debug_log
+                debug_log.log(f"Worker at ({unit.x:.0f}, {unit.y:.0f}) has building_target but no movement!", "CONSTRUCTION")
+                debug_log.log(f"  - Target: Construction at ({unit.building_target.x:.0f}, {unit.building_target.y:.0f})", "CONSTRUCTION")
+                debug_log.log(f"  - Distance: {build_distance:.1f}, Required: {required_distance:.1f}", "CONSTRUCTION")
+                
+                # Recovery: Re-path to building target
+                if build_distance > required_distance + 5:
+                    print(f"  - Recovery: Re-pathing to construction site")
+                    from systems.pathfinding import Pathfinding
+                    pathfinder = Pathfinding(self.game_map, self.game)
+                    pathfinder.current_unit = unit
+                    
+                    path = pathfinder.find_path((unit.x, unit.y), 
+                                              (unit.building_target.x, unit.building_target.y), 
+                                              unit.radius, unit)
+                    if path:
+                        unit.path = path
+                        unit.path_index = 0
+                        unit.destination = path[0] if path else None
+                        unit.status = "run"
+                        print(f"  - Recovery: Path found to construction site")
+                    else:
+                        print(f"  - Recovery: No path to construction site!")
             
             if build_distance <= required_distance:
                 # Start building
-                pass
+                from utils.debug_logger import debug_log
+                debug_log.log(f"Worker reached construction site at distance {build_distance:.1f} (required: {required_distance:.1f})", "CONSTRUCTION")
+                debug_log.log(f"  Worker status: {unit.status}, is_building: {unit.is_building}", "CONSTRUCTION")
                 unit.path = None
                 unit.path_index = 0
                 unit.path_target = None
                 unit.destination = None
                 unit.is_building = True
                 unit.status = "build"
-                # Debug: Worker started building
+                debug_log.log(f"  Updated worker - status: {unit.status}, is_building: {unit.is_building}", "CONSTRUCTION")
+                
+                # Link worker to construction site
+                if hasattr(unit.building_target, 'builder'):
+                    if unit.building_target.builder is None:
+                        unit.building_target.builder = unit
+                        debug_log.log(f"  Linked worker to construction site", "CONSTRUCTION")
+                    else:
+                        debug_log.log(f"  Construction site already has a builder: {unit.building_target.builder}", "CONSTRUCTION")
+                else:
+                    debug_log.log(f"  ERROR: Construction site has no 'builder' attribute!", "CONSTRUCTION")
                 return
         
         # Check drop-off target
@@ -428,17 +467,55 @@ class MovementSystem:
                                       (unit.y - unit.gathering_target.y)**2)
             gathering_distance = get_gathering_distance(unit, unit.gathering_target)
             
+            # Debug and recover stuck workers with gathering targets
+            if not unit.path and not unit.destination and unit.status == "idle":
+                print(f"DEBUG: Worker at ({unit.x:.0f}, {unit.y:.0f}) has gathering_target but no movement!")
+                print(f"  - Target: {unit.gathering_target.name} at ({unit.gathering_target.x:.0f}, {unit.gathering_target.y:.0f})")
+                print(f"  - Distance: {target_distance:.1f}, Required: {gathering_distance:.1f}")
+                print(f"  - Resource remaining: {getattr(unit.gathering_target, 'amount_remaining', 'N/A')}")
+                
+                # Recovery: If too far from target, clear the stuck state and re-path
+                if target_distance > gathering_distance + 5:  # Small tolerance
+                    print(f"  - Recovery: Re-pathing to distant gathering target")
+                    from systems.pathfinding import Pathfinding
+                    pathfinder = Pathfinding(self.game_map, self.game)
+                    pathfinder.gathering_target = unit.gathering_target
+                    pathfinder.current_unit = unit
+                    
+                    path = pathfinder.find_path((unit.x, unit.y), 
+                                              (unit.gathering_target.x, unit.gathering_target.y), 
+                                              unit.radius, unit)
+                    if path:
+                        unit.path = path
+                        unit.path_index = 0
+                        unit.destination = path[0] if path else None
+                        unit.status = "run"
+                        print(f"  - Recovery: Path found, worker moving again")
+                    else:
+                        # Can't reach target - clear it
+                        print(f"  - Recovery: No path to target, clearing gathering target")
+                        unit.gathering_target = None
+                        unit.is_engaging = False
+            
             if target_distance <= gathering_distance:
+                print(f"Worker at distance {target_distance:.1f} from {unit.gathering_target.name} (required: {gathering_distance:.1f})")
                 # Attempt to start gathering. If successful, the gathering manager will handle state changes.
                 if self.game.gathering_manager.start_gathering(unit, unit.gathering_target):
+                    print(f"  Started gathering successfully")
                     # Now that gathering has officially started, clear the movement state.
                     unit.path = None
                     unit.path_index = 0
                     unit.path_target = None
                     unit.destination = None
                     unit.is_engaging = False
+                else:
+                    # Failed to start gathering - resource might be depleted
+                    print(f"  Failed to start gathering - resource might be depleted")
+                    unit.gathering_target = None
+                    unit.is_engaging = False
+                    unit.status = "idle"
     
-    def _follow_path(self, unit):
+    def _follow_path(self, unit, delta_time):
         """Follow a pathfinding path"""
         # Safety check - ensure path exists
         if not unit.path:
@@ -496,7 +573,7 @@ class MovementSystem:
         else:
             # Move toward waypoint
             pass
-            self._move_unit_toward_destination(unit, pos, direction)
+            self._move_unit_toward_destination(unit, pos, direction, delta_time)
     
     def _check_target_movement(self, unit):
         """Check if movement target has moved significantly"""
@@ -619,7 +696,7 @@ class MovementSystem:
             unit.path_index = 0
             unit.status = "idle"
     
-    def _move_direct(self, unit):
+    def _move_direct(self, unit, delta_time):
         """Direct movement without pathfinding"""
         pos = pygame.math.Vector2(unit.x, unit.y)
         
@@ -650,14 +727,14 @@ class MovementSystem:
             # Move toward destination with avoidance for fallback movement
             pass
             if unit.is_fallback_movement:
-                self._move_unit_toward_destination_with_avoidance(unit, pos, direction)
+                self._move_unit_toward_destination_with_avoidance(unit, pos, direction, delta_time)
             else:
-                self._move_unit_toward_destination(unit, pos, direction)
+                self._move_unit_toward_destination(unit, pos, direction, delta_time)
     
-    def _move_unit_toward_destination_with_avoidance(self, unit, pos, direction):
+    def _move_unit_toward_destination_with_avoidance(self, unit, pos, direction, delta_time):
         """Move unit toward destination with basic obstacle avoidance"""
         direction.normalize_ip()
-        new_pos = pos + direction * unit.movement_speed * (1/60)
+        new_pos = pos + direction * unit.movement_speed * delta_time
         
         # Check collisions
         adjusted_pos = self.game._check_unit_collision_and_adjust(unit, new_pos, direction)
@@ -673,7 +750,7 @@ class MovementSystem:
             
             # Test both perpendicular directions
             for perp_dir in [perpendicular1, perpendicular2]:
-                test_pos = pos + perp_dir * unit.movement_speed * (1/60) * 2  # Move sideways
+                test_pos = pos + perp_dir * unit.movement_speed * delta_time * 2  # Move sideways
                 test_adjusted = self.game._check_unit_collision_and_adjust(unit, test_pos, perp_dir)
                 
                 # Check if this direction is clearer
@@ -689,10 +766,10 @@ class MovementSystem:
         # Check terrain and update position
         self._check_terrain_and_update(unit, adjusted_pos)
     
-    def _move_unit_toward_destination(self, unit, pos, direction):
+    def _move_unit_toward_destination(self, unit, pos, direction, delta_time):
         """Move unit toward its destination with collision handling"""
         direction.normalize_ip()
-        new_pos = pos + direction * unit.movement_speed * (1/60)
+        new_pos = pos + direction * unit.movement_speed * delta_time
         
         # Check collisions
         adjusted_pos = self.game._check_unit_collision_and_adjust(unit, new_pos, direction)
@@ -702,13 +779,17 @@ class MovementSystem:
     
     def _check_terrain_and_update(self, unit, adjusted_pos):
         """Check terrain and update unit position"""
-        # Check multiple points around the unit's edge to prevent water overlap
+        # Check with full radius to ensure unit doesn't overlap water
         check_points = [
             (adjusted_pos.x, adjusted_pos.y),  # Center
             (adjusted_pos.x + unit.radius, adjusted_pos.y),  # Right
             (adjusted_pos.x - unit.radius, adjusted_pos.y),  # Left
             (adjusted_pos.x, adjusted_pos.y + unit.radius),  # Bottom
             (adjusted_pos.x, adjusted_pos.y - unit.radius),  # Top
+            (adjusted_pos.x + unit.radius * 0.7, adjusted_pos.y + unit.radius * 0.7),  # Bottom-right
+            (adjusted_pos.x - unit.radius * 0.7, adjusted_pos.y + unit.radius * 0.7),  # Bottom-left
+            (adjusted_pos.x + unit.radius * 0.7, adjusted_pos.y - unit.radius * 0.7),  # Top-right
+            (adjusted_pos.x - unit.radius * 0.7, adjusted_pos.y - unit.radius * 0.7),  # Top-left
         ]
         
         can_move = True

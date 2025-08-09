@@ -40,7 +40,6 @@ class GameState:
             # Create worker
             worker = self._create_instance_from_template(worker_template)
             worker.x, worker.y = worker_world_pos
-            worker.movement_speed *= 5
             worker.player = player
             
             # Set up animations with player-specific colors

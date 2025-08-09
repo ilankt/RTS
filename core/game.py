@@ -1,9 +1,11 @@
 import pygame
+import math
 from core.config import (SCREEN_WIDTH, SCREEN_HEIGHT, MAP_WIDTH, MAP_HEIGHT, 
                         WHITE, CAMERA_SPEED, TILE_WIDTH, TILE_HEIGHT, 
                         MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, MINIMAP_WIDTH, 
                         MINIMAP_HEIGHT, NUM_PLAYERS, PLAYER_COLORS, TOP_BAR_HEIGHT,
-                        SMART_CURSORS_ENABLED)
+                        SMART_CURSORS_ENABLED, DEFAULT_GAME_SPEED, MIN_GAME_SPEED,
+                        MAX_GAME_SPEED, GAME_SPEED_INCREMENT)
 from world.map import Map
 from world.camera import Camera
 from entities.objects import load_game_data
@@ -94,6 +96,9 @@ class Game:
         # Game start time
         self.game_start_time = pygame.time.get_ticks()
         
+        # Game speed factor
+        self.game_speed = DEFAULT_GAME_SPEED
+        
         # Set up initial game state
         self.game_state.setup_game_objects()
     
@@ -159,6 +164,12 @@ class Game:
             self.debug_overlay = not self.debug_overlay
         elif event.key == pygame.K_F4:
             self.ai_debug_panel.toggle_visibility()
+        elif event.key == pygame.K_LEFTBRACKET:  # [ key - decrease speed
+            self.game_speed = max(MIN_GAME_SPEED, self.game_speed - GAME_SPEED_INCREMENT)
+            print(f"Game speed: {self.game_speed:.1f}x")
+        elif event.key == pygame.K_RIGHTBRACKET:  # ] key - increase speed
+            self.game_speed = min(MAX_GAME_SPEED, self.game_speed + GAME_SPEED_INCREMENT)
+            print(f"Game speed: {self.game_speed:.1f}x")
     
     def _handle_mouse_wheel(self, event):
         """Handle mouse wheel zoom"""
@@ -275,13 +286,15 @@ class Game:
     
     def update(self):
         """Update all game systems"""
-        self.delta_time = self.clock.get_time() / 1000.0
+        # Apply game speed to delta time
+        raw_delta_time = self.clock.get_time() / 1000.0
+        self.delta_time = raw_delta_time * self.game_speed
         self.frame_counter += 1
         
         # Update input
         self._update_camera_movement()
         
-        # Update core systems
+        # Update core systems with speed-adjusted delta time
         self.gathering_manager.update(self.delta_time)
         self.building_system.update_construction(self.delta_time)
         self.production_manager.update(self.delta_time)
@@ -345,10 +358,34 @@ class Game:
             for unit in self.units:
                 if (hasattr(unit, 'gathering_target') and 
                     unit.gathering_target == resource):
+                    print(f"  Clearing resource from worker at ({unit.x:.0f}, {unit.y:.0f})")
+                    
+                    # Clear gathering state
                     unit.gathering_target = None
                     unit.is_gathering = False
                     unit.status = "idle"
-                    print(f"Cleared depleted resource target from worker")
+                    
+                    # Clear movement state if worker was moving to this resource
+                    unit.destination = None
+                    unit.path = None
+                    unit.path_index = 0
+                    unit.path_target = None
+                    unit.is_engaging = False
+                    
+                    # Apply small separation force to push worker away from depleted resource position
+                    dx = unit.x - resource.x
+                    dy = unit.y - resource.y
+                    distance = math.sqrt(dx * dx + dy * dy)
+                    if distance < unit.radius + resource.radius + 10 and distance > 0:
+                        # Push worker away slightly
+                        push_force = 10  # pixels
+                        dx_norm = dx / distance
+                        dy_norm = dy / distance
+                        unit.x += dx_norm * push_force
+                        unit.y += dy_norm * push_force
+                        print(f"  Pushed worker away from depleted resource to ({unit.x:.0f}, {unit.y:.0f})")
+                    
+                    print(f"  Worker state cleared")
             
             # Remove from resources list
             self.resources.remove(resource)

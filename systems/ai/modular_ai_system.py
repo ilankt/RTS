@@ -553,10 +553,13 @@ class ModularAISystem:
             construction_site.builder = worker
             
             # Command worker to build
+            from utils.debug_logger import debug_log
+            debug_log.log(f"AI assigning worker at ({worker.x:.0f}, {worker.y:.0f}) to build at ({construction_site.x:.0f}, {construction_site.y:.0f})", "AI_BUILD")
             worker.building_target = construction_site
             worker.status = "run"
             worker.gathering_target = None
             worker.is_building = False
+            debug_log.log(f"  Worker building_target set, status={worker.status}, is_building={worker.is_building}", "AI_BUILD")
             
             # Set up pathfinding using cached pathfinder
             pathfinder = self.pathfinders[worker.player]

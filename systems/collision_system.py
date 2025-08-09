@@ -18,27 +18,32 @@ class CollisionSystem:
         original_pos = pygame.math.Vector2(unit.x, unit.y)
         final_pos = new_pos
         
-        # First, check for collisions with static objects (buildings, resources)
-        for building in self.game.buildings:
+        # First, check for collisions with static objects (buildings, construction sites)
+        all_buildings = self.game.buildings + self.game.construction_sites
+        for building in all_buildings:
             # Skip drop-off targets when unit is dropping off
-            pass
             if (hasattr(unit, 'drop_off_target') and unit.drop_off_target == building and
                 hasattr(unit, 'resource_amount') and unit.resource_amount > 0):
                 continue
+            
+            # Special handling for workers approaching their building target
+            if (hasattr(unit, 'building_target') and unit.building_target == building):
+                # Allow workers to get close to their construction site, but not too close
+                min_distance = unit.radius + building.radius - 5  # Slight overlap allowed
+            else:
+                min_distance = unit.radius + building.radius + 2
                 
             dx = final_pos.x - building.x
             dy = final_pos.y - building.y
             distance = math.sqrt(dx * dx + dy * dy)
-            min_distance = unit.radius + building.radius + 2
             
             if distance < min_distance:
                 # Calculate overlap amount
-                pass
                 overlap = min_distance - distance
                 # Try sliding along the obstacle
                 final_pos = self._calculate_slide_position(original_pos, final_pos, 
                                                          pygame.math.Vector2(building.x, building.y), 
-                                                         building.radius + unit.radius + 2,
+                                                         min_distance,
                                                          unit, overlap)
         
         # Check resources
@@ -236,14 +241,17 @@ class CollisionSystem:
             if dist < resource.radius + unit.radius + 2:
                 return True
         
-        # Check terrain with unit radius consideration
-        # Check multiple points around the unit's edge
+        # Check terrain with full radius to ensure unit doesn't overlap water
         check_points = [
             (test_pos.x, test_pos.y),  # Center
             (test_pos.x + unit.radius, test_pos.y),  # Right
             (test_pos.x - unit.radius, test_pos.y),  # Left
             (test_pos.x, test_pos.y + unit.radius),  # Bottom
             (test_pos.x, test_pos.y - unit.radius),  # Top
+            (test_pos.x + unit.radius * 0.7, test_pos.y + unit.radius * 0.7),  # Bottom-right
+            (test_pos.x - unit.radius * 0.7, test_pos.y + unit.radius * 0.7),  # Bottom-left
+            (test_pos.x + unit.radius * 0.7, test_pos.y - unit.radius * 0.7),  # Top-right
+            (test_pos.x - unit.radius * 0.7, test_pos.y - unit.radius * 0.7),  # Top-left
         ]
         
         for check_x, check_y in check_points:

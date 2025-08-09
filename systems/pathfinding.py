@@ -261,8 +261,8 @@ class Pathfinding:
     
     def _is_walkable(self, x: float, y: float, unit_radius: float) -> bool:
         """Check if a world position is walkable (no unwalkable tiles or obstacles)"""
-        # Check the center point and also points around the unit's edge
-        # This prevents units from having their edges in water tiles
+        # Check center and 8 points around the unit's full radius
+        # This ensures the unit doesn't overlap with water tiles
         check_points = [
             (x, y),  # Center
             (x + unit_radius, y),  # Right

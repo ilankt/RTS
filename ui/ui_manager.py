@@ -1143,6 +1143,9 @@ class UIManager:
         
         # Blit the resource bar to the main screen at the very top
         screen.blit(resource_bar, (0, 0))
+        
+        # Draw game speed indicator
+        self._draw_speed_indicator(screen)
     
     def _get_unit_max_hp(self, unit):
         """Get maximum HP for a unit from units.json data"""
@@ -1496,3 +1499,35 @@ class UIManager:
             if button['rect'].collidepoint(mouse_pos):
                 self.hover_production_button = i
                 break
+    
+    def _draw_speed_indicator(self, screen):
+        """Draw game speed indicator in top-right corner of resource bar"""
+        # Position in top-right of resource bar area
+        x = SCREEN_WIDTH - MINIMAP_WIDTH - 120  # Leave margin from minimap
+        y = 10
+        
+        # Get current game speed
+        speed = getattr(self.game, 'game_speed', 1.0)
+        
+        # Create background box
+        bg_rect = pygame.Rect(x, y, 100, 30)
+        pygame.draw.rect(screen, (40, 40, 40), bg_rect)
+        pygame.draw.rect(screen, (100, 100, 100), bg_rect, 2)
+        
+        # Draw speed text
+        speed_text = f"Speed: {speed:.0f}x"
+        if speed > 1.0:
+            # Use different color for increased speed
+            color = (100, 255, 100)  # Green for fast
+        else:
+            color = (255, 255, 255)  # White for normal
+            
+        text_surface = self.font.render(speed_text, True, color)
+        text_rect = text_surface.get_rect(center=bg_rect.center)
+        screen.blit(text_surface, text_rect)
+        
+        # Draw keyboard hint below
+        hint_text = "[ ] to adjust"
+        hint_surface = self.small_font.render(hint_text, True, (150, 150, 150))
+        hint_rect = hint_surface.get_rect(centerx=bg_rect.centerx, top=bg_rect.bottom + 2)
+        screen.blit(hint_surface, hint_rect)
