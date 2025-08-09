@@ -7,6 +7,9 @@ Guidance for Claude Code when working with this RTS game codebase.
 ```bash
 python main.py         # Run game
 python -r requirements.txt  # Install deps
+
+# Debug mode (writes to debug.dat)
+# Set DEBUG_TO_FILE = True in config.py
 ```
 
 ## Architecture Overview
@@ -39,6 +42,7 @@ world/          - map.py (hex terrain), camera.py
 ## Debug Keys
 - **F3**: Pathfinding/coordinate overlay
 - **F4**: AI debug panel
+- **[/]**: Decrease/increase game speed (1x-5x)
 
 ## Configuration (core/config.py)
 ```python
@@ -46,6 +50,8 @@ SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 GRID_SIZE = 8  # Pathfinding cell size
 GATHERING_RATES = {"gold": 1, "stone": 1, "wood": 2, "food": 3}
+DEBUG_TO_FILE = True  # Write debug output to debug.dat
+```
 
 ## Current State (2025-01-20)
 
@@ -75,14 +81,33 @@ GATHERING_RATES = {"gold": 1, "stone": 1, "wood": 2, "food": 3}
 - **AI System**: Full economic/military AI with state machine
 - **Debug Cleanup**: Removed all non-AI debug prints
 
+### Recent Updates (2025-01-20) - Branch: refactor/pathfinding-system
+
+1. **Pathfinding Improvements**: 
+   - Fixed water tile collision (full radius checking with 8 points)
+   - Adjusted construction site approach distance
+   - Fixed worker spawn speed bug (was 5x too fast)
+
+2. **Debug System**:
+   - Added file-based debug logging to `debug.dat`
+   - Categories: AI_BUILD, CONSTRUCTION, BUILD_UPDATE
+   - Enable with DEBUG_TO_FILE = True
+
+3. **Game Speed Control**:
+   - Use [ and ] keys to control speed (1x-5x)
+   - Speed affects ALL time-based systems
+   - Visual indicator in top-right
+
 ### Known Issues ⚠️
 
-1. **Combat-Style Gathering** (BROKEN): Attempted unification of combat/gathering movement failed
+1. **Construction Not Starting**: Workers reach sites but building doesn't progress
+   - Under investigation with new debug system
+   
+2. **Combat-Style Gathering** (BROKEN): Attempted unification failed
    - Workers stuck in resources, state management issues
-   - Files affected: selection_manager.py, movement_system.py, collision_system.py
    - Recommendation: DO NOT FIX - needs complete redesign
 
-2. **AI Worker Assignment**: Second+ workers may idle after training
+3. **AI Worker Assignment**: Second+ workers may idle after training
    - EconomyModule timing issues with worker detection
    - AI only gathers gold, ignores resource diversification
 
