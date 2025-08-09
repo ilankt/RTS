@@ -261,21 +261,36 @@ class Pathfinding:
     
     def _is_walkable(self, x: float, y: float, unit_radius: float) -> bool:
         """Check if a world position is walkable (no unwalkable tiles or obstacles)"""
-        # Convert to hex coordinates
-        hex_coord = self.game_map.world_to_grid(x, y)
-        if hex_coord is None:
-            return False
+        # Check the center point and also points around the unit's edge
+        # This prevents units from having their edges in water tiles
+        check_points = [
+            (x, y),  # Center
+            (x + unit_radius, y),  # Right
+            (x - unit_radius, y),  # Left
+            (x, y + unit_radius),  # Bottom
+            (x, y - unit_radius),  # Top
+            (x + unit_radius * 0.7, y + unit_radius * 0.7),  # Bottom-right
+            (x - unit_radius * 0.7, y + unit_radius * 0.7),  # Bottom-left
+            (x + unit_radius * 0.7, y - unit_radius * 0.7),  # Top-right
+            (x - unit_radius * 0.7, y - unit_radius * 0.7),  # Top-left
+        ]
+        
+        for check_x, check_y in check_points:
+            # Convert to hex coordinates
+            hex_coord = self.game_map.world_to_grid(check_x, check_y)
+            if hex_coord is None:
+                return False
+                
+            col, row = hex_coord
             
-        col, row = hex_coord
-        
-        # Check map bounds
-        if row < 0 or row >= self.game_map.height or col < 0 or col >= self.game_map.width:
-            return False
-        
-        # Check tile type
-        tile_type = self.game_map.grid[row][col]
-        if tile_type in {"water", "lava"}:
-            return False
+            # Check map bounds
+            if row < 0 or row >= self.game_map.height or col < 0 or col >= self.game_map.width:
+                return False
+            
+            # Check tile type
+            tile_type = self.game_map.grid[row][col]
+            if tile_type in {"water", "lava"}:
+                return False
         
         # Check collisions with game objects
         return not self._check_collision(x, y, unit_radius)
@@ -472,23 +487,11 @@ class Pathfinding:
     
     def _simple_line_clear(self, start: Tuple[float, float], end: Tuple[float, float], unit_radius: float = 20) -> bool:
         """Simple check if we can move directly between two points with consistent collision detection"""
-        # Check if either endpoint is on unwalkable terrain
-        start_hex = self.game_map.world_to_grid(start[0], start[1])
-        end_hex = self.game_map.world_to_grid(end[0], end[1])
-        
-        if start_hex:
-            col, row = start_hex
-            if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
-                tile_type = self.game_map.grid[row][col]
-                if tile_type in {"water", "lava"}:
-                    return False
-        
-        if end_hex:
-            col, row = end_hex
-            if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
-                tile_type = self.game_map.grid[row][col]
-                if tile_type in {"water", "lava"}:
-                    return False
+        # First check if endpoints are walkable with full radius check
+        if not self._is_walkable(start[0], start[1], unit_radius):
+            return False
+        if not self._is_walkable(end[0], end[1], unit_radius):
+            return False
         
         # Check for obstacles with consistent collision detection
         # Sample points along the path
@@ -500,14 +503,9 @@ class Pathfinding:
             x = start[0] + (end[0] - start[0]) * t
             y = start[1] + (end[1] - start[1]) * t
             
-            # Check terrain
-            hex_coord = self.game_map.world_to_grid(x, y)
-            if hex_coord:
-                col, row = hex_coord
-                if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
-                    tile_type = self.game_map.grid[row][col]
-                    if tile_type in {"water", "lava"}:
-                        return False
+            # Check terrain with unit radius consideration
+            if not self._is_walkable(x, y, unit_radius):
+                return False
             
             # Consistent collision buffer: 2 units for all object types
             collision_buffer = 2

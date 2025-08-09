@@ -236,13 +236,23 @@ class CollisionSystem:
             if dist < resource.radius + unit.radius + 2:
                 return True
         
-        # Check terrain
-        hex_coord = self.game_map.world_to_grid(test_pos.x, test_pos.y)
-        if hex_coord:
-            col, row = hex_coord
-            if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
-                if self.game_map.grid[row][col] in {"water", "lava"}:
-                    return True
+        # Check terrain with unit radius consideration
+        # Check multiple points around the unit's edge
+        check_points = [
+            (test_pos.x, test_pos.y),  # Center
+            (test_pos.x + unit.radius, test_pos.y),  # Right
+            (test_pos.x - unit.radius, test_pos.y),  # Left
+            (test_pos.x, test_pos.y + unit.radius),  # Bottom
+            (test_pos.x, test_pos.y - unit.radius),  # Top
+        ]
+        
+        for check_x, check_y in check_points:
+            hex_coord = self.game_map.world_to_grid(check_x, check_y)
+            if hex_coord:
+                col, row = hex_coord
+                if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
+                    if self.game_map.grid[row][col] in {"water", "lava"}:
+                        return True
         
         return False
     

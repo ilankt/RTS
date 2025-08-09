@@ -702,21 +702,36 @@ class MovementSystem:
     
     def _check_terrain_and_update(self, unit, adjusted_pos):
         """Check terrain and update unit position"""
-        hex_coord = self.game_map.world_to_grid(adjusted_pos.x, adjusted_pos.y)
-        if hex_coord:
-            tile_type = self.game_map.grid[hex_coord[1]][hex_coord[0]]
-            if tile_type not in {"water", "lava"}:
-                self._update_unit_position(unit, adjusted_pos)
-            else:
-                # Stop at unwalkable terrain
-                pass
-                if unit.path:
-                    unit.path = None
-                    unit.path_index = 0
-                unit.destination = None
-                unit.status = "idle"
-        else:
+        # Check multiple points around the unit's edge to prevent water overlap
+        check_points = [
+            (adjusted_pos.x, adjusted_pos.y),  # Center
+            (adjusted_pos.x + unit.radius, adjusted_pos.y),  # Right
+            (adjusted_pos.x - unit.radius, adjusted_pos.y),  # Left
+            (adjusted_pos.x, adjusted_pos.y + unit.radius),  # Bottom
+            (adjusted_pos.x, adjusted_pos.y - unit.radius),  # Top
+        ]
+        
+        can_move = True
+        for check_x, check_y in check_points:
+            hex_coord = self.game_map.world_to_grid(check_x, check_y)
+            if hex_coord:
+                col, row = hex_coord
+                if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
+                    tile_type = self.game_map.grid[row][col]
+                    if tile_type in {"water", "lava"}:
+                        can_move = False
+                        break
+        
+        if can_move:
             self._update_unit_position(unit, adjusted_pos)
+        else:
+            # Stop at unwalkable terrain and request new path
+            if unit.path:
+                unit.path = None
+                unit.path_index = 0
+            unit.destination = None
+            unit.status = "idle"
+            unit._needs_repath = True  # Request new path next update
     
     def _update_unit_position(self, unit, new_pos):
         """Update unit position and handle blocked movement more robustly"""
