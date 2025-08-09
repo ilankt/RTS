@@ -352,6 +352,15 @@ class MovementSystem:
                                      (unit.y - unit.building_target.y)**2)
             required_distance = unit.radius + unit.building_target.radius - 5
             
+            # Log current state every few frames for debugging
+            from utils.debug_logger import debug_log
+            frame_counter = getattr(unit, '_build_log_counter', 0)
+            if frame_counter % 60 == 0:  # Log every 60 frames
+                debug_log.log(f"BUILD_TRACKING: Worker at ({unit.x:.0f}, {unit.y:.0f}) -> Construction at ({unit.building_target.x:.0f}, {unit.building_target.y:.0f})", "BUILD_TRACK")
+                debug_log.log(f"  Distance: {build_distance:.1f}, Required: {required_distance:.1f}, Has path: {unit.path is not None}, Has dest: {unit.destination is not None}", "BUILD_TRACK")
+                debug_log.log(f"  Status: {unit.status}, is_building: {unit.is_building}, is_engaging: {getattr(unit, 'is_engaging', False)}", "BUILD_TRACK")
+            unit._build_log_counter = frame_counter + 1
+            
             # Add tolerance for stuck units
             if hasattr(unit, '_stuck_detector') and unit._stuck_detector['stuck_timer'] >= 60:
                 tolerance = unit.get_target_tolerance("movement")

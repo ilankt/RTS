@@ -394,7 +394,16 @@ class ModularAISystem:
         if not memory["idle_workers"]:
             return
             
-        worker = memory["idle_workers"][0]
+        # Find a truly idle worker (not already building)
+        worker = None
+        for w in memory["idle_workers"]:
+            if not hasattr(w, 'building_target') or w.building_target is None:
+                worker = w
+                break
+        
+        if not worker:
+            print(f"AI {player.name}: No truly idle workers available for construction")
+            return
         
         # Use building placement manager to find optimal position
         position = self.building_placement_managers[player].find_optimal_position(building_type)
@@ -405,6 +414,9 @@ class ModularAISystem:
             self._command_worker_build(worker, building_type, position)
             memory["last_building_position"] = position
             self.last_building_time[player] = pygame.time.get_ticks() / 1000.0
+            
+            # Invalidate memory cache so the worker is no longer considered idle
+            self.invalidate_memory_cache(player)
     
     def get_building_placement_manager(self, player):
         """Get building placement manager for player"""
