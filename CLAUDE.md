@@ -109,15 +109,22 @@ DEBUG_TO_FILE = True  # Write debug output to debug.dat
    - Added proper idle worker detection before assignment
    - Memory cache invalidation after worker assignments
 
+6. **Critical Pathfinding Fix** ✅:
+   - **Root cause found**: Construction sites were NOT in pathfinding system!
+   - Added construction_sites to spatial grid
+   - Added building_target exclusion (like gathering_target)
+   - Pathfinder now properly routes workers to construction sites
+   - Increased emergency recovery timeout to 15s
+
 ### Known Issues ⚠️
 
-1. **Worker Emergency Recovery**: Workers get teleported to castle after 6s stuck
-   - Emergency recovery system may be too aggressive
-   - Workers "ghost" to castle center when stuck near construction
+1. **Worker Emergency Recovery**: Workers get teleported to castle after 15s stuck
+   - Increased from 6s to give more time for pathfinding
+   - May still teleport if truly stuck
 
-2. **Construction Start Detection**: Workers may not trigger is_building = True
-   - Movement system detection may need adjustment
-   - Debug with BUILD_TRACK logs
+2. **Testing Needed**: Construction should now work properly
+   - Pathfinding fixes should allow workers to reach sites
+   - Monitor BUILD_TRACK logs to confirm
 
 3. **Combat-Style Gathering** (BROKEN): Attempted unification failed
    - Workers stuck in resources, state management issues

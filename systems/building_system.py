@@ -186,6 +186,9 @@ class BuildingSystem:
         self.selected_builder.building_target = construction_site
         self.selected_builder.is_building = False  # Will be set to true when worker arrives
         
+        # Debug logging
+        print(f"Building placement: Assigned worker {id(self.selected_builder)} to construction site")
+        
         # Move worker to a safe position next to the construction site
         from systems.pathfinding import Pathfinding
         pathfinder = Pathfinding(self.game_map, self.game)
@@ -262,28 +265,50 @@ class BuildingSystem:
 
                     # Nudge the worker to a safe position outside the new building's radius
                     if site.builder:
-                        site.builder.collision = False
-                        
-                        # Calculate a nudge position directly away from the building center
-                        direction_x = site.builder.x - site.x
-                        direction_y = site.builder.y - site.y
-                        distance = math.sqrt(direction_x**2 + direction_y**2)
-                        
-                        if distance == 0: # Avoid division by zero if worker is at the center
-                            direction_x, direction_y = 1, 0
+                        # First ensure the builder still exists in game units
+                        if site.builder not in self.game.units:
+                            debug_log.log(f"WARNING: Builder no longer exists in game units!", "BUILD_UPDATE")
+                            site.builder = None
                         else:
-                            direction_x /= distance
-                            direction_y /= distance
+                            site.builder.collision = False
+                            
+                            # Calculate a nudge position directly away from the building center
+                            direction_x = site.builder.x - site.x
+                            direction_y = site.builder.y - site.y
+                            distance = math.sqrt(direction_x**2 + direction_y**2)
+                            
+                            if distance == 0: # Avoid division by zero if worker is at the center
+                                direction_x, direction_y = 1, 0
+                            else:
+                                direction_x /= distance
+                                direction_y /= distance
 
-                        nudge_distance = site.radius + site.builder.radius + 2  # Reduced nudge distance
-                        nudge_pos_x = site.x + direction_x * nudge_distance
-                        nudge_pos_y = site.y + direction_y * nudge_distance
-
-                        # Move the worker directly to the nudge position without pathfinding
-                        site.builder.x = nudge_pos_x
-                        site.builder.y = nudge_pos_y
-                        site.builder.destination = (nudge_pos_x, nudge_pos_y)
-                        site.builder.status = "idle"
+                            nudge_distance = site.radius + site.builder.radius + 5  # Increased nudge distance for safety
+                            nudge_pos_x = site.x + direction_x * nudge_distance
+                            nudge_pos_y = site.y + direction_y * nudge_distance
+                            
+                            # Validate the nudge position is on valid terrain
+                            grid_pos = self.game.game_map.world_to_grid(nudge_pos_x, nudge_pos_y)
+                            if grid_pos:
+                                col, row = grid_pos
+                                if 0 <= col < self.game.game_map.width and 0 <= row < self.game.game_map.height:
+                                    terrain = self.game.game_map.grid[row][col]
+                                    if terrain not in ["water", "lava"]:
+                                        # Safe to nudge
+                                        site.builder.x = nudge_pos_x
+                                        site.builder.y = nudge_pos_y
+                                        site.builder.destination = (nudge_pos_x, nudge_pos_y)
+                                        site.builder.status = "idle"
+                                    else:
+                                        # Can't nudge to water/lava, just clear state
+                                        debug_log.log(f"WARNING: Nudge position is invalid terrain!", "BUILD_UPDATE")
+                                        site.builder.destination = None
+                                        site.builder.status = "idle"
+                            else:
+                                # Invalid position, just clear state
+                                debug_log.log(f"WARNING: Nudge position is off map!", "BUILD_UPDATE")
+                                site.builder.destination = None
+                                site.builder.status = "idle"
                     
                     # Construction complete
         

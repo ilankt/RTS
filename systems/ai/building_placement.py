@@ -448,6 +448,11 @@ class BuildingPlacementManager:
             distance = math.sqrt((x - building.x)**2 + (y - building.y)**2)
             if distance < min_distance + building.radius:
                 return False
+            
+            # Extra check: Don't build near enemy castles!
+            if building.player != self.player and building.name == "castle":
+                if distance < 500:  # Keep 500 units away from enemy castles
+                    return False
         
         # Check collisions with construction sites
         for site in self.game.construction_sites:
