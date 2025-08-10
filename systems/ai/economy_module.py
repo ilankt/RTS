@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple, Optional, Any
 from .base_module import AIModule
 from .resource_manager import ResourceManager
 from entities.objects import Unit, Building, Resource
+from utils.debug_logger import debug_log
 
 
 class EconomyModule(AIModule):
@@ -72,9 +73,9 @@ class EconomyModule(AIModule):
         
         if idle_workers or disconnected_workers or self.force_next_update:
             if idle_workers or disconnected_workers:
-                print(f"AI {self.player.name}: Forcing update - {len(idle_workers)} idle workers, {len(disconnected_workers)} disconnected")
+                debug_log.log(f"AI {self.player.name}: Forcing update - {len(idle_workers)} idle workers, {len(disconnected_workers)} disconnected", "AI_ECONOMY")
             if self.force_next_update:
-                print(f"AI {self.player.name}: Forcing update due to force_next_update flag")
+                debug_log.log(f"AI {self.player.name}: Forcing update due to force_next_update flag", "AI_ECONOMY")
                 self.force_next_update = False
             should_update = True
         
@@ -103,7 +104,11 @@ class EconomyModule(AIModule):
         possible_actions = []
         game_phase = self._determine_game_phase()
         resource_needs = self._calculate_resource_needs(game_phase)
-        print(f"AI {self.player.name}: Game phase: {game_phase}, Resource needs: {resource_needs}")
+        
+        # Log current resources
+        current_resources = {k: int(v) for k, v in self.player.resources.items()}
+        debug_log.log(f"AI {self.player.name}: Current resources: {current_resources}", "AI_ECONOMY")
+        debug_log.log(f"AI {self.player.name}: Game phase: {game_phase}, Resource needs: {resource_needs}", "AI_ECONOMY")
 
         # Action: Train Worker
         worker_count = len(memory["idle_workers"]) + len(memory["gathering_workers"]) + len(memory["building_workers"])
@@ -119,14 +124,19 @@ class EconomyModule(AIModule):
 
         # Action: Build Resource Buildings
         building_scores = self._score_resource_buildings(resource_needs)
-        print(f"AI {self.player.name}: Resource building scores: {building_scores}")
-        print(f"AI {self.player.name}: Far resources needing buildings: {self.far_resources_need_buildings}")
+        debug_log.log(f"AI {self.player.name}: Resource building scores: {building_scores}", "AI_ECONOMY")
+        debug_log.log(f"AI {self.player.name}: Far resources needing buildings: {self.far_resources_need_buildings}", "AI_ECONOMY")
         for building_type, score in building_scores.items():
             costs = self.ai_system.cost_data.get(building_type, {})
             can_afford = self._can_afford(building_type)
-            print(f"AI {self.player.name}: {building_type} - score: {score}, costs: {costs}, can afford: {can_afford}")
+            debug_log.log(f"AI {self.player.name}: {building_type} - score: {score}, costs: {costs}, can afford: {can_afford}", "AI_ECONOMY")
             if can_afford:
-                possible_actions.append({"action": "build_resource_building", "score": score, "params": {"building_type": building_type}})
+                # Adjust score based on affordability - affordable buildings get priority boost
+                adjusted_score = score
+                possible_actions.append({"action": "build_resource_building", "score": adjusted_score, "params": {"building_type": building_type}})
+            else:
+                # Log why we're skipping unaffordable buildings
+                debug_log.log(f"AI {self.player.name}: Skipping {building_type} - cannot afford (score was {score})", "AI_ECONOMY")
 
         # Action: Build Barracks
         # Build barracks when we have at least 3 workers and no barracks yet
@@ -136,17 +146,17 @@ class EconomyModule(AIModule):
             barracks_costs = self.ai_system.cost_data.get("barracks", {})
             player_resources = {k: int(v) for k, v in self.player.resources.items()}
             can_afford = self._can_afford("barracks")
-            print(f"AI {self.player.name}: Barracks check - workers: {worker_count}, barracks: {barracks_count}")
-            print(f"  Resources: {player_resources}")
-            print(f"  Barracks costs: {barracks_costs}")
-            print(f"  Can afford: {can_afford}")
+            debug_log.log(f"AI {self.player.name}: Barracks check - workers: {worker_count}, barracks: {barracks_count}", "AI_ECONOMY")
+            debug_log.log(f"  Resources: {player_resources}", "AI_ECONOMY")
+            debug_log.log(f"  Barracks costs: {barracks_costs}", "AI_ECONOMY")
+            debug_log.log(f"  Can afford: {can_afford}", "AI_ECONOMY")
         if worker_count >= 2 and barracks_count == 0 and self._can_afford("barracks"):  # Reduced from 3 to 2 workers
             # Scale barracks priority with worker count - more workers = higher priority
             # Base score 90, +10 per worker above 2 (max +30 at 5 workers)
             worker_bonus = min((worker_count - 2) * 10, 30)
             barracks_score = 90 + worker_bonus  # Increased base priority
             possible_actions.append({"action": "build_barracks", "score": barracks_score})
-            print(f"AI {self.player.name}: Added barracks to possible actions with score {barracks_score} (base 85 + worker bonus {worker_bonus})")
+            debug_log.log(f"AI {self.player.name}: Added barracks to possible actions with score {barracks_score} (base 85 + worker bonus {worker_bonus})", "AI_ECONOMY")
 
         # 3. Check for far resources before assigning workers
         # First, identify which resources are too far and need buildings
@@ -156,23 +166,51 @@ class EconomyModule(AIModule):
         if all_idle_workers:
             assignments = self.resource_manager.get_optimal_worker_assignment(all_idle_workers)
             for resource_type, workers in assignments.items():
-                # Skip assignment if this resource type needs a building
-                if resource_type in self.far_resources_need_buildings:
-                    print(f"AI {self.player.name}: Skipping {resource_type} gathering - needs building first")
+                # Check if this is a critical resource (we have 0 of it)
+                is_critical = self.player.resources.get(resource_type, 0) == 0
+                
+                # Skip assignment if this resource type needs a building - UNLESS it's critical
+                if resource_type in self.far_resources_need_buildings and not is_critical:
+                    debug_log.log(f"AI {self.player.name}: Skipping {resource_type} gathering - needs building first", "AI_ECONOMY")
                     continue
+                    
                 for worker in workers:
-                    tasks.append({"action": "gather_resource", "priority": 0.95, "target": worker, "params": {"resource_type": resource_type}})
+                    # Critical resources get higher priority
+                    priority = 0.99 if is_critical else 0.95
+                    tasks.append({"action": "gather_resource", "priority": priority, "target": worker, "params": {"resource_type": resource_type}})
 
         # 4. Select the best economic action and create a task for it
         if possible_actions:
             # Debug: Log all possible actions and their scores
-            print(f"AI {self.player.name}: Possible actions:")
+            debug_log.log(f"AI {self.player.name}: Possible actions:", "AI_ECONOMY")
             for action in possible_actions:
-                print(f"  - {action['action']}: score {action['score']}")
+                action_desc = f"{action['action']}"
+                if 'params' in action and 'building_type' in action['params']:
+                    action_desc += f" ({action['params']['building_type']})"
+                debug_log.log(f"  - {action_desc}: score {action['score']}", "AI_ECONOMY")
             
-            best_action = max(possible_actions, key=lambda x: x["score"])
+            # Final affordability check before selecting action
+            affordable_actions = []
+            for action in possible_actions:
+                if action["action"] == "build_resource_building":
+                    building_type = action["params"]["building_type"]
+                    if self._can_afford(building_type):
+                        affordable_actions.append(action)
+                    else:
+                        debug_log.log(f"AI {self.player.name}: Removing {building_type} from selection - no longer affordable", "AI_ECONOMY")
+                else:
+                    affordable_actions.append(action)
+            
+            if not affordable_actions:
+                debug_log.log(f"AI {self.player.name}: No affordable actions available", "AI_ECONOMY")
+                return tasks
+            
+            best_action = max(affordable_actions, key=lambda x: x["score"])
             action_type = best_action["action"]
-            print(f"AI {self.player.name}: Selected action: {action_type} (score: {best_action['score']})")
+            action_desc = f"{action_type}"
+            if 'params' in best_action and 'building_type' in best_action['params']:
+                action_desc += f" ({best_action['params']['building_type']})"
+            debug_log.log(f"AI {self.player.name}: Selected action: {action_desc} (score: {best_action['score']})", "AI_ECONOMY")
 
             if action_type == "train_worker":
                 tasks.append({"action": "train_worker", "priority": 0.8, "target": memory["buildings"]["castle"], "params": {}})
@@ -189,7 +227,7 @@ class EconomyModule(AIModule):
                 if resource_type and resource_type in self.far_resources_need_buildings:
                     # Very high priority for buildings needed for far resources
                     priority = 0.98
-                    print(f"AI {self.player.name}: Boosting {building_type} priority to {priority} - needed for far {resource_type}")
+                    debug_log.log(f"AI {self.player.name}: Boosting {building_type} priority to {priority} - needed for far {resource_type}", "AI_ECONOMY")
                 else:
                     priority = 0.7
                     
@@ -206,7 +244,7 @@ class EconomyModule(AIModule):
             if not result:
                 # If gather failed (likely due to distance), force immediate update
                 self.force_next_update = True
-                print(f"AI {self.player.name}: Gather task failed, forcing immediate update")
+                debug_log.log(f"AI {self.player.name}: Gather task failed, forcing immediate update", "AI_ECONOMY")
             return result
         elif action == "train_worker":
             return self._execute_train_worker(task)
@@ -392,9 +430,14 @@ class EconomyModule(AIModule):
         resource_type = task["params"]["resource_type"]
         memory = self.ai_system.player_memory[self.player]
         
-        # This shouldn't happen due to our filtering, but double-check
-        if resource_type in self.far_resources_need_buildings:
-            print(f"AI {self.player.name}: Skipping gather execution for {resource_type} - building needed")
+        # Check if this is a critical resource (we have 0 of it)
+        is_critical = self.player.resources.get(resource_type, 0) == 0
+        if is_critical:
+            debug_log.log(f"AI {self.player.name}: {resource_type} is CRITICAL (amount=0)", "AI_ECONOMY")
+        
+        # Skip far resources UNLESS they're critical
+        if resource_type in self.far_resources_need_buildings and not is_critical:
+            debug_log.log(f"AI {self.player.name}: Skipping gather execution for {resource_type} - building needed", "AI_ECONOMY")
             return False
         
         if resource_type in memory["resource_locations"]:
@@ -431,7 +474,7 @@ class EconomyModule(AIModule):
         """Execute build barracks task"""
         building_type = task["params"]["building_type"]
         self.ai_system._build_structure(self.player, building_type)
-        print(f"AI {self.player.name}: Building barracks for military production")
+        debug_log.log(f"AI {self.player.name}: Building barracks for military production", "AI_ECONOMY")
         return True
     
     def _execute_build_resource_building(self, task: Dict[str, Any]) -> bool:
@@ -447,7 +490,7 @@ class EconomyModule(AIModule):
         
         if force_diversity:
             # Stop ALL workers except one to force redistribution
-            print(f"AI {self.player.name}: Forcing resource diversity - stopping most workers")
+            debug_log.log(f"AI {self.player.name}: Forcing resource diversity - stopping most workers", "AI_ECONOMY")
             workers_to_reassign = []
             kept_one = False
             for worker in memory["gathering_workers"]:
@@ -511,16 +554,24 @@ class EconomyModule(AIModule):
         """Check if player can afford item"""
         costs = self.ai_system.cost_data.get(item_type, {})
         can_afford = True
-        for resource, amount in costs.items():
-            if self.player.resources.get(resource, 0) < amount:
-                can_afford = False
         
-        # Debug logging for barracks
-        if item_type == "barracks":
-            print(f"AI {self.player.name}: Checking barracks affordability:")
-            print(f"  Costs: {costs}")
-            print(f"  Current resources: gold={self.player.resources.get('gold', 0)}, wood={self.player.resources.get('wood', 0)}, stone={self.player.resources.get('stone', 0)}")
-            print(f"  Can afford: {can_afford}")
+        # Enhanced debug logging for all building types
+        if item_type in ["mine", "quarry", "lumbermill", "farm", "barracks", "house"]:
+            debug_log.log(f"AI {self.player.name}: Checking {item_type} affordability:", "AI_ECONOMY")
+            debug_log.log(f"  Costs from cost_data: {costs}", "AI_ECONOMY")
+        
+        for resource, amount in costs.items():
+            player_amount = self.player.resources.get(resource, 0)
+            if player_amount < amount:
+                can_afford = False
+                if item_type in ["mine", "quarry", "lumbermill", "farm", "barracks", "house"]:
+                    debug_log.log(f"  Cannot afford - need {amount} {resource}, have {player_amount}", "AI_ECONOMY")
+            else:
+                if item_type in ["mine", "quarry", "lumbermill", "farm", "barracks", "house"]:
+                    debug_log.log(f"  Can afford - need {amount} {resource}, have {player_amount}", "AI_ECONOMY")
+        
+        if item_type in ["mine", "quarry", "lumbermill", "farm", "barracks", "house"]:
+            debug_log.log(f"  Final result: can_afford = {can_afford}", "AI_ECONOMY")
         
         return can_afford
     
@@ -580,11 +631,17 @@ class EconomyModule(AIModule):
                         distance_bonuses[building_type] = 50  # High priority
                         # Also mark this resource as needing a building
                         if res_type not in self.far_resources_need_buildings:
-                            print(f"AI {self.player.name}: Adding distance bonus for {building_type} - {res_type} is {nearest_dist:.0f} units away")
+                            debug_log.log(f"AI {self.player.name}: Adding distance bonus for {building_type} - {res_type} is {nearest_dist:.0f} units away", "AI_ECONOMY")
 
-        # Score Farm with higher base and lower threshold
-        if resource_needs.get("food", 0) > 0.3 and existing_buildings["farm"] < 2:
-            scores["farm"] = 70 + resource_needs["food"] * 20  # Reduced from 85 to make barracks more competitive
+        # Score Farm - always consider building at least one farm for food sustainability
+        if existing_buildings["farm"] < 2:
+            # First farm is high priority, second farm based on need
+            if existing_buildings["farm"] == 0:
+                scores["farm"] = 80  # High priority for first farm
+                debug_log.log(f"AI {self.player.name}: First farm priority score: 80", "AI_ECONOMY")
+            elif resource_needs.get("food", 0) > 0.2:  # Lower threshold for second farm
+                scores["farm"] = 60 + resource_needs["food"] * 20  
+                debug_log.log(f"AI {self.player.name}: Second farm score: {scores['farm']}", "AI_ECONOMY")
 
         # Score deposit-based buildings with higher base scores
         resource_to_building = {"gold": "mine", "wood": "lumbermill", "stone": "quarry"}
@@ -594,7 +651,7 @@ class EconomyModule(AIModule):
                 # CRITICAL priority - we can't gather without this building
                 base_score = 150  # Very high base when needed for far resources
                 scores[building_type] = base_score + distance_bonuses.get(building_type, 0)
-                print(f"AI {self.player.name}: CRITICAL - {building_type} needed for far {res_type}, score: {scores[building_type]}")
+                debug_log.log(f"AI {self.player.name}: CRITICAL - {building_type} needed for far {res_type}, score: {scores[building_type]}", "AI_ECONOMY")
             # Normal scoring for optional buildings
             elif resource_needs.get(res_type, 0) > 0.2 and existing_buildings[building_type] < 2:
                 base_score = 70  # Normal base score
@@ -639,5 +696,5 @@ class EconomyModule(AIModule):
                 # If we have less than 2 buildings for this far resource, mark it as needing a building
                 if existing < 2:
                     self.far_resources_need_buildings.add(res_type)
-                    print(f"AI {self.player.name}: {res_type} resources are far ({nearest_dist:.0f} units), need {building_type}")
+                    debug_log.log(f"AI {self.player.name}: {res_type} resources are far ({nearest_dist:.0f} units), need {building_type}", "AI_ECONOMY")
     

@@ -5,6 +5,7 @@ import math
 from systems.animation import Animation
 from core.config import TILE_WIDTH, TILE_HEIGHT, RESOURCE_LIMITS, WORKER_CAPACITY, DEBUG_MOVEMENT # Import TILE_WIDTH and TILE_HEIGHT
 from entities.player import Player
+from utils.debug_logger import debug_log
 
 class GameObject:
     def __init__(self, name, size, hp, sprite, x, y, radius, player=None):
@@ -453,7 +454,7 @@ class Unit(GameObject):
             self.is_engaging = True
             self.status = "run"
             if DEBUG_MOVEMENT:
-                print(f"{self.name} target out of range, re-engaging {self.current_target.name}")
+                debug_log.log(f"{self.name} target out of range, re-engaging {self.current_target.name}", "GENERAL")
             return
         
         # Check if enough time has passed to attack again
@@ -467,12 +468,12 @@ class Unit(GameObject):
             self.last_attack_time = current_time
             
             if DEBUG_MOVEMENT:
-                print(f"{self.name} attacks {self.current_target.name} for {damage} damage!")
+                debug_log.log(f"{self.name} attacks {self.current_target.name} for {damage} damage!", "GENERAL")
             
             # Check if target is destroyed
             if self.current_target.hp <= 0:
                 if DEBUG_MOVEMENT:
-                    print(f"{self.current_target.name} destroyed!")
+                    debug_log.log(f"{self.current_target.name} destroyed!", "GENERAL")
                 self.current_target = None
                 self.in_combat = False
                 self.is_engaging = False

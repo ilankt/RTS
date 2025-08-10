@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Any
 from entities.objects import Unit, Building, Resource, ConstructionSite
 from systems.pathfinding import Pathfinding
 from entities.player import Player
+from utils.debug_logger import debug_log
 
 # Import AI modules
 from .economy_module import EconomyModule
@@ -96,15 +97,18 @@ class ModularAISystem:
             for unit in units_data:
                 cost_data[unit['name']] = unit.get('costs', {})
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Warning: Could not load unit costs: {e}")
+            debug_log.log(f"Warning: Could not load unit costs: {e}", "AI")
             
         try:
             with open('data/buildings.json', 'r') as f:
                 buildings_data = json.load(f)
             for building in buildings_data:
                 cost_data[building['name']] = building.get('costs', {})
+                # Debug log building costs
+                if building['name'] in ['farm', 'quarry', 'mine', 'lumbermill', 'barracks']:
+                    debug_log.log(f"Loaded costs for {building['name']}: {cost_data[building['name']]}", "AI_INIT")
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Warning: Could not load building costs: {e}")
+            debug_log.log(f"Warning: Could not load building costs: {e}", "AI")
             
         return cost_data
     
@@ -142,7 +146,7 @@ class ModularAISystem:
                     modules = self.player_modules[player]
                     for module in modules.values():
                         module.update(delta_time)
-                
+                    
                     # Check if enough time has passed for task execution
                     # Also check if any module has force_next_update set
                     force_update = any(hasattr(m, 'force_next_update') and m.force_next_update 
@@ -176,12 +180,12 @@ class ModularAISystem:
                                 self.last_task_time[player] = current_time
                 
                 except Exception as e:
-                    print(f"Error updating AI for player {player.name}: {e}")
+                    debug_log.log(f"Error updating AI for player {player.name}: {e}", "AI")
                 
                 # Track performance
                 update_time = (pygame.time.get_ticks() / 1000.0) - start_time
                 if update_time > self.max_update_time:
-                    print(f"AI update for {player.name} took {update_time:.3f}s (exceeds limit)")
+                    debug_log.log(f"AI update for {player.name} took {update_time:.3f}s (exceeds limit)", "AI")
     
     def _update_player_memory(self, player: Player) -> None:
         """Update what the AI knows about the game state"""
@@ -340,7 +344,7 @@ class ModularAISystem:
             pathfinder = self.pathfinders[unit.player]
             self.game.selection_manager._move_unit_to_position(unit, target_pos, pathfinder)
         except Exception as e:
-            print(f"Error commanding unit move: {e}")
+            debug_log.log(f"Error commanding unit move: {e}", "AI")
     
     def _command_unit_attack(self, unit, target):
         """Command a unit to attack target using cached pathfinder"""
@@ -348,36 +352,25 @@ class ModularAISystem:
             pathfinder = self.pathfinders[unit.player]
             self.game.selection_manager._attack_target(unit, target, pathfinder)
         except Exception as e:
-            print(f"Error commanding unit attack: {e}")
+            debug_log.log(f"Error commanding unit attack: {e}", "AI")
     
     def _command_worker_gather(self, worker, resource):
-        """Command a worker to gather from resource using cached pathfinder - simplified approach"""
+        """Command a worker to gather from resource"""
         try:
             # Add safety check for resource state
             if not resource or getattr(resource, 'amount_remaining', 0) <= 0:
                 return
             
-            # Clear any existing state
-            worker.gathering_target = None
-            worker.destination = None
-            worker.path = None
-            worker.is_engaging = False
-            worker.is_gathering = False
+            # Use selection manager's gather method for proper pathfinding
+            pathfinder = Pathfinding(self.game.game_map, self.game)
+            pathfinder.gathering_target = resource
+            self.game.selection_manager._gather_from_target(worker, resource, pathfinder)
             
-            # Set new gathering target
-            worker.gathering_target = resource
-            worker.status = "run"
-            worker.is_engaging = True
-            
-            # Set destination near resource
-            worker.destination = (resource.x, resource.y)
-            
-            print(f"AI {worker.player.name}: === GATHER TASK SUCCESS ===")
-            print(f"Worker assigned gathering position ({resource.x:.0f}, {resource.y:.0f})")
-            print(f"Worker needs to move to gathering position")
+            debug_log.log(f"AI {worker.player.name}: === GATHER TASK SUCCESS ===", "AI")
+            debug_log.log(f"Worker assigned to gather from {resource.name} at ({resource.x:.0f}, {resource.y:.0f})", "AI")
                 
         except Exception as e:
-            print(f"AI {worker.player.name}: Worker gather command failed: {e}")
+            debug_log.log(f"AI {worker.player.name}: Worker gather command failed: {e}", "AI")
             # Clean up worker state if command failed
             if hasattr(worker, 'gathering_target'):
                 worker.gathering_target = None
@@ -389,25 +382,42 @@ class ModularAISystem:
         # Check building cooldown
         current_time = pygame.time.get_ticks() / 1000.0
         if current_time - self.last_building_time.get(player, 0) < self.building_cooldown:
+            debug_log.log(f"AI {player.name}: Building on cooldown, {self.building_cooldown - (current_time - self.last_building_time.get(player, 0)):.1f}s remaining", "AI")
             return
         
         if not memory["idle_workers"]:
+            debug_log.log(f"AI {player.name}: No idle workers for building {building_type}", "AI")
             return
             
         # Find a truly idle worker (not already building)
         worker = None
         for w in memory["idle_workers"]:
-            if not hasattr(w, 'building_target') or w.building_target is None:
+            # Extra check: ensure worker is not assigned to any construction site
+            already_assigned = False
+            for site in self.game.construction_sites:
+                if site.builder == w:
+                    already_assigned = True
+                    debug_log.log(f"AI {player.name}: Worker already assigned to construction site", "AI")
+                    break
+            
+            if not already_assigned and (not hasattr(w, 'building_target') or w.building_target is None):
                 worker = w
                 break
         
         if not worker:
-            print(f"AI {player.name}: No truly idle workers available for construction")
+            debug_log.log(f"AI {player.name}: No truly idle workers available for construction", "AI")
             return
         
         # Use building placement manager to find optimal position
         position = self.building_placement_managers[player].find_optimal_position(building_type)
         if position:
+            # Check if there's already a construction site at or near this position
+            for site in self.game.construction_sites:
+                distance = math.sqrt((site.x - position[0])**2 + (site.y - position[1])**2)
+                if distance < 50:  # Within 50 units is considered the same location
+                    debug_log.log(f"AI {player.name}: Construction already in progress at ({position[0]:.0f}, {position[1]:.0f})", "AI")
+                    return
+            
             # Reserve the position
             self.building_placement_managers[player].reserve_position(position[0], position[1], building_type)
             
@@ -528,9 +538,17 @@ class ModularAISystem:
         try:
             costs = self.cost_data.get(building_type, {})
             
+            # Double-check affordability right before spending
+            for resource, amount in costs.items():
+                if worker.player.resources.get(resource, 0) < amount:
+                    debug_log.log(f"AI {worker.player.name}: ERROR - Cannot afford {building_type} at build time!", "AI_BUILD")
+                    debug_log.log(f"  Need {amount} {resource}, have {worker.player.resources.get(resource, 0)}", "AI_BUILD")
+                    return  # Abort building
+            
             # Deduct resources
             for resource, amount in costs.items():
                 worker.player.resources[resource] -= amount
+                debug_log.log(f"AI {worker.player.name}: Spent {amount} {resource} on {building_type} (remaining: {worker.player.resources[resource]})", "AI_BUILD")
                 
             building_template = self.game.game_data["buildings"][building_type]
             

@@ -1,6 +1,7 @@
 import pygame
 import math
 from core.config import TILE_WIDTH, TILE_HEIGHT
+from utils.debug_logger import debug_log
 
 class UnitWatchdog:
     """Simplified unit recovery system for severely stuck units"""
@@ -44,7 +45,7 @@ class UnitWatchdog:
 
     def perform_emergency_recovery(self, unit):
         """Perform emergency recovery for severely stuck units"""
-        print(f"EMERGENCY RECOVERY: {unit.name} at ({unit.x:.0f}, {unit.y:.0f}) has been stuck for 6+ seconds")
+        debug_log.log(f"EMERGENCY RECOVERY: {unit.name} at ({unit.x:.0f}, {unit.y:.0f}) has been stuck for 6+ seconds", "WATCHDOG")
         
         # Find nearest valid position
         safe_pos = self._find_nearest_safe_position(unit)
@@ -66,7 +67,7 @@ class UnitWatchdog:
                 unit._stuck_detector['stuck_timer'] = 0
                 unit._stuck_detector['last_position'] = (unit.x, unit.y)
                 
-            print(f"  -> Teleported to ({unit.x:.0f}, {unit.y:.0f})")
+            debug_log.log(f"  -> Teleported to ({unit.x:.0f}, {unit.y:.0f})", "WATCHDOG")
 
     def _find_nearest_safe_position(self, unit):
         """Find the nearest walkable position to the unit"""

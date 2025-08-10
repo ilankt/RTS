@@ -4,6 +4,7 @@ import random
 from typing import Dict, List, Tuple, Optional, Any, Set
 from .base_module import AIModule
 from core.config import TILE_WIDTH, TILE_HEIGHT
+from utils.debug_logger import debug_log
 
 
 class ExplorationModule(AIModule):
@@ -258,7 +259,7 @@ class ExplorationModule(AIModule):
         scout = task["target"]
         self.scout_stuck_timers[scout] = 0.0
         self.last_scout_positions[scout] = (scout.x, scout.y)
-        print(f"AI {self.player.name}: Assigned {scout.name} as scout")
+        debug_log.log(f"AI {self.player.name}: Assigned {scout.name} as scout", "AI_EXPLORE")
         return True
     
     def _execute_explore_area(self, task: Dict[str, Any]) -> bool:

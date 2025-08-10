@@ -118,24 +118,75 @@ DEBUG_TO_FILE = True  # Write debug output to debug.dat
 
 ### Known Issues ⚠️
 
-1. **Worker Emergency Recovery**: Workers get teleported to castle after 15s stuck
-   - Increased from 6s to give more time for pathfinding
-   - May still teleport if truly stuck
+1. **Construction Works!** ✅: Debug logs show workers successfully building
+   - Workers reach sites and progress construction
+   - Buildings complete successfully
 
-2. **Testing Needed**: Construction should now work properly
-   - Pathfinding fixes should allow workers to reach sites
-   - Monitor BUILD_TRACK logs to confirm
+2. **AI Improvements** ✅: AI is now more responsive
+   - Decisions every 1s instead of 2s
+   - Module updates every 0.5s
+   - Barracks built with 2 workers instead of 3
+   - Higher priority for military buildings
 
 3. **Combat-Style Gathering** (BROKEN): Attempted unification failed
    - Workers stuck in resources, state management issues
    - Recommendation: DO NOT FIX - needs complete redesign
 
-4. **AI Worker Assignment**: Second+ workers may idle after training
-   - EconomyModule timing issues with worker detection
-   - AI only gathers gold, ignores resource diversification
+### Recent Fixes (2025-01-20) ✅ ALL COMPLETED
 
+1. **AI Building Placement** ✅:
+   - Fixed AI placing buildings near enemy castle (500-unit check)
+   - Buildings now placed strategically near own castle
 
+2. **Worker Crash Fix** ✅:
+   - Fixed worker vanishing/crash when reaching construction sites
+   - Added builder existence checks and increased nudge distance
 
+3. **F4 Debug Panel** ✅:
+   - Fixed silent game exit when toggling debug panel
+   - Added try/catch with error logging to debug.dat
+
+4. **Debug System Conversion** ✅:
+   - Created convert_prints.py script
+   - Converted all print() to debug_log.log() (14 files)
+   - All debug output now goes to debug.dat
+
+5. **AI Deadlock Resolution** ✅:
+   - Fixed AI refusing to gather far resources
+   - Added critical resource detection (0 amount = must gather)
+   - Resource buildings get CRITICAL priority (150+) when needed
+
+6. **Building Affordability** ✅:
+   - Enhanced _can_afford() with detailed logging
+   - Double-check resources before spending
+   - Final affordability filter prevents selecting unaffordable buildings
+
+7. **Worker Assignment** ✅:
+   - Fixed multiple workers on same construction site
+   - Added 50-unit proximity check for construction sites
+   - Enhanced worker state verification
+
+8. **Worker Ghosting** ✅:
+   - Fixed workers teleporting after construction
+   - Added position logging and proper collision re-enabling
+   - Terrain validation for nudge positions
+
+9. **Farm Building** ✅:
+   - First farm gets priority score of 80
+   - Reduced threshold for second farm
+   - AI now builds farms consistently
+
+10. **Barracks Building** ✅:
+    - Reduced worker requirement from 3 to 2
+    - Scaling priority based on worker count
+    - Enhanced affordability logging
+
+### Technical Improvements
+- Comprehensive debug logging for all AI decisions
+- Multiple resource verification checks
+- Immediate AI re-evaluation after construction
+- Force economy module updates when needed
+- Smart building prioritization (need + affordability)
 
 
 

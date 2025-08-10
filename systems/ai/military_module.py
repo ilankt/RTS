@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple, Optional, Any
 from .base_module import AIModule
 from .formation_system import FormationManager, FormationType
 from entities.objects import Unit, Building
+from utils.debug_logger import debug_log
 
 
 class MilitaryModule(AIModule):
@@ -396,7 +397,7 @@ class MilitaryModule(AIModule):
         
         formations = self.formation_manager.auto_form_units(units, situation)
         if formations:
-            print(f"AI {self.player.name}: Created {len(formations)} formation(s) for {situation}")
+            debug_log.log(f"AI {self.player.name}: Created {len(formations)} formation(s) for {situation}", "AI_MILITARY")
             return True
         return False
     

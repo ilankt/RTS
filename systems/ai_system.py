@@ -6,6 +6,7 @@ from enum import Enum
 from entities.objects import Unit, Building, Resource, ConstructionSite
 from systems.pathfinding import Pathfinding
 from core.config import TILE_WIDTH, TILE_HEIGHT
+from utils.debug_logger import debug_log
 
 
 class AIState(Enum):
@@ -83,7 +84,7 @@ class AISystem:
             for unit in units_data:
                 cost_data[unit['name']] = unit.get('costs', {})
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Warning: Could not load unit costs: {e}")
+            debug_log.log(f"Warning: Could not load unit costs: {e}", "AI")
             
         # Load building costs
         try:
@@ -92,7 +93,7 @@ class AISystem:
             for building in buildings_data:
                 cost_data[building['name']] = building.get('costs', {})
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Warning: Could not load building costs: {e}")
+            debug_log.log(f"Warning: Could not load building costs: {e}", "AI")
             
         return cost_data
         
@@ -130,7 +131,7 @@ class AISystem:
                 self._handle_attacking_state(player)
                 
         except Exception as e:
-            print(f"Error making decisions for player {player.name}: {e}")
+            debug_log.log(f"Error making decisions for player {player.name}: {e}", "AI")
     
     def _update_player_memory(self, player):
         """Update what the AI knows about the game state"""
@@ -203,7 +204,7 @@ class AISystem:
                         memory["enemy_locations"].append((building.x, building.y))
                         
         except Exception as e:
-            print(f"Error updating player memory: {e}")
+            debug_log.log(f"Error updating player memory: {e}", "AI")
     
     def _evaluate_state(self, player):
         """Determine what state the AI should be in"""
@@ -247,7 +248,7 @@ class AISystem:
         """Handle economic building and resource gathering"""
         memory = self.player_memory[player]
         
-        print(f"AI {player.name}: Building state - Workers: idle={len(memory['idle_workers'])}, gathering={len(memory['gathering_workers'])}, building={len(memory['building_workers'])}")
+        debug_log.log(f"AI {player.name}: Building state - Workers: idle={len(memory['idle_workers'])}, gathering={len(memory['gathering_workers'])}, building={len(memory['building_workers'])}", "AI")
         
         # Assign idle workers to gather resources
         if memory["idle_workers"]:
@@ -439,13 +440,13 @@ class AISystem:
         current_time = pygame.time.get_ticks() / 1000.0
         if current_time - self.last_building_time.get(player, 0) < self.building_cooldown:
             time_left = self.building_cooldown - (current_time - self.last_building_time.get(player, 0))
-            print(f"AI {player.name}: Building on cooldown ({time_left:.1f}s left)")
+            debug_log.log(f"AI {player.name}: Building on cooldown ({time_left:.1f}s left)", "AI")
             return
         
         # Check if another worker is already building
         for site in self.game.construction_sites:
             if site.player == player and site.builder:
-                print(f"AI {player.name}: Another worker is already building.")
+                debug_log.log(f"AI {player.name}: Another worker is already building.", "AI")
                 return
 
         if not memory["idle_workers"]:
@@ -464,7 +465,7 @@ class AISystem:
                 self._command_worker_build(worker, building_type, neat_pos)
                 memory["last_building_position"] = neat_pos
                 self.last_building_time[player] = pygame.time.get_ticks() / 1000.0
-                print(f"AI {player.name}: Commanded worker to build {building_type} neatly at ({neat_pos[0]:.0f}, {neat_pos[1]:.0f})")
+                debug_log.log(f"AI {player.name}: Commanded worker to build {building_type} neatly at ({neat_pos[0]:.0f}, {neat_pos[1]:.0f})", "AI")
                 return
             
         # Find valid build position near castle
@@ -480,7 +481,7 @@ class AISystem:
                 self._command_worker_build(worker, building_type, (build_x, build_y))
                 memory["last_building_position"] = (build_x, build_y)
                 self.last_building_time[player] = pygame.time.get_ticks() / 1000.0
-                print(f"AI {player.name}: Commanded worker to build {building_type} at ({build_x:.0f}, {build_y:.0f})")
+                debug_log.log(f"AI {player.name}: Commanded worker to build {building_type} at ({build_x:.0f}, {build_y:.0f})", "AI")
                 break
     
     def _build_resource_building(self, player):
@@ -612,7 +613,7 @@ class AISystem:
             # Use _move_unit_to_position directly with world coordinates
             self.game.selection_manager._move_unit_to_position(unit, target_pos, pathfinder)
         except Exception as e:
-            print(f"Error commanding unit move: {e}")
+            debug_log.log(f"Error commanding unit move: {e}", "AI")
     
     def _command_unit_attack(self, unit, target):
         """Command a unit to attack target"""
@@ -623,7 +624,7 @@ class AISystem:
             # Use _attack_target directly
             self.game.selection_manager._attack_target(unit, target, pathfinder)
         except Exception as e:
-            print(f"Error commanding unit attack: {e}")
+            debug_log.log(f"Error commanding unit attack: {e}", "AI")
     
     def _command_worker_gather(self, worker, resource):
         """Command a worker to gather from resource"""
@@ -634,7 +635,7 @@ class AISystem:
             # Use _gather_from_target directly
             self.game.selection_manager._gather_from_target(worker, resource, pathfinder)
         except Exception as e:
-            print(f"Error commanding worker gather: {e}")
+            debug_log.log(f"Error commanding worker gather: {e}", "AI")
     
     def _command_worker_build(self, worker, building_type, position):
         """Command a worker to build at position"""
@@ -696,7 +697,7 @@ class AISystem:
                 worker.destination = path[0] if path else None
             
         except Exception as e:
-            print(f"Error commanding worker build: {e}")
+            debug_log.log(f"Error commanding worker build: {e}", "AI")
     
     def _command_building_train(self, building, unit_type):
         """Command a building to train a unit"""
@@ -704,7 +705,7 @@ class AISystem:
         if self.game.production_manager:
             success, message = self.game.production_manager.start_production(building, unit_type)
             if not success:
-                print(f"AI {building.player.name}: Failed to train {unit_type} - {message}")
+                debug_log.log(f"AI {building.player.name}: Failed to train {unit_type} - {message}", "AI")
 
     def _find_nearest_dropoff(self, worker):
         """Finds the nearest valid drop-off building for a worker."""

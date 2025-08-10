@@ -187,7 +187,7 @@ class BuildingSystem:
         self.selected_builder.is_building = False  # Will be set to true when worker arrives
         
         # Debug logging
-        print(f"Building placement: Assigned worker {id(self.selected_builder)} to construction site")
+        debug_log.log(f"Building placement: Assigned worker {id(self.selected_builder)} to construction site", "BUILDING")
         
         # Move worker to a safe position next to the construction site
         from systems.pathfinding import Pathfinding
@@ -270,6 +270,9 @@ class BuildingSystem:
                             debug_log.log(f"WARNING: Builder no longer exists in game units!", "BUILD_UPDATE")
                             site.builder = None
                         else:
+                            # Log worker position before nudging
+                            debug_log.log(f"AI: Worker position before nudge: ({site.builder.x:.0f}, {site.builder.y:.0f})", "BUILD_UPDATE")
+                            
                             site.builder.collision = False
                             
                             # Calculate a nudge position directly away from the building center
@@ -287,6 +290,8 @@ class BuildingSystem:
                             nudge_pos_x = site.x + direction_x * nudge_distance
                             nudge_pos_y = site.y + direction_y * nudge_distance
                             
+                            debug_log.log(f"AI: Calculated nudge position: ({nudge_pos_x:.0f}, {nudge_pos_y:.0f}), distance={nudge_distance:.0f}", "BUILD_UPDATE")
+                            
                             # Validate the nudge position is on valid terrain
                             grid_pos = self.game.game_map.world_to_grid(nudge_pos_x, nudge_pos_y)
                             if grid_pos:
@@ -299,6 +304,7 @@ class BuildingSystem:
                                         site.builder.y = nudge_pos_y
                                         site.builder.destination = (nudge_pos_x, nudge_pos_y)
                                         site.builder.status = "idle"
+                                        debug_log.log(f"AI: Worker nudged to position: ({site.builder.x:.0f}, {site.builder.y:.0f})", "BUILD_UPDATE")
                                     else:
                                         # Can't nudge to water/lava, just clear state
                                         debug_log.log(f"WARNING: Nudge position is invalid terrain!", "BUILD_UPDATE")
@@ -309,8 +315,22 @@ class BuildingSystem:
                                 debug_log.log(f"WARNING: Nudge position is off map!", "BUILD_UPDATE")
                                 site.builder.destination = None
                                 site.builder.status = "idle"
+                            
+                            # Re-enable collision after nudging
+                            site.builder.collision = True
                     
                     # Construction complete
+                    debug_log.log(f"AI: Construction of {site.building_name} completed at ({site.x:.0f}, {site.y:.0f})", "BUILD_UPDATE")
+                    
+                    # Force AI to immediately re-evaluate after construction completion
+                    if hasattr(self.game, 'ai_system') and self.game.ai_system and site.player:
+                        self.game.ai_system.invalidate_memory_cache(site.player)
+                        # Force economy module update for newly idle worker
+                        if site.player in self.game.ai_system.player_modules:
+                            economy_module = self.game.ai_system.player_modules[site.player].get("economy")
+                            if economy_module:
+                                economy_module.force_next_update = True
+                                debug_log.log(f"AI: Forced economy module update for {site.player.name} after construction", "BUILD_UPDATE")
         
         # Remove completed construction sites
         for site in completed_sites:
@@ -334,12 +354,12 @@ class BuildingSystem:
                     construction_site.builder.building_target = None
                     construction_site.builder.status = "idle"
                 
-                print(f"AI: Construction cancelled - worker at ({construction_site.builder.x:.0f},{construction_site.builder.y:.0f}) freed and cleaned")
+                debug_log.log(f"AI: Construction cancelled - worker at ({construction_site.builder.x:.0f},{construction_site.builder.y:.0f}) freed and cleaned", "BUILDING")
                 
                 # Invalidate AI memory cache for immediate detection of newly idle worker
                 if hasattr(self.game, 'ai_system') and self.game.ai_system:
                     self.game.ai_system.invalidate_memory_cache(construction_site.player)
-                    print(f"AI: Invalidated memory cache for {construction_site.player.name} after construction cancellation")
+                    debug_log.log(f"AI: Invalidated memory cache for {construction_site.player.name} after construction cancellation", "BUILDING")
             
             # Remove the construction site
             self.game.construction_sites.remove(construction_site)

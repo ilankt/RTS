@@ -1,6 +1,7 @@
 """Base module for AI behavior system"""
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, Optional, Any
+from utils.debug_logger import debug_log
 
 
 class AIModule(ABC):
@@ -39,13 +40,13 @@ class AIModule(ABC):
         """Check if module needs to generate new tasks"""
         # Force initial update if module supports it
         if hasattr(self, 'force_initial_update') and self.force_initial_update:
-            print(f"Module {self.__class__.__name__}: Forcing initial update")
+            debug_log.log(f"Module {self.__class__.__name__}: Forcing initial update", "AI_MODULE")
             self.force_initial_update = False
             return True
         
         should_update = self.last_update >= self.update_interval
         if should_update:
-            print(f"Module {self.__class__.__name__}: Update due (last_update: {self.last_update:.1f}s >= interval: {self.update_interval:.1f}s)")
+            debug_log.log(f"Module {self.__class__.__name__}: Update due (last_update: {self.last_update:.1f}s >= interval: {self.update_interval:.1f}s)", "AI_MODULE")
         return should_update
         
     def reset_update_timer(self) -> None:

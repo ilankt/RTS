@@ -3,6 +3,7 @@ import math
 from entities.objects import Unit
 from systems.animation import Animation
 from core.config import TILE_WIDTH
+from utils.debug_logger import debug_log
 
 class ProductionManager:
     """Manages unit production for buildings"""
@@ -130,7 +131,7 @@ class ProductionManager:
         # Invalidate AI memory cache for immediate detection of new unit
         if hasattr(self.game, 'ai_system') and self.game.ai_system:
             self.game.ai_system.invalidate_memory_cache(building.player)
-            print(f"AI: Invalidated memory cache for {building.player.name} after producing {unit_type}")
+            debug_log.log(f"AI: Invalidated memory cache for {building.player.name} after producing {unit_type}", "PRODUCTION")
         
         # Clear current production
         building.current_production = None

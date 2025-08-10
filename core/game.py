@@ -28,6 +28,7 @@ from systems.rendering_system import RenderingSystem
 from systems.unit_watchdog import UnitWatchdog
 from systems.ai import ModularAISystem
 from systems.projectile_system import ProjectileSystem
+from utils.debug_logger import debug_log
 
 
 class Game:
@@ -166,15 +167,15 @@ class Game:
             try:
                 self.ai_debug_panel.toggle_visibility()
             except Exception as e:
-                print(f"ERROR: F4 debug panel crashed: {e}")
+                debug_log.log(f"ERROR: F4 debug panel crashed: {e}", "GENERAL")
                 import traceback
                 traceback.print_exc()
         elif event.key == pygame.K_LEFTBRACKET:  # [ key - decrease speed
             self.game_speed = max(MIN_GAME_SPEED, self.game_speed - GAME_SPEED_INCREMENT)
-            print(f"Game speed: {self.game_speed:.1f}x")
+            debug_log.log(f"Game speed: {self.game_speed:.1f}x", "GENERAL")
         elif event.key == pygame.K_RIGHTBRACKET:  # ] key - increase speed
             self.game_speed = min(MAX_GAME_SPEED, self.game_speed + GAME_SPEED_INCREMENT)
-            print(f"Game speed: {self.game_speed:.1f}x")
+            debug_log.log(f"Game speed: {self.game_speed:.1f}x", "GENERAL")
     
     def _handle_mouse_wheel(self, event):
         """Handle mouse wheel zoom"""
@@ -357,13 +358,13 @@ class Game:
         # Remove depleted resources
         depleted_resources = [resource for resource in self.resources if resource.amount_remaining <= 0]
         for resource in depleted_resources:
-            print(f"Removing depleted {resource.name} resource at ({resource.x:.0f}, {resource.y:.0f})")
+            debug_log.log(f"Removing depleted {resource.name} resource at ({resource.x:.0f}, {resource.y:.0f})", "GENERAL")
             
             # Clear any workers still targeting this resource
             for unit in self.units:
                 if (hasattr(unit, 'gathering_target') and 
                     unit.gathering_target == resource):
-                    print(f"  Clearing resource from worker at ({unit.x:.0f}, {unit.y:.0f})")
+                    debug_log.log(f"  Clearing resource from worker at ({unit.x:.0f}, {unit.y:.0f})", "GENERAL")
                     
                     # Clear gathering state
                     unit.gathering_target = None
@@ -388,9 +389,9 @@ class Game:
                         dy_norm = dy / distance
                         unit.x += dx_norm * push_force
                         unit.y += dy_norm * push_force
-                        print(f"  Pushed worker away from depleted resource to ({unit.x:.0f}, {unit.y:.0f})")
+                        debug_log.log(f"  Pushed worker away from depleted resource to ({unit.x:.0f}, {unit.y:.0f})", "GENERAL")
                     
-                    print(f"  Worker state cleared")
+                    debug_log.log(f"  Worker state cleared", "GENERAL")
             
             # Remove from resources list
             self.resources.remove(resource)

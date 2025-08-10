@@ -1,5 +1,6 @@
 import math
 from core.config import GATHERING_DISTANCE_MULTIPLIER, GATHERING_RATES, DROP_OFF_BUILDINGS, DROP_OFF_DELAY, FARM_FOOD_AMOUNT, FARM_FOOD_INTERVAL
+from utils.debug_logger import debug_log
 
 def get_gathering_distance(worker, resource):
     """Calculate the gathering distance between a worker and resource"""
@@ -97,7 +98,7 @@ class GatheringManager:
                 worker.gathering_target = None
         else:
             # Resource depleted or invalid
-            print(f"Worker at ({worker.x:.0f}, {worker.y:.0f}) stopped gathering - resource depleted or invalid")
+            debug_log.log(f"Worker at ({worker.x:.0f}, {worker.y:.0f}) stopped gathering - resource depleted or invalid", "GATHERING")
             
             # Clear gathering state
             worker.is_gathering = False
@@ -332,7 +333,7 @@ class GatheringManager:
             worker_index = gatherers_snapshot.index(worker)
         except ValueError:
             # This should not happen now, but keep as safety
-            print(f"Warning: Worker still not found after adding to gatherers list")
+            debug_log.log(f"Warning: Worker still not found after adding to gatherers list", "GATHERING")
             worker_index = 0  # Use first position as fallback
         
         # Define gathering radius around resource (slightly larger than normal interaction distance)

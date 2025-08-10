@@ -3,6 +3,7 @@ import pygame
 from systems.pathfinding import Pathfinding
 from systems.gathering_manager import get_gathering_distance, get_drop_off_distance
 from core.config import DEBUG_MOVEMENT, DEBUG_PATHFINDING
+from utils.debug_logger import debug_log
 
 
 class MovementSystem:
@@ -353,30 +354,36 @@ class MovementSystem:
             required_distance = unit.radius + unit.building_target.radius - 5
             
             # Log current state every few frames for debugging
-            from utils.debug_logger import debug_log
             frame_counter = getattr(unit, '_build_log_counter', 0)
             if frame_counter % 60 == 0:  # Log every 60 frames
                 debug_log.log(f"BUILD_TRACKING: Worker at ({unit.x:.0f}, {unit.y:.0f}) -> Construction at ({unit.building_target.x:.0f}, {unit.building_target.y:.0f})", "BUILD_TRACK")
                 debug_log.log(f"  Distance: {build_distance:.1f}, Required: {required_distance:.1f}, Has path: {unit.path is not None}, Has dest: {unit.destination is not None}", "BUILD_TRACK")
                 debug_log.log(f"  Status: {unit.status}, is_building: {unit.is_building}, is_engaging: {getattr(unit, 'is_engaging', False)}", "BUILD_TRACK")
+                
+                # Extra debug when very close but not close enough
+                if build_distance < required_distance + 20 and build_distance > required_distance:
+                    debug_log.log(f"  CLOSE BUT NOT CLOSE ENOUGH: Gap of {build_distance - required_distance:.1f} pixels", "BUILD_TRACK")
+                    if unit.destination:
+                        debug_log.log(f"  Destination: ({unit.destination[0]:.0f}, {unit.destination[1]:.0f})", "BUILD_TRACK")
+                    if hasattr(unit, '_stuck_detector'):
+                        debug_log.log(f"  Stuck timer: {unit._stuck_detector.get('stuck_timer', 0)}", "BUILD_TRACK")
             unit._build_log_counter = frame_counter + 1
             
             # Add tolerance for stuck units
             if hasattr(unit, '_stuck_detector') and unit._stuck_detector['stuck_timer'] >= 60:
                 tolerance = unit.get_target_tolerance("movement")
                 required_distance += tolerance
-                print(f"Worker stuck approaching construction - increased tolerance to {required_distance:.1f}")
+                debug_log.log(f"Worker stuck approaching construction - increased tolerance to {required_distance:.1f}", "MOVEMENT")
             
             # Debug stuck workers with building targets
             if not unit.path and not unit.destination and unit.status == "idle":
-                from utils.debug_logger import debug_log
                 debug_log.log(f"Worker at ({unit.x:.0f}, {unit.y:.0f}) has building_target but no movement!", "CONSTRUCTION")
                 debug_log.log(f"  - Target: Construction at ({unit.building_target.x:.0f}, {unit.building_target.y:.0f})", "CONSTRUCTION")
                 debug_log.log(f"  - Distance: {build_distance:.1f}, Required: {required_distance:.1f}", "CONSTRUCTION")
                 
                 # Recovery: Re-path to building target
                 if build_distance > required_distance + 5:
-                    print(f"  - Recovery: Re-pathing to construction site")
+                    debug_log.log(f"  - Recovery: Re-pathing to construction site", "MOVEMENT")
                     from systems.pathfinding import Pathfinding
                     pathfinder = Pathfinding(self.game_map, self.game)
                     pathfinder.current_unit = unit
@@ -390,13 +397,14 @@ class MovementSystem:
                         unit.path_index = 0
                         unit.destination = path[0] if path else None
                         unit.status = "run"
-                        print(f"  - Recovery: Path found to construction site")
+                        debug_log.log(f"  - Recovery: Path found to construction site", "MOVEMENT")
                     else:
-                        print(f"  - Recovery: No path to construction site!")
+                        debug_log.log(f"  - Recovery: No path to construction site!", "MOVEMENT")
             
-            if build_distance <= required_distance:
+            # Check if worker is close enough to start building
+            # Add a small tolerance (10 pixels) to account for pathfinding/collision precision
+            if build_distance <= required_distance + 10:
                 # Start building
-                from utils.debug_logger import debug_log
                 debug_log.log(f"Worker reached construction site at distance {build_distance:.1f} (required: {required_distance:.1f})", "CONSTRUCTION")
                 debug_log.log(f"  Worker status: {unit.status}, is_building: {unit.is_building}", "CONSTRUCTION")
                 unit.path = None
@@ -479,14 +487,14 @@ class MovementSystem:
             
             # Debug and recover stuck workers with gathering targets
             if not unit.path and not unit.destination and unit.status == "idle":
-                print(f"DEBUG: Worker at ({unit.x:.0f}, {unit.y:.0f}) has gathering_target but no movement!")
-                print(f"  - Target: {unit.gathering_target.name} at ({unit.gathering_target.x:.0f}, {unit.gathering_target.y:.0f})")
-                print(f"  - Distance: {target_distance:.1f}, Required: {gathering_distance:.1f}")
-                print(f"  - Resource remaining: {getattr(unit.gathering_target, 'amount_remaining', 'N/A')}")
+                debug_log.log(f"DEBUG: Worker at ({unit.x:.0f}, {unit.y:.0f}) has gathering_target but no movement!", "MOVEMENT")
+                debug_log.log(f"  - Target: {unit.gathering_target.name} at ({unit.gathering_target.x:.0f}, {unit.gathering_target.y:.0f})", "MOVEMENT")
+                debug_log.log(f"  - Distance: {target_distance:.1f}, Required: {gathering_distance:.1f}", "MOVEMENT")
+                debug_log.log(f"  - Resource remaining: {getattr(unit.gathering_target, 'amount_remaining', 'N/A')}", "MOVEMENT")
                 
                 # Recovery: If too far from target, clear the stuck state and re-path
                 if target_distance > gathering_distance + 5:  # Small tolerance
-                    print(f"  - Recovery: Re-pathing to distant gathering target")
+                    debug_log.log(f"  - Recovery: Re-pathing to distant gathering target", "MOVEMENT")
                     from systems.pathfinding import Pathfinding
                     pathfinder = Pathfinding(self.game_map, self.game)
                     pathfinder.gathering_target = unit.gathering_target
@@ -500,18 +508,18 @@ class MovementSystem:
                         unit.path_index = 0
                         unit.destination = path[0] if path else None
                         unit.status = "run"
-                        print(f"  - Recovery: Path found, worker moving again")
+                        debug_log.log(f"  - Recovery: Path found, worker moving again", "MOVEMENT")
                     else:
                         # Can't reach target - clear it
-                        print(f"  - Recovery: No path to target, clearing gathering target")
+                        debug_log.log(f"  - Recovery: No path to target, clearing gathering target", "MOVEMENT")
                         unit.gathering_target = None
                         unit.is_engaging = False
             
             if target_distance <= gathering_distance:
-                print(f"Worker at distance {target_distance:.1f} from {unit.gathering_target.name} (required: {gathering_distance:.1f})")
+                debug_log.log(f"Worker at distance {target_distance:.1f} from {unit.gathering_target.name} (required: {gathering_distance:.1f})", "MOVEMENT")
                 # Attempt to start gathering. If successful, the gathering manager will handle state changes.
                 if self.game.gathering_manager.start_gathering(unit, unit.gathering_target):
-                    print(f"  Started gathering successfully")
+                    debug_log.log(f"  Started gathering successfully", "MOVEMENT")
                     # Now that gathering has officially started, clear the movement state.
                     unit.path = None
                     unit.path_index = 0
@@ -520,7 +528,7 @@ class MovementSystem:
                     unit.is_engaging = False
                 else:
                     # Failed to start gathering - resource might be depleted
-                    print(f"  Failed to start gathering - resource might be depleted")
+                    debug_log.log(f"  Failed to start gathering - resource might be depleted", "MOVEMENT")
                     unit.gathering_target = None
                     unit.is_engaging = False
                     unit.status = "idle"

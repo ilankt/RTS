@@ -3,6 +3,7 @@ import math
 from typing import Dict, List, Tuple, Optional, Any
 from collections import defaultdict
 import time
+from utils.debug_logger import debug_log
 
 
 class ResourceManager:
@@ -141,7 +142,7 @@ class ResourceManager:
                     available_resources.append(resource)
         
         if not available_resources:
-            print(f"AI {self.player.name}: No available resources")
+            debug_log.log(f"AI {self.player.name}: No available resources", "AI_RESOURCE")
             return None
         
         # Early game strategy (first 5 minutes): Stable 33% distribution
@@ -190,11 +191,11 @@ class ResourceManager:
                         self.current_priority_resource = max(deficits.items(), key=lambda x: x[1])[0]
                 
                 self.priority_set_time = current_time
-                print(f"AI {self.player.name}: Early game priority set to {self.current_priority_resource} (game time: {self.game_time:.1f}s)")
+                debug_log.log(f"AI {self.player.name}: Early game priority set to {self.current_priority_resource} (game time: {self.game_time:.1f}s)", "AI_RESOURCE")
                 
                 # Log worker distribution for debugging
                 dist_str = ", ".join([f"{res}: {count}" for res, count in resource_worker_counts.items() if res in available_resources])
-                print(f"AI {self.player.name}: Current worker distribution: {dist_str}")
+                debug_log.log(f"AI {self.player.name}: Current worker distribution: {dist_str}", "AI_RESOURCE")
             
             return self.current_priority_resource
         
@@ -222,7 +223,7 @@ class ResourceManager:
                     
                     self.current_priority_resource = max(deficits.items(), key=lambda x: x[1])[0]
                     self.priority_set_time = current_time
-                    print(f"AI {self.player.name}: Mid-game priority updated to {self.current_priority_resource}")
+                    debug_log.log(f"AI {self.player.name}: Mid-game priority updated to {self.current_priority_resource}", "AI_RESOURCE")
                 
                 return self.current_priority_resource
         
@@ -280,16 +281,27 @@ class ResourceManager:
         economy_module = self.ai_system.player_modules.get(self.player, {}).get("economy")
         if economy_module and hasattr(economy_module, 'far_resources_need_buildings'):
             far_resources = economy_module.far_resources_need_buildings
-            
-        available_resources = [r for r in early_game_resources
-                             if r in memory["resource_locations"] and memory["resource_locations"][r]
-                             and r not in far_resources]  # Exclude far resources that need buildings
+        
+        # Check if we have critical shortages - if we have 0 of a resource, we MUST gather it
+        critical_resources = []
+        for resource in early_game_resources:
+            if self.player.resources.get(resource, 0) == 0 and resource in memory["resource_locations"]:
+                if memory["resource_locations"][resource]:
+                    critical_resources.append(resource)
+                    debug_log.log(f"AI {self.player.name}: CRITICAL - {resource} is at 0, must gather regardless of distance", "AI_RESOURCE")
+        
+        # Include critical resources even if they're far
+        available_resources = []
+        for r in early_game_resources:
+            if r in memory["resource_locations"] and memory["resource_locations"][r]:
+                if r in critical_resources or r not in far_resources:
+                    available_resources.append(r)
         
         if far_resources:
-            print(f"AI {self.player.name}: Excluding far resources from assignment: {far_resources}")
+            debug_log.log(f"AI {self.player.name}: Far resources: {far_resources}, but including critical: {critical_resources}", "AI_RESOURCE")
         
         if not available_resources:
-            print(f"AI {self.player.name}: No available resources for worker assignment (far resources excluded: {far_resources})")
+            debug_log.log(f"AI {self.player.name}: No available resources for worker assignment", "AI_RESOURCE")
             return assignments
         
         # New strategy: Consider distance when assigning workers
@@ -344,8 +356,8 @@ class ResourceManager:
                     if best_resource in unassigned_resources and assigned_counts[best_resource] > 0:
                         unassigned_resources.remove(best_resource)
                 
-            print(f"AI {self.player.name}: Distance-aware diversity assignment - distributed {len(workers)} workers")
-            print(f"AI {self.player.name}: Assignment counts: {assigned_counts}")
+            debug_log.log(f"AI {self.player.name}: Distance-aware diversity assignment - distributed {len(workers)} workers", "AI_RESOURCE")
+            debug_log.log(f"AI {self.player.name}: Assignment counts: {assigned_counts}", "AI_RESOURCE")
         else:
             # For more workers, use priority-based assignment
             priority_resource = self.get_priority_resource(15.0)  # Shorter horizon for performance
@@ -375,14 +387,14 @@ class ResourceManager:
                                 assignments[resource].append(workers[worker_index])
                                 worker_index += 1
                                 
-                print(f"AI {self.player.name}: Priority assignment with diversity - {priority_resource} priority")
+                debug_log.log(f"AI {self.player.name}: Priority assignment with diversity - {priority_resource} priority", "AI_RESOURCE")
             else:
                 # Fallback: Simple round-robin
                 for i, worker in enumerate(workers):
                     res_type = available_resources[i % len(available_resources)]
                     assignments[res_type].append(worker)
                     
-                print(f"AI {self.player.name}: Round-robin assigned {len(workers)} workers")
+                debug_log.log(f"AI {self.player.name}: Round-robin assigned {len(workers)} workers", "AI_RESOURCE")
         
         # Update tracking of which resources are being gathered
         self.resources_being_gathered = set(assignments.keys())
@@ -390,7 +402,7 @@ class ResourceManager:
         # Verify all workers got assigned
         total_assigned = sum(len(worker_list) for worker_list in assignments.values())
         if total_assigned != len(workers):
-            print(f"AI {self.player.name}: WARNING - Only {total_assigned}/{len(workers)} workers assigned!")
+            debug_log.log(f"AI {self.player.name}: WARNING - Only {total_assigned}/{len(workers)} workers assigned!", "AI_RESOURCE")
         
         # Cache the result
         self.cached_assignments = {'assignments': dict(assignments), 'workers': workers[:]}
@@ -398,7 +410,7 @@ class ResourceManager:
         
         # Debug output
         assignment_summary = {res_type: len(worker_list) for res_type, worker_list in assignments.items()}
-        print(f"AI {self.player.name}: Final assignments: {assignment_summary}")
+        debug_log.log(f"AI {self.player.name}: Final assignments: {assignment_summary}", "AI_RESOURCE")
         
         return assignments
     
