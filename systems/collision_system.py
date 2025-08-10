@@ -54,11 +54,11 @@ class CollisionSystem:
             
             # For gathering targets, allow closer approach but prevent complete overlap
             if (hasattr(unit, 'gathering_target') and unit.gathering_target == resource):
-                # Allow gathering distance but prevent overlap beyond gathering range
+                # Allow workers to get close enough to gather, but prevent them from overlapping
                 pass
-                from systems.gathering_manager import get_gathering_distance
-                gathering_distance = get_gathering_distance(unit, resource)
-                min_distance = max(gathering_distance * 0.8, unit.radius + resource.radius - 5)  # Allow closer but not overlapping
+                # Minimum distance is just enough to prevent overlap
+                # Workers can get as close as their radii allow without overlapping
+                min_distance = unit.radius + resource.radius  # Prevent overlap but allow gathering
             else:
                 # Normal collision distance for non-gathering targets
                 pass
@@ -68,11 +68,31 @@ class CollisionSystem:
                 # Calculate overlap amount
                 pass
                 overlap = min_distance - distance
-                # Try sliding along the obstacle
-                final_pos = self._calculate_slide_position(original_pos, final_pos,
-                                                         pygame.math.Vector2(resource.x, resource.y),
-                                                         min_distance,
-                                                         unit, overlap)
+                
+                # If unit is gathering and severely overlapping, push it out immediately
+                if (hasattr(unit, 'is_gathering') and unit.is_gathering and 
+                    hasattr(unit, 'gathering_target') and unit.gathering_target == resource and
+                    distance < unit.radius + resource.radius):
+                    # Push unit directly away from resource to gathering distance
+                    if distance > 0:
+                        push_x = (unit.x - resource.x) / distance
+                        push_y = (unit.y - resource.y) / distance
+                    else:
+                        # If exactly on center, push in random direction
+                        import random
+                        angle = random.random() * 2 * math.pi
+                        push_x = math.cos(angle)
+                        push_y = math.sin(angle)
+                    
+                    final_pos.x = resource.x + push_x * min_distance
+                    final_pos.y = resource.y + push_y * min_distance
+                    debug_log.log(f"GATHERING: Pushed overlapping worker away from resource to distance {min_distance}", "COLLISION")
+                else:
+                    # Try sliding along the obstacle
+                    final_pos = self._calculate_slide_position(original_pos, final_pos,
+                                                             pygame.math.Vector2(resource.x, resource.y),
+                                                             min_distance,
+                                                             unit, overlap)
         
         # Then check other units with special handling
         for other_unit in self.game.units:

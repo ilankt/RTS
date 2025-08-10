@@ -188,7 +188,37 @@ DEBUG_TO_FILE = True  # Write debug output to debug.dat
 - Force economy module updates when needed
 - Smart building prioritization (need + affordability)
 
+## Known Bugs
 
+### Units Getting Stuck - Pathfinding and Overlapping Issues
+**Status**: 🐛 **KNOWN BUG - Not Fixed**
 
+Units occasionally get stuck due to imperfect pathfinding and collision detection:
+- Units can overlap when multiple units try to reach the same destination
+- Pathfinding sometimes fails to find optimal routes around obstacles
+- Workers can get stuck when gathering from resources with multiple workers
+- Combat units may get stuck when engaging enemies in groups
 
-```
+This is a complex issue involving the interaction between:
+- Pathfinding system (A* algorithm)
+- Collision detection and resolution
+- Movement strategies (LOS vs pathfinding)
+- Unit separation mechanics
+
+**Workaround**: Currently units attempt to recover when stuck for >1 second, but this doesn't always resolve the issue.
+
+## Recent Bug Fixes (2025-08-10)
+
+### Critical AI Resource Vanishing Bug ✅ FIXED
+- **Problem**: AI's wood was disappearing when trying to build farms
+- **Root Cause**: Silent exception handling was hiding `AttributeError` when accessing `building_template.radius`
+- **Solution**: 
+  - Fixed radius calculation from building size
+  - Added proper error logging and resource refunding
+  - Fixed import scope issues in exception handler
+- **Result**: AI can now successfully build farms without losing resources
+
+### AI Early Game Strategy ✅ FIXED  
+- **Problem**: AI tried to build farm with only 1 worker, leaving no idle workers
+- **Solution**: Corrected build order - train 2 workers first, then build farm
+- **Build Order**: Workers (2) → Farm → Workers (5) → Barracks

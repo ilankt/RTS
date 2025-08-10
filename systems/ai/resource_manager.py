@@ -282,19 +282,43 @@ class ResourceManager:
         if economy_module and hasattr(economy_module, 'far_resources_need_buildings'):
             far_resources = economy_module.far_resources_need_buildings
         
-        # Check if we have critical shortages - if we have 0 of a resource, we MUST gather it
+        # Check if we have critical shortages - if we have 0 of a resource OR can't afford any buildings
         critical_resources = []
+        # Check if we can afford ANY building
+        can_afford_any = any(self.ai_system._can_afford(self.player, b) for b in ["farm", "house", "mine", "quarry", "lumbermill", "barracks"])
+        
+        # In early game, also check for NEARBY resources (within 200 units)
+        castle = memory["buildings"]["castle"]
+        nearby_resources = set()
+        if castle and self.game_time < 300:  # Only prioritize nearby in first 5 minutes
+            for res_type in ["gold", "wood", "stone"]:
+                if res_type in memory["resource_locations"]:
+                    for res in memory["resource_locations"][res_type]:
+                        dist = math.sqrt((res.x - castle.x)**2 + (res.y - castle.y)**2)
+                        if dist < 200:
+                            nearby_resources.add(res_type)
+                            debug_log.log(f"AI {self.player.name}: Found nearby {res_type} at distance {dist:.0f}", "AI_RESOURCE")
+                            break
+        
         for resource in early_game_resources:
-            if self.player.resources.get(resource, 0) == 0 and resource in memory["resource_locations"]:
+            amount = self.player.resources.get(resource, 0)
+            is_critical = amount == 0 or (not can_afford_any and resource in ["gold", "wood"])
+            if is_critical and resource in memory["resource_locations"]:
                 if memory["resource_locations"][resource]:
                     critical_resources.append(resource)
-                    debug_log.log(f"AI {self.player.name}: CRITICAL - {resource} is at 0, must gather regardless of distance", "AI_RESOURCE")
+                    debug_log.log(f"AI {self.player.name}: {resource} marked as critical (amount={amount}, can_afford_any={can_afford_any})", "AI_RESOURCE")
         
         # Include critical resources even if they're far
         available_resources = []
         for r in early_game_resources:
             if r in memory["resource_locations"] and memory["resource_locations"][r]:
-                if r in critical_resources or r not in far_resources:
+                # In early game (first 5 minutes), include ALL resources regardless of distance
+                if self.game_time < 300:  # First 5 minutes
+                    available_resources.append(r)
+                # Otherwise prioritize nearby or critical resources
+                elif r in nearby_resources:
+                    available_resources.append(r)
+                elif r in critical_resources or r not in far_resources:
                     available_resources.append(r)
         
         if far_resources:
@@ -332,8 +356,13 @@ class ResourceManager:
                         result = self._find_closest_resource_to_position(res_type, worker.x, worker.y, memory)
                         if result:
                             _, distance = result
-                            # Penalize very distant resources
-                            if distance < 200 or (distance < best_distance and distance < 400):
+                            # For critical resources, ignore distance penalty
+                            if res_type in critical_resources:
+                                best_distance = distance
+                                best_resource = res_type
+                                debug_log.log(f"AI {self.player.name}: Assigning worker to critical {res_type} at distance {distance:.0f}", "AI_RESOURCE")
+                            # Penalize very distant resources (unless critical)
+                            elif distance < 200 or (distance < best_distance and distance < 400):
                                 best_distance = distance
                                 best_resource = res_type
                 
@@ -343,8 +372,13 @@ class ResourceManager:
                         result = self._find_closest_resource_to_position(res_type, worker.x, worker.y, memory)
                         if result:
                             _, distance = result
-                            # Add penalty for already assigned resources to encourage diversity
-                            effective_distance = distance + (assigned_counts[res_type] * 100)
+                            # For critical resources, use actual distance
+                            if res_type in critical_resources:
+                                effective_distance = distance
+                            else:
+                                # Add penalty for already assigned resources to encourage diversity
+                                effective_distance = distance + (assigned_counts[res_type] * 100)
+                            
                             if effective_distance < best_distance:
                                 best_distance = effective_distance
                                 best_resource = res_type

@@ -53,6 +53,11 @@ class GatheringManager:
     def _update_gathering_worker(self, worker, delta_time):
         """Update a single gathering worker"""
         if worker.gathering_target and worker.gathering_target.amount_remaining > 0:
+            # Track gathering progress to detect stuck workers
+            if not hasattr(worker, '_last_resource_amount'):
+                worker._last_resource_amount = worker.resource_amount
+                worker._gathering_no_progress_timer = 0
+            
             # Check if still in range
             pass
             distance = self._get_distance(worker, worker.gathering_target)
@@ -85,6 +90,25 @@ class GatheringManager:
                     # Update animation
                     worker.status = "gather"
                     worker.gathering_timer += delta_time
+                    
+                    # Reset progress timer if actually gathering
+                    if actual_gathered > 0:
+                        worker._gathering_no_progress_timer = 0
+                    else:
+                        # Not making progress
+                        worker._gathering_no_progress_timer += delta_time
+                        
+                        if worker._gathering_no_progress_timer > 2.0:
+                            debug_log.log(f"WARNING: Worker not gathering despite being in range for {worker._gathering_no_progress_timer:.1f}s", "GATHERING")
+                            debug_log.log(f"  - Distance: {distance:.1f}, Required: {gathering_distance:.1f}", "GATHERING")
+                            debug_log.log(f"  - Worker radius: {worker.radius}, Resource radius: {worker.gathering_target.radius}", "GATHERING")
+                            
+                            # Force stop gathering to trigger re-approach
+                            worker.is_gathering = False
+                            worker.status = "idle"
+                            worker._gathering_no_progress_timer = 0
+                    
+                    worker._last_resource_amount = worker.resource_amount
                 else:
                     # Worker is full, needs to drop off
                     pass
@@ -336,8 +360,8 @@ class GatheringManager:
             debug_log.log(f"Warning: Worker still not found after adding to gatherers list", "GATHERING")
             worker_index = 0  # Use first position as fallback
         
-        # Define gathering radius around resource (slightly larger than normal interaction distance)
-        gathering_radius = resource.radius + worker.radius + 15  # Extra spacing
+        # Define gathering radius around resource - use the official gathering distance
+        gathering_radius = get_gathering_distance(worker, resource)
         
         # Calculate angle for this worker (evenly distribute around circle)
         angle_per_worker = (2 * math.pi) / max(8, gatherer_count * 2)  # At least 8 positions, more if needed

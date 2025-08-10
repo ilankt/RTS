@@ -485,8 +485,85 @@ class MovementSystem:
                                       (unit.y - unit.gathering_target.y)**2)
             gathering_distance = get_gathering_distance(unit, unit.gathering_target)
             
+            # Track stuck state for gathering workers
+            if not hasattr(unit, '_gathering_stuck_timer'):
+                unit._gathering_stuck_timer = 0
+                unit._last_gathering_distance = target_distance
+            
+            # Check if worker is making progress
+            distance_change = abs(unit._last_gathering_distance - target_distance)
+            if unit.is_gathering and distance_change < 0.1:  # Not moving while gathering
+                unit._gathering_stuck_timer += delta_time
+            else:
+                unit._gathering_stuck_timer = 0
+            unit._last_gathering_distance = target_distance
+            
+            # Check if worker is overlapping with resource (stuck inside)
+            if target_distance < unit.radius + unit.gathering_target.radius:
+                debug_log.log(f"WARNING: Worker overlapping with resource! Distance: {target_distance:.1f}, Min safe: {unit.radius + unit.gathering_target.radius:.1f}", "MOVEMENT")
+                # Push worker to proper gathering distance
+                if target_distance > 0:
+                    push_x = (unit.x - unit.gathering_target.x) / target_distance
+                    push_y = (unit.y - unit.gathering_target.y) / target_distance
+                else:
+                    # If exactly on center, push in random direction
+                    import random
+                    angle = random.random() * 2 * math.pi
+                    push_x = math.cos(angle)
+                    push_y = math.sin(angle)
+                
+                # Move to gathering distance
+                unit.x = unit.gathering_target.x + push_x * gathering_distance
+                unit.y = unit.gathering_target.y + push_y * gathering_distance
+                unit.destination = None
+                unit.path = None
+                unit._gathering_stuck_timer = 0  # Reset stuck timer
+                debug_log.log(f"  - Pushed worker to safe distance: ({unit.x:.0f}, {unit.y:.0f})", "MOVEMENT")
+            
+            # Additional recovery: If stuck gathering for too long, force a reset
+            elif unit._gathering_stuck_timer > 3.0:  # Stuck for 3 seconds
+                debug_log.log(f"RECOVERY: Worker stuck gathering for {unit._gathering_stuck_timer:.1f}s - forcing reset", "MOVEMENT")
+                
+                # Option 1: Try different gathering position
+                if unit._gathering_stuck_timer < 6.0:
+                    # Calculate a different angle
+                    import random
+                    angle = random.random() * 2 * math.pi
+                    new_x = unit.gathering_target.x + math.cos(angle) * gathering_distance
+                    new_y = unit.gathering_target.y + math.sin(angle) * gathering_distance
+                    
+                    unit.x = new_x
+                    unit.y = new_y
+                    unit._gathering_stuck_timer = 0
+                    debug_log.log(f"  - Moved to new gathering position: ({new_x:.0f}, {new_y:.0f})", "MOVEMENT")
+                
+                # Option 2: More drastic - temporarily stop gathering
+                else:
+                    debug_log.log(f"  - Drastic recovery: Stopping gathering temporarily", "MOVEMENT")
+                    unit.is_gathering = False
+                    unit.status = "idle"
+                    unit.destination = None
+                    unit.path = None
+                    unit._gathering_stuck_timer = 0
+                    
+                    # Move away from resource
+                    if target_distance > 0:
+                        push_x = (unit.x - unit.gathering_target.x) / target_distance
+                        push_y = (unit.y - unit.gathering_target.y) / target_distance
+                    else:
+                        import random
+                        angle = random.random() * 2 * math.pi
+                        push_x = math.cos(angle)
+                        push_y = math.sin(angle)
+                    
+                    unit.x = unit.gathering_target.x + push_x * (gathering_distance + 20)
+                    unit.y = unit.gathering_target.y + push_y * (gathering_distance + 20)
+                    
+                    # Will re-engage next frame
+                    unit.is_engaging = True
+            
             # Debug and recover stuck workers with gathering targets
-            if not unit.path and not unit.destination and unit.status == "idle":
+            elif not unit.path and not unit.destination and unit.status == "idle":
                 debug_log.log(f"DEBUG: Worker at ({unit.x:.0f}, {unit.y:.0f}) has gathering_target but no movement!", "MOVEMENT")
                 debug_log.log(f"  - Target: {unit.gathering_target.name} at ({unit.gathering_target.x:.0f}, {unit.gathering_target.y:.0f})", "MOVEMENT")
                 debug_log.log(f"  - Distance: {target_distance:.1f}, Required: {gathering_distance:.1f}", "MOVEMENT")

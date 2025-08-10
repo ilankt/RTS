@@ -385,6 +385,14 @@ class ModularAISystem:
             debug_log.log(f"AI {player.name}: Building on cooldown, {self.building_cooldown - (current_time - self.last_building_time.get(player, 0)):.1f}s remaining", "AI")
             return
         
+        # Count actual workers
+        idle_count = len(memory.get("idle_workers", []))
+        gathering_count = len(memory.get("gathering_workers", []))
+        building_count = len(memory.get("building_workers", []))
+        total_workers = idle_count + gathering_count + building_count
+        
+        debug_log.log(f"AI {player.name}: Worker check for {building_type} - Idle: {idle_count}, Gathering: {gathering_count}, Building: {building_count}, Total: {total_workers}", "AI")
+        
         if not memory["idle_workers"]:
             debug_log.log(f"AI {player.name}: No idle workers for building {building_type}", "AI")
             return
@@ -535,6 +543,7 @@ class ModularAISystem:
     
     def _command_worker_build(self, worker, building_type, position):
         """Command a worker to build at position"""
+        from utils.debug_logger import debug_log
         try:
             costs = self.cost_data.get(building_type, {})
             
@@ -570,12 +579,16 @@ class ModularAISystem:
                 'attack_range': getattr(building_template, 'attack_range', 0)
             }
             
+            # Calculate radius from size (same as in BuildingSystem)
+            building_size = building_template.size
+            building_radius = building_size[0] * 32  # TILE_WIDTH = 32
+            
             construction_site = ConstructionSite(
                 building_name=building_type,
                 building_data=building_data,
                 x=position[0],
                 y=position[1],
-                radius=building_template.radius,
+                radius=building_radius,
                 player=worker.player
             )
             
@@ -583,7 +596,6 @@ class ModularAISystem:
             construction_site.builder = worker
             
             # Command worker to build
-            from utils.debug_logger import debug_log
             debug_log.log(f"AI assigning worker at ({worker.x:.0f}, {worker.y:.0f}) to build at ({construction_site.x:.0f}, {construction_site.y:.0f})", "AI_BUILD")
             worker.building_target = construction_site
             worker.status = "run"
@@ -614,7 +626,12 @@ class ModularAISystem:
             pathfinder.building_target = None
             
         except Exception as e:
-            pass
+            debug_log.log(f"AI {worker.player.name}: ERROR in _command_worker_build: {str(e)}", "AI_BUILD")
+            debug_log.log(f"  Building type: {building_type}, Position: {position}", "AI_BUILD")
+            # Refund resources since building failed
+            for resource, amount in costs.items():
+                worker.player.resources[resource] += amount
+                debug_log.log(f"  Refunded {amount} {resource} (total: {worker.player.resources[resource]})", "AI_BUILD")
     
     def _train_unit(self, player, unit_type):
         """Train a unit from appropriate building"""

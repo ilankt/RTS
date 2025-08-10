@@ -109,18 +109,59 @@ class EconomyModule(AIModule):
         current_resources = {k: int(v) for k, v in self.player.resources.items()}
         debug_log.log(f"AI {self.player.name}: Current resources: {current_resources}", "AI_ECONOMY")
         debug_log.log(f"AI {self.player.name}: Game phase: {game_phase}, Resource needs: {resource_needs}", "AI_ECONOMY")
-
-        # Action: Train Worker
+        
+        # SIMPLIFIED EARLY GAME STRATEGY
         worker_count = len(memory["idle_workers"]) + len(memory["gathering_workers"]) + len(memory["building_workers"])
-        ideal_workers = self._calculate_ideal_workers(game_phase)
-        if worker_count < ideal_workers and self._can_afford("worker"):
-            possible_actions.append({"action": "train_worker", "score": 80})
+        farm_count = len([b for b in memory["buildings"]["resource_buildings"] if b.name == "farm"])
+        farm_count += len([s for s in self.game.construction_sites if s.player == self.player and s.building_name == "farm"])
+        barracks_count = len(memory["buildings"].get("barracks", []))
+        barracks_count += len([s for s in self.game.construction_sites if s.player == self.player and s.building_name == "barracks"])
+        
+        # Early game build order
+        if game_phase == "early":
+            # 1. FIRST PRIORITY: Train at least 2 workers before anything else
+            if worker_count < 2 and self._can_afford("worker"):
+                possible_actions.append({"action": "train_worker", "score": 350})
+                debug_log.log(f"AI {self.player.name}: EARLY GAME - CRITICAL: Need workers first! ({worker_count}/2 minimum)", "AI_ECONOMY")
+            
+            # 2. Then build first farm if we have at least 2 workers
+            elif farm_count == 0 and worker_count >= 2:
+                if self._can_afford("farm"):
+                    possible_actions.append({"action": "build_resource_building", "score": 300, "params": {"building_type": "farm"}})
+                    debug_log.log(f"AI {self.player.name}: EARLY GAME - First farm is SUPER CRITICAL (score: 300)", "AI_ECONOMY")
+                else:
+                    # Log why we can't build farm
+                    debug_log.log(f"AI {self.player.name}: EARLY GAME - NEED FARM but can't afford! Need 75 wood, have {int(self.player.resources.get('wood', 0))}", "AI_ECONOMY")
+            
+            # 3. Continue training workers up to 5
+            elif worker_count < 5 and self._can_afford("worker"):
+                possible_actions.append({"action": "train_worker", "score": 150})
+                debug_log.log(f"AI {self.player.name}: EARLY GAME - Need more workers ({worker_count}/5)", "AI_ECONOMY")
+            
+            # 3. Build barracks after 3 workers and 1 farm
+            elif worker_count >= 3 and farm_count >= 1 and barracks_count == 0 and self._can_afford("barracks"):
+                possible_actions.append({"action": "build_barracks", "score": 180})
+                debug_log.log(f"AI {self.player.name}: EARLY GAME - Time for barracks! (score: 180)", "AI_ECONOMY")
+            
+            # 4. Build house if needed
+            current_pop = len([u for u in self.game.units if u.player == self.player])
+            pop_limit = self._get_population_limit()
+            if current_pop >= pop_limit - 3 and self._can_afford("house"):
+                possible_actions.append({"action": "build_house", "score": 170})
+                debug_log.log(f"AI {self.player.name}: EARLY GAME - Need house (pop: {current_pop}/{pop_limit})", "AI_ECONOMY")
 
-        # Action: Build House
-        current_pop = len([u for u in self.game.units if u.player == self.player])
-        pop_limit = self._get_population_limit()
-        if current_pop >= pop_limit - 2 and self._can_afford("house"):
-            possible_actions.append({"action": "build_house", "score": 90})
+        # Continue with normal logic for non-early game phases
+        if game_phase != "early":
+            # Action: Train Worker
+            ideal_workers = self._calculate_ideal_workers(game_phase)
+            if worker_count < ideal_workers and self._can_afford("worker"):
+                possible_actions.append({"action": "train_worker", "score": 80})
+
+            # Action: Build House
+            current_pop = len([u for u in self.game.units if u.player == self.player])
+            pop_limit = self._get_population_limit()
+            if current_pop >= pop_limit - 2 and self._can_afford("house"):
+                possible_actions.append({"action": "build_house", "score": 90})
 
         # Action: Build Resource Buildings
         building_scores = self._score_resource_buildings(resource_needs)
@@ -138,25 +179,18 @@ class EconomyModule(AIModule):
                 # Log why we're skipping unaffordable buildings
                 debug_log.log(f"AI {self.player.name}: Skipping {building_type} - cannot afford (score was {score})", "AI_ECONOMY")
 
-        # Action: Build Barracks
-        # Build barracks when we have at least 3 workers and no barracks yet
-        barracks_count = len(memory["buildings"].get("barracks", []))
-        # Check barracks cost details
-        if barracks_count == 0:
-            barracks_costs = self.ai_system.cost_data.get("barracks", {})
-            player_resources = {k: int(v) for k, v in self.player.resources.items()}
-            can_afford = self._can_afford("barracks")
-            debug_log.log(f"AI {self.player.name}: Barracks check - workers: {worker_count}, barracks: {barracks_count}", "AI_ECONOMY")
-            debug_log.log(f"  Resources: {player_resources}", "AI_ECONOMY")
-            debug_log.log(f"  Barracks costs: {barracks_costs}", "AI_ECONOMY")
-            debug_log.log(f"  Can afford: {can_afford}", "AI_ECONOMY")
-        if worker_count >= 2 and barracks_count == 0 and self._can_afford("barracks"):  # Reduced from 3 to 2 workers
-            # Scale barracks priority with worker count - more workers = higher priority
-            # Base score 90, +10 per worker above 2 (max +30 at 5 workers)
-            worker_bonus = min((worker_count - 2) * 10, 30)
-            barracks_score = 90 + worker_bonus  # Increased base priority
-            possible_actions.append({"action": "build_barracks", "score": barracks_score})
-            debug_log.log(f"AI {self.player.name}: Added barracks to possible actions with score {barracks_score} (base 85 + worker bonus {worker_bonus})", "AI_ECONOMY")
+        # Action: Build Barracks (only for non-early game phases)
+        # In early game, barracks is handled by the simplified strategy above
+        if game_phase != "early":
+            barracks_count = len(memory["buildings"].get("barracks", []))
+            barracks_count += len([s for s in self.game.construction_sites if s.player == self.player and s.building_name == "barracks"])
+            
+            if worker_count >= 3 and barracks_count == 0 and self._can_afford("barracks"):
+                # Scale barracks priority with worker count
+                worker_bonus = min((worker_count - 3) * 10, 30)
+                barracks_score = 90 + worker_bonus
+                possible_actions.append({"action": "build_barracks", "score": barracks_score})
+                debug_log.log(f"AI {self.player.name}: Added barracks to possible actions with score {barracks_score}", "AI_ECONOMY")
 
         # 3. Check for far resources before assigning workers
         # First, identify which resources are too far and need buildings
@@ -164,20 +198,44 @@ class EconomyModule(AIModule):
         
         # 4. Assign idle workers to gather resources (but not from far resources that need buildings)
         if all_idle_workers:
+            # Check if we can afford ANY building (use cached result from execute)
+            import pygame
+            current_time = pygame.time.get_ticks() / 1000.0
+            if not hasattr(self, '_cached_can_afford_any') or current_time - getattr(self, '_cache_timestamp', 0) > 0.5:
+                self._cached_can_afford_any = any(self._can_afford(b) for b in ["farm", "house", "mine", "quarry", "lumbermill", "barracks"])
+                self._cache_timestamp = current_time
+            can_afford_any = self._cached_can_afford_any
+            
+            debug_log.log(f"AI {self.player.name}: Processing {len(all_idle_workers)} idle workers for gathering", "AI_ECONOMY")
             assignments = self.resource_manager.get_optimal_worker_assignment(all_idle_workers)
+            
+            gather_task_count = 0
             for resource_type, workers in assignments.items():
-                # Check if this is a critical resource (we have 0 of it)
-                is_critical = self.player.resources.get(resource_type, 0) == 0
+                # Check if this is a critical resource (we have 0 of it OR we can't afford any buildings)
+                amount = self.player.resources.get(resource_type, 0)
+                is_critical = amount == 0 or (not can_afford_any and resource_type in ["gold", "wood"])
                 
-                # Skip assignment if this resource type needs a building - UNLESS it's critical
-                if resource_type in self.far_resources_need_buildings and not is_critical:
+                # SPECIAL CASE: In early game with no farm, wood is ALWAYS critical
+                if game_phase == "early" and farm_count == 0 and resource_type == "wood":
+                    wood_amount = self.player.resources.get("wood", 0)
+                    if wood_amount < 75:  # Need 75 for farm
+                        is_critical = True
+                        debug_log.log(f"AI {self.player.name}: Wood marked CRITICAL for first farm (have {wood_amount}, need 75)", "AI_ECONOMY")
+                
+                # Skip assignment if this resource type needs a building - UNLESS it's critical OR early game
+                # In early game, we MUST gather resources even if far to bootstrap economy
+                if resource_type in self.far_resources_need_buildings and not is_critical and game_phase != "early":
                     debug_log.log(f"AI {self.player.name}: Skipping {resource_type} gathering - needs building first", "AI_ECONOMY")
                     continue
-                    
+                
+                debug_log.log(f"AI {self.player.name}: Creating gather tasks for {len(workers)} workers to gather {resource_type} (critical: {is_critical})", "AI_ECONOMY")
                 for worker in workers:
                     # Critical resources get higher priority
                     priority = 0.99 if is_critical else 0.95
                     tasks.append({"action": "gather_resource", "priority": priority, "target": worker, "params": {"resource_type": resource_type}})
+                    gather_task_count += 1
+            
+            debug_log.log(f"AI {self.player.name}: Created {gather_task_count} gather tasks from {len(all_idle_workers)} idle workers", "AI_ECONOMY")
 
         # 4. Select the best economic action and create a task for it
         if possible_actions:
@@ -229,7 +287,12 @@ class EconomyModule(AIModule):
                     priority = 0.98
                     debug_log.log(f"AI {self.player.name}: Boosting {building_type} priority to {priority} - needed for far {resource_type}", "AI_ECONOMY")
                 else:
-                    priority = 0.7
+                    # Check if this is a farm in early game - SUPER high priority
+                    if building_type == "farm" and game_phase == "early" and farm_count == 0:
+                        priority = 0.99  # Higher than any gather task!
+                        debug_log.log(f"AI {self.player.name}: SUPER HIGH priority for first farm: {priority}", "AI_ECONOMY")
+                    else:
+                        priority = 0.7
                     
                 tasks.append({"action": "build_resource_building", "priority": priority, "target": None, "params": best_action["params"]})
 
@@ -267,17 +330,23 @@ class EconomyModule(AIModule):
         """Determine current game phase based on various factors"""
         memory = self.ai_system.player_memory[self.player]
         
+        # Count specific buildings
+        barracks_count = len(memory["buildings"].get("barracks", []))
+        
+        # Stay in early game until we have barracks
+        if barracks_count == 0:
+            return "early"
+            
         # Simple phase detection based on buildings and units
         building_count = sum(len(buildings) for buildings in memory["buildings"].values() if isinstance(buildings, list))
         if memory["buildings"]["castle"]:
             building_count += 1
             
         unit_count = len([u for u in self.game.units if u.player == self.player])
+        military_count = len(memory.get("military_units", []))
         
-        # More lenient thresholds: 2 buildings OR 3 units for mid-game
-        if building_count < 2 and unit_count < 3:
-            return "early"
-        elif building_count < 8 or unit_count < 15:
+        # Mid game when we have barracks and some military
+        if military_count < 5:
             return "mid"
         else:
             return "late"
@@ -430,13 +499,26 @@ class EconomyModule(AIModule):
         resource_type = task["params"]["resource_type"]
         memory = self.ai_system.player_memory[self.player]
         
-        # Check if this is a critical resource (we have 0 of it)
-        is_critical = self.player.resources.get(resource_type, 0) == 0
+        # Check if this is a critical resource (we have 0 of it OR we can't afford any buildings)
+        amount = self.player.resources.get(resource_type, 0)
+        # Check if we can afford ANY building (cache this result)
+        if not hasattr(self, '_cached_can_afford_any'):
+            self._cached_can_afford_any = any(self._can_afford(b) for b in ["farm", "house", "mine", "quarry", "lumbermill", "barracks"])
+            self._cache_timestamp = pygame.time.get_ticks() / 1000.0
+        elif pygame.time.get_ticks() / 1000.0 - self._cache_timestamp > 0.5:  # Refresh cache every 0.5s
+            self._cached_can_afford_any = any(self._can_afford(b) for b in ["farm", "house", "mine", "quarry", "lumbermill", "barracks"])
+            self._cache_timestamp = pygame.time.get_ticks() / 1000.0
+            
+        is_critical = amount == 0 or (not self._cached_can_afford_any and resource_type in ["gold", "wood"])
         if is_critical:
-            debug_log.log(f"AI {self.player.name}: {resource_type} is CRITICAL (amount=0)", "AI_ECONOMY")
+            debug_log.log(f"AI {self.player.name}: {resource_type} is CRITICAL (amount={amount}, can_afford_any={self._cached_can_afford_any})", "AI_ECONOMY")
         
-        # Skip far resources UNLESS they're critical
-        if resource_type in self.far_resources_need_buildings and not is_critical:
+        # Skip far resources UNLESS they're critical OR early game
+        # Get game phase
+        memory = self.ai_system.player_memory[self.player]
+        game_phase = self._determine_game_phase()
+        
+        if resource_type in self.far_resources_need_buildings and not is_critical and game_phase != "early":
             debug_log.log(f"AI {self.player.name}: Skipping gather execution for {resource_type} - building needed", "AI_ECONOMY")
             return False
         
@@ -480,7 +562,9 @@ class EconomyModule(AIModule):
     def _execute_build_resource_building(self, task: Dict[str, Any]) -> bool:
         """Execute build resource building task"""
         building_type = task["params"]["building_type"]
+        debug_log.log(f"AI {self.player.name}: Executing build task for {building_type}", "AI_ECONOMY")
         self.ai_system._build_structure(self.player, building_type)
+        debug_log.log(f"AI {self.player.name}: Build task completed for {building_type}", "AI_ECONOMY")
         return True
     
     def _execute_rebalance_workers(self, task: Dict[str, Any]) -> bool:
