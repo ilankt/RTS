@@ -12,7 +12,7 @@ class AIModule(ABC):
         self.game = ai_system.game
         self.priority = 1.0  # Base priority, can be adjusted
         self.last_update = 0
-        self.update_interval = 1.0  # Update frequency in seconds
+        self.update_interval = 0.5  # Update frequency in seconds (reduced for more responsive AI)
         
     @abstractmethod
     def get_tasks(self) -> List[Dict[str, Any]]:

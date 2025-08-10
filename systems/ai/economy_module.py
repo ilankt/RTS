@@ -140,11 +140,11 @@ class EconomyModule(AIModule):
             print(f"  Resources: {player_resources}")
             print(f"  Barracks costs: {barracks_costs}")
             print(f"  Can afford: {can_afford}")
-        if worker_count >= 3 and barracks_count == 0 and self._can_afford("barracks"):
+        if worker_count >= 2 and barracks_count == 0 and self._can_afford("barracks"):  # Reduced from 3 to 2 workers
             # Scale barracks priority with worker count - more workers = higher priority
-            # Base score 85, +5 per worker above 3 (max +25 at 8 workers)
-            worker_bonus = min((worker_count - 3) * 5, 25)
-            barracks_score = 85 + worker_bonus
+            # Base score 90, +10 per worker above 2 (max +30 at 5 workers)
+            worker_bonus = min((worker_count - 2) * 10, 30)
+            barracks_score = 90 + worker_bonus  # Increased base priority
             possible_actions.append({"action": "build_barracks", "score": barracks_score})
             print(f"AI {self.player.name}: Added barracks to possible actions with score {barracks_score} (base 85 + worker bonus {worker_bonus})")
 

@@ -36,13 +36,13 @@ class ModularAISystem:
             }
         
         # Task execution settings - Reduced frequency for performance
-        self.max_tasks_per_update = 2  # Execute up to 2 tasks per update
-        self.task_cooldown = 2.0  # Minimum time between task executions (increased from 0.5s)
+        self.max_tasks_per_update = 3  # Execute up to 3 tasks per update (increased for more action)
+        self.task_cooldown = 1.0  # Minimum time between task executions (reduced for faster decisions)
         self.last_task_time = {player: 0 for player in self.ai_players}
         
         # Building cooldowns
         self.last_building_time = {player: 0 for player in self.ai_players}
-        self.building_cooldown = 5.0
+        self.building_cooldown = 3.0  # Reduced from 5.0 for faster building
         
         # Player memory system
         self.player_memory = {
@@ -115,7 +115,7 @@ class ModularAISystem:
         for player in self.ai_players:
             # Stagger updates to spread CPU load
             stagger_offset = self.update_stagger[player]
-            if (self.stagger_timer + stagger_offset) % 2.0 < delta_time:  # Update every 2 seconds with stagger
+            if (self.stagger_timer + stagger_offset) % 1.0 < delta_time:  # Update every 1 second with stagger (faster)
                 start_time = pygame.time.get_ticks() / 1000.0
                 
                 try:

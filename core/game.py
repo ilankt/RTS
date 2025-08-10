@@ -163,7 +163,12 @@ class Game:
         elif event.key == pygame.K_F3:
             self.debug_overlay = not self.debug_overlay
         elif event.key == pygame.K_F4:
-            self.ai_debug_panel.toggle_visibility()
+            try:
+                self.ai_debug_panel.toggle_visibility()
+            except Exception as e:
+                print(f"ERROR: F4 debug panel crashed: {e}")
+                import traceback
+                traceback.print_exc()
         elif event.key == pygame.K_LEFTBRACKET:  # [ key - decrease speed
             self.game_speed = max(MIN_GAME_SPEED, self.game_speed - GAME_SPEED_INCREMENT)
             print(f"Game speed: {self.game_speed:.1f}x")
