@@ -33,6 +33,7 @@ class Pathfinding:
         self.grid_size = 8  # World units per navigation grid cell - reduced from 20 for finer navigation
         self.drop_off_target = None  # Building to allow collision with
         self.gathering_target = None  # Resource to allow collision with
+        self.building_target = None  # Construction site to allow collision with
         self.current_unit = None  # The unit currently pathfinding
         self.spatial_grid = {}  # Spatial partitioning for collision detection
         self.path_cache = {}  # Cache for computed paths
@@ -46,7 +47,7 @@ class Pathfinding:
         self.spatial_cell_size = 64  # Size of each spatial cell
         
         # Add all static objects to spatial grid
-        for obj in self.game.buildings + self.game.resources:
+        for obj in self.game.buildings + self.game.resources + self.game.construction_sites:
             self._add_to_spatial_grid(obj)
             
     def _add_to_spatial_grid(self, obj):
@@ -309,6 +310,9 @@ class Pathfinding:
                 continue
             # Skip collision check with gathering target
             if self.gathering_target and obj == self.gathering_target:
+                continue
+            # Skip collision check with building target (for workers approaching construction sites)
+            if hasattr(self, 'building_target') and self.building_target and obj == self.building_target:
                 continue
             dist = math.sqrt((obj.x - x)**2 + (obj.y - y)**2)
             if dist < (obj.radius + radius + collision_buffer):

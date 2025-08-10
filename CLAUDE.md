@@ -81,33 +81,49 @@ DEBUG_TO_FILE = True  # Write debug output to debug.dat
 - **AI System**: Full economic/military AI with state machine
 - **Debug Cleanup**: Removed all non-AI debug prints
 
-### Recent Updates (2025-01-20) - Branch: refactor/pathfinding-system
+### Recent Updates (2025-08-09) - Branch: refactor/pathfinding-system (NOT MERGED)
 
-1. **Pathfinding Improvements**: 
+1. **Building Menu System** ✅:
+   - Two-tier menu: Economy and Military categories
+   - Icons: build_econ_icon.png and build_mil_icon.png (70x70)
+   - Neutral gray buttons, proper sizing
+
+2. **Pathfinding Improvements**:
    - Fixed water tile collision (full radius checking with 8 points)
-   - Adjusted construction site approach distance
+   - Simplified stuck detection, removed ghost mode
+   - Emergency recovery teleports stuck units to castle after 6s
    - Fixed worker spawn speed bug (was 5x too fast)
 
-2. **Debug System**:
-   - Added file-based debug logging to `debug.dat`
-   - Categories: AI_BUILD, CONSTRUCTION, BUILD_UPDATE
+3. **Debug System** ✅:
+   - File-based debug logging to `debug.dat`
+   - Categories: AI_BUILD, CONSTRUCTION, BUILD_UPDATE, BUILD_TRACK
    - Enable with DEBUG_TO_FILE = True
 
-3. **Game Speed Control**:
+4. **Game Speed Control** ✅:
    - Use [ and ] keys to control speed (1x-5x)
    - Speed affects ALL time-based systems
    - Visual indicator in top-right
 
+5. **AI Fixes** ✅:
+   - Fixed AI assigning same worker to multiple construction sites
+   - Added proper idle worker detection before assignment
+   - Memory cache invalidation after worker assignments
+
 ### Known Issues ⚠️
 
-1. **Construction Not Starting**: Workers reach sites but building doesn't progress
-   - Under investigation with new debug system
-   
-2. **Combat-Style Gathering** (BROKEN): Attempted unification failed
+1. **Worker Emergency Recovery**: Workers get teleported to castle after 6s stuck
+   - Emergency recovery system may be too aggressive
+   - Workers "ghost" to castle center when stuck near construction
+
+2. **Construction Start Detection**: Workers may not trigger is_building = True
+   - Movement system detection may need adjustment
+   - Debug with BUILD_TRACK logs
+
+3. **Combat-Style Gathering** (BROKEN): Attempted unification failed
    - Workers stuck in resources, state management issues
    - Recommendation: DO NOT FIX - needs complete redesign
 
-3. **AI Worker Assignment**: Second+ workers may idle after training
+4. **AI Worker Assignment**: Second+ workers may idle after training
    - EconomyModule timing issues with worker detection
    - AI only gathers gold, ignores resource diversification
 

@@ -380,6 +380,7 @@ class MovementSystem:
                     from systems.pathfinding import Pathfinding
                     pathfinder = Pathfinding(self.game_map, self.game)
                     pathfinder.current_unit = unit
+                    pathfinder.building_target = unit.building_target  # Allow pathfinding to target
                     
                     path = pathfinder.find_path((unit.x, unit.y), 
                                               (unit.building_target.x, unit.building_target.y), 

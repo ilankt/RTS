@@ -575,6 +575,7 @@ class ModularAISystem:
             
             # Set up pathfinding using cached pathfinder
             pathfinder = self.pathfinders[worker.player]
+            pathfinder.building_target = construction_site  # Allow pathfinding to construction site
             path = pathfinder.find_path(
                 (worker.x, worker.y),
                 (construction_site.x, construction_site.y),
@@ -587,6 +588,12 @@ class ModularAISystem:
                 worker.path_index = 0
                 worker.path_target = (construction_site.x, construction_site.y)
                 worker.destination = path[0] if path else None
+                debug_log.log(f"  Path found! Length: {len(path)}, First point: ({path[0][0]:.0f}, {path[0][1]:.0f})", "AI_BUILD")
+            else:
+                debug_log.log(f"  ERROR: No path found to construction site!", "AI_BUILD")
+            
+            # Clear pathfinder state
+            pathfinder.building_target = None
             
         except Exception as e:
             pass

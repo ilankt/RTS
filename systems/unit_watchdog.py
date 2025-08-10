@@ -34,7 +34,7 @@ class UnitWatchdog:
                     self.stuck_units[unit] += 1
                     
                 # If stuck for multiple check cycles, perform emergency recovery
-                if self.stuck_units[unit] >= 2:  # 6+ seconds total
+                if self.stuck_units[unit] >= 5:  # 15+ seconds total  (increased for construction)
                     self.perform_emergency_recovery(unit)
                     del self.stuck_units[unit]
             else:
