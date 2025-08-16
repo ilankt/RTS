@@ -1,6 +1,6 @@
 import pygame
 from core.config import TILE_WIDTH, TOP_BAR_HEIGHT
-from entities.objects import Building, Unit, Resource, ConstructionSite
+from entities import Building, Unit, Resource, ConstructionSite
 
 
 class RenderingSystem:
@@ -33,7 +33,7 @@ class RenderingSystem:
         self._draw_ui_overlays(map_surface, camera)
         
         # Draw building preview
-        if self.building_system.building_placement_mode and self.building_system.building_preview_pos:
+        if self.building_system.building_placement_mode:
             self.building_system.draw_building_preview(map_surface, camera)
         
         # Draw floating UI elements

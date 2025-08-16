@@ -1,6 +1,6 @@
 import random
 import math
-from entities.objects import Building, Unit, Resource
+from entities import Building, Unit, Resource
 from systems.animation import Animation
 from core.config import MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, TILE_WIDTH, TILE_HEIGHT
 

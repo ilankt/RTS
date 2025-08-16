@@ -1,8 +1,9 @@
 import math
 import random
 import pygame
-from entities.objects import Building, ConstructionSite
-from core.config import TILE_WIDTH, TILE_HEIGHT, SCREEN_HEIGHT, MAP_VIEW_HEIGHT
+from entities import Building, ConstructionSite
+from core.config import TILE_WIDTH, TILE_HEIGHT, SCREEN_HEIGHT, MAP_VIEW_HEIGHT, TOP_BAR_HEIGHT
+from utils.debug_logger import debug_log
 
 
 class BuildingSystem:
@@ -32,7 +33,7 @@ class BuildingSystem:
                     break
                 
         if not self.selected_builder:
-            # No valid worker selected for building
+            # No eligible builder selected
             return False
             
         self.building_placement_mode = True
@@ -53,24 +54,27 @@ class BuildingSystem:
     
     def update_building_preview(self, mouse_pos):
         """Update building preview position and validity"""
-        if not self.building_placement_mode:
+        if not self.building_placement_mode or not self.building_to_place:
             return
             
         # Convert mouse position to world coordinates
         world_pos = self.game.screen_to_world(mouse_pos[0], mouse_pos[1])
         
-        # Check if position is within the map view area
-        if mouse_pos[1] < SCREEN_HEIGHT - MAP_VIEW_HEIGHT:
+        # Check if position is within the top bar area (exclude UI area)
+        if mouse_pos[1] < TOP_BAR_HEIGHT:
             self.building_preview_pos = None
             return
             
-        self.building_preview_pos = world_pos
+        self.building_preview_pos = list(world_pos) if isinstance(world_pos, tuple) else world_pos
         
         # Check if position is valid for building
         self.building_preview_valid = self.is_valid_building_position(world_pos)
     
     def is_valid_building_position(self, world_pos):
         """Check if a position is valid for building placement"""
+        if not self.building_to_place:
+            return False
+            
         building_size = self.building_to_place['size']
         building_radius = building_size[0] * TILE_WIDTH / 2
         
@@ -189,23 +193,28 @@ class BuildingSystem:
         # Debug logging
         debug_log.log(f"Building placement: Assigned worker {id(self.selected_builder)} to construction site", "BUILDING")
         
-        # Move worker to a safe position next to the construction site
+        # Move worker directly to the construction site
         from systems.pathfinding import Pathfinding
         pathfinder = Pathfinding(self.game_map, self.game)
         
-        # Find a safe position next to the construction site
-        search_range = (construction_site.radius + self.selected_builder.radius + 5, construction_site.radius + self.selected_builder.radius + 30)
-        safe_pos = self.game.game_map.find_safe_spawn_position(self.selected_builder.radius, center_pos=(construction_site.x, construction_site.y), search_range=search_range)
-
-        if safe_pos:
-            path = pathfinder.find_path((self.selected_builder.x, self.selected_builder.y), safe_pos, self.selected_builder.radius, self.selected_builder)
-            if path:
-                self.selected_builder.path = path
-                self.selected_builder.path_index = 0
-                self.selected_builder.path_target = safe_pos
-                self.selected_builder.destination = path[0] if path else None
-                self.selected_builder.status = "run"
-                self.selected_builder.last_task = {"type": "build", "target": construction_site}
+        # Path directly to construction site center
+        target_pos = (construction_site.x, construction_site.y)
+        
+        # Allow pathfinding to this specific construction site
+        pathfinder.building_target = construction_site
+        pathfinder.current_unit = self.selected_builder
+        
+        path = pathfinder.find_path((self.selected_builder.x, self.selected_builder.y), target_pos, self.selected_builder.radius, self.selected_builder)
+        if path:
+            self.selected_builder.path = path
+            self.selected_builder.path_index = 0
+            self.selected_builder.path_target = target_pos
+            self.selected_builder.destination = path[0] if path else None
+            self.selected_builder.status = "run"
+            self.selected_builder.last_task = {"type": "build", "target": construction_site}
+            debug_log.log(f"Building placement: Worker pathing directly to construction site at ({target_pos[0]:.0f}, {target_pos[1]:.0f})", "BUILDING")
+        else:
+            debug_log.log(f"Building placement: No path found to construction site!", "BUILDING")
             
         # Exit building placement mode  
         building_name = self.building_to_place['name']  # Store name before cancelling
@@ -215,7 +224,6 @@ class BuildingSystem:
     
     def update_construction(self, delta_time):
         """Update construction progress for all construction sites"""
-        from utils.debug_logger import debug_log
         completed_sites = []
         
         for site in self.game.construction_sites:

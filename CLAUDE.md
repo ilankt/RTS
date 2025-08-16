@@ -222,3 +222,55 @@ This is a complex issue involving the interaction between:
 - **Problem**: AI tried to build farm with only 1 worker, leaving no idle workers
 - **Solution**: Corrected build order - train 2 workers first, then build farm
 - **Build Order**: Workers (2) → Farm → Workers (5) → Barracks
+
+## Recent Updates (2025-08-16) - Branch: newer-file-system
+
+### Code Refactoring - File Structure Improvements ✅
+
+1. **UI Manager Refactoring** (1,532 lines → 7 modular components):
+   - `ui/components/cursor_manager.py` - Cursor operations and command modes
+   - `ui/components/building_menu.py` - Two-tier building selection menu
+   - `ui/components/unit_panel.py` - Unit selection display
+   - `ui/components/production_panel.py` - Unit production UI
+   - `ui/components/resource_bar.py` - Top resource bar
+   - `ui/components/icon_loader.py` - Icon loading/caching
+   - `ui/ui_manager.py` - Coordinator using delegation pattern
+
+2. **Entity System Refactoring** (563 lines → 6 modular files):
+   - `entities/game_object.py` - Base GameObject class
+   - `entities/building.py` - Building class with combat/production
+   - `entities/unit.py` - Unit class with movement/combat/gathering
+   - `entities/resource.py` - Resource class
+   - `entities/construction_site.py` - ConstructionSite class
+   - `entities/data_loader.py` - JSON data loading
+
+3. **Backward Compatibility**:
+   - Added property delegation in UIManager for seamless integration
+   - Example: `@property def command_cursors(self): return self.cursor_manager.command_cursors`
+
+### Bug Fixes During Refactoring ✅
+
+1. **Building System Issues**:
+   - Fixed building menu closing before passing building data
+   - Fixed mouse position boundary check (was using wrong constant)
+   - Added missing debug_log import in building_system.py
+   - Changed affordability colors from subtle grays to clear green/red
+
+2. **Worker Construction Bug** ✅:
+   - **Problem**: Worker would approach construction site, teleport to center, but not start building
+   - **Root Cause**: Multiple issues:
+     - Worker was pathed to "safe position" near site, not the site itself
+     - `stop()` method was clearing `is_building` flag
+     - Construction site builder link wasn't properly established
+   - **Solution**:
+     - Changed pathfinding to target construction site directly
+     - Modified `stop()` to preserve `is_building` if `building_target` exists
+     - Ensured builder link is always established when worker arrives
+     - Added comprehensive debug logging for construction states
+
+### Technical Details
+
+- **Modular Design**: Each component is self-contained with clear responsibilities
+- **Import Organization**: Fixed circular import issues with proper structure
+- **State Management**: Improved state preservation during unit actions
+- **Debug Enhancement**: Added BUILD_TRACK category for construction debugging

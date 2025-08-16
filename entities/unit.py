@@ -1,145 +1,20 @@
 import pygame
-import json
 import random
-import math
-from systems.animation import Animation
-from core.config import TILE_WIDTH, TILE_HEIGHT, RESOURCE_LIMITS, WORKER_CAPACITY, DEBUG_MOVEMENT # Import TILE_WIDTH and TILE_HEIGHT
-from entities.player import Player
+from entities.game_object import GameObject
+from core.config import WORKER_CAPACITY, DEBUG_MOVEMENT
 from utils.debug_logger import debug_log
 
-class GameObject:
-    def __init__(self, name, size, hp, sprite, x, y, radius, player=None):
-        self.name = name
-        self.size = size # Keep size for now, might be useful for other things
-        self.hp = hp
-        self.sprite = sprite
-        self.x = x
-        self.y = y
-        self.radius = radius
-        self.selected = False
-        self.player = player
-
-class Building(GameObject):
-    def __init__(self, name, size, hp, sprite, build_duration, x=0, y=0, radius=0, player=None, costs=None, 
-                 armor_type="light", armor_value=0, can_attack=False, min_damage=0, max_damage=0, 
-                 attack_type="slash", attack_speed=1.0, attack_range=0):
-        super().__init__(name, size, hp, sprite, x, y, radius, player)
-        self.build_duration = build_duration
-        self.costs = costs or {}
-        
-        # Armor properties
-        self.armor_type = armor_type
-        self.armor_value = armor_value
-        
-        # Combat properties (for defensive buildings like watchtowers)
-        self.can_attack = can_attack
-        self.min_damage = min_damage
-        self.max_damage = max_damage
-        self.attack_type = attack_type
-        self.attack_speed = attack_speed
-        self.attack_range = attack_range
-        
-        # Combat state
-        self.current_target = None
-        self.last_attack_time = 0
-        self.in_combat = False
-        
-        # Unit production system
-        self.production_queue = []  # Queue of units to produce
-        self.current_production = None  # Currently producing unit: {"unit_type": str, "progress": float, "total_time": float}
-        self.can_produce = self._get_production_capabilities()
-    
-    def _get_production_capabilities(self):
-        """Get list of units this building can produce"""
-        production_map = {
-            "castle": ["worker"],
-            "barracks": ["warrior", "archer"]
-        }
-        return production_map.get(self.name, [])
-    
-    def can_attack_target(self, target):
-        """Check if this building can attack the target"""
-        if not self.can_attack:
-            return False
-        
-        # Check if target is valid and alive
-        if not target or target.hp <= 0:
-            return False
-        
-        # Check if target belongs to enemy
-        if target.player == self.player:
-            return False
-        
-        # Check range
-        distance = ((self.x - target.x) ** 2 + (self.y - target.y) ** 2) ** 0.5
-        return distance <= self.attack_range
-    
-    def calculate_damage(self, target):
-        """Calculate damage dealt to target based on attack and armor types"""
-        # Base damage (random between min and max)
-        base_damage = random.randint(self.min_damage, self.max_damage)
-        
-        # Get target armor
-        target_armor_type = getattr(target, 'armor_type', 'light')
-        target_armor_value = getattr(target, 'armor_value', 0)
-        
-        # Attack type effectiveness matrix
-        effectiveness = {
-            "slash": {"light": 1.5, "heavy": 1.0, "fortified": 0.5},
-            "pierce": {"light": 1.0, "heavy": 1.5, "fortified": 0.5},
-            "siege": {"light": 0.75, "heavy": 1.0, "fortified": 2.0}
-        }
-        
-        # Apply type effectiveness
-        multiplier = effectiveness.get(self.attack_type, {}).get(target_armor_type, 1.0)
-        damage = base_damage * multiplier
-        
-        # Apply armor reduction
-        damage = max(1, damage - target_armor_value)  # Minimum 1 damage
-        
-        return int(damage)
-    
-    def start_attack(self, target):
-        """Begin attacking a target"""
-        self.current_target = target
-        self.in_combat = True
-    
-    def update_combat(self, delta_time):
-        """Handle attack timing and execution for defensive buildings"""
-        if not hasattr(self, 'can_attack') or not self.can_attack or not self.in_combat or not self.current_target:
-            return
-        
-        # Check if target is still valid and in range
-        if not self.can_attack_target(self.current_target):
-            # Target moved out of range or died
-            self.current_target = None
-            self.in_combat = False
-            return
-        
-        # Check if enough time has passed to attack again
-        current_time = pygame.time.get_ticks() / 1000.0
-        time_between_attacks = 1.0 / self.attack_speed
-        
-        if current_time - self.last_attack_time >= time_between_attacks:
-            # Perform attack
-            damage = self.calculate_damage(self.current_target)
-            self.current_target.hp -= damage
-            self.last_attack_time = current_time
-            
-            # Check if target is destroyed
-            if self.current_target.hp <= 0:
-                self.current_target = None
-                self.in_combat = False
 
 class Unit(GameObject):
+    """Unit entity class"""
     def __init__(self, name, size, hp, movement_speed, attack, animations, x=0, y=0, radius=0, player=None, can_build=False, can_attack=False,
                  min_damage=0, max_damage=0, attack_type="slash", armor_type="light", armor_value=0, attack_speed=1.0, attack_range=32):
-        super().__init__(name, size, hp, None, x, y, radius, player) # Units don't have a single sprite
+        super().__init__(name, size, hp, None, x, y, radius, player)  # Units don't have a single sprite
         self.movement_speed = movement_speed
         self.attack = attack  # Keep for backward compatibility
         self.animations = animations
         self.status = "idle"
-        self.destination = None # This will be a Vector2(x,y)
+        self.destination = None  # This will be a Vector2(x,y)
         self.path = None  # List of waypoints [(x,y), ...]
         self.path_index = 0  # Current waypoint index
         self.path_target = None  # Final destination for pathfinding
@@ -229,7 +104,9 @@ class Unit(GameObject):
         self.path_target = None
         self.status = "idle"
         self.is_gathering = False
-        self.is_building = False
+        # Don't clear is_building if we have a building_target - we might be at the construction site
+        if not self.building_target:
+            self.is_building = False
         self.is_dropping_off = False
         self.drop_off_timer = 0.0
         self.current_target = None
@@ -478,86 +355,3 @@ class Unit(GameObject):
                 self.in_combat = False
                 self.is_engaging = False
                 self.status = "idle"
-
-class Resource(GameObject):
-    def __init__(self, name, sprite, x=0, y=0, radius=0):
-        super().__init__(name, [1,1], 0, sprite, x, y, radius)
-        # Initialize resource amount based on resource type
-        self.amount_remaining = RESOURCE_LIMITS.get(name, 100)  # Default to 100 if not specified
-        self.gatherers = []  # Track units gathering from this resource
-
-class ConstructionSite(GameObject):
-    def __init__(self, building_name, building_data, x, y, radius, player=None):
-        # Use construction sprite and temporary HP
-        super().__init__(f"{building_name}_construction", building_data['size'], 100, 
-                         "assets/sprites/Buildings/Construction.png", x, y, radius, player)
-        self.building_name = building_name
-        self.building_data = building_data
-        self.construction_progress = 0
-        self.construction_duration = building_data['build_duration']
-        self.builder = None  # The unit currently building this
-        self.costs = building_data.get('costs', {})  # Resources spent on this construction
-
-def load_game_data():
-    with open('data/buildings.json', 'r') as f:
-        buildings_data = json.load(f)
-    with open('data/units.json', 'r') as f:
-        units_data = json.load(f)
-    with open('data/resources.json', 'r') as f:
-        resources_data = json.load(f)
-
-    game_data = {"buildings": {}, "units": {}, "resources": {}}
-
-    for b in buildings_data:
-        # Calculate radius based on size[0] and TILE_WIDTH
-        radius = b['size'][0] * TILE_WIDTH / 2
-        game_data["buildings"][b['name']] = Building(
-            name=b['name'],
-            size=b['size'],
-            hp=b['hp'],
-            sprite=b['sprite'],
-            build_duration=b['build_duration'],
-            x=0, 
-            y=0, 
-            radius=radius,
-            costs=b.get('costs', {}),
-            armor_type=b.get('armor_type', 'fortified'),
-            armor_value=b.get('armor_value', 0),
-            can_attack=b.get('can_attack', False),
-            min_damage=b.get('min_damage', 0),
-            max_damage=b.get('max_damage', 0),
-            attack_type=b.get('attack_type', 'slash'),
-            attack_speed=b.get('attack_speed', 1.0),
-            attack_range=b.get('attack_range', 0)
-        )
-
-    for u in units_data:
-        # Calculate radius based on size[0] and TILE_WIDTH
-        # Units should be smaller than tiles - use 1/8 tile width for radius
-        # This gives workers/warriors/archers a 16-pixel diameter (8 radius)
-        radius = u['size'][0] * TILE_WIDTH / 8
-        game_data["units"][u['name']] = Unit(
-            x=0, y=0, radius=radius, 
-            name=u['name'], 
-            size=u['size'], 
-            hp=u['hp'], 
-            movement_speed=u['movement_speed'], 
-            attack=u.get('attack'), 
-            animations=u['animations'], 
-            can_build=u.get('can_build', False),
-            can_attack=u.get('can_attack', False),
-            min_damage=u.get('min_damage', 0),
-            max_damage=u.get('max_damage', 0),
-            attack_type=u.get('attack_type', 'slash'),
-            armor_type=u.get('armor_type', 'light'),
-            armor_value=u.get('armor_value', 0),
-            attack_speed=u.get('attack_speed', 1.0),
-            attack_range=u.get('attack_range', 32)
-        )
-
-    for r in resources_data:
-        # Resources have a fixed size of [1,1] in the current Resource class, so radius will be TILE_WIDTH / 4 (reduced for better pathfinding)
-        radius = TILE_WIDTH / 4
-        game_data["resources"][r['name']] = Resource(x=0, y=0, radius=radius, **r)
-
-    return game_data

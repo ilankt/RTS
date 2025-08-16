@@ -404,26 +404,42 @@ class MovementSystem:
             # Check if worker is close enough to start building
             # Add a small tolerance (10 pixels) to account for pathfinding/collision precision
             if build_distance <= required_distance + 10:
-                # Start building
+                # Start building immediately - the worker is close enough
                 debug_log.log(f"Worker reached construction site at distance {build_distance:.1f} (required: {required_distance:.1f})", "CONSTRUCTION")
+                debug_log.log(f"  Worker position: ({unit.x:.0f}, {unit.y:.0f}), Construction site: ({unit.building_target.x:.0f}, {unit.building_target.y:.0f})", "CONSTRUCTION")
                 debug_log.log(f"  Worker status: {unit.status}, is_building: {unit.is_building}", "CONSTRUCTION")
+                
+                # Clear all movement state
                 unit.path = None
                 unit.path_index = 0
                 unit.path_target = None
                 unit.destination = None
                 unit.is_building = True
                 unit.status = "build"
+                
                 debug_log.log(f"  Updated worker - status: {unit.status}, is_building: {unit.is_building}", "CONSTRUCTION")
                 
-                # Link worker to construction site
+                # Link worker to construction site - CRITICAL for construction to work
                 if hasattr(unit.building_target, 'builder'):
-                    if unit.building_target.builder is None:
-                        unit.building_target.builder = unit
-                        debug_log.log(f"  Linked worker to construction site", "CONSTRUCTION")
-                    else:
-                        debug_log.log(f"  Construction site already has a builder: {unit.building_target.builder}", "CONSTRUCTION")
+                    # Always ensure the link is established
+                    unit.building_target.builder = unit
+                    debug_log.log(f"  Ensured worker is linked to construction site (builder was: {unit.building_target.builder})", "CONSTRUCTION")
                 else:
                     debug_log.log(f"  ERROR: Construction site has no 'builder' attribute!", "CONSTRUCTION")
+                
+                # Force clear any conflicting states
+                unit.is_gathering = False
+                unit.gathering_target = None
+                unit.is_dropping_off = False
+                unit.drop_off_target = None
+                unit.current_target = None
+                unit.is_engaging = False
+                debug_log.log(f"  Cleared all conflicting states", "CONSTRUCTION")
+                
+                # Final verification
+                debug_log.log(f"FINAL CHECK: Worker is_building={unit.is_building}, status={unit.status}, building_target={unit.building_target}", "CONSTRUCTION")
+                if unit.building_target and hasattr(unit.building_target, 'builder'):
+                    debug_log.log(f"  Construction site builder={unit.building_target.builder}, should be {unit}", "CONSTRUCTION")
                 return
         
         # Check drop-off target
@@ -798,6 +814,10 @@ class MovementSystem:
         # Update destination for moving targets
         if unit.is_engaging and unit.current_target and (unit.has_los or unit.is_fallback_movement):
             unit.destination = (unit.current_target.x, unit.current_target.y)
+        
+        # Special debug for building targets
+        if hasattr(unit, 'building_target') and unit.building_target and unit.destination:
+            debug_log.log(f"DIRECT MOVE: Worker at ({unit.x:.0f}, {unit.y:.0f}) moving to ({unit.destination[0]:.0f}, {unit.destination[1]:.0f})", "BUILD_TRACK")
         
         dest_vec = pygame.math.Vector2(unit.destination)
         direction = dest_vec - pos

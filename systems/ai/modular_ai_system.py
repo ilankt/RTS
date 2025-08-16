@@ -3,7 +3,7 @@ import json
 import math
 import pygame
 from typing import Dict, List, Optional, Any
-from entities.objects import Unit, Building, Resource, ConstructionSite
+from entities import Unit, Building, Resource, ConstructionSite
 from systems.pathfinding import Pathfinding
 from entities.player import Player
 from utils.debug_logger import debug_log

@@ -5,7 +5,7 @@ import pygame
 from typing import Dict, List, Tuple, Optional, Any
 from .base_module import AIModule
 from .formation_system import FormationManager, FormationType
-from entities.objects import Unit, Building
+from entities import Unit, Building
 from utils.debug_logger import debug_log
 
 

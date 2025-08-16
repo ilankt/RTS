@@ -5,7 +5,7 @@ import pygame
 from typing import Dict, List, Tuple, Optional, Any
 from .base_module import AIModule
 from .resource_manager import ResourceManager
-from entities.objects import Unit, Building, Resource
+from entities import Unit, Building, Resource
 from utils.debug_logger import debug_log
 
 

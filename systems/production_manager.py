@@ -1,6 +1,6 @@
 import json
 import math
-from entities.objects import Unit
+from entities import Unit
 from systems.animation import Animation
 from core.config import TILE_WIDTH
 from utils.debug_logger import debug_log

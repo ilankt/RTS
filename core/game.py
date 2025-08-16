@@ -8,7 +8,7 @@ from core.config import (SCREEN_WIDTH, SCREEN_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
                         MAX_GAME_SPEED, GAME_SPEED_INCREMENT)
 from world.map import Map
 from world.camera import Camera
-from entities.objects import load_game_data
+from entities import load_game_data
 from ui.minimap import Minimap
 from entities.player import Player
 from managers.sprite_manager import SpriteManager
