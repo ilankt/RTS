@@ -228,7 +228,10 @@ class BuildingSystem:
         
         for site in self.game.construction_sites:
             # Log construction site status
-            builder_info = f"builder={site.builder}, is_building={site.builder.is_building if site.builder else 'N/A'}"
+            if site.builder:
+                builder_info = f"builder={id(site.builder)}, is_building={site.builder.is_building}, status={site.builder.status}"
+            else:
+                builder_info = f"builder=None"
             debug_log.log(f"Checking construction site at ({site.x:.0f}, {site.y:.0f}) - {builder_info}", "BUILD_UPDATE")
             
             if site.builder and site.builder.is_building:

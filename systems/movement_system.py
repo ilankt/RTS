@@ -23,8 +23,22 @@ class MovementSystem:
             unit.update_combat(delta_time)
             self._handle_combat_movement(unit)
         
+        # Debug workers that are stuck with building targets
+        if (hasattr(unit, 'building_target') and unit.building_target and 
+            unit.name == "worker" and not unit.is_building and 
+            not unit.path and not unit.destination):
+            if not hasattr(unit, '_stuck_build_log_timer'):
+                unit._stuck_build_log_timer = 0
+            unit._stuck_build_log_timer += delta_time
+            if unit._stuck_build_log_timer >= 2.0:  # Log every 2 seconds if stuck
+                dist = math.sqrt((unit.x - unit.building_target.x)**2 + (unit.y - unit.building_target.y)**2)
+                debug_log.log(f"WARNING: Worker stuck with building_target! pos=({unit.x:.0f},{unit.y:.0f}), dist={dist:.1f}, no path/dest", "BUILD_TRACK")
+                unit._stuck_build_log_timer = 0
+        elif hasattr(unit, '_stuck_build_log_timer'):
+            unit._stuck_build_log_timer = 0
+        
         # Handle target checking during movement
-        if unit.path or unit.destination or unit.is_dropping_off:
+        if unit.path or unit.destination or unit.is_dropping_off or (hasattr(unit, 'building_target') and unit.building_target):
             self._check_movement_targets(unit, delta_time)
         
         # Handle path following
@@ -440,7 +454,10 @@ class MovementSystem:
                 debug_log.log(f"FINAL CHECK: Worker is_building={unit.is_building}, status={unit.status}, building_target={unit.building_target}", "CONSTRUCTION")
                 if unit.building_target and hasattr(unit.building_target, 'builder'):
                     debug_log.log(f"  Construction site builder={unit.building_target.builder}, should be {unit}", "CONSTRUCTION")
-                return
+                    debug_log.log(f"  Worker ID: {id(unit)}, Site builder ID: {id(unit.building_target.builder) if unit.building_target.builder else 'None'}", "CONSTRUCTION")
+                
+                # CRITICAL: Don't return here! Let the movement system continue to update
+                # return  # <-- This was preventing further updates!
         
         # Check drop-off target
         elif (hasattr(unit, 'drop_off_target') and unit.drop_off_target and 
