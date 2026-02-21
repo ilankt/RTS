@@ -1,4 +1,4 @@
 """AI system package"""
-from .modular_ai_system import ModularAISystem
+from .simple_ai import SimpleAISystem
 
-__all__ = ['ModularAISystem']
+__all__ = ['SimpleAISystem']

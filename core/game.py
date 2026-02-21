@@ -26,7 +26,7 @@ from systems.combat_system import CombatSystem
 from systems.building_system import BuildingSystem
 from systems.rendering_system import RenderingSystem
 from systems.unit_watchdog import UnitWatchdog
-from systems.ai import ModularAISystem
+from systems.ai import SimpleAISystem
 from systems.projectile_system import ProjectileSystem
 from utils.debug_logger import debug_log
 
@@ -81,7 +81,7 @@ class Game:
         self.building_system = BuildingSystem(self)
         self.rendering_system = RenderingSystem(self)
         self.unit_watchdog = UnitWatchdog(self)
-        self.ai_system = ModularAISystem(self)
+        self.ai_system = SimpleAISystem(self)
         self.projectile_system = ProjectileSystem(self)
         
         # Link projectile system to combat system
