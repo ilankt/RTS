@@ -1,0 +1,2139 @@
+{
+  "version": "1.0",
+  "created": "2025-06-23T21:36:50.004303",
+  "width": 20,
+  "height": 15,
+  "tileset": "tileset.json",
+  "tiles": [
+    [
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground4",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground4",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground4",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground4",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground4",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground4",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground4",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocks",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 82
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocks",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 63
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocks",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "ground4",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocks",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground4",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocks",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 65
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground4",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 92
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "ground3",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "ground2",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rocky_ground",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ]
+  ]
+}

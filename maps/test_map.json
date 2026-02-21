@@ -1,0 +1,4249 @@
+{
+  "version": "1.0",
+  "created": "2025-06-23T21:21:45.948780",
+  "width": 30,
+  "height": 20,
+  "tileset": "tileset.json",
+  "tiles": [
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 75
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 45
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 56
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "sand",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 95
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "stone",
+        "resource_amount": 145
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "stone",
+        "resource_amount": 59
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 46
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "wood",
+        "resource_amount": 110
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "sand",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "sand",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 91
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "mountain",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 35
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "wood",
+        "resource_amount": 187
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "wood",
+        "resource_amount": 82
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 69
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "wood",
+        "resource_amount": 184
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ],
+    [
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "water",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "rock",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "light_grass",
+        "elevation": 0,
+        "has_resource": true,
+        "resource_type": "food",
+        "resource_amount": 93
+      },
+      {
+        "tile_type": "dark_forest",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      },
+      {
+        "tile_type": "dry_grass",
+        "elevation": 0,
+        "has_resource": false,
+        "resource_type": null,
+        "resource_amount": 0
+      }
+    ]
+  ]
+}

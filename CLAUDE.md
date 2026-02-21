@@ -274,3 +274,14 @@ This is a complex issue involving the interaction between:
 - **Import Organization**: Fixed circular import issues with proper structure
 - **State Management**: Improved state preservation during unit actions
 - **Debug Enhancement**: Added BUILD_TRACK category for construction debugging
+
+### Critical Building Bug Fix (Post-refactor) ✅
+
+- **Problem**: Worker would reach construction site but building wouldn't start until right-clicking
+- **Root Cause**: Early `return` statement in `_check_movement_targets` prevented further updates
+- **Symptoms**:
+  - Worker appeared to "teleport" (actually just stopped abruptly)
+  - Building state was set but movement system stopped updating
+  - Right-clicking fixed it by giving worker new path/destination
+- **Solution**: Removed the early return, allowing movement system to continue updating
+- **Result**: Workers now properly start building when reaching construction sites
