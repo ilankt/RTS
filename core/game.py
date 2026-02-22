@@ -362,36 +362,24 @@ class Game:
             
             # Clear any workers still targeting this resource
             for unit in self.units:
-                if (hasattr(unit, 'gathering_target') and 
-                    unit.gathering_target == resource):
-                    debug_log.log(f"  Clearing resource from worker at ({unit.x:.0f}, {unit.y:.0f})", "GENERAL")
-                    
-                    # Clear gathering state
-                    unit.gathering_target = None
-                    unit.is_gathering = False
-                    unit.status = "idle"
-                    
-                    # Clear movement state if worker was moving to this resource
-                    unit.destination = None
-                    unit.path = None
-                    unit.path_index = 0
-                    unit.path_target = None
-                    unit.is_engaging = False
-                    
-                    # Apply small separation force to push worker away from depleted resource position
+                targeting = (
+                    getattr(unit, 'gathering_target', None) == resource or
+                    getattr(unit, 'previous_gathering_target', None) == resource
+                )
+                if targeting:
+                    debug_log.log(f"  Clearing depleted resource from worker at ({unit.x:.0f}, {unit.y:.0f})", "GENERAL")
+
+                    # Push worker away before clearing state
                     dx = unit.x - resource.x
                     dy = unit.y - resource.y
                     distance = math.sqrt(dx * dx + dy * dy)
                     if distance < unit.radius + resource.radius + 10 and distance > 0:
-                        # Push worker away slightly
-                        push_force = 10  # pixels
-                        dx_norm = dx / distance
-                        dy_norm = dy / distance
-                        unit.x += dx_norm * push_force
-                        unit.y += dy_norm * push_force
-                        debug_log.log(f"  Pushed worker away from depleted resource to ({unit.x:.0f}, {unit.y:.0f})", "GENERAL")
-                    
-                    debug_log.log(f"  Worker state cleared", "GENERAL")
+                        push_force = 10
+                        unit.x += (dx / distance) * push_force
+                        unit.y += (dy / distance) * push_force
+
+                    # Full state wipe so worker becomes truly idle
+                    unit.clear_all_movement_state()
             
             # Remove from resources list
             self.resources.remove(resource)

@@ -180,10 +180,7 @@ class SimpleAISystem:
         """One AI decision tick for a player."""
         state = self._snapshot(player)
 
-        # Always assign idle workers first
-        self.worker_brain.assign_idle_workers(player)
-
-        # Phase-specific logic
+        # Phase-specific logic runs FIRST so building commands can grab workers
         phase = self.phase[player]
         if phase == "EARLY":
             self._tick_early(player, state)
@@ -193,6 +190,9 @@ class SimpleAISystem:
             self._tick_army(player, state)
         elif phase == "ATTACK":
             self._tick_attack(player, state)
+
+        # Assign remaining idle workers AFTER phase logic has had a chance to grab workers for building
+        self.worker_brain.assign_idle_workers(player)
 
     def _tick_early(self, player, state: AIGameState):
         """Follow the scripted build order step by step."""
@@ -326,7 +326,8 @@ class SimpleAISystem:
         """Try to place and start building.  Returns True if construction started."""
         # Check cooldown
         current_time = pygame.time.get_ticks() / 1000.0
-        if current_time - self.last_build_time.get(player, 0) < self.build_cooldown:
+        time_left = self.build_cooldown - (current_time - self.last_build_time.get(player, 0))
+        if time_left > 0:
             return False
 
         # Check affordability
@@ -407,11 +408,10 @@ class SimpleAISystem:
             self.game.construction_sites.append(construction_site)
             construction_site.builder = worker
 
-            # Set up worker state
+            # Wipe ALL prior state so movement system doesn't hijack the worker
+            worker.clear_all_movement_state()
             worker.building_target = construction_site
             worker.status = "run"
-            worker.gathering_target = None
-            worker.is_building = False
 
             # Pathfind to site
             pathfinder = Pathfinding(self.game.game_map, self.game)
@@ -491,23 +491,38 @@ class SimpleAISystem:
         return state.pop_current < state.pop_max
 
     def _find_idle_worker(self, player):
-        """Find an idle worker not assigned to anything."""
+        """Find an available worker for building duty.
+
+        Prefers truly idle workers, but will pull a gathering worker if needed.
+        Won't pull workers that are mid-drop-off or already building.
+        """
+        idle_candidates = []
+        gather_candidates = []
+
         for unit in self.game.units:
             if unit.player != player or unit.name != "worker":
                 continue
-            # Must be truly idle
+            # Never pull from building or drop-off
             if unit.is_building or unit.building_target:
                 continue
+            if unit.is_dropping_off or unit.resource_amount > 0:
+                continue
             # Check not assigned to any construction site
-            assigned = False
-            for site in self.game.construction_sites:
-                if site.builder == unit:
-                    assigned = True
-                    break
+            assigned = any(site.builder == unit for site in self.game.construction_sites)
             if assigned:
                 continue
-            if unit.status == "idle" or (not unit.destination and not unit.path):
-                return unit
+
+            if unit.status == "idle" and not unit.destination and not unit.path:
+                idle_candidates.append(unit)
+            elif unit.is_gathering or unit.is_engaging or unit.gathering_target:
+                gather_candidates.append(unit)
+
+        # Prefer truly idle workers
+        if idle_candidates:
+            return idle_candidates[0]
+        # Otherwise interrupt a gathering worker
+        if gather_candidates:
+            return gather_candidates[0]
         return None
 
     def _load_cost_data(self) -> dict:

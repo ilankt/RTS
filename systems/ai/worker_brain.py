@@ -20,56 +20,53 @@ class WorkerBrain:
             self._assign_worker(worker, player)
 
     def _is_idle(self, worker) -> bool:
-        """A worker is idle if it has nothing useful to do."""
-        # Explicitly idle
-        if worker.status == "idle" and not worker.destination and not worker.path:
-            # But also check it doesn't have a valid gathering/building target
-            if worker.is_gathering and worker.gathering_target:
-                return False
-            if worker.is_building and worker.building_target:
-                return False
-            return True
+        """A worker is idle if it has nothing useful to do.
 
-        # Has a gathering target that no longer exists or is depleted
+        Workers in the gather->dropoff->return cycle are NOT idle even if
+        they briefly appear idle between steps.
+        """
+        # Workers carrying resources or mid-drop-off are busy
+        if worker.resource_amount > 0 or worker.is_dropping_off:
+            return False
+
+        # Workers actively gathering or building are busy
+        if worker.is_gathering or worker.is_building:
+            return False
+
+        # Workers with movement are busy
+        if worker.destination or worker.path:
+            # But check for stale movement (has movement but no actual target)
+            if worker.is_engaging and not worker.gathering_target and not worker.current_target:
+                worker.clear_all_movement_state()
+                return True
+            return False
+
+        # Worker has a valid gathering target it will return to - let movement system handle it
         if worker.gathering_target:
-            if worker.gathering_target not in self.game.resources:
-                worker.gathering_target = None
-                worker.is_gathering = False
-                worker.status = "idle"
-                return True
-            if getattr(worker.gathering_target, "amount_remaining", 0) <= 0:
-                worker.gathering_target = None
-                worker.is_gathering = False
-                worker.status = "idle"
-                return True
+            if worker.gathering_target in self.game.resources and worker.gathering_target.amount_remaining > 0:
+                return False
+            # Target is gone/depleted - clean up
+            worker.gathering_target = None
 
-        # Has a building target that no longer exists
+        # Worker has a building target - check if still valid
         if worker.building_target:
-            if worker.building_target not in self.game.construction_sites:
-                worker.building_target = None
-                worker.is_building = False
-                worker.status = "idle"
-                return True
+            if worker.building_target in self.game.construction_sites:
+                return False
+            # Site is gone - clean up
+            worker.building_target = None
 
-        # Stuck: has destination/path but isn't actually moving (status still "run" but no path progress)
-        # We rely on the unit watchdog for deep stuck detection; here just check simple staleness
-        if worker.status == "run" and not worker.path and not worker.destination:
+        # Check for stale is_engaging with no target
+        if worker.is_engaging:
+            worker.is_engaging = False
+
+        # If we get here, worker has no movement, no valid targets -> idle
+        if worker.status != "idle":
             worker.status = "idle"
-            return True
-
-        return False
+        return True
 
     def _assign_worker(self, worker, player):
         """Assign a single idle worker to a task, in priority order."""
-        # 1. Carrying resources? -> Drop off
-        if worker.resource_amount > 0 and worker.resource_type:
-            target = self._find_dropoff(worker, player)
-            if target:
-                debug_log.log(f"AI {player.name}: Worker dropping off {worker.resource_type} at {target.name}", "AI")
-                self._command_gather(worker, worker.gathering_target or self._find_closest_resource(worker, worker.resource_type))
-                return
-
-        # 2. Unattended construction site? -> Go build
+        # 1. Unattended construction site? -> Go build
         site = self._find_unattended_construction_site(worker, player)
         if site:
             debug_log.log(f"AI {player.name}: Worker assigned to build {site.building_name} at ({site.x:.0f}, {site.y:.0f})", "AI")
@@ -126,18 +123,35 @@ class WorkerBrain:
         return best
 
     def _find_best_resource_to_gather(self, worker, player):
-        """Find the resource type we have least of, then find the closest one."""
-        resources = player.resources
-        # Rank resource types by how little we have (lower = more urgent)
-        resource_priority = sorted(
-            ["gold", "wood", "stone", "food"],
-            key=lambda r: resources.get(r, 0),
-        )
+        """Pick the best resource to gather, spreading workers across types.
 
-        for res_type in resource_priority:
-            resource = self._find_closest_resource(worker, res_type)
-            if resource:
-                return resource
+        Uses a simple score: lower stockpile = higher need, but penalizes
+        types that already have many workers assigned.
+        """
+        # Count how many workers are already gathering each type
+        gathering_counts = {"gold": 0, "wood": 0, "stone": 0, "food": 0}
+        for unit in self.game.units:
+            if unit.player == player and unit.name == "worker" and unit.gathering_target:
+                res_name = getattr(unit.gathering_target, "name", None)
+                if res_name in gathering_counts:
+                    gathering_counts[res_name] += 1
+
+        resources = player.resources
+        best_type = None
+        best_score = float("inf")
+
+        for res_type in ["gold", "wood", "stone", "food"]:
+            # Check if this resource actually exists on the map
+            if not self._find_closest_resource(worker, res_type):
+                continue
+            # Score = stockpile + 100 per worker already assigned (lower is better)
+            score = resources.get(res_type, 0) + gathering_counts[res_type] * 100
+            if score < best_score:
+                best_score = score
+                best_type = res_type
+
+        if best_type:
+            return self._find_closest_resource(worker, best_type)
         return None
 
     def _find_closest_resource(self, worker, resource_type):
@@ -163,11 +177,12 @@ class WorkerBrain:
 
     def _command_build(self, worker, construction_site):
         """Send a worker to build at a construction site."""
+        # Wipe ALL prior state so movement system doesn't hijack the worker
+        worker.clear_all_movement_state()
+
         construction_site.builder = worker
         worker.building_target = construction_site
         worker.status = "run"
-        worker.gathering_target = None
-        worker.is_building = False
 
         pathfinder = Pathfinding(self.game.game_map, self.game)
         pathfinder.building_target = construction_site

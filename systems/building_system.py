@@ -271,8 +271,7 @@ class BuildingSystem:
                     
                     # Free the builder with complete state cleanup before nudging
                     if site.builder:
-                        site.builder.stop()
-                        site.builder.building_target = None
+                        site.builder.clear_all_movement_state()
 
                     # Nudge the worker to a safe position outside the new building's radius
                     if site.builder:
@@ -336,12 +335,6 @@ class BuildingSystem:
                     # Force AI to immediately re-evaluate after construction completion
                     if hasattr(self.game, 'ai_system') and self.game.ai_system and site.player:
                         self.game.ai_system.invalidate_memory_cache(site.player)
-                        # Force economy module update for newly idle worker
-                        if site.player in self.game.ai_system.player_modules:
-                            economy_module = self.game.ai_system.player_modules[site.player].get("economy")
-                            if economy_module:
-                                economy_module.force_next_update = True
-                                debug_log.log(f"AI: Forced economy module update for {site.player.name} after construction", "BUILD_UPDATE")
         
         # Remove completed construction sites
         for site in completed_sites:

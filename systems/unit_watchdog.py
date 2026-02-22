@@ -1,124 +1,153 @@
+"""Unit watchdog - detects stuck units and recovers them."""
 import pygame
 import math
-from core.config import TILE_WIDTH, TILE_HEIGHT
 from utils.debug_logger import debug_log
 
+
 class UnitWatchdog:
-    """Simplified unit recovery system for severely stuck units"""
+    """Monitors all units for stuck conditions and performs recovery."""
+
+    CHECK_INTERVAL = 1000       # Check every 1 second (ms)
+    STUCK_THRESHOLD = 5.0       # Seconds without meaningful movement
+    MOVE_EPSILON = 3.0          # Pixels - must move at least this much to count
+
     def __init__(self, game):
         self.game = game
         self.last_check = pygame.time.get_ticks()
-        self.check_interval = 3000  # Check every 3 seconds
-        self.stuck_units = {}  # Track units that have been stuck for a long time
+        # Per-unit tracking: {unit: {"x": float, "y": float, "timer": float}}
+        self.tracking = {}
 
     def update(self):
         now = pygame.time.get_ticks()
-        if now - self.last_check > self.check_interval:
-            self.last_check = now
-            self.check_severely_stuck_units()
+        if now - self.last_check < self.CHECK_INTERVAL:
+            return
+        elapsed = (now - self.last_check) / 1000.0
+        self.last_check = now
 
-    def check_severely_stuck_units(self):
-        """Check for units that have been stuck for a very long time"""
+        # Clean up tracking for dead units
+        alive = set(self.game.units)
+        self.tracking = {u: v for u, v in self.tracking.items() if u in alive}
+
         for unit in self.game.units:
-            # Skip units that are supposed to be stationary
-            if unit.status == "idle" or unit.is_building or unit.is_gathering:
-                if unit in self.stuck_units:
-                    del self.stuck_units[unit]
-                continue
-                
-            # Check if unit has stuck detector from movement system
-            if hasattr(unit, '_stuck_detector') and unit._stuck_detector.get('stuck_timer', 0) >= 300:  # 5 seconds
-                # Track how long this unit has been severely stuck
-                if unit not in self.stuck_units:
-                    self.stuck_units[unit] = 1
-                else:
-                    self.stuck_units[unit] += 1
-                    
-                # If stuck for multiple check cycles, perform emergency recovery
-                if self.stuck_units[unit] >= 5:  # 15+ seconds total  (increased for construction)
-                    self.perform_emergency_recovery(unit)
-                    del self.stuck_units[unit]
-            else:
-                # Unit is not stuck, remove from tracking
-                if unit in self.stuck_units:
-                    del self.stuck_units[unit]
+            self._check_unit(unit, elapsed)
 
-    def perform_emergency_recovery(self, unit):
-        """Perform emergency recovery for severely stuck units"""
-        debug_log.log(f"EMERGENCY RECOVERY: {unit.name} at ({unit.x:.0f}, {unit.y:.0f}) has been stuck for 6+ seconds", "WATCHDOG")
-        
-        # Find nearest valid position
-        safe_pos = self._find_nearest_safe_position(unit)
-        if safe_pos:
-            # Teleport unit to safe position
-            unit.x, unit.y = safe_pos
-            
-            # Clear all movement state
-            unit.destination = None
-            unit.path = None
-            unit.path_index = 0
-            unit.path_target = None
-            unit.status = "idle"
-            unit.is_engaging = False
-            unit.is_fallback_movement = False
-            
-            # Reset stuck detector
-            if hasattr(unit, '_stuck_detector'):
-                unit._stuck_detector['stuck_timer'] = 0
-                unit._stuck_detector['last_position'] = (unit.x, unit.y)
-                
-            debug_log.log(f"  -> Teleported to ({unit.x:.0f}, {unit.y:.0f})", "WATCHDOG")
+    def _check_unit(self, unit, elapsed):
+        """Check if a unit is stuck and needs recovery."""
+        # Only care about units that SHOULD be moving
+        if not self._should_be_moving(unit):
+            # Not supposed to move - reset tracking
+            self.tracking.pop(unit, None)
+            return
 
-    def _find_nearest_safe_position(self, unit):
-        """Find the nearest walkable position to the unit"""
-        # Search in expanding circles
-        for radius in range(20, 200, 20):
-            # Check 8 directions at this radius
-            for angle in range(0, 360, 45):
-                rad = math.radians(angle)
-                test_x = unit.x + radius * math.cos(rad)
-                test_y = unit.y + radius * math.sin(rad)
-                
-                # Check if position is walkable
-                if self._is_position_safe(test_x, test_y, unit.radius):
-                    return (test_x, test_y)
-                    
-        # If no safe position found nearby, try to find spawn position
-        return self._find_spawn_position(unit)
-        
-    def _is_position_safe(self, x, y, radius):
-        """Check if a position is safe for a unit"""
-        # Check terrain
-        hex_coord = self.game.game_map.world_to_grid(x, y)
-        if not hex_coord:
+        if unit not in self.tracking:
+            self.tracking[unit] = {"x": unit.x, "y": unit.y, "timer": 0.0}
+            return
+
+        info = self.tracking[unit]
+        dx = unit.x - info["x"]
+        dy = unit.y - info["y"]
+        moved = math.hypot(dx, dy)
+
+        if moved < self.MOVE_EPSILON:
+            # Hasn't moved meaningfully
+            info["timer"] += elapsed
+        else:
+            # Made progress - reset
+            info["x"] = unit.x
+            info["y"] = unit.y
+            info["timer"] = 0.0
+            return
+
+        if info["timer"] >= self.STUCK_THRESHOLD:
+            self._recover_unit(unit)
+            self.tracking.pop(unit, None)
+
+    def _should_be_moving(self, unit) -> bool:
+        """Return True if this unit has a reason to be moving."""
+        # Actively building at a site - stationary is fine
+        if unit.is_building:
             return False
-            
-        col, row = hex_coord
+        # Actively gathering in range - stationary is fine
+        if unit.is_gathering and unit.status == "gather":
+            return False
+        # Idle with no targets - nothing to do
+        if unit.status == "idle" and not unit.destination and not unit.path:
+            if not unit.building_target and not unit.is_engaging and not unit.current_target:
+                return False
+        # Drop-off delay is brief but stationary
+        if getattr(unit, "is_dropping_off", False):
+            return False
+        # In combat and attacking - stationary is fine
+        if unit.in_combat and unit.status == "attack":
+            return False
+        # Everything else: has a path, destination, target, or is_engaging -> should move
+        return True
+
+    def _recover_unit(self, unit):
+        """Recover a stuck unit by clearing state and nudging position."""
+        debug_log.log(
+            f"WATCHDOG: {unit.name} stuck at ({unit.x:.0f}, {unit.y:.0f}) "
+            f"status={unit.status} for {self.STUCK_THRESHOLD}s - recovering",
+            "WATCHDOG",
+        )
+
+        # Save what we need before clearing
+        had_building_target = unit.building_target is not None
+
+        # Full state wipe
+        unit.clear_all_movement_state()
+
+        # Nudge to nearest safe position if overlapping something
+        safe = self._find_nearby_safe_position(unit)
+        if safe and math.hypot(safe[0] - unit.x, safe[1] - unit.y) > 1:
+            unit.x, unit.y = safe
+            debug_log.log(f"  Nudged to ({unit.x:.0f}, {unit.y:.0f})", "WATCHDOG")
+
+    def _find_nearby_safe_position(self, unit):
+        """Find nearest walkable, non-colliding position."""
+        # Check if current position is already fine
+        if self._is_safe(unit.x, unit.y, unit.radius):
+            return (unit.x, unit.y)
+
+        for radius in range(10, 160, 10):
+            for angle_deg in range(0, 360, 30):
+                angle = math.radians(angle_deg)
+                tx = unit.x + radius * math.cos(angle)
+                ty = unit.y + radius * math.sin(angle)
+                if self._is_safe(tx, ty, unit.radius):
+                    return (tx, ty)
+
+        # Fallback: teleport near castle
+        return self._find_castle_position(unit)
+
+    def _is_safe(self, x, y, radius):
+        """Position is walkable terrain and not overlapping buildings/resources."""
+        grid_pos = self.game.game_map.world_to_grid(x, y)
+        if not grid_pos:
+            return False
+        col, row = grid_pos
         if row < 0 or row >= self.game.game_map.height or col < 0 or col >= self.game.game_map.width:
             return False
-            
-        tile_type = self.game.game_map.grid[row][col]
-        if tile_type in {"water", "lava"}:
+        if self.game.game_map.grid[row][col] in ("water", "lava"):
             return False
-            
-        # Check for collisions with buildings and resources
-        for obj in self.game.buildings + self.game.resources:
-            dist = math.sqrt((obj.x - x)**2 + (obj.y - y)**2)
-            if dist < (obj.radius + radius + 10):  # Extra margin
+
+        min_dist = radius + 5
+        for obj in self.game.buildings + self.game.resources + self.game.construction_sites:
+            if math.hypot(obj.x - x, obj.y - y) < min_dist + obj.radius:
                 return False
-                
         return True
-        
-    def _find_spawn_position(self, unit):
-        """Find a spawn position near the unit's base"""
-        if unit.player:
-            # Find player's castle
-            for building in self.game.buildings:
-                if building.player == unit.player and building.name == "castle":
-                    # Find safe position near castle
-                    return self.game.game_map.find_safe_spawn_position(
-                        unit.radius, 
-                        center_pos=(building.x, building.y),
-                        search_range=(50, 200)
-                    )
+
+    def _find_castle_position(self, unit):
+        """Find safe position near player's castle as last resort."""
+        if not unit.player:
+            return None
+        for building in self.game.buildings:
+            if building.player == unit.player and building.name == "castle":
+                for radius in range(50, 200, 20):
+                    for angle_deg in range(0, 360, 45):
+                        angle = math.radians(angle_deg)
+                        tx = building.x + radius * math.cos(angle)
+                        ty = building.y + radius * math.sin(angle)
+                        if self._is_safe(tx, ty, unit.radius):
+                            return (tx, ty)
         return None
