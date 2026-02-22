@@ -53,24 +53,37 @@ GATHERING_RATES = {"gold": 1, "stone": 1, "wood": 2, "food": 3}
 DEBUG_TO_FILE = True  # Write debug output to debug.dat
 ```
 
-## Current State (2025-01-20)
+## Current State (2026-02-22)
 
 ### Working ✅
 - Core RTS gameplay (selection, movement, combat, gathering)
-- AI with economic/military strategy
+- **AI V2**: Simple 4-phase state machine (EARLY→GROW→ARMY→ATTACK) in `systems/ai/`
 - Resource buildings required for distant resources (>200 units)
 - Food costs for units (Worker:25, Warrior:50, Archer:40)
 - Forest clusters, integer resource display
+- Unit watchdog: detects and recovers stuck units
 
-### AI Behavior
-1. **Early**: 5 workers → resource gathering → houses
-2. **Mid**: Barracks at 3+ workers → military production  
-3. **Late**: Attack with 3+ units, defend base
+### AI Behavior (V2 - branch: ai-v2)
+1. **EARLY**: Scripted build order: 3 workers → farm → 4th worker → house → barracks
+2. **GROW**: Expand to 6 workers, build houses + resource buildings
+3. **ARMY**: Train warriors (60%) and archers (40%), keep economy running
+4. **ATTACK**: Send army to nearest enemy building, train replacements
+
+### AI Files (V2)
+- `systems/ai/simple_ai.py` - Main orchestrator (~530 lines)
+- `systems/ai/worker_brain.py` - Idle worker detection + assignment
+- `systems/ai/military_brain.py` - Defense, training, attack
+- `systems/ai/building_placer.py` - Ring-search placement
 
 ### Balance
 - Start: 200 gold/wood, 100 stone/food
-- AI decisions: 2s interval
+- AI tick: 0.5s interval
 - Building distance threshold: 200 units
+
+### Pathfinding
+- A* only checks static obstacles (buildings, resources, construction sites, terrain)
+- Unit-unit avoidance handled by real-time collision system (NOT pathfinding)
+- Failed paths are NOT cached (world state changes between ticks)
 
 ## Recent Feature History
 
@@ -191,21 +204,15 @@ DEBUG_TO_FILE = True  # Write debug output to debug.dat
 ## Known Bugs
 
 ### Units Getting Stuck - Pathfinding and Overlapping Issues
-**Status**: 🐛 **KNOWN BUG - Not Fixed**
+**Status**: Mostly fixed (2026-02-22)
 
-Units occasionally get stuck due to imperfect pathfinding and collision detection:
-- Units can overlap when multiple units try to reach the same destination
-- Pathfinding sometimes fails to find optimal routes around obstacles
-- Workers can get stuck when gathering from resources with multiple workers
-- Combat units may get stuck when engaging enemies in groups
+Major fix: Removed unit-unit collision from A* pathfinding. Units are dynamic obstacles
+and should only be avoided by the real-time collision system, not treated as static walls
+during path computation. Unit watchdog recovers any remaining stuck units after 5 seconds.
 
-This is a complex issue involving the interaction between:
-- Pathfinding system (A* algorithm)
-- Collision detection and resolution
-- Movement strategies (LOS vs pathfinding)
-- Unit separation mechanics
-
-**Workaround**: Currently units attempt to recover when stuck for >1 second, but this doesn't always resolve the issue.
+Remaining edge cases:
+- Units can still get stuck at tight spots between static obstacles
+- Collision sliding can sometimes prevent units from reaching exact positions
 
 ## Recent Bug Fixes (2025-08-10)
 
