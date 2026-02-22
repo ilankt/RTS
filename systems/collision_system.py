@@ -1,6 +1,7 @@
 import math
 import pygame
 from core.config import DEBUG_MOVEMENT, DEBUG_PATHFINDING
+from utils.debug_logger import debug_log
 
 
 class CollisionSystem:

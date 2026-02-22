@@ -23,20 +23,6 @@ class MovementSystem:
             unit.update_combat(delta_time)
             self._handle_combat_movement(unit)
         
-        # Debug workers that are stuck with building targets
-        if (hasattr(unit, 'building_target') and unit.building_target and 
-            unit.name == "worker" and not unit.is_building and 
-            not unit.path and not unit.destination):
-            if not hasattr(unit, '_stuck_build_log_timer'):
-                unit._stuck_build_log_timer = 0
-            unit._stuck_build_log_timer += delta_time
-            if unit._stuck_build_log_timer >= 2.0:  # Log every 2 seconds if stuck
-                dist = math.sqrt((unit.x - unit.building_target.x)**2 + (unit.y - unit.building_target.y)**2)
-                debug_log.log(f"WARNING: Worker stuck with building_target! pos=({unit.x:.0f},{unit.y:.0f}), dist={dist:.1f}, no path/dest", "BUILD_TRACK")
-                unit._stuck_build_log_timer = 0
-        elif hasattr(unit, '_stuck_build_log_timer'):
-            unit._stuck_build_log_timer = 0
-        
         # Handle target checking during movement
         if unit.path or unit.destination or unit.is_dropping_off or (hasattr(unit, 'building_target') and unit.building_target):
             self._check_movement_targets(unit, delta_time)
@@ -363,101 +349,56 @@ class MovementSystem:
         """Check if unit has reached various movement targets"""
         # Check building target
         if (hasattr(unit, 'building_target') and unit.building_target and not unit.is_building):
-            build_distance = math.sqrt((unit.x - unit.building_target.x)**2 + 
+            build_distance = math.sqrt((unit.x - unit.building_target.x)**2 +
                                      (unit.y - unit.building_target.y)**2)
             required_distance = unit.radius + unit.building_target.radius - 5
-            
-            # Log current state every few frames for debugging
-            frame_counter = getattr(unit, '_build_log_counter', 0)
-            if frame_counter % 60 == 0:  # Log every 60 frames
-                debug_log.log(f"BUILD_TRACKING: Worker at ({unit.x:.0f}, {unit.y:.0f}) -> Construction at ({unit.building_target.x:.0f}, {unit.building_target.y:.0f})", "BUILD_TRACK")
-                debug_log.log(f"  Distance: {build_distance:.1f}, Required: {required_distance:.1f}, Has path: {unit.path is not None}, Has dest: {unit.destination is not None}", "BUILD_TRACK")
-                debug_log.log(f"  Status: {unit.status}, is_building: {unit.is_building}, is_engaging: {getattr(unit, 'is_engaging', False)}", "BUILD_TRACK")
-                
-                # Extra debug when very close but not close enough
-                if build_distance < required_distance + 20 and build_distance > required_distance:
-                    debug_log.log(f"  CLOSE BUT NOT CLOSE ENOUGH: Gap of {build_distance - required_distance:.1f} pixels", "BUILD_TRACK")
-                    if unit.destination:
-                        debug_log.log(f"  Destination: ({unit.destination[0]:.0f}, {unit.destination[1]:.0f})", "BUILD_TRACK")
-                    if hasattr(unit, '_stuck_detector'):
-                        debug_log.log(f"  Stuck timer: {unit._stuck_detector.get('stuck_timer', 0)}", "BUILD_TRACK")
-            unit._build_log_counter = frame_counter + 1
-            
+
             # Add tolerance for stuck units
-            if hasattr(unit, '_stuck_detector') and unit._stuck_detector['stuck_timer'] >= 60:
+            if hasattr(unit, '_stuck_detector') and unit._stuck_detector.get('stuck_timer', 0) >= 60:
                 tolerance = unit.get_target_tolerance("movement")
                 required_distance += tolerance
-                debug_log.log(f"Worker stuck approaching construction - increased tolerance to {required_distance:.1f}", "MOVEMENT")
-            
-            # Debug stuck workers with building targets
+
+            # Recovery: worker has building_target but no movement
             if not unit.path and not unit.destination and unit.status == "idle":
-                debug_log.log(f"Worker at ({unit.x:.0f}, {unit.y:.0f}) has building_target but no movement!", "CONSTRUCTION")
-                debug_log.log(f"  - Target: Construction at ({unit.building_target.x:.0f}, {unit.building_target.y:.0f})", "CONSTRUCTION")
-                debug_log.log(f"  - Distance: {build_distance:.1f}, Required: {required_distance:.1f}", "CONSTRUCTION")
-                
-                # Recovery: Re-path to building target
                 if build_distance > required_distance + 5:
-                    debug_log.log(f"  - Recovery: Re-pathing to construction site", "MOVEMENT")
+                    debug_log.log(f"Recovery: Re-pathing worker to construction site", "CONSTRUCTION")
                     from systems.pathfinding import Pathfinding
                     pathfinder = Pathfinding(self.game_map, self.game)
                     pathfinder.current_unit = unit
-                    pathfinder.building_target = unit.building_target  # Allow pathfinding to target
-                    
-                    path = pathfinder.find_path((unit.x, unit.y), 
-                                              (unit.building_target.x, unit.building_target.y), 
+                    pathfinder.building_target = unit.building_target
+
+                    path = pathfinder.find_path((unit.x, unit.y),
+                                              (unit.building_target.x, unit.building_target.y),
                                               unit.radius, unit)
                     if path:
                         unit.path = path
                         unit.path_index = 0
                         unit.destination = path[0] if path else None
                         unit.status = "run"
-                        debug_log.log(f"  - Recovery: Path found to construction site", "MOVEMENT")
-                    else:
-                        debug_log.log(f"  - Recovery: No path to construction site!", "MOVEMENT")
-            
+
             # Check if worker is close enough to start building
-            # Add a small tolerance (10 pixels) to account for pathfinding/collision precision
             if build_distance <= required_distance + 10:
-                # Start building immediately - the worker is close enough
-                debug_log.log(f"Worker reached construction site at distance {build_distance:.1f} (required: {required_distance:.1f})", "CONSTRUCTION")
-                debug_log.log(f"  Worker position: ({unit.x:.0f}, {unit.y:.0f}), Construction site: ({unit.building_target.x:.0f}, {unit.building_target.y:.0f})", "CONSTRUCTION")
-                debug_log.log(f"  Worker status: {unit.status}, is_building: {unit.is_building}", "CONSTRUCTION")
-                
-                # Clear all movement state
+                debug_log.log(f"Worker reached construction site at dist {build_distance:.0f}", "CONSTRUCTION")
+
+                # Clear movement, start building
                 unit.path = None
                 unit.path_index = 0
                 unit.path_target = None
                 unit.destination = None
                 unit.is_building = True
                 unit.status = "build"
-                
-                debug_log.log(f"  Updated worker - status: {unit.status}, is_building: {unit.is_building}", "CONSTRUCTION")
-                
-                # Link worker to construction site - CRITICAL for construction to work
+
+                # Link worker to construction site
                 if hasattr(unit.building_target, 'builder'):
-                    # Always ensure the link is established
                     unit.building_target.builder = unit
-                    debug_log.log(f"  Ensured worker is linked to construction site (builder was: {unit.building_target.builder})", "CONSTRUCTION")
-                else:
-                    debug_log.log(f"  ERROR: Construction site has no 'builder' attribute!", "CONSTRUCTION")
-                
-                # Force clear any conflicting states
+
+                # Clear conflicting states
                 unit.is_gathering = False
                 unit.gathering_target = None
                 unit.is_dropping_off = False
                 unit.drop_off_target = None
                 unit.current_target = None
                 unit.is_engaging = False
-                debug_log.log(f"  Cleared all conflicting states", "CONSTRUCTION")
-                
-                # Final verification
-                debug_log.log(f"FINAL CHECK: Worker is_building={unit.is_building}, status={unit.status}, building_target={unit.building_target}", "CONSTRUCTION")
-                if unit.building_target and hasattr(unit.building_target, 'builder'):
-                    debug_log.log(f"  Construction site builder={unit.building_target.builder}, should be {unit}", "CONSTRUCTION")
-                    debug_log.log(f"  Worker ID: {id(unit)}, Site builder ID: {id(unit.building_target.builder) if unit.building_target.builder else 'None'}", "CONSTRUCTION")
-                
-                # CRITICAL: Don't return here! Let the movement system continue to update
-                # return  # <-- This was preventing further updates!
         
         # Check drop-off target
         elif (hasattr(unit, 'drop_off_target') and unit.drop_off_target and 
@@ -831,10 +772,6 @@ class MovementSystem:
         # Update destination for moving targets
         if unit.is_engaging and unit.current_target and (unit.has_los or unit.is_fallback_movement):
             unit.destination = (unit.current_target.x, unit.current_target.y)
-        
-        # Special debug for building targets
-        if hasattr(unit, 'building_target') and unit.building_target and unit.destination:
-            debug_log.log(f"DIRECT MOVE: Worker at ({unit.x:.0f}, {unit.y:.0f}) moving to ({unit.destination[0]:.0f}, {unit.destination[1]:.0f})", "BUILD_TRACK")
         
         dest_vec = pygame.math.Vector2(unit.destination)
         direction = dest_vec - pos

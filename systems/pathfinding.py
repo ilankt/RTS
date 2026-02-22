@@ -256,8 +256,7 @@ class Pathfinding:
                 heapq.heappush(open_set, neighbor)
                 open_dict[neighbor_key] = neighbor
         
-        # Cache the failure too
-        self.path_cache[cache_key] = None
+        # Do NOT cache failures - the world state may change next tick
         return None  # No path found
     
     def _is_walkable(self, x: float, y: float, unit_radius: float) -> bool:
@@ -318,14 +317,10 @@ class Pathfinding:
             if dist < (obj.radius + radius + collision_buffer):
                 return True
         
-        # Check other units (dynamic objects not in spatial grid)
-        for unit in self.game.units:
-            if self.current_unit and unit == self.current_unit:  # Skip only the current pathfinding unit
-                continue
-            dist = math.sqrt((unit.x - x)**2 + (unit.y - y)**2)
-            if dist < (unit.radius + radius + collision_buffer):
-                return True
-        
+        # NOTE: Other units are NOT checked here. Units are dynamic and handled
+        # by the real-time collision system. Treating them as static obstacles
+        # causes pathfinding failures when multiple units share an area.
+
         return False
     
     def _get_neighbors(self, x: float, y: float) -> List[Tuple[float, float]]:
@@ -409,52 +404,23 @@ class Pathfinding:
     
     def _path_segment_clear(self, start: Tuple[float, float], end: Tuple[float, float], unit_radius: float) -> bool:
         """Check if a path segment is completely clear for a unit of given radius"""
-        # Sample more points for better accuracy
         dist = math.sqrt((end[0] - start[0])**2 + (end[1] - start[1])**2)
-        
+
         if dist < 0.1:
             return True
-        
+
         # Check every few units along the path
         steps = max(2, int(dist / (unit_radius / 2)))
-        
+
         for i in range(steps + 1):
             t = i / steps
             x = start[0] + (end[0] - start[0]) * t
             y = start[1] + (end[1] - start[1]) * t
-            
-            # Check terrain
-            hex_coord = self.game_map.world_to_grid(x, y)
-            if hex_coord:
-                col, row = hex_coord
-                if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
-                    tile_type = self.game_map.grid[row][col]
-                    if tile_type in {"water", "lava"}:
-                        return False
-            
-            # Get nearby objects from spatial grid
-            nearby_objects = self._get_nearby_objects(x, y, unit_radius + 50)
-            
-            # Check for obstacles with proper clearance
-            for obj in nearby_objects:
-                if self.drop_off_target and obj == self.drop_off_target:
-                    continue
-                if self.gathering_target and obj == self.gathering_target:
-                    continue
-                dist_to_obj = math.sqrt((obj.x - x)**2 + (obj.y - y)**2)
-                required_clearance = obj.radius + unit_radius + 2
-                if dist_to_obj < required_clearance:
-                    return False
-            
-            # Units need some clearance but can be closer
-            for unit in self.game.units:
-                if self.current_unit and unit == self.current_unit:
-                    continue
-                dist_to_unit = math.sqrt((unit.x - x)**2 + (unit.y - y)**2)
-                required_clearance = unit.radius + unit_radius + 1
-                if dist_to_unit < required_clearance:
-                    return False
-        
+
+            # _is_walkable checks terrain + static obstacle collisions
+            if not self._is_walkable(x, y, unit_radius):
+                return False
+
         return True
     
     def _line_of_sight(self, start: Tuple[float, float], end: Tuple[float, float], unit_radius: float = 20) -> bool:
@@ -506,35 +472,11 @@ class Pathfinding:
             t = i / steps
             x = start[0] + (end[0] - start[0]) * t
             y = start[1] + (end[1] - start[1]) * t
-            
-            # Check terrain with unit radius consideration
+
+            # _is_walkable checks terrain + static obstacle collisions
             if not self._is_walkable(x, y, unit_radius):
                 return False
-            
-            # Consistent collision buffer: 2 units for all object types
-            collision_buffer = 2
-            
-            # Get nearby objects from spatial grid
-            nearby_objects = self._get_nearby_objects(x, y, unit_radius + 50)
-            
-            # Check static obstacles with consistent buffer
-            for obj in nearby_objects:
-                if self.drop_off_target and obj == self.drop_off_target:
-                    continue
-                if self.gathering_target and obj == self.gathering_target:
-                    continue
-                dist_to_obj = math.sqrt((obj.x - x)**2 + (obj.y - y)**2)
-                if dist_to_obj < (obj.radius + unit_radius + collision_buffer):
-                    return False
-            
-            # Check dynamic units
-            for unit in self.game.units:
-                if self.current_unit and unit == self.current_unit:
-                    continue
-                dist_to_unit = math.sqrt((unit.x - x)**2 + (unit.y - y)**2)
-                if dist_to_unit < (unit.radius + unit_radius + collision_buffer):
-                    return False
-        
+
         return True
     
     
