@@ -194,6 +194,29 @@ class FloatingUI:
         
         self.notifications.append(notification)
     
+    def add_damage_notification(self, target, damage_amount, is_critical=False):
+        """Add a floating damage number above a target"""
+        if damage_amount <= 0:
+            return
+        
+        # Color based on damage type
+        if is_critical:
+            color = (255, 50, 50)  # Bright red for crits
+            text = f"{int(damage_amount)}!"
+        else:
+            color = (255, 200, 100)  # Orange-yellow for normal
+            text = str(int(damage_amount))
+        
+        notification = FloatingNotification(
+            text=text,
+            x=target.x + (hash(id(target)) % 20 - 10),  # Slight horizontal jitter
+            y=target.y - 30,
+            color=color,
+            duration=0.8
+        )
+        
+        self.notifications.append(notification)
+    
     def update_notifications(self, delta_time):
         """Update all floating notifications"""
         # Update existing notifications

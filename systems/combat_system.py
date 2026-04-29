@@ -163,12 +163,21 @@ class CombatSystem:
     
     def update_combat_units(self, delta_time):
         """Update all combat-capable units and buildings"""
+        # Track damage dealt this frame for notifications
+        damage_events = []
+        
         # Update units
         for unit in self.game.units:
             if hasattr(unit, 'update_combat'):
+                # Hook into combat to capture damage
+                old_target_hp = getattr(unit.current_target, 'hp', 0) if unit.current_target else 0
                 unit.update_combat(delta_time)
+                new_target_hp = getattr(unit.current_target, 'hp', 0) if unit.current_target else 0
+                if old_target_hp > new_target_hp and unit.current_target:
+                    damage_dealt = old_target_hp - new_target_hp
+                    damage_events.append((unit.current_target, damage_dealt))
                 
-                # Auto-engage nearby enemies if idle (respect stance)
+                # Auto-engage nearby enemies if idle
                 if unit.status == "idle" and not unit.current_target:
                     from entities.unit import STANCE_NO_ATTACK, STANCE_STAND_GROUND, STANCE_DEFENSIVE
                     
@@ -210,7 +219,12 @@ class CombatSystem:
             if hasattr(building, 'can_attack') and building.can_attack:
                 # Update building combat
                 if hasattr(building, 'update_combat'):
+                    old_target_hp = getattr(building.current_target, 'hp', 0) if building.current_target else 0
                     building.update_combat(delta_time)
+                    new_target_hp = getattr(building.current_target, 'hp', 0) if building.current_target else 0
+                    if old_target_hp > new_target_hp and building.current_target:
+                        damage_dealt = old_target_hp - new_target_hp
+                        damage_events.append((building.current_target, damage_dealt))
                 
                 # Auto-target enemies if not already attacking
                 if not building.current_target or building.current_target.hp <= 0:
@@ -236,6 +250,11 @@ class CombatSystem:
                         potential_targets.sort(key=lambda x: x[1])
                         target, _ = potential_targets[0]
                         building.start_attack(target)
+        
+        # Spawn damage notifications
+        if hasattr(self.game, 'floating_ui') and self.game.floating_ui:
+            for target, damage in damage_events:
+                self.game.floating_ui.add_damage_notification(target, damage)
         
         # Check for new attacks and spawn projectiles
         self.check_for_attacks_and_spawn_projectiles()
@@ -292,6 +311,12 @@ class CombatSystem:
     
     def handle_building_destruction(self, building):
         """Handle cleanup when a building is destroyed"""
+        # Screen shake on major building destruction
+        if building.name == "castle":
+            self.game.camera.add_shake(15.0)
+        elif building.name in ("barracks", "watchtower", "stable"):
+            self.game.camera.add_shake(5.0)
+        
         # Clear any units targeting this building
         for unit in self.game.units:
             if hasattr(unit, 'current_target') and unit.current_target == building:

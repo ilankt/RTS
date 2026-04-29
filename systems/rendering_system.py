@@ -19,6 +19,13 @@ class RenderingSystem:
     
     def draw_frame(self, screen, map_surface, camera, delta_time=1/60.0):
         """Draw a complete frame"""
+        # Update camera shake
+        shake_offset = camera.update_shake(delta_time)
+        
+        # Temporarily apply shake to camera
+        camera.x += shake_offset[0]
+        camera.y += shake_offset[1]
+        
         # Clear backgrounds
         screen.fill(self.DARK_GRAY)
         map_surface.fill(self.MAP_GRAY)
@@ -38,6 +45,10 @@ class RenderingSystem:
         
         # Draw floating UI elements
         self.floating_ui.draw_all_floating_ui(map_surface, camera, delta_time)
+        
+        # Restore camera position after shake
+        camera.x -= shake_offset[0]
+        camera.y -= shake_offset[1]
         
         # Blit map to screen
         screen.blit(map_surface, (0, TOP_BAR_HEIGHT))
