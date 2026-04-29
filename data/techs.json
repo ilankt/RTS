@@ -1,0 +1,62 @@
+[
+    {
+        "name": "attack_upgrade_1",
+        "display_name": "Forged Weapons",
+        "description": "+2 attack damage for all combat units",
+        "costs": {
+            "gold": 150,
+            "wood": 100
+        },
+        "research_time": 30,
+        "effects": {
+            "attack_bonus": 2
+        },
+        "prerequisites": [],
+        "building": "blacksmith"
+    },
+    {
+        "name": "armor_upgrade_1",
+        "display_name": "Reinforced Armor",
+        "description": "+2 armor for all units",
+        "costs": {
+            "gold": 150,
+            "stone": 100
+        },
+        "research_time": 30,
+        "effects": {
+            "armor_bonus": 2
+        },
+        "prerequisites": [],
+        "building": "blacksmith"
+    },
+    {
+        "name": "gathering_upgrade_1",
+        "display_name": "Efficient Tools",
+        "description": "+20% gathering speed for workers",
+        "costs": {
+            "gold": 100,
+            "wood": 100
+        },
+        "research_time": 25,
+        "effects": {
+            "gathering_multiplier": 1.2
+        },
+        "prerequisites": [],
+        "building": "blacksmith"
+    },
+    {
+        "name": "cavalry_upgrade_1",
+        "display_name": "Horse Breeding",
+        "description": "+10% movement speed for cavalry",
+        "costs": {
+            "gold": 200,
+            "food": 150
+        },
+        "research_time": 40,
+        "effects": {
+            "cavalry_speed_bonus": 1.1
+        },
+        "prerequisites": ["stable"],
+        "building": "stable"
+    }
+]

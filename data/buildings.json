@@ -111,5 +111,57 @@
             "wood": 150,
             "stone": 100
         }
+    },
+    {
+        "name": "stable",
+        "sprite": "assets/sprites/Buildings/Barracks.png",
+        "size": [1.5,1.5],
+        "hp": 900,
+        "build_duration": 10,
+        "armor_type": "fortified",
+        "armor_value": 4,
+        "costs": {
+            "gold": 150,
+            "wood": 100,
+            "stone": 50
+        }
+    },
+    {
+        "name": "temple",
+        "sprite": "assets/sprites/Buildings/House.png",
+        "size": [1.5,1.5],
+        "hp": 800,
+        "build_duration": 10,
+        "armor_type": "fortified",
+        "armor_value": 3,
+        "costs": {
+            "gold": 150,
+            "stone": 100
+        }
+    },
+    {
+        "name": "blacksmith",
+        "sprite": "assets/sprites/Buildings/Lumbermill.png",
+        "size": [1.5,1.5],
+        "hp": 800,
+        "build_duration": 10,
+        "armor_type": "fortified",
+        "armor_value": 4,
+        "costs": {
+            "gold": 150,
+            "wood": 100
+        }
+    },
+    {
+        "name": "wall",
+        "sprite": "assets/sprites/Buildings/Watchtower.png",
+        "size": [1,1],
+        "hp": 2000,
+        "build_duration": 8,
+        "armor_type": "fortified",
+        "armor_value": 10,
+        "costs": {
+            "stone": 50
+        }
     }
 ]

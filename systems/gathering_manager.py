@@ -21,7 +21,7 @@ class GatheringManager:
         self.game = game
         
     def update(self, delta_time):
-        """Update all gathering workers"""
+        """Update all gathering workers, farms, and tree regrowth"""
         for unit in self.game.units:
             if unit.name == "worker" and unit.is_gathering:
                 self._update_gathering_worker(unit, delta_time)
@@ -49,6 +49,9 @@ class GatheringManager:
                     building.food_timer = 0.0  # Reset timer
                     # Debug: Farm produced food
         
+        # Tree regrowth: track depleted tree positions and regrow after timer
+        self._update_tree_regrowth(delta_time)
+        
     
     def _update_gathering_worker(self, worker, delta_time):
         """Update a single gathering worker"""
@@ -72,6 +75,9 @@ class GatheringManager:
                 player_multiplier = 1.0
                 if hasattr(worker, 'player') and worker.player:
                     player_multiplier = worker.player.gathering_rates.get(resource_type, 1.0)
+                    # Apply tech gathering multiplier
+                    tech_multiplier = getattr(worker.player, 'tech_gathering_multiplier', 1.0)
+                    player_multiplier *= tech_multiplier
                 gather_rate = base_rate * player_multiplier
                 amount_to_gather = gather_rate * delta_time
                 
@@ -141,6 +147,55 @@ class GatheringManager:
                 if worker in worker.gathering_target.gatherers:
                     worker.gathering_target.gatherers.remove(worker)
     
+    def reserve_gathering_position(self, worker, resource):
+        """Reserve a unique gathering position around a resource for a worker.
+
+        Call this BEFORE pathfinding so the worker paths to its own slot
+        instead of the resource center.  Adds the worker to
+        ``resource.gatherers`` and returns ``(x, y)``.
+        """
+        if not hasattr(resource, 'gatherers'):
+            resource.gatherers = []
+
+        # Clean up invalid gatherers
+        resource.gatherers = [
+            g for g in resource.gatherers
+            if g and hasattr(g, 'hp') and g.hp > 0
+            and (getattr(g, 'gathering_target', None) == resource
+                 or getattr(g, 'previous_gathering_target', None) == resource)
+        ]
+
+        # Register this worker
+        if worker not in resource.gatherers:
+            resource.gatherers.append(worker)
+
+        # Compute a unique angle slot for this worker
+        worker_index = resource.gatherers.index(worker)
+        gatherer_count = len(resource.gatherers)
+        gathering_radius = get_gathering_distance(worker, resource)
+
+        # Evenly distribute around the resource (minimum 8 slots)
+        num_slots = max(8, gatherer_count * 2)
+        angle = worker_index * (2 * math.pi / num_slots)
+
+        gx = resource.x + math.cos(angle) * gathering_radius
+        gy = resource.y + math.sin(angle) * gathering_radius
+
+        if self._is_valid_gathering_position(gx, gy, worker):
+            return (gx, gy)
+
+        # Try nearby angles if primary is blocked
+        angle_step = 2 * math.pi / num_slots
+        for offset in [0.5, -0.5, 1.0, -1.0]:
+            alt_angle = angle + offset * angle_step
+            ax = resource.x + math.cos(alt_angle) * gathering_radius
+            ay = resource.y + math.sin(alt_angle) * gathering_radius
+            if self._is_valid_gathering_position(ax, ay, worker):
+                return (ax, ay)
+
+        # Fallback: resource center (original behaviour)
+        return (resource.x, resource.y)
+
     def start_gathering(self, worker, resource):
         """Start a worker gathering from a resource"""
         if worker.name != "worker":
@@ -241,7 +296,46 @@ class GatheringManager:
             else:
                 worker.previous_gathering_target = None
             
-            return True
+        return True
+    
+    def _update_tree_regrowth(self, delta_time):
+        """Handle tree regrowth from depleted tree positions"""
+        # Initialize regrowth tracker on game if not present
+        if not hasattr(self.game, '_tree_regrowth'):
+            self.game._tree_regrowth = []  # List of (x, y, timer)
+        
+        # Update timers
+        regrown = []
+        for i, (x, y, timer) in enumerate(self.game._tree_regrowth):
+            self.game._tree_regrowth[i] = (x, y, timer - delta_time)
+            if timer - delta_time <= 0:
+                regrown.append((x, y))
+        
+        # Remove regrown entries and spawn new trees
+        self.game._tree_regrowth = [t for t in self.game._tree_regrowth if t[2] > 0]
+        
+        for x, y in regrown:
+            # Check position is still valid (not blocked by buildings)
+            blocked = False
+            for building in self.game.buildings:
+                dist = math.sqrt((x - building.x)**2 + (y - building.y)**2)
+                if dist < building.radius + 20:
+                    blocked = True
+                    break
+            
+            if not blocked:
+                from entities import Resource
+                template = self.game.game_data["resources"].get("wood")
+                if template:
+                    tree = Resource(
+                        name=template.name,
+                        sprite=template.sprite,
+                        radius=template.radius,
+                    )
+                    tree.x = x
+                    tree.y = y
+                    self.game.resources.append(tree)
+                    self.game.pathfinder.mark_dirty()
         
         return False  # Still dropping off
     
@@ -266,18 +360,13 @@ class GatheringManager:
         if nearest_building:
             worker.drop_off_target = nearest_building
             
-            # Simple pathfinding directly to building center
-            from systems.pathfinding import Pathfinding
-            pathfinder = Pathfinding(self.game.game_map, self.game)
-            
-            # Allow pathfinding through the drop-off building
-            pathfinder.drop_off_target = nearest_building
-            
-            path = pathfinder.find_path(
-                (worker.x, worker.y), 
-                (nearest_building.x, nearest_building.y), 
+            # Pathfind to drop-off building (excluded from collision)
+            path = self.game.pathfinder.find_path(
+                (worker.x, worker.y),
+                (nearest_building.x, nearest_building.y),
                 worker.radius,
-                worker
+                worker,
+                drop_off_target=nearest_building
             )
             
             if path:

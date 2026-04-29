@@ -20,7 +20,7 @@ class UnitPanel:
     def _load_unit_panel_icons(self):
         """Pre-load and cache unit panel icons at different sizes for performance"""
         # Define the unit types and required sizes
-        unit_types = ['worker', 'warrior', 'archer']
+        unit_types = ['worker', 'warrior', 'archer', 'spearman', 'cavalry', 'healer']
         sizes = {
             'single': 64,  # For single unit selection
             'multi': 48    # For multi-unit selection

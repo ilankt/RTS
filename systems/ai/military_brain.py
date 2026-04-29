@@ -1,6 +1,5 @@
 """Military AI logic - defense, training, and attack commands."""
 import math
-from systems.pathfinding import Pathfinding
 from utils.debug_logger import debug_log
 
 
@@ -45,16 +44,19 @@ class MilitaryBrain:
                         self._command_attack(unit, target)
 
     def train_units(self, player, max_queue: int = 2):
-        """Train military units if barracks exists and we can afford them.
+        """Train military units if barracks/stable exists and we can afford them.
 
         Returns True if a unit was queued.
         """
+        # Try barracks first
         barracks_list = [b for b in self.game.buildings
                          if b.player == player and b.name == "barracks"]
-        if not barracks_list:
-            return False
-
+        stable_list = [b for b in self.game.buildings
+                       if b.player == player and b.name == "stable"]
+        
         queued = False
+        
+        # Train from barracks
         for barracks in barracks_list:
             queue_len = len(barracks.production_queue)
             if barracks.current_production:
@@ -62,15 +64,18 @@ class MilitaryBrain:
             if queue_len >= max_queue:
                 continue
 
-            # 60% warriors, 40% archers
+            # 40% warriors, 30% archers, 30% spearmen
             warriors = len([u for u in self.game.units if u.player == player and u.name == "warrior"])
             archers = len([u for u in self.game.units if u.player == player and u.name == "archer"])
-            total = warriors + archers
-            # Prefer warriors until ratio is right
-            if total == 0 or (warriors / max(total, 1)) < 0.6:
+            spearmen = len([u for u in self.game.units if u.player == player and u.name == "spearman"])
+            total = warriors + archers + spearmen
+            
+            if total == 0 or (warriors / max(total, 1)) < 0.4:
                 unit_type = "warrior"
-            else:
+            elif (archers / max(total, 1)) < 0.3:
                 unit_type = "archer"
+            else:
+                unit_type = "spearman"
 
             if not self._check_pop_space(player):
                 debug_log.log(f"AI {player.name}: No pop space for {unit_type}", "AI")
@@ -82,6 +87,23 @@ class MilitaryBrain:
                 queued = True
             else:
                 debug_log.log(f"AI {player.name}: Cannot train {unit_type}: {msg}", "AI")
+        
+        # Train cavalry from stable
+        for stable in stable_list:
+            queue_len = len(stable.production_queue)
+            if stable.current_production:
+                queue_len += 1
+            if queue_len >= max_queue:
+                continue
+            
+            cavalry_count = len([u for u in self.game.units if u.player == player and u.name == "cavalry"])
+            if cavalry_count < 3:
+                if not self._check_pop_space(player):
+                    return False
+                success, msg = self.game.production_manager.start_production(stable, "cavalry")
+                if success:
+                    debug_log.log(f"AI {player.name}: Training cavalry from stable", "AI")
+                    queued = True
 
         return queued
 
@@ -101,7 +123,7 @@ class MilitaryBrain:
     def _get_military_units(self, player):
         """All military units for this player."""
         return [u for u in self.game.units
-                if u.player == player and u.name in ("warrior", "archer")]
+                if u.player == player and u.name in ("warrior", "archer", "spearman", "cavalry", "healer")]
 
     def _is_idle_military(self, unit) -> bool:
         """Military unit with nothing to do."""
@@ -158,8 +180,7 @@ class MilitaryBrain:
 
     def _command_attack(self, unit, target):
         """Send a military unit to attack a target."""
-        pathfinder = Pathfinding(self.game.game_map, self.game)
-        self.game.selection_manager._attack_target(unit, target, pathfinder)
+        self.game.selection_manager._attack_target(unit, target, self.game.pathfinder)
 
     def _get_castle(self, player):
         """Find the player's castle."""

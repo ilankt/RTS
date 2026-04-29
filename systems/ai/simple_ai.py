@@ -12,7 +12,6 @@ import pygame
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from entities import ConstructionSite
-from systems.pathfinding import Pathfinding
 from utils.debug_logger import debug_log
 
 from .worker_brain import WorkerBrain
@@ -216,16 +215,28 @@ class SimpleAISystem:
 
     def _tick_grow(self, player, state: AIGameState):
         """Expand economy: workers, houses, resource buildings."""
-        # Train workers up to 6
-        worker_count = len(state.workers)
-        if worker_count < 6:
-            self._try_train(player, state, "worker")
-
-        # Build houses when near pop cap
+        # Build houses when near pop cap (cheap, high priority)
         if state.pop_current >= state.pop_max - 1:
             self._try_build(player, state, "house")
 
-        # Build resource buildings if we can afford them and don't have one yet
+        # Train military FIRST - this is the bottleneck for phase transition
+        has_barracks = len(state.buildings.get("barracks", [])) > 0
+        if has_barracks:
+            self.military_brain.train_units(player)
+
+        # Train workers up to 6 AFTER military (count in-production to avoid over-queuing)
+        worker_count = self._count_workers(player, state)
+        if worker_count < 6:
+            self._try_train(player, state, "worker")
+
+        # Transition: has barracks + 3 military units
+        military_count = self.military_brain.get_military_count(player)
+        if has_barracks and military_count >= 3:
+            debug_log.log(f"AI {player.name}: GROW complete -> ARMY", "AI")
+            self.phase[player] = "ARMY"
+            return
+
+        # Build resource buildings last (expensive, not urgent for transition)
         has_farm = any(b.name == "farm" for bl in [state.buildings.get("farm", [])] for b in bl)
         has_lumbermill = any(b.name == "lumbermill" for bl in [state.buildings.get("lumbermill", [])] for b in bl)
         has_mine = any(b.name == "mine" for bl in [state.buildings.get("mine", [])] for b in bl)
@@ -238,22 +249,10 @@ class SimpleAISystem:
         if not has_quarry and self._can_afford(player, "quarry"):
             self._try_build(player, state, "quarry")
 
-        # Transition: has barracks + 3 military units
-        has_barracks = len(state.buildings.get("barracks", [])) > 0
-        military_count = self.military_brain.get_military_count(player)
-        if has_barracks and military_count >= 3:
-            debug_log.log(f"AI {player.name}: GROW complete -> ARMY", "AI")
-            self.phase[player] = "ARMY"
-            return
-
-        # Also start training military if we have barracks already
-        if has_barracks:
-            self.military_brain.train_units(player)
-
     def _tick_army(self, player, state: AIGameState):
         """Build military, maintain economy."""
-        # Replace dead workers
-        if len(state.workers) < 4:
+        # Replace dead workers (count in-production)
+        if self._count_workers(player, state) < 4:
             self._try_train(player, state, "worker")
 
         # Build houses when near pop cap
@@ -273,8 +272,8 @@ class SimpleAISystem:
 
     def _tick_attack(self, player, state: AIGameState):
         """Send army to attack, keep training replacements."""
-        # Keep economy alive
-        if len(state.workers) < 4:
+        # Keep economy alive (count in-production)
+        if self._count_workers(player, state) < 4:
             self._try_train(player, state, "worker")
         if state.pop_current >= state.pop_max - 1:
             self._try_build(player, state, "house")
@@ -406,6 +405,7 @@ class SimpleAISystem:
             )
 
             self.game.construction_sites.append(construction_site)
+            self.game.pathfinder.mark_dirty()
             construction_site.builder = worker
 
             # Wipe ALL prior state so movement system doesn't hijack the worker
@@ -414,13 +414,12 @@ class SimpleAISystem:
             worker.status = "run"
 
             # Pathfind to site
-            pathfinder = Pathfinding(self.game.game_map, self.game)
-            pathfinder.building_target = construction_site
-            path = pathfinder.find_path(
+            path = self.game.pathfinder.find_path(
                 (worker.x, worker.y),
                 (construction_site.x, construction_site.y),
                 worker.radius,
                 worker,
+                building_target=construction_site,
             )
 
             if path:
@@ -431,8 +430,6 @@ class SimpleAISystem:
                 debug_log.log(f"AI {worker.player.name}: Worker pathed to {building_type} site at ({position[0]:.0f}, {position[1]:.0f}), path length {len(path)}", "AI")
             else:
                 debug_log.log(f"AI {worker.player.name}: No path to {building_type} site!", "AI")
-
-            pathfinder.building_target = None
 
         except Exception as e:
             debug_log.log(f"AI {worker.player.name}: Build failed for {building_type}: {e}", "AI")
@@ -464,7 +461,7 @@ class SimpleAISystem:
                 continue
             if unit.name == "worker":
                 s.workers.append(unit)
-            elif unit.name in ("warrior", "archer"):
+            elif unit.name in ("warrior", "archer", "spearman", "cavalry", "healer"):
                 s.military.append(unit)
 
         s.construction_sites = [cs for cs in self.game.construction_sites if cs.player == player]
@@ -475,6 +472,17 @@ class SimpleAISystem:
         s.pop_max += len(houses) * 5
 
         return s
+
+    def _count_workers(self, player, state: AIGameState) -> int:
+        """Count workers including those currently in production at the castle."""
+        count = len(state.workers)
+        if state.castle:
+            if state.castle.current_production and state.castle.current_production.get("unit_type") == "worker":
+                count += 1
+            for queued in state.castle.production_queue:
+                if queued == "worker":
+                    count += 1
+        return count
 
     def _can_afford(self, player, item_type: str) -> bool:
         """Check if player can afford to build/train something."""

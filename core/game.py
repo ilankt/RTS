@@ -451,6 +451,12 @@ class Game:
                     # Full state wipe so worker becomes truly idle
                     unit.clear_all_movement_state()
             
+            # Track wood resource positions for regrowth
+            if resource.name == "wood":
+                if not hasattr(self, '_tree_regrowth'):
+                    self._tree_regrowth = []
+                self._tree_regrowth.append((resource.x, resource.y, 60.0))  # 60 seconds regrow
+            
             # Remove from resources list
             self.resources.remove(resource)
             

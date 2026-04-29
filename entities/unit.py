@@ -295,9 +295,19 @@ class Unit(GameObject):
         # Base damage (random between min and max)
         base_damage = random.randint(self.min_damage, self.max_damage)
         
+        # Apply tech attack bonus
+        tech_bonus = 0
+        if self.player:
+            tech_bonus = getattr(self.player, 'tech_attack_bonus', 0)
+        base_damage += tech_bonus
+        
         # Get target armor
         target_armor_type = getattr(target, 'armor_type', 'light')
         target_armor_value = getattr(target, 'armor_value', 0)
+        
+        # Apply tech armor bonus to target
+        if hasattr(target, 'player') and target.player:
+            target_armor_value += getattr(target.player, 'tech_armor_bonus', 0)
         
         # Attack type effectiveness matrix
         effectiveness = {

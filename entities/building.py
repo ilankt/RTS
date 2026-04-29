@@ -33,12 +33,18 @@ class Building(GameObject):
         self.production_queue = []  # Queue of units to produce
         self.current_production = None  # Currently producing unit: {"unit_type": str, "progress": float, "total_time": float}
         self.can_produce = self._get_production_capabilities()
+        
+        # Tech research system
+        self.research_queue = []  # Queue of techs to research
+        self.current_research = None  # Currently researching tech: {"tech_name": str, "progress": float, "total_time": float}
     
     def _get_production_capabilities(self):
         """Get list of units this building can produce"""
         production_map = {
             "castle": ["worker"],
-            "barracks": ["warrior", "archer"]
+            "barracks": ["warrior", "archer", "spearman"],
+            "stable": ["cavalry"],
+            "temple": ["healer"],
         }
         return production_map.get(self.name, [])
     
