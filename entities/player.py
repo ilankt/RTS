@@ -44,3 +44,6 @@ class Player:
         self.tech_armor_bonus = 0
         self.tech_gathering_multiplier = 1.0
         self.tech_cavalry_speed_bonus = 1.0
+        
+        # AI personality (for AI players only)
+        self.ai_personality = "balanced"  # rusher, boomer, turtle, balanced

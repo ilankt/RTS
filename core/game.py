@@ -49,13 +49,17 @@ class Game:
         self.game_data = load_game_data()
         
         # Create players dynamically based on config
+        import random
+        ai_personalities = ["rusher", "boomer", "turtle", "balanced"]
         num_players = max(2, min(NUM_PLAYERS, len(PLAYER_COLORS)))
         self.players = []
         for i in range(num_players):
             if i == 0:
                 self.players.append(Player("Human", human=True, color=PLAYER_COLORS[i]))
             else:
-                self.players.append(Player(f"AI {i}", human=False, color=PLAYER_COLORS[i]))
+                player = Player(f"AI {i}", human=False, color=PLAYER_COLORS[i])
+                player.ai_personality = random.choice(ai_personalities)
+                self.players.append(player)
         
         # Game objects
         self.buildings = []

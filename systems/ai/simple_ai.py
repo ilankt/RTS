@@ -17,6 +17,7 @@ from utils.debug_logger import debug_log
 from .worker_brain import WorkerBrain
 from .military_brain import MilitaryBrain
 from .building_placer import BuildingPlacer
+from .scout_brain import ScoutBrain
 
 
 # ---------------------------------------------------------------------------
@@ -75,6 +76,7 @@ class SimpleAISystem:
         self.worker_brain = WorkerBrain(game)
         self.military_brain = MilitaryBrain(game)
         self.building_placer = BuildingPlacer(game)
+        self.scout_brain = ScoutBrain(game)
 
         # Per-player state
         self.phase = {p: "EARLY" for p in self.ai_players}
@@ -87,6 +89,9 @@ class SimpleAISystem:
         # Building cooldown to avoid spam
         self.last_build_time = {p: 0.0 for p in self.ai_players}
         self.build_cooldown = 3.0
+        
+        # Personality parameters per player
+        self.personality_params = {p: self._get_personality_params(p) for p in self.ai_players}
 
     # ------------------------------------------------------------------
     # Public interface (called by game.py)
@@ -103,6 +108,46 @@ class SimpleAISystem:
                 self._tick(player)
             except Exception as e:
                 debug_log.log(f"AI {player.name}: Error in tick: {e}", "AI")
+
+    def _get_personality_params(self, player):
+        """Get AI behavior parameters based on player personality."""
+        personality = getattr(player, 'ai_personality', 'balanced')
+        
+        params = {
+            "rusher": {
+                "early_workers": 2,
+                "target_workers": 4,
+                "army_transition_threshold": 2,
+                "attack_transition_threshold": 4,
+                "retreat_threshold": 0.15,
+                "econ_focus": False,
+            },
+            "boomer": {
+                "early_workers": 3,
+                "target_workers": 8,
+                "army_transition_threshold": 3,
+                "attack_transition_threshold": 8,
+                "retreat_threshold": 0.35,
+                "econ_focus": True,
+            },
+            "turtle": {
+                "early_workers": 3,
+                "target_workers": 6,
+                "army_transition_threshold": 4,
+                "attack_transition_threshold": 10,
+                "retreat_threshold": 0.40,
+                "econ_focus": False,
+            },
+            "balanced": {
+                "early_workers": 2,
+                "target_workers": 6,
+                "army_transition_threshold": 3,
+                "attack_transition_threshold": 6,
+                "retreat_threshold": 0.30,
+                "econ_focus": False,
+            },
+        }
+        return params.get(personality, params["balanced"])
 
     def invalidate_memory_cache(self, player=None):
         """No-op.  Kept for interface compatibility with game.py."""
@@ -190,6 +235,9 @@ class SimpleAISystem:
         elif phase == "ATTACK":
             self._tick_attack(player, state)
 
+        # Update scouting
+        self.scout_brain.update(player, self.tick_timer[player])
+        
         # Assign remaining idle workers AFTER phase logic has had a chance to grab workers for building
         self.worker_brain.assign_idle_workers(player)
 
@@ -215,6 +263,8 @@ class SimpleAISystem:
 
     def _tick_grow(self, player, state: AIGameState):
         """Expand economy: workers, houses, resource buildings."""
+        params = self.personality_params[player]
+        
         # Build houses when near pop cap (cheap, high priority)
         if state.pop_current >= state.pop_max - 1:
             self._try_build(player, state, "house")
@@ -224,14 +274,14 @@ class SimpleAISystem:
         if has_barracks:
             self.military_brain.train_units(player)
 
-        # Train workers up to 6 AFTER military (count in-production to avoid over-queuing)
+        # Train workers up to target AFTER military (count in-production to avoid over-queuing)
         worker_count = self._count_workers(player, state)
-        if worker_count < 6:
+        if worker_count < params["target_workers"]:
             self._try_train(player, state, "worker")
 
-        # Transition: has barracks + 3 military units
+        # Transition: has barracks + threshold military units
         military_count = self.military_brain.get_military_count(player)
-        if has_barracks and military_count >= 3:
+        if has_barracks and military_count >= params["army_transition_threshold"]:
             debug_log.log(f"AI {player.name}: GROW complete -> ARMY", "AI")
             self.phase[player] = "ARMY"
             return
@@ -251,8 +301,11 @@ class SimpleAISystem:
 
     def _tick_army(self, player, state: AIGameState):
         """Build military, maintain economy."""
+        params = self.personality_params[player]
+        
         # Replace dead workers (count in-production)
-        if self._count_workers(player, state) < 4:
+        min_workers = 4 if not params["econ_focus"] else 6
+        if self._count_workers(player, state) < min_workers:
             self._try_train(player, state, "worker")
 
         # Build houses when near pop cap
@@ -265,15 +318,18 @@ class SimpleAISystem:
         # Run military logic (defense only, not attacking yet)
         self.military_brain.update(player, should_attack=False)
 
-        # Transition: army >= 6
-        if self.military_brain.get_military_count(player) >= 6:
+        # Transition: army >= threshold
+        if self.military_brain.get_military_count(player) >= params["attack_transition_threshold"]:
             debug_log.log(f"AI {player.name}: ARMY complete -> ATTACK", "AI")
             self.phase[player] = "ATTACK"
 
     def _tick_attack(self, player, state: AIGameState):
         """Send army to attack, keep training replacements."""
+        params = self.personality_params[player]
+        
         # Keep economy alive (count in-production)
-        if self._count_workers(player, state) < 4:
+        min_workers = 4 if not params["econ_focus"] else 6
+        if self._count_workers(player, state) < min_workers:
             self._try_train(player, state, "worker")
         if state.pop_current >= state.pop_max - 1:
             self._try_build(player, state, "house")
@@ -284,8 +340,9 @@ class SimpleAISystem:
         # Attack!
         self.military_brain.update(player, should_attack=True)
 
-        # Transition back to ARMY if army drops below 3
-        if self.military_brain.get_military_count(player) < 3:
+        # Transition back to ARMY if army drops below threshold
+        retreat_threshold = max(2, params["attack_transition_threshold"] // 2)
+        if self.military_brain.get_military_count(player) < retreat_threshold:
             debug_log.log(f"AI {player.name}: Army depleted -> ARMY", "AI")
             self.phase[player] = "ARMY"
 
