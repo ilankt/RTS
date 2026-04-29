@@ -168,17 +168,38 @@ class CombatSystem:
             if hasattr(unit, 'update_combat'):
                 unit.update_combat(delta_time)
                 
-                # Auto-engage nearby enemies if idle
+                # Auto-engage nearby enemies if idle (respect stance)
                 if unit.status == "idle" and not unit.current_target:
-                    targets = self.evaluate_combat_targets(unit)
-                    if targets and unit.player.auto_attack:
-                        # Engage closest enemy
-                        target, _ = targets[0]
-                        unit.current_target = target
-                        unit.is_engaging = True
-                        if DEBUG_MOVEMENT:
-                            # Auto-engaging target
-                            pass
+                    from entities.unit import STANCE_NO_ATTACK, STANCE_STAND_GROUND, STANCE_DEFENSIVE
+                    
+                    if unit.stance == STANCE_NO_ATTACK:
+                        pass  # Never auto-attack
+                    else:
+                        targets = self.evaluate_combat_targets(unit)
+                        if targets and getattr(unit.player, 'auto_attack', True):
+                            target, distance = targets[0]
+                            
+                            # Check stance restrictions
+                            should_engange = True
+                            if unit.stance == STANCE_STAND_GROUND:
+                                # Only attack if already in range, never move
+                                if not unit.can_attack(target):
+                                    should_engange = False
+                            elif unit.stance == STANCE_DEFENSIVE:
+                                # Only chase within limited distance from home position
+                                if unit.stance_home_position:
+                                    home_dist = math.sqrt((target.x - unit.stance_home_position[0])**2 + (target.y - unit.stance_home_position[1])**2)
+                                    if home_dist > unit.stance_chase_distance:
+                                        should_engange = False
+                                else:
+                                    unit.stance_home_position = (unit.x, unit.y)
+                            
+                            if should_engange:
+                                unit.current_target = target
+                                unit.is_engaging = True
+                                if DEBUG_MOVEMENT:
+                                    # Auto-engaging target
+                                    pass
                 
                 # Handle ongoing engagements
                 if unit.is_engaging and unit.current_target:

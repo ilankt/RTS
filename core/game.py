@@ -28,6 +28,7 @@ from systems.rendering_system import RenderingSystem
 from systems.unit_watchdog import UnitWatchdog
 from systems.ai import SimpleAISystem
 from systems.projectile_system import ProjectileSystem
+from managers.save_manager import SaveManager
 from utils.debug_logger import debug_log
 
 
@@ -100,6 +101,9 @@ class Game:
         # Game speed factor
         self.game_speed = DEFAULT_GAME_SPEED
         
+        # Game over state: None, "victory", or "defeat"
+        self.game_over_state = None
+        
         # Set up initial game state
         self.game_state.setup_game_objects()
     
@@ -155,6 +159,15 @@ class Game:
     
     def _handle_keydown(self, event):
         """Handle keyboard input"""
+        # Game over keys take priority
+        if self.game_over_state:
+            if event.key == pygame.K_r:
+                self._restart_game()
+                return
+            elif event.key == pygame.K_ESCAPE or event.key == pygame.K_q:
+                self.running = False
+                return
+        
         if event.key == pygame.K_ESCAPE:
             # Check if command mode is active first
             if self.ui_manager.active_command_mode:
@@ -170,12 +183,57 @@ class Game:
                 debug_log.log(f"ERROR: F4 debug panel crashed: {e}", "GENERAL")
                 import traceback
                 traceback.print_exc()
+        elif event.key == pygame.K_F5:
+            # Save game
+            try:
+                path = SaveManager.save_game(self, slot=0)
+                debug_log.log(f"Game saved to {path}", "GENERAL")
+            except Exception as e:
+                debug_log.log(f"Save failed: {e}", "GENERAL")
+        elif event.key == pygame.K_F9:
+            # Load game
+            try:
+                success, msg = SaveManager.load_game(self, slot=0)
+                debug_log.log(f"Load: {msg}", "GENERAL")
+            except Exception as e:
+                debug_log.log(f"Load failed: {e}", "GENERAL")
+                import traceback
+                traceback.print_exc()
         elif event.key == pygame.K_LEFTBRACKET:  # [ key - decrease speed
             self.game_speed = max(MIN_GAME_SPEED, self.game_speed - GAME_SPEED_INCREMENT)
             debug_log.log(f"Game speed: {self.game_speed:.1f}x", "GENERAL")
         elif event.key == pygame.K_RIGHTBRACKET:  # ] key - increase speed
             self.game_speed = min(MAX_GAME_SPEED, self.game_speed + GAME_SPEED_INCREMENT)
             debug_log.log(f"Game speed: {self.game_speed:.1f}x", "GENERAL")
+        elif event.key == pygame.K_s:
+            # Cycle stance for selected combat units
+            self._cycle_selected_unit_stances()
+        elif event.key == pygame.K_f:
+            # Cycle formation type
+            formation = self.selection_manager.cycle_formation()
+            debug_log.log(f"Formation changed to: {formation}", "GENERAL")
+        else:
+            # Control groups: 1-9
+            key_num = None
+            if pygame.K_1 <= event.key <= pygame.K_9:
+                key_num = event.key - pygame.K_1 + 1
+            elif pygame.K_KP1 <= event.key <= pygame.K_KP9:
+                key_num = event.key - pygame.K_KP1 + 1
+            
+            if key_num:
+                keys = pygame.key.get_pressed()
+                ctrl_held = keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]
+                shift_held = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+                
+                if ctrl_held:
+                    # Set control group (Shift+Ctrl = add to group)
+                    self.selection_manager.set_control_group(key_num, add=shift_held)
+                    debug_log.log(f"Control group {key_num} set", "GENERAL")
+                else:
+                    # Recall control group
+                    recalled = self.selection_manager.recall_control_group(key_num)
+                    if recalled:
+                        debug_log.log(f"Control group {key_num} recalled", "GENERAL")
     
     def _handle_mouse_wheel(self, event):
         """Handle mouse wheel zoom"""
@@ -320,6 +378,9 @@ class Game:
         # Remove destroyed objects
         self._cleanup_destroyed_objects()
         
+        # Check victory/defeat conditions
+        self._check_victory_defeat()
+        
         # Update camera bounds
         self._update_camera_bounds()
     
@@ -342,21 +403,30 @@ class Game:
     
     def _cleanup_destroyed_objects(self):
         """Remove destroyed units and buildings"""
+        world_changed = False
+
         # Remove destroyed units
         destroyed_units = [unit for unit in self.units if unit.hp <= 0]
         for unit in destroyed_units:
             self.combat_system.handle_unit_death(unit)
-        
+
         # Remove destroyed buildings
         destroyed_buildings = [building for building in self.buildings if building.hp <= 0]
+        if destroyed_buildings:
+            world_changed = True
         for building in destroyed_buildings:
             self.combat_system.handle_building_destruction(building)
-        
+
         # Remove destroyed construction sites
+        old_site_count = len(self.construction_sites)
         self.construction_sites = [site for site in self.construction_sites if site.hp > 0]
+        if len(self.construction_sites) != old_site_count:
+            world_changed = True
         
         # Remove depleted resources
         depleted_resources = [resource for resource in self.resources if resource.amount_remaining <= 0]
+        if depleted_resources:
+            world_changed = True
         for resource in depleted_resources:
             debug_log.log(f"Removing depleted {resource.name} resource at ({resource.x:.0f}, {resource.y:.0f})", "GENERAL")
             
@@ -387,6 +457,116 @@ class Game:
             # Invalidate AI memory cache since resources changed
             if hasattr(self, 'ai_system') and self.ai_system:
                 self.ai_system.invalidate_memory_cache()
+
+        if world_changed:
+            self.pathfinder.mark_dirty()
+
+    def _check_victory_defeat(self):
+        """Check if victory or defeat conditions are met"""
+        if self.game_over_state:
+            return
+        
+        # Count castles per player
+        castles_by_player = {}
+        for building in self.buildings:
+            if building.name == "castle":
+                castles_by_player[building.player] = castles_by_player.get(building.player, 0) + 1
+        
+        human_player = self.players[0] if self.players else None
+        ai_players = [p for p in self.players if not p.human]
+        
+        # Check human defeat (no castle)
+        if human_player and castles_by_player.get(human_player, 0) == 0:
+            self.game_over_state = "defeat"
+            debug_log.log("Game Over: Human player defeated!", "GENERAL")
+            return
+        
+        # Check human victory (all AI castles destroyed)
+        if ai_players:
+            all_ai_defeated = all(castles_by_player.get(p, 0) == 0 for p in ai_players)
+            if all_ai_defeated:
+                self.game_over_state = "victory"
+                debug_log.log("Game Over: Human player victorious!", "GENERAL")
+                return
+    
+    def _cycle_selected_unit_stances(self):
+        """Cycle stance for selected human combat units"""
+        from entities.unit import (STANCE_AGGRESSIVE, STANCE_DEFENSIVE, 
+                                   STANCE_STAND_GROUND, STANCE_NO_ATTACK)
+        
+        stance_cycle = [STANCE_AGGRESSIVE, STANCE_DEFENSIVE, STANCE_STAND_GROUND, STANCE_NO_ATTACK]
+        
+        selected_units = [obj for obj in self.selection_manager.selected_objects
+                         if obj in self.units and hasattr(obj, 'player') 
+                         and obj.player and obj.player.human and hasattr(obj, 'can_attack_flag') 
+                         and obj.can_attack_flag]
+        
+        for unit in selected_units:
+            current_idx = stance_cycle.index(unit.stance) if unit.stance in stance_cycle else 0
+            unit.stance = stance_cycle[(current_idx + 1) % len(stance_cycle)]
+            unit.stance_home_position = (unit.x, unit.y)
+            debug_log.log(f"{unit.name} stance changed to {unit.stance}", "GENERAL")
+    
+    def _restart_game(self):
+        """Restart the game by reinitializing core state"""
+        self.game_over_state = None
+        self.buildings.clear()
+        self.units.clear()
+        self.resources.clear()
+        self.construction_sites.clear()
+        self.frame_counter = 0
+        
+        # Reset players resources
+        for player in self.players:
+            if player.human:
+                player.resources = self.game_data.get("starting_resources_human", {"food": 100, "gold": 200, "stone": 100, "wood": 200}).copy()
+            else:
+                player.resources = self.game_data.get("starting_resources_ai", {"food": 100, "gold": 200, "stone": 100, "wood": 200}).copy()
+        
+        # Reinitialize game state
+        self.game_state.setup_game_objects()
+        self.pathfinder.mark_dirty()
+        self.selection_manager.selected_objects.clear()
+        
+        # Reset camera
+        human_castle = next((b for b in self.buildings if b.player.human and b.name == "castle"), None)
+        if human_castle:
+            self.camera.x = (MAP_VIEW_WIDTH / 2) - human_castle.x
+            self.camera.y = (MAP_VIEW_HEIGHT / 2) - human_castle.y
+        
+        debug_log.log("Game restarted", "GENERAL")
+    
+    def _draw_game_over_overlay(self):
+        """Draw victory or defeat overlay"""
+        if not self.game_over_state:
+            return
+        
+        # Darken screen
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.fill((0, 0, 0))
+        overlay.set_alpha(180)
+        self.screen.blit(overlay, (0, 0))
+        
+        # Title
+        font_large = pygame.font.Font(None, 72)
+        font_small = pygame.font.Font(None, 36)
+        
+        if self.game_over_state == "victory":
+            title_text = "VICTORY!"
+            title_color = (0, 255, 0)
+        else:
+            title_text = "DEFEAT"
+            title_color = (255, 0, 0)
+        
+        title_surface = font_large.render(title_text, True, title_color)
+        title_rect = title_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
+        self.screen.blit(title_surface, title_rect)
+        
+        # Subtitle
+        sub_text = "Press R to Restart  |  Press ESC or Q to Quit"
+        sub_surface = font_small.render(sub_text, True, (255, 255, 255))
+        sub_rect = sub_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
+        self.screen.blit(sub_surface, sub_rect)
     
     def _update_camera_bounds(self):
         """Update camera bounds to keep it within map limits"""
@@ -408,6 +588,9 @@ class Game:
             self.rendering_system.draw_debug_info(self.screen)
             self.rendering_system.draw_grid_overlay(self.map_surface, self.camera)
             self.rendering_system.draw_object_bounds(self.map_surface, self.camera)
+        
+        # Draw game over overlay if applicable
+        self._draw_game_over_overlay()
         
         pygame.display.flip()
     

@@ -5,6 +5,12 @@ from core.config import WORKER_CAPACITY, DEBUG_MOVEMENT
 from utils.debug_logger import debug_log
 
 
+# Unit stance constants
+STANCE_AGGRESSIVE = "aggressive"
+STANCE_DEFENSIVE = "defensive"
+STANCE_STAND_GROUND = "stand_ground"
+STANCE_NO_ATTACK = "no_attack"
+
 class Unit(GameObject):
     """Unit entity class"""
     def __init__(self, name, size, hp, movement_speed, attack, animations, x=0, y=0, radius=0, player=None, can_build=False, can_attack=False,
@@ -27,6 +33,11 @@ class Unit(GameObject):
         self.armor_value = armor_value
         self.attack_speed = attack_speed  # Attacks per second
         self.attack_range = attack_range  # Range in pixels
+        
+        # Stance system
+        self.stance = STANCE_AGGRESSIVE  # Default stance
+        self.stance_chase_distance = 300  # How far DEFENSIVE units will chase
+        self.stance_home_position = None  # Position to return to for STAND_GROUND
         
         # Combat state
         self.current_target = None
@@ -116,13 +127,18 @@ class Unit(GameObject):
     
     def clear_all_movement_state(self):
         """Completely clear all movement and task-related state - used when transitioning between major tasks"""
+        # Clear from any resource gatherer lists BEFORE clearing gathering_target
+        if self.gathering_target:
+            if hasattr(self.gathering_target, 'gatherers') and self in self.gathering_target.gatherers:
+                self.gathering_target.gatherers.remove(self)
+
         # Movement state
         self.destination = None
         self.path = None
         self.path_index = 0
         self.path_target = None
         self.status = "idle"
-        
+
         # Gathering state
         self.is_gathering = False
         self.gathering_target = None
@@ -135,23 +151,18 @@ class Unit(GameObject):
         self.previous_gathering_target = None
         if hasattr(self, 'gathering_position'):
             delattr(self, 'gathering_position')
-        
+
         # Building state
         self.is_building = False
         self.building_target = None
-        
+
         # Combat state
         self.current_target = None
         self.in_combat = False
         self.is_engaging = False
         self.has_los = False
         self.is_fallback_movement = False
-        
-        # Clear from any resource gatherer lists
-        if hasattr(self, 'gathering_target') and self.gathering_target:
-            if hasattr(self.gathering_target, 'gatherers') and self in self.gathering_target.gatherers:
-                self.gathering_target.gatherers.remove(self)
-        
+
         # Reset any stuck detection state
         if hasattr(self, '_stuck_detector'):
             delattr(self, '_stuck_detector')

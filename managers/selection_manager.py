@@ -3,7 +3,6 @@ import math
 import random
 from typing import List, Tuple
 from core.config import SCREEN_HEIGHT, MAP_VIEW_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT, TOP_BAR_HEIGHT
-from systems.pathfinding import Pathfinding
 
 
 class SelectionManager:
@@ -14,6 +13,12 @@ class SelectionManager:
         self.selected_objects = []
         self.selection_box_active = False
         self.selection_start_pos = None
+        
+        # Control groups: 1-9 -> list of units
+        self.control_groups = {i: [] for i in range(1, 10)}
+        
+        # Formation type for group movement
+        self.formation_type = "ring"  # ring, line, box, wedge
     
     def handle_left_click(self, mouse_pos):
         """Handle left mouse button down"""
@@ -287,12 +292,16 @@ class SelectionManager:
         if selected_units:
             # Set smart cursor for selected units
             pass
-            self.game.ui_manager.set_smart_cursor_for_units(selected_units)
+            try:
+                if hasattr(self.game, 'ui_manager') and self.game.ui_manager:
+                    self.game.ui_manager.set_smart_cursor_for_units(selected_units)
+            except:
+                pass
         else:
             # No units selected, restore default cursor
             pass
             try:
-                if self.game.ui_manager.default_cursor:
+                if hasattr(self.game, 'ui_manager') and self.game.ui_manager and self.game.ui_manager.default_cursor:
                     pygame.mouse.set_cursor(self.game.ui_manager.default_cursor)
             except:
                 pass
@@ -313,8 +322,8 @@ class SelectionManager:
         clicked_object = self._get_object_at_position(world_pos)
         # Debug: Clicked object
         
-        # Create pathfinding instance
-        pathfinder = Pathfinding(self.game.game_map, self.game)
+        # Use singleton pathfinder
+        pathfinder = self.game.pathfinder
         
         # Filter only human player units that can move
         movable_units = [obj for obj in self.selected_objects 
@@ -322,19 +331,11 @@ class SelectionManager:
         # Debug: Movable units
         
         pass
-        # If multiple units moving to empty space, add small offsets to prevent stacking
+        # If multiple units moving to empty space, use hexagonal ring formation
         if len(movable_units) > 1 and not clicked_object:
-            # Calculate offsets in a rough circle around the target
-            pass
-            offset_radius = 30  # Distance from center for each unit
-            
+            positions = self._generate_formation_offsets(len(movable_units))
             for i, obj in enumerate(movable_units):
-                # Create small random offset for each unit
-                pass
-                angle = (i / len(movable_units)) * 2 * math.pi + random.uniform(-0.3, 0.3)
-                offset_x = math.cos(angle) * offset_radius * random.uniform(0.8, 1.2)
-                offset_y = math.sin(angle) * offset_radius * random.uniform(0.8, 1.2)
-                
+                offset_x, offset_y = positions[i]
                 target_pos = (world_pos[0] + offset_x, world_pos[1] + offset_y)
                 self._move_unit_to_position(obj, target_pos, pathfinder)
         else:
@@ -386,14 +387,8 @@ class SelectionManager:
                     elif (clicked_object in self.game.buildings and 
                           obj.name == "worker" and 
                           obj.resource_amount > 0):
-                        # Set drop-off target on pathfinder to allow collision with this building
-                        pathfinder.drop_off_target = clicked_object
-                        
                         # Move to closest reachable position near building
-                        path = pathfinder.find_path((obj.x, obj.y), (clicked_object.x, clicked_object.y), obj.radius, obj)
-                        
-                        # Clear drop-off target from pathfinder
-                        pathfinder.drop_off_target = None
+                        path = pathfinder.find_path((obj.x, obj.y), (clicked_object.x, clicked_object.y), obj.radius, obj, drop_off_target=clicked_object)
                         
                         if path:
                             obj.path = path
@@ -564,12 +559,10 @@ class SelectionManager:
                     if not path_found:
                         # Check if target is completely unreachable due to permanent obstacles
                         pass
-                        from systems.pathfinding import Pathfinding
-                        temp_pathfinder = Pathfinding(self.game.game_map, self.game)
-                        if temp_pathfinder._is_position_permanently_blocked(target.x, target.y, unit.radius):
+                        if self.game.pathfinder._is_position_permanently_blocked(target.x, target.y, unit.radius):
                             # Try to find a position we can attack from
                             pass
-                            closest_reachable = temp_pathfinder._find_closest_reachable_position(
+                            closest_reachable = self.game.pathfinder._find_closest_reachable_position(
                                 (unit.x, unit.y), (target.x, target.y), unit.radius)
                             
                             if closest_reachable:
@@ -616,14 +609,15 @@ class SelectionManager:
             if hasattr(worker, 'garrison_target'):
                 worker.garrison_target = None
 
-            # Set the gathering target so pathfinder doesn't treat it as an obstacle
-            pathfinder.gathering_target = resource
-
             # Determine the destination for pathfinding
-            destination = new_destination if new_destination else (resource.x, resource.y)
+            if new_destination:
+                destination = new_destination
+            else:
+                # Reserve a unique spread position around the resource
+                destination = self.game.gathering_manager.reserve_gathering_position(worker, resource)
 
-            # Pathfind to the destination
-            path = pathfinder.find_path((worker.x, worker.y), destination, worker.radius, worker)
+            # Pathfind to the destination (gathering_target excluded from collision)
+            path = pathfinder.find_path((worker.x, worker.y), destination, worker.radius, worker, gathering_target=resource)
 
             if path:
                 worker.path = path
@@ -769,19 +763,16 @@ class SelectionManager:
     
     def _execute_command_mode_action(self, command_mode, valid_units, world_pos, clicked_object):
         """Execute the command mode action"""
-        pathfinder = Pathfinding(self.game.game_map, self.game)
+        pathfinder = self.game.pathfinder
         
         if command_mode == 'move':
             # Use existing movement logic from right-click
             pass
             if len(valid_units) > 1 and not clicked_object:
-                # Multiple units to empty space - add offsets
-                pass
-                offset_radius = 30
+                # Multiple units to empty space - use hexagonal formation
+                positions = self._generate_formation_offsets(len(valid_units))
                 for i, unit in enumerate(valid_units):
-                    angle = (i / len(valid_units)) * 2 * math.pi + random.uniform(-0.3, 0.3)
-                    offset_x = math.cos(angle) * offset_radius * random.uniform(0.8, 1.2)
-                    offset_y = math.sin(angle) * offset_radius * random.uniform(0.8, 1.2)
+                    offset_x, offset_y = positions[i]
                     target_pos = (world_pos[0] + offset_x, world_pos[1] + offset_y)
                     self._move_unit_to_position(unit, target_pos, pathfinder)
             else:
@@ -801,9 +792,7 @@ class SelectionManager:
             pass
             for worker in valid_units:
                 if self._can_drop_off_at_building(worker, clicked_object):
-                    pathfinder.drop_off_target = clicked_object
-                    path = pathfinder.find_path((worker.x, worker.y), (clicked_object.x, clicked_object.y), worker.radius, worker)
-                    pathfinder.drop_off_target = None
+                    path = pathfinder.find_path((worker.x, worker.y), (clicked_object.x, clicked_object.y), worker.radius, worker, drop_off_target=clicked_object)
                     
                     if path:
                         worker.path = path
@@ -871,6 +860,75 @@ class SelectionManager:
             unit.destination = None
             unit.status = "idle"
     
+    def cycle_formation(self):
+        """Cycle to the next formation type"""
+        formations = ["ring", "line", "box", "wedge"]
+        idx = formations.index(self.formation_type) if self.formation_type in formations else 0
+        self.formation_type = formations[(idx + 1) % len(formations)]
+        return self.formation_type
+    
+    def _generate_formation_offsets(self, count):
+        """Generate formation offsets for group movement based on current formation type."""
+        spacing = 22  # unit diameter 16 + buffer 6
+        
+        if self.formation_type == "line":
+            return self._generate_line_formation(count, spacing)
+        elif self.formation_type == "box":
+            return self._generate_box_formation(count, spacing)
+        elif self.formation_type == "wedge":
+            return self._generate_wedge_formation(count, spacing)
+        else:
+            return self._generate_ring_formation(count, spacing)
+    
+    def _generate_ring_formation(self, count, spacing):
+        """Hexagonal ring formation."""
+        offsets = [(0, 0)]  # Center
+        ring = 1
+        while len(offsets) < count:
+            positions_in_ring = ring * 6
+            for k in range(positions_in_ring):
+                angle = k * (2 * math.pi / positions_in_ring)
+                offsets.append((math.cos(angle) * spacing * ring, math.sin(angle) * spacing * ring))
+            ring += 1
+        return offsets[:count]
+    
+    def _generate_line_formation(self, count, spacing):
+        """Horizontal line formation."""
+        offsets = []
+        for i in range(count):
+            x = (i - count // 2) * spacing
+            offsets.append((x, 0))
+        return offsets
+    
+    def _generate_box_formation(self, count, spacing):
+        """Box/grid formation."""
+        import math
+        cols = math.ceil(math.sqrt(count))
+        offsets = []
+        for i in range(count):
+            col = i % cols
+            row = i // cols
+            x = (col - (cols - 1) / 2) * spacing
+            y = row * spacing
+            offsets.append((x, y))
+        return offsets
+    
+    def _generate_wedge_formation(self, count, spacing):
+        """Wedge/V formation (good for charges)."""
+        offsets = [(0, 0)]  # Tip of wedge
+        row = 1
+        idx = 1
+        while idx < count:
+            for col in range(-row, row + 1):
+                if idx >= count:
+                    break
+                x = col * spacing
+                y = row * spacing
+                offsets.append((x, y))
+                idx += 1
+            row += 1
+        return offsets[:count]
+
     def _get_object_at_position(self, world_pos):
         """Get the topmost object at a world position"""
         all_objects = self.game.units + self.game.buildings + self.game.resources
@@ -986,6 +1044,45 @@ class SelectionManager:
                 names.append(name)
         
         return names
+    
+    def set_control_group(self, group_number, add=False):
+        """Assign selected human units to a control group (1-9).
+        If add=True, append to existing group instead of replacing."""
+        if not 1 <= group_number <= 9:
+            return
+        
+        selected_units = [obj for obj in self.selected_objects
+                         if obj in self.game.units and hasattr(obj, 'player') and obj.player and obj.player.human]
+        
+        if add and self.control_groups[group_number]:
+            # Add to existing group, avoiding duplicates
+            existing = set(id(u) for u in self.control_groups[group_number])
+            for unit in selected_units:
+                if id(unit) not in existing:
+                    self.control_groups[group_number].append(unit)
+        else:
+            self.control_groups[group_number] = selected_units[:]
+    
+    def recall_control_group(self, group_number):
+        """Select all units in a control group (1-9). Returns True if group had units."""
+        if not 1 <= group_number <= 9:
+            return False
+        
+        units = self.control_groups.get(group_number, [])
+        # Filter out dead/gone units
+        valid_units = [u for u in units if u in self.game.units and u.hp > 0]
+        self.control_groups[group_number] = valid_units
+        
+        if not valid_units:
+            return False
+        
+        self._clear_all_selections()
+        for unit in valid_units:
+            unit.selected = True
+            self.selected_objects.append(unit)
+        
+        self._update_smart_cursor_for_selection()
+        return True
     
     def get_action_buttons(self):
         """Get action buttons for selected units"""

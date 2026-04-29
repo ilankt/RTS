@@ -199,6 +199,20 @@ class UnitPanel:
             panel_surface.blit(armor_text, (10, y_offset))
             y_offset += 25
             
+            # Stance info for combat units
+            if hasattr(unit, 'stance') and hasattr(unit, 'can_attack_flag') and unit.can_attack_flag:
+                stance_colors = {
+                    'aggressive': (255, 100, 100),
+                    'defensive': (100, 200, 255),
+                    'stand_ground': (255, 200, 100),
+                    'no_attack': (150, 150, 150),
+                }
+                stance_color = stance_colors.get(unit.stance, (200, 200, 200))
+                stance_label = unit.stance.replace('_', ' ').title()
+                stance_text = self.stat_font.render(f"Stance: {stance_label} (Press S)", True, stance_color)
+                panel_surface.blit(stance_text, (10, y_offset))
+                y_offset += 25
+            
             # Owner info
             owner_color = selected_info["player_color"]
             owner_text = self.small_font.render(f"Owner: {selected_info['owner']}", True, owner_color)
@@ -325,12 +339,17 @@ class UnitPanel:
         title_text = self.font.render(f"{len(selected_objects)} Units Selected", True, (255, 255, 255))
         panel_surface.blit(title_text, (10, 10))
         
+        # Formation type indicator
+        formation = getattr(self.game.selection_manager, 'formation_type', 'ring')
+        formation_text = self.small_font.render(f"Formation: {formation.title()} (Press F)", True, (200, 200, 200))
+        panel_surface.blit(formation_text, (10, 35))
+        
         # Small icon configuration
         icon_size = 48
         icon_spacing = 4
         icons_per_row = 4
         start_x = 10
-        start_y = 50
+        start_y = 60
         
         # Draw each selected unit
         for i, unit in enumerate(selected_objects):
