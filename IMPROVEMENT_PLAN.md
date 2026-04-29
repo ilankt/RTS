@@ -252,4 +252,90 @@ Finally Phase 5 as ongoing maintenance alongside other work.
 
 ---
 
-*Document generated from codebase analysis on 2026-04-29*
+---
+
+## Implementation Progress Log
+
+### 2026-04-29 - Phase 1 Completed ✅
+**Branch**: `feature/improvement-plan`  
+**Commit**: `cd0a21a`
+
+All 5 foundation features implemented and tested:
+- Victory/Defeat overlay with restart/quit
+- Control groups (Ctrl+1-9 assign, 1-9 recall, Shift+Ctrl add)
+- Unit stances (Aggressive/Defensive/Stand Ground/No Attack, S key)
+- Save/Load (F5/F9, JSON serialization)
+- Formation movement (Ring/Line/Box/Wedge, F key)
+- **Tests**: 19 passing
+
+### 2026-04-29 - Phase 2 Completed ✅
+**Commit**: `a0f3d24`
+
+Content expansion delivered:
+- 3 new units: Spearman, Cavalry, Healer
+- 4 new buildings: Stable, Temple, Blacksmith, Wall
+- Tech tree JSON with 4 technologies (attack, armor, gathering, cavalry speed)
+- Tech bonuses integrated into damage calc and gathering
+- Tree regrowth after 60 seconds
+- AI trains new units with balanced composition
+- **Tests**: 17 passing
+
+### 2026-04-29 - Phase 3 Completed ✅
+**Commit**: `344092d`
+
+AI depth improvements:
+- Military micro: retreat at <30% HP, archer kiting, focus fire
+- 4 AI personalities (Rusher/Boomer/Turtle/Balanced) with parameterized thresholds
+- AI scouting system with explored tile tracking and scout assignment
+- AI uses discovered enemy castle position for attacks
+- **Tests**: 14 passing
+
+### 2026-04-29 - Phase 4 Completed ✅
+**Commit**: `2686022`
+
+Polish and presentation:
+- Floating damage numbers on every hit
+- Screen shake on building destruction (15px castle, 5px major buildings)
+- Main menu with Start Game / Load Game / Exit
+- Updated main.py entry point
+- **Tests**: 10 passing
+
+### Summary
+- **Total commits**: 5 on `feature/improvement-plan`
+- **Total unit tests**: 60, all passing
+- **Game launches successfully** from main menu
+
+---
+
+## Updated Quick Wins Status
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Victory/Defeat screens | ✅ Done | R to restart, ESC/Q to quit |
+| Control groups | ✅ Done | Full keyboard support |
+| Unit stances | ✅ Done | 4 stances, shown in UI panel |
+| Save/Load | ✅ Done | F5/F9, JSON-based |
+| Formation movement | ✅ Done | 4 formations, F key cycle |
+| New units (Spearman, Cavalry, Healer) | ✅ Done | Using warrior/archer sprites as fallback |
+| New buildings (Stable, Temple, Blacksmith, Wall) | ✅ Done | Using existing building sprites |
+| Tech tree | ✅ Done | 4 techs, JSON-defined |
+| Tree regrowth | ✅ Done | 60s timer |
+| AI Micro/Retreat | ✅ Done | 30% threshold |
+| AI Personalities | ✅ Done | 4 types, random assignment |
+| AI Scouting | ✅ Done | ScoutBrain module |
+| Damage numbers | ✅ Done | Floating UI notifications |
+| Screen shake | ✅ Done | Camera shake system |
+| Main Menu | ✅ Done | Keyboard + mouse support |
+
+### Remaining from original plan (Future Work)
+- Fog of War (Phase 3.5)
+- Adaptive Build Orders (Phase 3.2)
+- Particle Effects (Phase 4.1)
+- Sound Design (Phase 4.3)
+- Pause menu / Settings menu
+- Code quality: remove debug passthroughs, centralize magic numbers
+- More comprehensive unit test coverage for pathfinding, production
+
+---
+
+*Document last updated on 2026-04-29 after Phase 1-4 implementation*
