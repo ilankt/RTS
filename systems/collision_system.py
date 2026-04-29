@@ -85,8 +85,27 @@ class CollisionSystem:
                         push_x = math.cos(angle)
                         push_y = math.sin(angle)
                     
-                    final_pos.x = resource.x + push_x * min_distance
-                    final_pos.y = resource.y + push_y * min_distance
+                    # Validate push direction against terrain, try alternate angles if needed
+                    cand_x = resource.x + push_x * min_distance
+                    cand_y = resource.y + push_y * min_distance
+                    if not self._is_on_unwalkable_terrain(cand_x, cand_y, unit.radius):
+                        final_pos.x = cand_x
+                        final_pos.y = cand_y
+                    else:
+                        # Try 7 alternate angles (45° increments)
+                        base_angle = math.atan2(push_y, push_x)
+                        found_safe = False
+                        for i in range(1, 8):
+                            alt_angle = base_angle + i * (math.pi / 4)
+                            alt_x = resource.x + math.cos(alt_angle) * min_distance
+                            alt_y = resource.y + math.sin(alt_angle) * min_distance
+                            if not self._is_on_unwalkable_terrain(alt_x, alt_y, unit.radius):
+                                final_pos.x = alt_x
+                                final_pos.y = alt_y
+                                found_safe = True
+                                break
+                        if not found_safe:
+                            pass  # Stay put rather than push into water
                     debug_log.log(f"GATHERING: Pushed overlapping worker away from resource to distance {min_distance}", "COLLISION")
                 else:
                     # Try sliding along the obstacle
@@ -99,12 +118,26 @@ class CollisionSystem:
         for other_unit in self.game.units:
             if other_unit == unit:
                 continue
-            
+
+            # --- Drop-off right-of-way ---
+            # Workers approaching a resource yield to workers carrying resources
+            unit_is_carrier = getattr(unit, 'resource_amount', 0) > 0
+            other_is_carrier = getattr(other_unit, 'resource_amount', 0) > 0
+            unit_approaching = (getattr(unit, 'is_engaging', False) and getattr(unit, 'gathering_target', None) and not unit_is_carrier)
+            other_approaching = (getattr(other_unit, 'is_engaging', False) and getattr(other_unit, 'gathering_target', None) and not other_is_carrier)
+
+            if unit_approaching and other_is_carrier:
+                # This unit is approaching a resource; other is carrying — yield
+                approach_dist = math.sqrt((final_pos.x - other_unit.x)**2 + (final_pos.y - other_unit.y)**2)
+                if approach_dist < unit.radius + other_unit.radius + 2:
+                    final_pos = original_pos
+                    continue
+
             # Calculate distances
             current_distance = math.sqrt((unit.x - other_unit.x)**2 + (unit.y - other_unit.y)**2)
             new_distance = math.sqrt((final_pos.x - other_unit.x)**2 + (final_pos.y - other_unit.y)**2)
             min_distance = unit.radius + other_unit.radius + 2
-            
+
             # If already overlapping, prioritize separation
             if current_distance < min_distance:
                 if new_distance > current_distance:
@@ -222,12 +255,20 @@ class CollisionSystem:
             
             # Apply sliding movement with smooth factor
             slide_pos = start_pos + slide_vector.normalize() * move_distance * slide_factor
-            
+
             # Ensure we're not getting closer to the obstacle
             if (slide_pos - obstacle_pos).length() >= min_distance - 1:
-                return slide_pos
-        
-        return start_pos  # Can't slide, stay in place
+                unit_radius = unit.radius if unit else 8
+                # Validate terrain before accepting slide
+                if not self._is_on_unwalkable_terrain(slide_pos.x, slide_pos.y, unit_radius):
+                    return slide_pos
+                # Try half-distance slide
+                half_slide = start_pos + slide_vector.normalize() * move_distance * slide_factor * 0.5
+                if (half_slide - obstacle_pos).length() >= min_distance - 1:
+                    if not self._is_on_unwalkable_terrain(half_slide.x, half_slide.y, unit_radius):
+                        return half_slide
+
+        return start_pos  # Can't slide safely, stay in place
     
     def _find_escape_direction(self, unit_pos, obstacle_pos, preferred_dir):
         """Find a perpendicular direction to escape from an overlapping obstacle"""
@@ -284,7 +325,26 @@ class CollisionSystem:
                         return True
         
         return False
-    
+
+    def _is_on_unwalkable_terrain(self, x, y, radius):
+        """Lightweight 9-point terrain check. Returns True if any point is on water/lava."""
+        diag = radius * 0.7
+        check_points = (
+            (x, y),
+            (x + radius, y), (x - radius, y),
+            (x, y + radius), (x, y - radius),
+            (x + diag, y + diag), (x - diag, y + diag),
+            (x + diag, y - diag), (x - diag, y - diag),
+        )
+        for cx, cy in check_points:
+            hex_coord = self.game_map.world_to_grid(cx, cy)
+            if hex_coord:
+                col, row = hex_coord
+                if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
+                    if self.game_map.grid[row][col] in {"water", "lava"}:
+                        return True
+        return False
+
     def separate_overlapping_units(self):
         """Push apart units that are overlapping with priority for drop-off workers"""
         base_separation_force = 0.8  # Increased base separation force
@@ -325,39 +385,32 @@ class CollisionSystem:
                     # Calculate separation distance for each unit
                     separation_per_unit = overlap * separation_force / 2
                     
-                    # Push units apart (each moves half the distance)
-                    unit1.x -= dx_norm * separation_per_unit
-                    unit1.y -= dy_norm * separation_per_unit
-                    unit2.x += dx_norm * separation_per_unit
-                    unit2.y += dy_norm * separation_per_unit
-                    
-                    # Ensure units don't go into unwalkable terrain
-                    self._ensure_unit_on_walkable_terrain(unit1)
-                    self._ensure_unit_on_walkable_terrain(unit2)
+                    # Compute candidate positions, only apply if terrain is safe
+                    cand1_x = unit1.x - dx_norm * separation_per_unit
+                    cand1_y = unit1.y - dy_norm * separation_per_unit
+                    cand2_x = unit2.x + dx_norm * separation_per_unit
+                    cand2_y = unit2.y + dy_norm * separation_per_unit
+
+                    if not self._is_on_unwalkable_terrain(cand1_x, cand1_y, unit1.radius):
+                        unit1.x = cand1_x
+                        unit1.y = cand1_y
+                    if not self._is_on_unwalkable_terrain(cand2_x, cand2_y, unit2.radius):
+                        unit2.x = cand2_x
+                        unit2.y = cand2_y
     
     def _ensure_unit_on_walkable_terrain(self, unit):
-        """Make sure unit stays on walkable terrain after separation"""
-        hex_coord = self.game_map.world_to_grid(unit.x, unit.y)
-        if hex_coord:
-            col, row = hex_coord
-            if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
-                tile_type = self.game_map.grid[row][col]
-                if tile_type in {"water", "lava"}:
-                    # Find nearest walkable position
-                    pass
-                    for radius in range(5, 30, 5):
-                        for angle in range(0, 360, 45):
-                            test_x = unit.x + radius * math.cos(math.radians(angle))
-                            test_y = unit.y + radius * math.sin(math.radians(angle))
-                            test_hex = self.game_map.world_to_grid(test_x, test_y)
-                            if test_hex:
-                                test_col, test_row = test_hex
-                                if 0 <= test_row < self.game_map.height and 0 <= test_col < self.game_map.width:
-                                    test_tile = self.game_map.grid[test_row][test_col]
-                                    if test_tile not in {"water", "lava"}:
-                                        unit.x = test_x
-                                        unit.y = test_y
-                                        return
+        """Safety net: move unit out of unwalkable terrain using 9-point check"""
+        if not self._is_on_unwalkable_terrain(unit.x, unit.y, unit.radius):
+            return
+        # Spiral search: 12 directions, up to 80px
+        for search_radius in range(5, 85, 5):
+            for angle_deg in range(0, 360, 30):
+                test_x = unit.x + search_radius * math.cos(math.radians(angle_deg))
+                test_y = unit.y + search_radius * math.sin(math.radians(angle_deg))
+                if not self._is_on_unwalkable_terrain(test_x, test_y, unit.radius):
+                    unit.x = test_x
+                    unit.y = test_y
+                    return
     
     def apply_separation_to_unit(self, unit):
         """Apply separation force to a specific unit if it's overlapping with others"""
@@ -388,13 +441,14 @@ class CollisionSystem:
                 # More overlap = stronger force, up to max_separation_force
                 separation_force = min(max_separation_force, overlap * 0.8)
                 
-                # Apply separation to this unit only
-                unit.x += dx_norm * separation_force
-                unit.y += dy_norm * separation_force
-                separation_applied = True
-                
-                # Ensure unit doesn't go into unwalkable terrain
-                self._ensure_unit_on_walkable_terrain(unit)
+                # Validate before applying separation
+                cand_x = unit.x + dx_norm * separation_force
+                cand_y = unit.y + dy_norm * separation_force
+                if not self._is_on_unwalkable_terrain(cand_x, cand_y, unit.radius):
+                    unit.x = cand_x
+                    unit.y = cand_y
+                    separation_applied = True
+                # else: skip push to avoid water
                 
                 # For workers dropping off, prioritize separation over pathfinding
                 if (hasattr(unit, 'is_dropping_off') and unit.is_dropping_off) or \
@@ -433,14 +487,11 @@ class CollisionSystem:
             
             # Try to use pathfinding if not already using it
             if not unit.path:
-                from systems.pathfinding import Pathfinding
-                pathfinder = Pathfinding(self.game_map, self.game)
-                pathfinder.drop_off_target = unit.drop_off_target
-                pathfinder.current_unit = unit
-                
-                path = pathfinder.find_path((unit.x, unit.y), 
-                                          (unit.drop_off_target.x, unit.drop_off_target.y), 
-                                          unit.radius, unit)
+                path = self.game.pathfinder.find_path(
+                    (unit.x, unit.y),
+                    (unit.drop_off_target.x, unit.drop_off_target.y),
+                    unit.radius, unit,
+                    drop_off_target=unit.drop_off_target)
                 if path:
                     unit.path = path
                     unit.path_index = 0
@@ -478,14 +529,11 @@ class CollisionSystem:
                 pass
             # Similar logic for gathering
             if not unit.path:
-                from systems.pathfinding import Pathfinding
-                pathfinder = Pathfinding(self.game_map, self.game)
-                pathfinder.gathering_target = unit.gathering_target
-                pathfinder.current_unit = unit
-                
-                path = pathfinder.find_path((unit.x, unit.y), 
-                                          (unit.gathering_target.x, unit.gathering_target.y), 
-                                          unit.radius, unit)
+                path = self.game.pathfinder.find_path(
+                    (unit.x, unit.y),
+                    (unit.gathering_target.x, unit.gathering_target.y),
+                    unit.radius, unit,
+                    gathering_target=unit.gathering_target)
                 if path:
                     unit.path = path
                     unit.path_index = 0
@@ -516,11 +564,8 @@ class CollisionSystem:
                     pass
                 # If using direct movement, try pathfinding
                 if not unit.path:
-                    from systems.pathfinding import Pathfinding
-                    pathfinder = Pathfinding(self.game_map, self.game)
-                    pathfinder.current_unit = unit
-                    
-                    path = pathfinder.find_path((unit.x, unit.y), unit.destination, unit.radius, unit)
+                    path = self.game.pathfinder.find_path(
+                        (unit.x, unit.y), unit.destination, unit.radius, unit)
                     if path:
                         unit.path = path
                         unit.path_index = 0
@@ -680,7 +725,20 @@ class CollisionSystem:
                 nudge_distance = min_distance + 2 # Add a small buffer
                 safe_x = obstacle.x + direction_x * nudge_distance
                 safe_y = obstacle.y + direction_y * nudge_distance
-                return (safe_x, safe_y)
+
+                # Validate nudge position against terrain
+                if not self._is_on_unwalkable_terrain(safe_x, safe_y, unit.radius):
+                    return (safe_x, safe_y)
+                # Try 7 alternate angles
+                base_angle = math.atan2(direction_y, direction_x)
+                for i in range(1, 8):
+                    alt_angle = base_angle + i * (math.pi / 4)
+                    alt_x = obstacle.x + math.cos(alt_angle) * nudge_distance
+                    alt_y = obstacle.y + math.sin(alt_angle) * nudge_distance
+                    if not self._is_on_unwalkable_terrain(alt_x, alt_y, unit.radius):
+                        return (alt_x, alt_y)
+                # All directions unsafe, return original target rather than push into water
+                return target_pos
 
         # Position is safe
         return target_pos

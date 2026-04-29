@@ -184,7 +184,8 @@ class BuildingSystem:
         )
         
         self.game.construction_sites.append(construction_site)
-        
+        self.game.pathfinder.mark_dirty()
+
         # Assign builder to construction site
         construction_site.builder = self.selected_builder
         self.selected_builder.building_target = construction_site
@@ -194,17 +195,11 @@ class BuildingSystem:
         debug_log.log(f"Building placement: Assigned worker {id(self.selected_builder)} to construction site", "BUILDING")
         
         # Move worker directly to the construction site
-        from systems.pathfinding import Pathfinding
-        pathfinder = Pathfinding(self.game_map, self.game)
-        
-        # Path directly to construction site center
         target_pos = (construction_site.x, construction_site.y)
-        
-        # Allow pathfinding to this specific construction site
-        pathfinder.building_target = construction_site
-        pathfinder.current_unit = self.selected_builder
-        
-        path = pathfinder.find_path((self.selected_builder.x, self.selected_builder.y), target_pos, self.selected_builder.radius, self.selected_builder)
+        path = self.game.pathfinder.find_path(
+            (self.selected_builder.x, self.selected_builder.y), target_pos,
+            self.selected_builder.radius, self.selected_builder,
+            building_target=construction_site)
         if path:
             self.selected_builder.path = path
             self.selected_builder.path_index = 0
@@ -337,9 +332,11 @@ class BuildingSystem:
                         self.game.ai_system.invalidate_memory_cache(site.player)
         
         # Remove completed construction sites
-        for site in completed_sites:
-            if site in self.game.construction_sites:
-                self.game.construction_sites.remove(site)
+        if completed_sites:
+            for site in completed_sites:
+                if site in self.game.construction_sites:
+                    self.game.construction_sites.remove(site)
+            self.game.pathfinder.mark_dirty()
     
     def cancel_construction(self, construction_site):
         """Cancel a construction site and refund half the resources"""
@@ -367,7 +364,8 @@ class BuildingSystem:
             
             # Remove the construction site
             self.game.construction_sites.remove(construction_site)
-            
+            self.game.pathfinder.mark_dirty()
+
             # Cancelled construction, refunded half resources
     
     def get_buildings_by_type(self, building_type, player=None):

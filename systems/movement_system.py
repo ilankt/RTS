@@ -1,6 +1,5 @@
 import math
 import pygame
-from systems.pathfinding import Pathfinding
 from systems.gathering_manager import get_gathering_distance, get_drop_off_distance
 from core.config import DEBUG_MOVEMENT, DEBUG_PATHFINDING
 from utils.debug_logger import debug_log
@@ -291,7 +290,7 @@ class MovementSystem:
             # Debug: No LOS - attempting pathfinding
         
             pass
-        pathfinder = Pathfinding(self.game_map, self.game)
+        pathfinder = self.game.pathfinder
         path = None
         
         # Option 1: Direct to target
@@ -362,14 +361,11 @@ class MovementSystem:
             if not unit.path and not unit.destination and unit.status == "idle":
                 if build_distance > required_distance + 5:
                     debug_log.log(f"Recovery: Re-pathing worker to construction site", "CONSTRUCTION")
-                    from systems.pathfinding import Pathfinding
-                    pathfinder = Pathfinding(self.game_map, self.game)
-                    pathfinder.current_unit = unit
-                    pathfinder.building_target = unit.building_target
-
-                    path = pathfinder.find_path((unit.x, unit.y),
-                                              (unit.building_target.x, unit.building_target.y),
-                                              unit.radius, unit)
+                    path = self.game.pathfinder.find_path(
+                        (unit.x, unit.y),
+                        (unit.building_target.x, unit.building_target.y),
+                        unit.radius, unit,
+                        building_target=unit.building_target)
                     if path:
                         unit.path = path
                         unit.path_index = 0
@@ -486,9 +482,23 @@ class MovementSystem:
                     push_x = math.cos(angle)
                     push_y = math.sin(angle)
                 
-                # Move to gathering distance
-                unit.x = unit.gathering_target.x + push_x * gathering_distance
-                unit.y = unit.gathering_target.y + push_y * gathering_distance
+                # Move to gathering distance — validate terrain first
+                cand_x = unit.gathering_target.x + push_x * gathering_distance
+                cand_y = unit.gathering_target.y + push_y * gathering_distance
+                if not self.game.collision_system._is_on_unwalkable_terrain(cand_x, cand_y, unit.radius):
+                    unit.x = cand_x
+                    unit.y = cand_y
+                else:
+                    # Try alternate angles
+                    base_angle = math.atan2(push_y, push_x)
+                    for i in range(1, 8):
+                        alt_angle = base_angle + i * (math.pi / 4)
+                        alt_x = unit.gathering_target.x + math.cos(alt_angle) * gathering_distance
+                        alt_y = unit.gathering_target.y + math.sin(alt_angle) * gathering_distance
+                        if not self.game.collision_system._is_on_unwalkable_terrain(alt_x, alt_y, unit.radius):
+                            unit.x = alt_x
+                            unit.y = alt_y
+                            break
                 unit.destination = None
                 unit.path = None
                 unit._gathering_stuck_timer = 0  # Reset stuck timer
@@ -500,16 +510,23 @@ class MovementSystem:
                 
                 # Option 1: Try different gathering position
                 if unit._gathering_stuck_timer < 6.0:
-                    # Calculate a different angle
+                    # Calculate a different angle — try up to 8 angles for safe terrain
                     import random
-                    angle = random.random() * 2 * math.pi
-                    new_x = unit.gathering_target.x + math.cos(angle) * gathering_distance
-                    new_y = unit.gathering_target.y + math.sin(angle) * gathering_distance
-                    
-                    unit.x = new_x
-                    unit.y = new_y
+                    base_angle = random.random() * 2 * math.pi
+                    moved = False
+                    for attempt in range(8):
+                        angle = base_angle + attempt * (math.pi / 4)
+                        new_x = unit.gathering_target.x + math.cos(angle) * gathering_distance
+                        new_y = unit.gathering_target.y + math.sin(angle) * gathering_distance
+                        if not self.game.collision_system._is_on_unwalkable_terrain(new_x, new_y, unit.radius):
+                            unit.x = new_x
+                            unit.y = new_y
+                            moved = True
+                            debug_log.log(f"  - Moved to new gathering position: ({new_x:.0f}, {new_y:.0f})", "MOVEMENT")
+                            break
                     unit._gathering_stuck_timer = 0
-                    debug_log.log(f"  - Moved to new gathering position: ({new_x:.0f}, {new_y:.0f})", "MOVEMENT")
+                    if not moved:
+                        debug_log.log(f"  - All gathering positions on water, staying put", "MOVEMENT")
                 
                 # Option 2: More drastic - temporarily stop gathering
                 else:
@@ -530,8 +547,21 @@ class MovementSystem:
                         push_x = math.cos(angle)
                         push_y = math.sin(angle)
                     
-                    unit.x = unit.gathering_target.x + push_x * (gathering_distance + 20)
-                    unit.y = unit.gathering_target.y + push_y * (gathering_distance + 20)
+                    cand_x = unit.gathering_target.x + push_x * (gathering_distance + 20)
+                    cand_y = unit.gathering_target.y + push_y * (gathering_distance + 20)
+                    if not self.game.collision_system._is_on_unwalkable_terrain(cand_x, cand_y, unit.radius):
+                        unit.x = cand_x
+                        unit.y = cand_y
+                    else:
+                        base_angle = math.atan2(push_y, push_x)
+                        for i in range(1, 8):
+                            alt_angle = base_angle + i * (math.pi / 4)
+                            alt_x = unit.gathering_target.x + math.cos(alt_angle) * (gathering_distance + 20)
+                            alt_y = unit.gathering_target.y + math.sin(alt_angle) * (gathering_distance + 20)
+                            if not self.game.collision_system._is_on_unwalkable_terrain(alt_x, alt_y, unit.radius):
+                                unit.x = alt_x
+                                unit.y = alt_y
+                                break
                     
                     # Will re-engage next frame
                     unit.is_engaging = True
@@ -546,14 +576,11 @@ class MovementSystem:
                 # Recovery: If too far from target, clear the stuck state and re-path
                 if target_distance > gathering_distance + 5:  # Small tolerance
                     debug_log.log(f"  - Recovery: Re-pathing to distant gathering target", "MOVEMENT")
-                    from systems.pathfinding import Pathfinding
-                    pathfinder = Pathfinding(self.game_map, self.game)
-                    pathfinder.gathering_target = unit.gathering_target
-                    pathfinder.current_unit = unit
-                    
-                    path = pathfinder.find_path((unit.x, unit.y), 
-                                              (unit.gathering_target.x, unit.gathering_target.y), 
-                                              unit.radius, unit)
+                    path = self.game.pathfinder.find_path(
+                        (unit.x, unit.y),
+                        (unit.gathering_target.x, unit.gathering_target.y),
+                        unit.radius, unit,
+                        gathering_target=unit.gathering_target)
                     if path:
                         unit.path = path
                         unit.path_index = 0
@@ -695,17 +722,13 @@ class MovementSystem:
             # Debug: Target moved - re-pathfinding
         
             pass
-        pathfinder = Pathfinding(self.game_map, self.game)
-        
-        # Set pathfinder targets
-        if hasattr(unit, 'drop_off_target') and unit.drop_off_target == target_object:
-            pathfinder.drop_off_target = unit.drop_off_target
-        
-        new_path = pathfinder.find_path(
+        drop_off = unit.drop_off_target if (hasattr(unit, 'drop_off_target') and unit.drop_off_target == target_object) else None
+        new_path = self.game.pathfinder.find_path(
             (unit.x, unit.y),
             (target_object.x, target_object.y),
             unit.radius,
-            unit
+            unit,
+            drop_off_target=drop_off
         )
         
         if new_path:

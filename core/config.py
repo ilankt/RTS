@@ -39,7 +39,7 @@ PLAYER_COLORS = [
 ]
 
 # Pathfinding Configuration
-GRID_SIZE = 8  # World units per navigation cell
+GRID_SIZE = 20  # World units per navigation cell (larger = faster but coarser)
 
 # Resource Gathering Configuration
 GATHERING_RATES = {

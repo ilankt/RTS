@@ -1,6 +1,5 @@
 """Worker assignment logic - finds idle workers and gives them jobs."""
 import math
-from systems.pathfinding import Pathfinding
 from utils.debug_logger import debug_log
 
 
@@ -84,9 +83,8 @@ class WorkerBrain:
         castle = self._get_castle(player)
         if castle:
             debug_log.log(f"AI {player.name}: Worker idle, moving near castle", "AI")
-            pathfinder = Pathfinding(self.game.game_map, self.game)
             self.game.selection_manager._move_unit_to_position(
-                worker, (castle.x + 50, castle.y + 50), pathfinder
+                worker, (castle.x + 50, castle.y + 50), self.game.pathfinder
             )
 
     def _find_dropoff(self, worker, player):
@@ -141,8 +139,8 @@ class WorkerBrain:
         best_score = float("inf")
 
         for res_type in ["gold", "wood", "stone", "food"]:
-            # Check if this resource actually exists on the map
-            if not self._find_closest_resource(worker, res_type):
+            # Check if this resource actually exists on the map (lightweight)
+            if not self._has_resource_of_type(res_type):
                 continue
             # Score = stockpile + 100 per worker already assigned (lower is better)
             score = resources.get(res_type, 0) + gathering_counts[res_type] * 100
@@ -154,26 +152,50 @@ class WorkerBrain:
             return self._find_closest_resource(worker, best_type)
         return None
 
+    def _has_resource_of_type(self, resource_type):
+        """Quick check: does any resource of this type exist on the map?"""
+        for res in self.game.resources:
+            if res.name == resource_type and res.amount_remaining > 0:
+                return True
+        return False
+
     def _find_closest_resource(self, worker, resource_type):
-        """Find closest resource of given type."""
+        """Find closest resource of given type, penalizing crowded nodes."""
         best = None
-        best_dist = float("inf")
+        best_score = float("inf")
         for res in self.game.resources:
             if res.name != resource_type or res.amount_remaining <= 0:
                 continue
             dist = math.hypot(worker.x - res.x, worker.y - res.y)
-            if dist < best_dist:
-                best_dist = dist
+            assigned = self._count_workers_at_resource(res)
+            effective_dist = dist + assigned * 80
+            if effective_dist < best_score:
+                best_score = effective_dist
                 best = res
         return best
+
+    def _count_workers_at_resource(self, resource):
+        """Count how many workers are gathering or returning to a specific resource."""
+        count = 0
+        for unit in self.game.units:
+            if unit.name != "worker":
+                continue
+            if getattr(unit, 'gathering_target', None) == resource:
+                count += 1
+            elif getattr(unit, 'previous_gathering_target', None) == resource:
+                count += 1
+        return count
 
     def _command_gather(self, worker, resource):
         """Send a worker to gather a resource."""
         if not resource or getattr(resource, "amount_remaining", 0) <= 0:
             return
-        pathfinder = Pathfinding(self.game.game_map, self.game)
-        pathfinder.gathering_target = resource
-        self.game.selection_manager._gather_from_target(worker, resource, pathfinder)
+        # Reserve a unique spread position so the worker doesn't path to the
+        # resource center (avoids congestion when multiple workers gather the
+        # same node).  _gather_from_target will also call reserve, but doing
+        # it here lets us pass the position explicitly for AI workers.
+        spread_pos = self.game.gathering_manager.reserve_gathering_position(worker, resource)
+        self.game.selection_manager._gather_from_target(worker, resource, self.game.pathfinder, new_destination=spread_pos)
 
     def _command_build(self, worker, construction_site):
         """Send a worker to build at a construction site."""
@@ -184,13 +206,12 @@ class WorkerBrain:
         worker.building_target = construction_site
         worker.status = "run"
 
-        pathfinder = Pathfinding(self.game.game_map, self.game)
-        pathfinder.building_target = construction_site
-        path = pathfinder.find_path(
+        path = self.game.pathfinder.find_path(
             (worker.x, worker.y),
             (construction_site.x, construction_site.y),
             worker.radius,
             worker,
+            building_target=construction_site,
         )
         if path:
             worker.path = path
@@ -199,7 +220,6 @@ class WorkerBrain:
             worker.destination = path[0] if path else None
         else:
             debug_log.log(f"AI: No path to construction site at ({construction_site.x:.0f}, {construction_site.y:.0f})", "AI")
-        pathfinder.building_target = None
 
     def _get_castle(self, player):
         """Find the player's castle."""

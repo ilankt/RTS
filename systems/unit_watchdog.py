@@ -8,7 +8,7 @@ class UnitWatchdog:
     """Monitors all units for stuck conditions and performs recovery."""
 
     CHECK_INTERVAL = 1000       # Check every 1 second (ms)
-    STUCK_THRESHOLD = 5.0       # Seconds without meaningful movement
+    STUCK_THRESHOLD = 3.0       # Seconds without meaningful movement
     MOVE_EPSILON = 3.0          # Pixels - must move at least this much to count
 
     def __init__(self, game):

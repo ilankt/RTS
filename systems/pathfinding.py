@@ -82,6 +82,11 @@ class Pathfinding:
         
         return list(nearby_objects)
     
+    def mark_dirty(self):
+        """Rebuild spatial grid and clear path cache after world changes (buildings/resources added or removed)"""
+        self._build_spatial_grid()
+        self.path_cache.clear()
+
     def _get_cache_key(self, start: Tuple[float, float], goal: Tuple[float, float]) -> str:
         """Generate cache key for path"""
         # Round to grid size for cache key
@@ -100,15 +105,37 @@ class Pathfinding:
                 return False
         return True
     
-    def find_path(self, start: Tuple[float, float], goal: Tuple[float, float], 
-                  unit_radius: float = 20, unit=None) -> Optional[List[Tuple[float, float]]]:
+    def find_path(self, start: Tuple[float, float], goal: Tuple[float, float],
+                  unit_radius: float = 20, unit=None,
+                  gathering_target=None, building_target=None,
+                  drop_off_target=None) -> Optional[List[Tuple[float, float]]]:
         """
         Find a path from start to goal in world coordinates.
         Returns a list of waypoints or None if no path exists.
+
+        Target kwargs exclude specific objects from collision so units can path to them:
+          gathering_target - resource being gathered
+          building_target - construction site being built
+          drop_off_target - building to deposit resources at
         """
+        # Set exclusion targets (cleared in finally block)
+        self.gathering_target = gathering_target
+        self.building_target = building_target
+        self.drop_off_target = drop_off_target
+
+        try:
+            return self._find_path_inner(start, goal, unit_radius, unit)
+        finally:
+            # Always clean up targets to prevent cross-call leakage
+            self.gathering_target = None
+            self.building_target = None
+            self.drop_off_target = None
+            self.current_unit = None
+
+    def _find_path_inner(self, start, goal, unit_radius, unit):
         # Rebuild spatial grid for dynamic objects
         self._build_spatial_grid()
-        
+
         # Store the current unit for collision checking
         self.current_unit = unit
         # Store original goal for final adjustment
