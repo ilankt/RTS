@@ -326,15 +326,32 @@ Polish and presentation:
 | Damage numbers | ✅ Done | Floating UI notifications |
 | Screen shake | ✅ Done | Camera shake system |
 | Main Menu | ✅ Done | Keyboard + mouse support |
+| Fog of War | ✅ Done | 3-state per-player grid |
+| Adaptive Build Orders | ✅ Done | Priority scoring system |
+| Particle Effects | ✅ Done | Attack/death/build/gather |
+| Sound Design | ✅ Done | Synthesized effects |
+| Pause Menu | ✅ Done | ESC toggle with overlay |
+
+### 2026-04-29 - Phase 5 Completed ✅
+**Commit**: `2acae8e`
+
+Final feature round:
+- Fog of War with 3-state per-player visibility grid (unexplored / explored / visible)
+- Adaptive Build Orders: AI uses priority scoring instead of scripted steps
+- Particle Effects: attack sparks, death bursts, build dust, gathering chips
+- Sound Design: synthesized placeholder sounds (attack, death, select, build, alert)
+- Pause Menu: ESC toggles pause with dark overlay
+- Fog overlay rendering with semi-transparent tiles
+- All rendering respects fog of war visibility
+- **Tests**: 14 passing (74 total)
 
 ### Remaining from original plan (Future Work)
-- Fog of War (Phase 3.5)
-- Adaptive Build Orders (Phase 3.2)
-- Particle Effects (Phase 4.1)
-- Sound Design (Phase 4.3)
-- Pause menu / Settings menu
-- Code quality: remove debug passthroughs, centralize magic numbers
-- More comprehensive unit test coverage for pathfinding, production
+- Settings menu (volume, resolution, game speed default)
+- Code quality: remove debug passthrough comments, centralize magic numbers
+- More comprehensive unit test coverage for pathfinding, production pipeline
+- Online multiplayer (requires networking stack)
+- Map editor
+- Campaign / scenario system
 
 ---
 
