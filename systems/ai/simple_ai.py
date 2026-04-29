@@ -242,24 +242,83 @@ class SimpleAISystem:
         self.worker_brain.assign_idle_workers(player)
 
     def _tick_early(self, player, state: AIGameState):
-        """Follow the scripted build order step by step."""
-        idx = self.build_order_index[player]
-        if idx >= len(EARLY_BUILD_ORDER):
+        """Adaptive early game: score possible actions and pick the best one."""
+        params = self.personality_params[player]
+        worker_count = self._count_workers(player, state)
+        target_workers = params["early_workers"]
+        
+        # Check if we're done with early phase
+        has_barracks = len(state.buildings.get("barracks", [])) > 0
+        has_farm = len(state.buildings.get("farm", [])) > 0
+        has_house = len(state.buildings.get("house", [])) > 0
+        
+        if worker_count >= target_workers and has_farm and has_house and has_barracks:
             debug_log.log(f"AI {player.name}: EARLY build order complete -> GROW", "AI")
             self.phase[player] = "GROW"
             return
-
-        step = EARLY_BUILD_ORDER[idx]
-        completed = False
-
-        if step.action == BuildStep.TRAIN:
-            completed = self._try_train(player, state, step.target)
-        elif step.action == BuildStep.BUILD:
-            completed = self._try_build(player, state, step.target)
-
-        if completed:
-            self.build_order_index[player] = idx + 1
-            debug_log.log(f"AI {player.name}: EARLY step {idx+1} complete ({step.action} {step.target})", "AI")
+        
+        # Score possible actions
+        actions = []
+        
+        # 1. Train worker - high priority until target reached
+        if worker_count < target_workers and self._check_pop_space(state):
+            need = target_workers - worker_count
+            score = 100 + need * 20
+            actions.append(("train_worker", score))
+        
+        # 2. Build farm - high priority if none exist, wood-dependent
+        if not has_farm:
+            wood = state.resources.get("wood", 0)
+            if wood >= self.cost_data.get("farm", {}).get("wood", 0):
+                score = 80 if worker_count >= 2 else 30
+                actions.append(("build_farm", score))
+        
+        # 3. Build house - important if near pop cap
+        if not has_house and worker_count >= 3:
+            score = 70 if state.pop_current >= state.pop_max - 2 else 40
+            actions.append(("build_house", score))
+        
+        # 4. Build barracks - transition requirement
+        if not has_barracks and worker_count >= 2:
+            # Check affordability
+            costs = self.cost_data.get("barracks", {})
+            can_afford = all(state.resources.get(r, 0) >= a for r, a in costs.items())
+            if can_afford:
+                score = 60
+                # Higher priority if we have spare resources
+                if state.resources.get("gold", 0) > 200:
+                    score += 15
+                actions.append(("build_barracks", score))
+        
+        # 5. Build lumbermill early if we need more wood
+        if has_farm and has_barracks:
+            has_lumbermill = any(b.name == "lumbermill" for bl in [state.buildings.get("lumbermill", [])] for b in bl)
+            if not has_lumbermill and self._can_afford(player, "lumbermill"):
+                wood = state.resources.get("wood", 0)
+                score = 20 + min(40, max(0, 100 - wood))
+                actions.append(("build_lumbermill", score))
+        
+        # Sort by score descending, pick best
+        if actions:
+            actions.sort(key=lambda x: x[1], reverse=True)
+            best_action, _ = actions[0]
+            
+            if best_action == "train_worker":
+                self._try_train(player, state, "worker")
+            elif best_action == "build_farm":
+                success = self._try_build(player, state, "farm")
+                if success:
+                    debug_log.log(f"AI {player.name}: Built farm (adaptive)", "AI")
+            elif best_action == "build_house":
+                success = self._try_build(player, state, "house")
+                if success:
+                    debug_log.log(f"AI {player.name}: Built house (adaptive)", "AI")
+            elif best_action == "build_barracks":
+                success = self._try_build(player, state, "barracks")
+                if success:
+                    debug_log.log(f"AI {player.name}: Built barracks (adaptive)", "AI")
+            elif best_action == "build_lumbermill":
+                self._try_build(player, state, "lumbermill")
 
     def _tick_grow(self, player, state: AIGameState):
         """Expand economy: workers, houses, resource buildings."""

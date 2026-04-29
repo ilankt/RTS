@@ -28,7 +28,10 @@ from systems.rendering_system import RenderingSystem
 from systems.unit_watchdog import UnitWatchdog
 from systems.ai import SimpleAISystem
 from systems.projectile_system import ProjectileSystem
+from systems.fog_of_war import FogOfWar
+from systems.particle_system import ParticleSystem as Particles
 from managers.save_manager import SaveManager
+from managers.sound_manager import SoundManager
 from utils.debug_logger import debug_log
 
 
@@ -88,6 +91,9 @@ class Game:
         self.unit_watchdog = UnitWatchdog(self)
         self.ai_system = SimpleAISystem(self)
         self.projectile_system = ProjectileSystem(self)
+        self.fog_of_war = FogOfWar(self)
+        self.particles = Particles(self)
+        self.sound_manager = SoundManager(self)
         
         # Link projectile system to combat system
         self.combat_system.projectile_system = self.projectile_system
@@ -107,6 +113,7 @@ class Game:
         
         # Game over state: None, "victory", or "defeat"
         self.game_over_state = None
+        self.game_paused = False
         
         # Set up initial game state
         self.game_state.setup_game_objects()
@@ -173,11 +180,17 @@ class Game:
                 return
         
         if event.key == pygame.K_ESCAPE:
+            # Game over takes priority
+            if self.game_over_state:
+                self.running = False
             # Check if command mode is active first
-            if self.ui_manager.active_command_mode:
+            elif self.ui_manager.active_command_mode:
                 self.ui_manager.clear_command_mode()
             else:
-                self.running = False
+                # Toggle pause
+                self.game_paused = not self.game_paused
+                if hasattr(self, 'sound_manager') and self.sound_manager:
+                    self.sound_manager.play_ui_click()
         elif event.key == pygame.K_F3:
             self.debug_overlay = not self.debug_overlay
         elif event.key == pygame.K_F4:
@@ -354,6 +367,15 @@ class Game:
     
     def update(self):
         """Update all game systems"""
+        # Skip updates when paused or game over
+        if self.game_paused or self.game_over_state:
+            raw_delta_time = self.clock.get_time() / 1000.0
+            self.delta_time = raw_delta_time * self.game_speed
+            # Still update animations and particles for visual appeal
+            if hasattr(self, 'particles') and self.particles:
+                self.particles.update(self.delta_time)
+            return
+        
         # Apply game speed to delta time
         raw_delta_time = self.clock.get_time() / 1000.0
         self.delta_time = raw_delta_time * self.game_speed
@@ -378,6 +400,12 @@ class Game:
         
         # Update projectiles
         self.projectile_system.update(self.delta_time)
+        
+        # Update fog of war
+        self.fog_of_war.update()
+        
+        # Update particles
+        self.particles.update(self.delta_time)
         
         # Remove destroyed objects
         self._cleanup_destroyed_objects()
@@ -517,6 +545,24 @@ class Game:
             unit.stance_home_position = (unit.x, unit.y)
             debug_log.log(f"{unit.name} stance changed to {unit.stance}", "GENERAL")
     
+    def _draw_pause_overlay(self):
+        """Draw pause overlay"""
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.fill((0, 0, 0))
+        overlay.set_alpha(120)
+        self.screen.blit(overlay, (0, 0))
+        
+        font_large = pygame.font.Font(None, 72)
+        font_small = pygame.font.Font(None, 36)
+        
+        title = font_large.render("PAUSED", True, (255, 255, 255))
+        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 40))
+        self.screen.blit(title, title_rect)
+        
+        sub = font_small.render("Press ESC to Resume", True, (200, 200, 200))
+        sub_rect = sub.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
+        self.screen.blit(sub, sub_rect)
+    
     def _restart_game(self):
         """Restart the game by reinitializing core state"""
         self.game_over_state = None
@@ -601,6 +647,10 @@ class Game:
         
         # Draw game over overlay if applicable
         self._draw_game_over_overlay()
+        
+        # Draw pause overlay
+        if self.game_paused and not self.game_over_state:
+            self._draw_pause_overlay()
         
         pygame.display.flip()
     

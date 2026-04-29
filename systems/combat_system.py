@@ -251,10 +251,16 @@ class CombatSystem:
                         target, _ = potential_targets[0]
                         building.start_attack(target)
         
-        # Spawn damage notifications
+        # Spawn damage notifications and particles
         if hasattr(self.game, 'floating_ui') and self.game.floating_ui:
             for target, damage in damage_events:
                 self.game.floating_ui.add_damage_notification(target, damage)
+                # Spawn attack particles at target position
+                if hasattr(self.game, 'particles') and self.game.particles:
+                    self.game.particles.spawn_attack_particles(target.x, target.y, count=2)
+                # Play hit sound
+                if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+                    self.game.sound_manager.play_hit()
         
         # Check for new attacks and spawn projectiles
         self.check_for_attacks_and_spawn_projectiles()
@@ -291,6 +297,12 @@ class CombatSystem:
     
     def handle_unit_death(self, unit):
         """Handle cleanup when a unit dies"""
+        # Spawn death particles and sound
+        if hasattr(self.game, 'particles') and self.game.particles:
+            self.game.particles.spawn_death_particles(unit.x, unit.y, count=6)
+        if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+            self.game.sound_manager.play_death()
+        
         # Clear any units targeting this one
         for other_unit in self.game.units:
             if hasattr(other_unit, 'current_target') and other_unit.current_target == unit:
@@ -311,6 +323,13 @@ class CombatSystem:
     
     def handle_building_destruction(self, building):
         """Handle cleanup when a building is destroyed"""
+        # Spawn death particles and sound
+        if hasattr(self.game, 'particles') and self.game.particles:
+            count = 12 if building.name == "castle" else 8
+            self.game.particles.spawn_death_particles(building.x, building.y, count=count)
+        if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+            self.game.sound_manager.play_death()
+        
         # Screen shake on major building destruction
         if building.name == "castle":
             self.game.camera.add_shake(15.0)

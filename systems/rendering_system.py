@@ -1,5 +1,5 @@
 import pygame
-from core.config import TILE_WIDTH, TOP_BAR_HEIGHT
+from core.config import TILE_WIDTH, TILE_HEIGHT, TOP_BAR_HEIGHT
 from entities import Building, Unit, Resource, ConstructionSite
 
 
@@ -46,6 +46,9 @@ class RenderingSystem:
         # Draw floating UI elements
         self.floating_ui.draw_all_floating_ui(map_surface, camera, delta_time)
         
+        # Draw fog of war overlay
+        self._draw_fog_overlay(map_surface, camera)
+        
         # Restore camera position after shake
         camera.x -= shake_offset[0]
         camera.y -= shake_offset[1]
@@ -68,7 +71,12 @@ class RenderingSystem:
                       self.game.construction_sites)
         all_objects.sort(key=lambda obj: obj.y)
         
+        # Apply fog of war filtering
+        fog = getattr(self.game, 'fog_of_war', None)
+        
         for obj in all_objects:
+            if fog and not fog.is_object_visible(obj):
+                continue
             self._draw_object(obj, map_surface, camera)
     
     def _draw_object(self, obj, map_surface, camera):
@@ -137,6 +145,10 @@ class RenderingSystem:
         # Draw projectiles
         if hasattr(self.game, 'projectile_system') and self.game.projectile_system:
             self.game.projectile_system.draw(map_surface, camera)
+        
+        # Draw particles
+        if hasattr(self.game, 'particles') and self.game.particles:
+            self.game.particles.draw(map_surface, camera)
     
     def draw_debug_info(self, screen, font=None):
         """Draw debug information on screen"""
@@ -219,6 +231,56 @@ class RenderingSystem:
             if (screen_x + radius >= 0 and screen_x - radius <= map_surface.get_width() and
                 screen_y + radius >= 0 and screen_y - radius <= map_surface.get_height()):
                 pygame.draw.circle(map_surface, color, (screen_x, screen_y), radius, 1)
+    
+    def _draw_fog_overlay(self, map_surface, camera):
+        """Draw fog of war overlay for the human player."""
+        fog = getattr(self.game, 'fog_of_war', None)
+        if not fog:
+            return
+        
+        human = self.game.players[0] if self.game.players else None
+        if not human:
+            return
+        
+        tile_width = int(TILE_WIDTH * camera.zoom)
+        tile_height = int(TILE_WIDTH * camera.zoom * 0.875)
+        
+        # Determine visible tile range
+        start_col = max(0, int(-camera.x / (tile_width * 0.75)) - 1)
+        end_col = min(self.game.game_map.width, int((-camera.x + map_surface.get_width()) / (tile_width * 0.75)) + 1)
+        start_row = max(0, int(-camera.y / tile_height) - 1)
+        end_row = min(self.game.game_map.height, int((-camera.y + map_surface.get_height()) / tile_height) + 1)
+        
+        for row in range(start_row, end_row):
+            for col in range(start_col, end_col):
+                state = fog.get_tile_state(human, row, col)
+                
+                if state == fog.UNEXPLORED:
+                    # Completely black
+                    alpha = 255
+                    color = (0, 0, 0)
+                elif state == fog.EXPLORED:
+                    # Semi-transparent black
+                    alpha = 150
+                    color = (0, 0, 0)
+                else:
+                    continue  # VISIBLE - no overlay
+                
+                x = col * tile_width * 0.75
+                y = row * tile_height
+                if col % 2 != 0:
+                    y += tile_height / 2
+                
+                screen_x = x + camera.x
+                screen_y = y + camera.y
+                
+                # Create a slightly larger rect to cover tile seams
+                fog_surface = pygame.Surface(
+                    (int(tile_width * 0.75) + 2, int(tile_height) + 2),
+                    pygame.SRCALPHA
+                )
+                fog_surface.fill((0, 0, 0, alpha))
+                map_surface.blit(fog_surface, (int(screen_x) - 1, int(screen_y) - 1))
     
     def get_visible_objects(self, camera, map_surface):
         """Get all objects that are currently visible on screen"""

@@ -1,0 +1,200 @@
+import pytest
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+class MockGameMap:
+    def __init__(self):
+        self.width = 50
+        self.height = 50
+        self.grid = [["grass"] * 50 for _ in range(50)]
+    
+    def world_to_grid(self, wx, wy):
+        col = int(wx / 40)
+        row = int(wy / 40)
+        if 0 <= col < self.width and 0 <= row < self.height:
+            return (col, row)
+        return None
+    
+    def grid_to_world(self, c, r):
+        return (c * 40, r * 40)
+
+
+class MockPlayer:
+    def __init__(self, human=True):
+        self.human = human
+        self.name = "Test"
+        self.color = (255, 255, 255)
+        self.resources = {}
+        self.ai_personality = "balanced"
+
+
+class MockGame:
+    def __init__(self):
+        self.units = []
+        self.buildings = []
+        self.resources = []
+        self.construction_sites = []
+        self.players = [MockPlayer(human=True), MockPlayer(human=False)]
+        self.game_map = MockGameMap()
+
+
+# ---------------------------------------------------------------------------
+# Fog of War Tests
+# ---------------------------------------------------------------------------
+class TestFogOfWar:
+    def test_fog_initializes_grids(self):
+        from systems.fog_of_war import FogOfWar
+        game = MockGame()
+        fog = FogOfWar(game)
+        assert len(fog.visibility_grid) == 2
+    
+    def test_unexplored_by_default(self):
+        from systems.fog_of_war import FogOfWar
+        game = MockGame()
+        fog = FogOfWar(game)
+        human = game.players[0]
+        assert fog.get_tile_state(human, 0, 0) == fog.UNEXPLORED
+    
+    def test_object_visibility_own_always_visible(self):
+        from systems.fog_of_war import FogOfWar
+        from entities.unit import Unit
+        game = MockGame()
+        fog = FogOfWar(game)
+        unit = Unit("worker", [1,1], 100, 40, 0, {}, radius=10, player=game.players[0])
+        assert fog.is_object_visible(unit) is True
+    
+    def test_visibility_marks_nearby_tiles(self):
+        from systems.fog_of_war import FogOfWar
+        from entities.unit import Unit
+        game = MockGame()
+        fog = FogOfWar(game)
+        human = game.players[0]
+        
+        # Place a unit at center
+        unit = Unit("worker", [1,1], 100, 40, 0, {}, radius=10, player=game.players[0])
+        unit.x = 500
+        unit.y = 500
+        game.units.append(unit)
+        
+        fog.update()
+        
+        # Tiles near the unit should be explored
+        tile_state = fog.get_tile_state(human, 12, 12)  # ~500/40 = 12.5
+        assert tile_state == fog.VISIBLE
+    
+    def test_exploration_stays_after_visibility_fades(self):
+        from systems.fog_of_war import FogOfWar
+        from entities.unit import Unit
+        game = MockGame()
+        fog = FogOfWar(game)
+        human = game.players[0]
+        
+        unit = Unit("worker", [1,1], 100, 40, 0, {}, radius=10, player=game.players[0])
+        unit.x = 100
+        unit.y = 100
+        game.units.append(unit)
+        
+        fog.update()
+        first_state = fog.get_tile_state(human, 2, 2)
+        assert first_state == fog.VISIBLE
+        
+        # Remove unit and update
+        game.units.remove(unit)
+        fog.update()
+        second_state = fog.get_tile_state(human, 2, 2)
+        assert second_state == fog.EXPLORED  # Should remain explored
+
+
+# ---------------------------------------------------------------------------
+# Particle System Tests
+# ---------------------------------------------------------------------------
+class TestParticleSystem:
+    def test_particle_initialization(self):
+        from systems.particle_system import Particle, ParticleSystem
+        game = MockGame()
+        ps = ParticleSystem(game)
+        assert len(ps.particles) == 0
+    
+    def test_spawn_attack_particles(self):
+        from systems.particle_system import ParticleSystem
+        game = MockGame()
+        ps = ParticleSystem(game)
+        ps.spawn_attack_particles(100, 100, count=5)
+        assert len(ps.particles) == 5
+        assert all(p.alive for p in ps.particles)
+    
+    def test_spawn_death_particles(self):
+        from systems.particle_system import ParticleSystem
+        game = MockGame()
+        ps = ParticleSystem(game)
+        ps.spawn_death_particles(100, 100, count=8)
+        assert len(ps.particles) == 8
+    
+    def test_particle_ages_and_dies(self):
+        from systems.particle_system import ParticleSystem
+        game = MockGame()
+        ps = ParticleSystem(game)
+        ps.spawn_attack_particles(100, 100, count=3)
+        
+        # Age them past their lifetime
+        ps.update(1.0)
+        assert len(ps.particles) == 0
+    
+    def test_particle_spawn_types(self):
+        from systems.particle_system import ParticleSystem
+        game = MockGame()
+        ps = ParticleSystem(game)
+        ps.spawn_build_particles(100, 100)
+        assert len(ps.particles) == 5
+        ps.spawn_gather_particles(100, 100)
+        assert len(ps.particles) == 7  # 5 + 2
+
+
+# ---------------------------------------------------------------------------
+# Sound Manager Tests
+# ---------------------------------------------------------------------------
+class TestSoundManager:
+    def test_sound_manager_has_sounds(self):
+        # We can't easily test pygame mixer without display, but check file structure
+        assert os.path.exists("managers/sound_manager.py")
+    
+    def test_sound_manager_methods_exist(self):
+        import ast
+        with open("managers/sound_manager.py") as f:
+            source = f.read()
+        assert "play_attack" in source
+        assert "play_death" in source
+        assert "play_select" in source
+        assert "play_build_complete" in source
+
+
+# ---------------------------------------------------------------------------
+# Adaptive Build Orders Tests
+# ---------------------------------------------------------------------------
+class TestAdaptiveBuildOrders:
+    def test_early_phase_in_simple_ai(self):
+        """Check that simple_ai uses adaptive scoring instead of scripted builds."""
+        with open("systems/ai/simple_ai.py") as f:
+            source = f.read()
+        # The adaptive system uses scoring
+        assert "actions.append" in source
+        assert "build_farm" in source or "build_house" in source
+        assert "actions.sort" in source
+
+
+# ---------------------------------------------------------------------------
+# Fog of War Rendering Tests
+# ---------------------------------------------------------------------------
+class TestFogRendering:
+    def test_rendering_has_fog_method(self):
+        with open("systems/rendering_system.py") as f:
+            source = f.read()
+        assert "_draw_fog_overlay" in source
+        assert "fog_of_war" in source
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
