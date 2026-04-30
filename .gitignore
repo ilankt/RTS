@@ -25,6 +25,15 @@ Thumbs.db
 # Game saves or temporary files
 *.save
 *.tmp
+saves/
+debug.dat
+screenshots/
+
+# Test cache
+.pytest_cache/
+
+# AI settings
+.claude/
 
 # Distribution / packaging
 .Python
