@@ -1,0 +1,174 @@
+"""Utility-AI orchestrator.
+
+Replaces the 4-phase state machine in `systems/ai/simple_ai.py`. Each tick:
+
+  1. Build a GoalContext snapshot.
+  2. Score every goal, weight by personality, sort.
+  3. Try execute() top-down until one returns True (that's the chosen action).
+  4. Run scout_brain, worker_brain (always), then military_brain with
+     should_attack=True iff the chosen goal was AttackGoal.
+
+Per-goal and per-brain failures are logged but never propagate. The bug that
+hid for weeks under simple_ai's god-`try` (`random` not imported) would now
+log a clear traceback every tick instead of silently disabling worker
+assignment.
+"""
+import traceback
+from typing import Optional
+
+from utils.debug_logger import debug_log
+
+from systems.ai.worker_brain import WorkerBrain
+from systems.ai.military_brain import MilitaryBrain
+from systems.ai.scout_brain import ScoutBrain
+from systems.ai.building_placer import BuildingPlacer
+
+from .context import GoalContext
+from .personality import get_weight
+from .goals import ALL_GOALS
+from .goals.tactical import AttackGoal
+
+
+class UtilityAISystem:
+    TICK_INTERVAL = 0.5  # seconds between strategic decisions per AI player
+
+    def __init__(self, game):
+        self.game = game
+        self.ai_players = [p for p in game.players if not p.human]
+
+        self.worker_brain = WorkerBrain(game)
+        self.military_brain = MilitaryBrain(game)
+        self.scout_brain = ScoutBrain(game)
+        self.building_placer = BuildingPlacer(game)
+
+        self.goals = [cls() for cls in ALL_GOALS]
+
+        self.tick_timer = {p: 0.0 for p in self.ai_players}
+        self.last_chosen = {p: None for p in self.ai_players}
+        self.last_scores = {p: [] for p in self.ai_players}  # [(weighted, base, name), ...]
+
+    # --- Public interface (called by core/game.py and ui/ai_debug_panel.py) ---
+
+    def update(self, delta_time: float):
+        for player in self.ai_players:
+            self.tick_timer[player] += delta_time
+            if self.tick_timer[player] < self.TICK_INTERVAL:
+                continue
+            self.tick_timer[player] = 0.0
+            self._tick(player)
+
+    def invalidate_memory_cache(self, player=None):
+        """Compatibility shim — the snapshot is rebuilt from scratch each tick,
+        so there's no cache to invalidate. Kept for game.py callers."""
+        pass
+
+    def get_ai_debug_info(self, player) -> Optional[dict]:
+        if player not in self.tick_timer:
+            return None
+
+        ctx = GoalContext.build(self.game, player)
+        idle, gathering, building = self.worker_brain.get_worker_counts(player)
+
+        military_breakdown = {}
+        for u in ctx.military:
+            military_breakdown[u.name] = military_breakdown.get(u.name, 0) + 1
+
+        production_parts = []
+        for name, blist in ctx.buildings.items():
+            for b in blist:
+                if getattr(b, "current_production", None):
+                    production_parts.append(f"{name}: {b.current_production['unit_type']}")
+                for q in getattr(b, "production_queue", []):
+                    production_parts.append(f"{name}: {q}")
+
+        priority_resource = min(ctx.resources, key=ctx.resources.get) if ctx.resources else "None"
+
+        chosen = self.last_chosen.get(player)
+        chosen_name = chosen.name if chosen else "—"
+        top_goals = self.last_scores.get(player, [])[:5]
+        goals_summary = ", ".join(f"{name}:{score:.0f}" for score, _, name in top_goals)
+
+        return {
+            "game_phase": f"{chosen_name} | top: {goals_summary}",
+            "formations": 0,
+            "priority_resource": priority_resource,
+            "decision_timer": max(0.0, self.TICK_INTERVAL - self.tick_timer.get(player, 0)),
+            "idle_workers": idle,
+            "gathering_workers": gathering,
+            "building_workers": building,
+            "military_units": len(ctx.military),
+            "military_breakdown": military_breakdown,
+            "buildings": {
+                "total": sum(len(v) for v in ctx.buildings.values()),
+                "castle": 1 if ctx.castle else 0,
+                "barracks": len(ctx.buildings.get("barracks", [])),
+                "houses": len(ctx.buildings.get("house", [])),
+            },
+            "production_queue": ", ".join(production_parts) if production_parts else "None",
+            "current_tasks": [],
+        }
+
+    # --- Internals ---
+
+    def _tick(self, player):
+        ctx = GoalContext.build(self.game, player)
+        personality = getattr(player, "ai_personality", "balanced")
+
+        # 1) Score goals
+        scored = []
+        for goal in self.goals:
+            try:
+                base = goal.score(ctx)
+            except Exception as e:
+                debug_log.log(
+                    f"AI {player.name}: goal {goal.name}.score raised: {e}\n{traceback.format_exc()}",
+                    "AI",
+                )
+                continue
+            if base > 0:
+                weighted = base * get_weight(personality, goal.category)
+                scored.append((weighted, base, goal))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        self.last_scores[player] = [(w, b, g.name) for w, b, g in scored]
+
+        # 2) Execute top-scoring goal that succeeds
+        chosen = None
+        for weighted, base, goal in scored:
+            try:
+                if goal.execute(ctx):
+                    chosen = goal
+                    break
+            except Exception as e:
+                debug_log.log(
+                    f"AI {player.name}: goal {goal.name}.execute raised: {e}\n{traceback.format_exc()}",
+                    "AI",
+                )
+        self.last_chosen[player] = chosen
+
+        # 3) Sub-brains run regardless. Each in its own try so one failure
+        #    can't take the others down with it.
+        try:
+            self.scout_brain.update(player, self.tick_timer[player])
+        except Exception as e:
+            debug_log.log(
+                f"AI {player.name}: scout_brain.update raised: {e}\n{traceback.format_exc()}",
+                "AI",
+            )
+
+        try:
+            self.worker_brain.assign_idle_workers(player)
+        except Exception as e:
+            debug_log.log(
+                f"AI {player.name}: worker_brain.assign_idle_workers raised: {e}\n{traceback.format_exc()}",
+                "AI",
+            )
+
+        try:
+            should_attack = isinstance(chosen, AttackGoal)
+            self.military_brain.update(player, should_attack=should_attack)
+        except Exception as e:
+            debug_log.log(
+                f"AI {player.name}: military_brain.update raised: {e}\n{traceback.format_exc()}",
+                "AI",
+            )
