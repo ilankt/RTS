@@ -6,7 +6,6 @@ Phases:
   ARMY   - Build up military while maintaining economy
   ATTACK - Send army to enemy, keep training replacements
 """
-import json
 import math
 import pygame
 from dataclasses import dataclass, field
@@ -83,8 +82,8 @@ class SimpleAISystem:
         self.build_order_index = {p: 0 for p in self.ai_players}
         self.tick_timer = {p: 0.0 for p in self.ai_players}
 
-        # Load cost data once
-        self.cost_data = self._load_cost_data()
+        # Cost data lives on game.game_data (loaded once at startup)
+        self.cost_data = game.game_data.get("costs", {})
 
         # Building cooldown to avoid spam
         self.last_build_time = {p: 0.0 for p in self.ai_players}
@@ -649,21 +648,3 @@ class SimpleAISystem:
             return gather_candidates[0]
         return None
 
-    def _load_cost_data(self) -> dict:
-        """Load cost data from JSON files."""
-        cost_data = {}
-        try:
-            with open("data/units.json", "r") as f:
-                for unit in json.load(f):
-                    cost_data[unit["name"]] = unit.get("costs", {})
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            debug_log.log(f"Warning: Could not load unit costs: {e}", "AI")
-
-        try:
-            with open("data/buildings.json", "r") as f:
-                for building in json.load(f):
-                    cost_data[building["name"]] = building.get("costs", {})
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            debug_log.log(f"Warning: Could not load building costs: {e}", "AI")
-
-        return cost_data

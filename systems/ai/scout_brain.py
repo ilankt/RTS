@@ -1,5 +1,6 @@
 """AI scouting logic - exploration and map awareness."""
 import math
+import random
 from utils.debug_logger import debug_log
 
 

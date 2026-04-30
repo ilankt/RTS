@@ -14,7 +14,17 @@ def load_game_data():
     with open('data/resources.json', 'r') as f:
         resources_data = json.load(f)
 
-    game_data = {"buildings": {}, "units": {}, "resources": {}}
+    game_data = {
+        "buildings": {},
+        "units": {},
+        "resources": {},
+        "costs": {},
+    }
+
+    for u in units_data:
+        game_data["costs"][u["name"]] = u.get("costs", {})
+    for b in buildings_data:
+        game_data["costs"][b["name"]] = b.get("costs", {})
 
     for b in buildings_data:
         # Calculate radius based on size[0] and TILE_WIDTH

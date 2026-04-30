@@ -1,358 +1,120 @@
 # RTS Game Improvement Plan
 
-## Executive Summary
+## Status (2026-04-30)
 
-This document outlines a strategic improvement plan for the RTS game codebase. The game has a solid foundation with working core systems (pathfinding, combat, gathering, construction, AI), but lacks depth in content, advanced systems, and polish. Improvements are organized by priority and dependency.
+Phases 1–5 of the original plan landed on `feature/improvement-plan` with 70 tests passing. Most pieces work, but a deeper review revealed several features that were incomplete, dead, or only superficially tested. The dead/broken parts have been cleaned up; the AI in particular needs a rewrite to actually deliver on the "adaptive" promise.
 
----
-
-## Current State Analysis
-
-### Strengths
-- **Solid Architecture**: Clean separation between core/, entities/, systems/, managers/, ui/, and world/
-- **Functional Core Loop**: Selection, movement, combat, gathering, building, and production all work
-- **AI V2**: Simple but functional 4-phase state machine (EARLY -> GROW -> ARMY -> ATTACK)
-- **Pathfinding**: A* with LOS fallback, spatial grid, caching, and construction site support
-- **Type Effectiveness System**: Slash/Pierce/Siege vs Light/Heavy/Fortified armor
-- **Debug Infrastructure**: File-based logging (debug.dat), F3/F4 overlays, game speed control
-- **Data-Driven**: Units, buildings, and resources defined in JSON
-- **Modular UI**: Recently refactored into components (cursor, building menu, unit panel, etc.)
-
-### Critical Weaknesses
-- **Minimal Content**: Only 3 units (Worker, Warrior, Archer) and 8 buildings
-- **No Progression**: No tech tree, upgrades, or ages
-- **Shallow AI**: Scripted build order, no scouting, no micro, no retreat, no formation awareness
-- **Single Game Mode**: Human vs AI only; no multiplayer, skirmish options, or victory conditions
-- **Missing Core RTS Features**: No fog of war, control groups, unit stances, or formations
-- **No Persistence**: No save/load system or game replays
-- **Visual Polish Gap**: No particles, screen shake, or dynamic lighting
-- **Audio Deficit**: Sound system exists but is underutilized
-- **Map Limitations**: Procedural only; no custom maps, scenarios, or editor
+This document was rewritten on 2026-04-30 to reflect what's actually in the codebase (not what the original plan claimed was done).
 
 ---
 
-## Phase 1: Core Experience Hardening (Foundation)
+## What works
 
-Goal: Fix remaining bugs and add missing foundational RTS features before building content on top.
+Verified by running the game and a smoke harness:
 
-### 1.1 Save / Load System
-- What: Serialize GameState to JSON/binary - units, buildings, resources, player data, camera position, AI state
-- Why: Essential for any serious RTS; enables testing mid-game scenarios
-- Implementation: Add SaveManager in managers/. Serialize entity lists with template references + state deltas. Handle Animation and pygame.Surface carefully (re-link on load)
-- Files: New managers/save_manager.py, modify core/game.py to hook F5 (save) / F9 (load)
-
-### 1.2 Control Groups
-- What: Ctrl+1-9 to assign selected units to a group; 1-9 to recall selection; Shift+1-9 to add
-- Why: Fundamental RTS UX; currently impossible to quickly manage army
-- Implementation: Add control_groups dict to SelectionManager. Handle multi-key combos in handle_events
-- Files: managers/selection_manager.py, core/game.py
-
-### 1.3 Unit Stances
-- What: Aggressive / Defensive / Stand Ground / No Attack
-- Why: Prevents units from suicidally chasing enemies across the map
-- Implementation: Add stance enum to Unit. Modify combat_system.py auto-engage logic to respect stance
-- Files: entities/unit.py, systems/combat_system.py, ui/components/unit_panel.py
-
-### 1.4 Formation Movement
-- What: When multiple units are given a move order, they maintain a formation (line, box, wedge) instead of converging to a single point
-- Why: Prevents unit blobbing and enables tactical positioning
-- Implementation: In SelectionManager.handle_right_click, calculate formation offsets based on unit count and spread units across destination area. Use movement_system.py to path each unit individually to its assigned formation slot
-- Files: managers/selection_manager.py, systems/movement_system.py
-
-### 1.5 Victory / Defeat Conditions
-- What: Standard RTS conditions - destroy enemy castle, conquest, annihilation. Add a victory screen
-- Why: Game currently has no win/lose state
-- Implementation: Check each frame if any player has zero castles. If human player loses, show defeat screen. If all AI defeated, show victory screen. Add screens/ package for menu flows
-- Files: New screens/victory_screen.py, screens/defeat_screen.py, modify core/game.py
+- **Core gameplay**: selection, movement, combat, gathering, building, production
+- **Victory/defeat overlay** (R restart, ESC/Q quit)
+- **Control groups** (Ctrl+1–9 set, 1–9 recall, Shift+Ctrl add)
+- **Unit stances** (Aggressive / Defensive / Stand Ground / No Attack, S to cycle)
+- **Formation movement** (Ring / Line / Box / Wedge, F to cycle)
+- **Save/Load** (F5/F9) — but only saves a thin slice of state, see "Deferred" below
+- **Pause menu** (ESC), **main menu**, **screen shake** on castle destruction
+- **Floating damage numbers**, **particle effects** (attack/death/build/gather)
+- **Fog of war** (3-state per-player grid + overlay rendering)
+- **Tree regrowth** (60s after depletion)
+- **Content**: 6 unit types (worker/warrior/archer/spearman/cavalry/healer), 12 buildings, 4 AI personalities (rusher/boomer/turtle/balanced)
 
 ---
 
-## Phase 2: Content Expansion (Breadth)
+## Bugs found in review and fixed
 
-Goal: Add more units, buildings, and factions so the game has strategic variety.
+These were marked complete in the original plan but were broken or dead. Fixed on 2026-04-30:
 
-### 2.1 New Unit Types
-Add at least 2-3 more units to create a rock-paper-scissors dynamic:
-
-- Spearman: Anti-cavalry melee, counters Cavalry, low cost
-- Cavalry: Fast raider/flanking, counters Archers, high cost
-- Siege Weapon (e.g. Catapult): Anti-building ranged, counters melee, high wood/gold/stone cost
-- Healer/Monk: Support/healing, countered by archers, gold cost
-
-Implementation: Add entries to data/units.json. Add sprites. Add production entries in entities/building.py. Update systems/combat_system.py for new mechanics (healing, splash damage)
-Files: data/units.json, entities/building.py, systems/combat_system.py
-
-### 2.2 New Buildings
-- Stable: Produces cavalry (wood/stone)
-- Workshop: Produces siege (wood/stone)
-- Temple/Monastery: Produces healers, techs (gold/stone)
-- Blacksmith: Enables unit upgrades (wood/gold)
-- Market: Trade resources, economic techs (wood/gold)
-- Wall / Gate: Defensive barriers (stone)
-- Keep: Upgraded watchtower (stone/wood)
-
-Implementation: Add to data/buildings.json. Update building_system.py placement rules. Update simple_ai.py build order and placer logic
-Files: data/buildings.json, systems/building_system.py, systems/ai/simple_ai.py
-
-### 2.3 Tech Tree & Upgrades
-- What: Basic upgrades - +1 attack, +1 armor, faster gathering, increased carry capacity
-- Why: Adds strategic decision-making and economic scaling
-- Implementation: Create data/techs.json. Add researched_techs set to Player. Modify Unit.calculate_damage() and armor values to check techs. Add research queue to Blacksmith and similar buildings. UI: show tech buttons in building panel
-- Files: New data/techs.json, entities/player.py, entities/unit.py, ui/components/production_panel.py
-
-### 2.4 Resource Depletion & Renewal
-- What: Gold/stone deposits deplete permanently; trees regrow slowly; farms can be replanted
-- Why: Creates map control tension and late-game resource scarcity
-- Implementation: Add amount_remaining logic to gold/stone (like trees). Add regrowth timer for trees. Add reseed farm task for workers
-- Files: entities/resource.py, systems/gathering_manager.py
+| Issue | Resolution |
+|---|---|
+| `scout_brain` crashed every AI tick (`random` not imported). The exception was swallowed by a broad `except` in `simple_ai.update`, blocking `worker_brain.assign_idle_workers`. AI workers sat idle forever. | Added `import random` |
+| Tech tree (`data/techs.json`, `Player.tech_*` attributes, bonus reads in `Unit.calculate_damage` / `gathering_manager`) — no UI to research, no AI logic, never reachable | Stripped (will revisit when needed) |
+| JSON re-reads on hot paths — `floating_ui._get_max_hp`, `production_panel.draw`, `military_brain._get_unit_max_hp`, `unit_panel._get_unit_max_hp` opened `data/units.json` / `data/buildings.json` per call (hundreds of disk reads/sec) | Cached on `game.game_data["costs"]` and existing template objects |
+| Borrowed sprites — spearman/cavalry/healer reused warrior/archer art with no visual difference | Per-unit-type secondary tint (spearman=green, cavalry=tan, healer=cyan) in `sprite_manager.UNIT_TYPE_TINTS` |
+| `print()` calls leaked back into `production_panel.handle_click` | Removed |
 
 ---
 
-## Phase 3: AI & Simulation Depth (Brain)
+## Still broken or shallow (not yet addressed)
 
-Goal: Make the AI feel intelligent and unpredictable, not scripted.
+### AI (next focus — see "Plan: AI rewrite")
+- `_try_train` only handles worker/warrior/archer — spearman/cavalry/healer are filtered out at the orchestrator level even though `MilitaryBrain` knows about them
+- AI never builds stable, temple, blacksmith, or wall in any phase
+- "Adaptive build order" in `_tick_early` is a fixed priority list dressed as scoring, not actually reactive to context
+- Broad `except` in `simple_ai.update` masks runtime bugs (the missing `random` import was hidden for a long time this way)
+- Defensive-stance units freeze in the field after chasing past `stance_chase_distance` instead of returning to home position
+- Pre-existing: workers occasionally get stuck at gold/wood nodes (pathfinding/collision edge case, predates this plan)
 
-### 3.1 AI Scouting
-- What: AI sends a fast unit (or its first worker) to explore the map and find enemy bases / resources
-- Why: Currently AI knows player location implicitly via find_attack_target
-- Implementation: Add ScoutBrain class in systems/ai/. Track explored tiles. Scout visits unseen areas. Once enemy castle found, store location. Share vision with other AI modules
-- Files: New systems/ai/scout_brain.py, modify systems/ai/simple_ai.py
+### Save/Load — deferred
+Currently saves only camera, players, basic unit/building/resource/site fields. Misses: terrain (procedural — needs seed-based regeneration), AI state, fog grids, scout explored tiles, paths, gathering/building/combat targets, production queues, formation type, control groups, stance home positions, last attack times, tree regrowth tracker.
 
-### 3.2 Adaptive Build Orders
-- What: AI chooses build order based on map context (e.g., if far from wood, prioritize lumbermill early; if enemy rushes, skip economy and build army)
-- Why: Scripted build orders are exploitable and boring
-- Implementation: Replace EARLY_BUILD_ORDER list with a priority scoring system. Each tick, score possible actions (train worker, build farm, build barracks, scout) based on current state + map knowledge. Pick highest score
-- Files: systems/ai/simple_ai.py
+The load won't crash, but post-reload state diverges meaningfully from saved state. **Deferred until after the AI rewrite** — save/load semantics depend on what AI state actually is.
 
-### 3.3 Military Micro & Retreat
-- What: AI retreats heavily damaged units. AI uses hit-and-run with archers. AI focuses fire
-- Why: Dramatically increases AI combat effectiveness without giving it unfair bonuses
-- Implementation: In MilitaryBrain.update, check unit HP. If < 30%, command retreat to castle. If archer and enemy melee approaching, kite backward. For focus fire, group military and target weakest enemy first
-- Files: systems/ai/military_brain.py
+### Fog of war performance
+`update()` walks the full grid every frame; `_draw_fog_overlay` allocates a fresh `pygame.Surface(SRCALPHA)` per visible tile per frame. Should tick at ~5Hz and reuse two preallocated alpha surfaces.
 
-### 3.4 Multiple AI Personalities
-- What: Different AI players have distinct strategies - Rusher, Boomer, Turtle, Balanced
-- Why: Increases replayability
-- Implementation: Add personality attribute to AI Player. Parametrize SimpleAISystem thresholds (e.g., Rusher transitions to ATTACK at 4 units instead of 6; Boomer trains 8 workers before army). Pick personality at game start
-- Files: entities/player.py, systems/ai/simple_ai.py
+### Sound coverage
+6 of 9 `play_*` methods (`attack`, `select`, `move_order`, `gather`, `build_complete`, `alert`) are defined but never called.
 
-### 3.5 Fog of War
-- What: Players can only see areas within unit/building sight range. Minimap shows explored but not currently visible areas as dimmed
-- Why: Core RTS feature; enables ambushes, scouting, and hidden bases
-- Implementation: Add visibility_grid per player (2D array: unexplored / explored-but-fogged / visible). Update each frame based on unit sight radii. Only render visible objects. AI uses its own visibility for decision making
-- Files: New systems/fog_of_war.py, world/map.py, systems/rendering_system.py, ui/minimap.py
+### Healer doesn't heal
+Trainable, walks around, no healing logic anywhere.
+
+### Wall is just a 1×1 building
+No gate, no thin profile, no special placement logic.
+
+### Test coverage
+70 tests pass but they verify constants, attribute presence, and pure-function math. They did NOT catch the `random` import bug, the tech-tree wiring gap, or the unit-type filtering in `_try_train`. Need integration tests that actually run the AI for several ticks and assert observable outcomes.
 
 ---
 
-## Phase 4: Polish & Presentation (Feel)
+## Plan: AI rewrite (Option B — utility AI)
 
-Goal: Make the game feel satisfying and professional to play.
+Replace the 4-phase state machine in `systems/ai/simple_ai.py` with a flat list of weighted goals scored each tick.
 
-### 4.1 Particle Effects
-- What: Simple particles for attacks (sparks, blood), building completion (confetti/dust), resource gathering (wood chips), death (smoke)
-- Why: Adds visual feedback and makes actions feel impactful
-- Implementation: Create Particle class and ParticleSystem in systems/. Spawn particles on attack events, construction completion, death events
-- Files: New systems/particle_system.py, systems/combat_system.py, systems/building_system.py
+### Why
+The current "adaptive" AI is scripted in disguise. A utility AI will:
+- Genuinely react to the game state (e.g., switch from economy to defense when attacked)
+- Make personalities meaningful (weights on goal categories instead of threshold tweaks)
+- Make adding new content trivial (new unit type → new training goal, no orchestrator changes)
+- Surface bugs faster (narrow per-goal exception handling instead of a god-`try`)
 
-### 4.2 Screen Shake & Camera Effects
-- What: Subtle screen shake on building destruction, heavy attacks, and castle death
-- Why: Adds weight to major events
-- Implementation: Add shake_offset to Camera. Decay shake over time. Trigger from combat and building destruction events
-- Files: world/camera.py, systems/combat_system.py
+### Sketch
+- Each tick, evaluate a list of `Goal` candidates. Each returns `(score, action_callable)`.
+- Goals carry their own state ("we're 50% through training a barracks") so they don't oscillate.
+- Personality params become per-category weights (rusher: military × 2, boomer: economy × 2, etc.).
+- Existing sub-brains (`worker_brain`, `military_brain`, `scout_brain`, `building_placer`) are reused as helpers — what changes is the orchestrator.
 
-### 4.3 Sound Design
-- What: Attack sounds, construction sounds, unit selection responses, ambient map audio, UI clicks
-- Why: Audio is half the experience. Currently almost silent
-- Implementation: Add SoundManager in managers/. Load sounds in __init__. Play sounds at relevant game events. Add volume controls to config
-- Files: New managers/sound_manager.py, core/config.py, core/game.py
+### Goal categories (initial set)
+- **Economy**: train_worker, build_farm, build_house, build_lumbermill, build_mine, build_quarry
+- **Military**: build_barracks, build_stable, train_warrior, train_archer, train_spearman, train_cavalry
+- **Tactical**: scout, defend_base, attack_castle, retreat_damaged, focus_fire, kite_with_archers
+- **Support** (later): build_temple, train_healer, heal_units (once healers heal)
 
-### 4.4 Improved UI Feedback
-- What: Damage numbers floating on hit, building progress bar, unit production progress in UI, resource gain/loss floating text
-- Why: Gives players immediate understanding of what is happening
-- Implementation: Extend floating_ui.py. Hook into combat_system for damage numbers, building_system for progress, production_manager for queue status
-- Files: ui/floating_ui.py, systems/combat_system.py, systems/building_system.py
+### Design principles
+- No broad `except`. Per-goal failure logs and skips, doesn't hide.
+- All cost / HP lookups via `game.game_data` (no JSON re-reads).
+- Personality config in one dict, weights only — no scattered thresholds.
 
-### 4.5 Main Menu & Game Flow
-- What: Main menu with Start Game, Load Game, Settings, Exit. Pause menu (Esc). Settings for resolution, volume, game speed default
-- Why: Professional presentation. Currently game starts instantly with no menu
-- Implementation: Create screens/main_menu.py, screens/pause_menu.py, screens/settings_menu.py. Transition between Game and menus in core/game.py or new core/game_app.py
-- Files: New screens/main_menu.py, screens/pause_menu.py, screens/settings_menu.py, core/game.py
-
----
-
-## Phase 5: Code Quality & Maintainability (Tech Debt)
-
-Goal: Clean up issues that slow down future development.
-
-### 5.1 Remove Debug Passthroughs
-- What: Many files have comment + pass where debug prints were removed (e.g., # Debug: Unit stuck + pass). Either restore useful debug logs or remove the dead comments entirely
-- Why: Clutters codebase and makes it harder to read
-- Files: systems/movement_system.py, systems/combat_system.py, systems/pathfinding.py
-
-### 5.2 Centralize Magic Numbers
-- What: Hardcoded values scattered everywhere - stuck thresholds (60, 120, 300 frames), collision buffers (2 units), attack range multipliers (0.9, 0.85)
-- Why: Makes balancing difficult and bugs likely
-- Implementation: Move all balance-relevant numbers to core/config.py or new core/balance.py
-- Files: core/config.py, entities/unit.py, systems/movement_system.py, systems/combat_system.py, systems/pathfinding.py
-
-### 5.3 Add Unit Tests for Critical Systems
-- What: Tests for pathfinding (can find path around obstacle), combat (damage calculation correct), production (resources deducted, unit spawned), AI (build order progresses)
-- Why: Prevents regressions as the game grows
-- Implementation: Create tests/ directory. Use pytest. Test pure functions first (calculate_damage, _can_afford, pathfinding on simple grids)
-- Files: New tests/test_pathfinding.py, tests/test_combat.py, tests/test_production.py
-
-### 5.4 Decouple Game from Pygame for Headless Simulation
-- What: Extract pure logic (AI, combat, pathfinding, economy) so it can run without pygame initialization
-- Why: Enables faster AI training, automated testing, and potential multiplayer server
-- Implementation: Move all pygame-dependent code (drawing, input, sound) out of systems/. Keep systems/ as pure Python logic. Core game loop becomes: update logic -> render (optional)
-- Files: Gradual refactor across core/game.py, systems/*.py
+### Out of scope for this rewrite
+- Tech research (deferred — easier to wire as a goal once research itself exists)
+- Healer healing (separate feature)
+- Save/load round-trips (deferred — depends on stable AI state shape)
 
 ---
 
-## Recommended Priority Order
+## Deferred (revisit later)
 
-Start with Phase 1 items first because everything else depends on a solid foundation:
-
-1. Victory/Defeat (1.5) - gives the game a point
-2. Control Groups (1.2) - essential UX
-3. Unit Stances (1.3) - fixes common player frustration
-4. Save/Load (1.1) - enables longer play sessions
-5. Formation Movement (1.4) - makes army control tolerable
-
-Then move to Phase 2 for content:
-6. New Units (2.1) and Buildings (2.2)
-7. Tech Tree (2.3)
-8. Resource Depletion (2.4)
-
-Then Phase 3 for AI depth:
-9. Fog of War (3.5)
-10. AI Scouting (3.1)
-11. Adaptive Build Orders (3.2)
-12. Military Micro (3.3)
-13. AI Personalities (3.4)
-
-Then Phase 4 for polish:
-14. Particles, Screen Shake, Sound, UI Feedback
-15. Main Menu & Game Flow
-
-Finally Phase 5 as ongoing maintenance alongside other work.
-
----
-
-## Quick Wins (Can be done in 1-2 sessions each)
-
-- Victory/Defeat screens
-- Control groups
-- Unit stances
-- Removing debug passthrough comments
-- Centralizing magic numbers into config
-- Basic floating damage numbers
-- Screen shake on castle destruction
-- Adding 1-2 new units with existing sprites
-
----
-
----
-
-## Implementation Progress Log
-
-### 2026-04-29 - Phase 1 Completed ✅
-**Branch**: `feature/improvement-plan`  
-**Commit**: `cd0a21a`
-
-All 5 foundation features implemented and tested:
-- Victory/Defeat overlay with restart/quit
-- Control groups (Ctrl+1-9 assign, 1-9 recall, Shift+Ctrl add)
-- Unit stances (Aggressive/Defensive/Stand Ground/No Attack, S key)
-- Save/Load (F5/F9, JSON serialization)
-- Formation movement (Ring/Line/Box/Wedge, F key)
-- **Tests**: 19 passing
-
-### 2026-04-29 - Phase 2 Completed ✅
-**Commit**: `a0f3d24`
-
-Content expansion delivered:
-- 3 new units: Spearman, Cavalry, Healer
-- 4 new buildings: Stable, Temple, Blacksmith, Wall
-- Tech tree JSON with 4 technologies (attack, armor, gathering, cavalry speed)
-- Tech bonuses integrated into damage calc and gathering
-- Tree regrowth after 60 seconds
-- AI trains new units with balanced composition
-- **Tests**: 17 passing
-
-### 2026-04-29 - Phase 3 Completed ✅
-**Commit**: `344092d`
-
-AI depth improvements:
-- Military micro: retreat at <30% HP, archer kiting, focus fire
-- 4 AI personalities (Rusher/Boomer/Turtle/Balanced) with parameterized thresholds
-- AI scouting system with explored tile tracking and scout assignment
-- AI uses discovered enemy castle position for attacks
-- **Tests**: 14 passing
-
-### 2026-04-29 - Phase 4 Completed ✅
-**Commit**: `2686022`
-
-Polish and presentation:
-- Floating damage numbers on every hit
-- Screen shake on building destruction (15px castle, 5px major buildings)
-- Main menu with Start Game / Load Game / Exit
-- Updated main.py entry point
-- **Tests**: 10 passing
-
-### Summary
-- **Total commits**: 5 on `feature/improvement-plan`
-- **Total unit tests**: 60, all passing
-- **Game launches successfully** from main menu
-
----
-
-## Updated Quick Wins Status
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Victory/Defeat screens | ✅ Done | R to restart, ESC/Q to quit |
-| Control groups | ✅ Done | Full keyboard support |
-| Unit stances | ✅ Done | 4 stances, shown in UI panel |
-| Save/Load | ✅ Done | F5/F9, JSON-based |
-| Formation movement | ✅ Done | 4 formations, F key cycle |
-| New units (Spearman, Cavalry, Healer) | ✅ Done | Using warrior/archer sprites as fallback |
-| New buildings (Stable, Temple, Blacksmith, Wall) | ✅ Done | Using existing building sprites |
-| Tech tree | ✅ Done | 4 techs, JSON-defined |
-| Tree regrowth | ✅ Done | 60s timer |
-| AI Micro/Retreat | ✅ Done | 30% threshold |
-| AI Personalities | ✅ Done | 4 types, random assignment |
-| AI Scouting | ✅ Done | ScoutBrain module |
-| Damage numbers | ✅ Done | Floating UI notifications |
-| Screen shake | ✅ Done | Camera shake system |
-| Main Menu | ✅ Done | Keyboard + mouse support |
-| Fog of War | ✅ Done | 3-state per-player grid |
-| Adaptive Build Orders | ✅ Done | Priority scoring system |
-| Particle Effects | ✅ Done | Attack/death/build/gather |
-| Sound Design | ✅ Done | Synthesized effects |
-| Pause Menu | ✅ Done | ESC toggle with overlay |
-
-### 2026-04-29 - Phase 5 Completed ✅
-**Commit**: `2acae8e`
-
-Final feature round:
-- Fog of War with 3-state per-player visibility grid (unexplored / explored / visible)
-- Adaptive Build Orders: AI uses priority scoring instead of scripted steps
-- Particle Effects: attack sparks, death bursts, build dust, gathering chips
-- Sound Design: synthesized placeholder sounds (attack, death, select, build, alert)
-- Pause Menu: ESC toggles pause with dark overlay
-- Fog overlay rendering with semi-transparent tiles
-- All rendering respects fog of war visibility
-- **Tests**: 14 passing (74 total)
-
-### Remaining from original plan (Future Work)
-- Settings menu (volume, resolution, game speed default)
-- Code quality: remove debug passthrough comments, centralize magic numbers
-- More comprehensive unit test coverage for pathfinding, production pipeline
-- Online multiplayer (requires networking stack)
-- Map editor
-- Campaign / scenario system
-
----
-
-*Document last updated on 2026-04-29 after Phase 1-4 implementation*
+- Save/Load full state (post-AI-rewrite)
+- Tech tree (post-AI-rewrite, wired as a research goal)
+- Settings menu (volume, resolution, default game speed)
+- Healer healing logic
+- Wall as gate/wall-piece
+- Map editor, scenarios
+- Online multiplayer
+- Fog-of-war perf pass
+- Sound coverage on the 6 unused effects

@@ -391,18 +391,10 @@ class UnitPanel:
             pygame.draw.rect(panel_surface, health_color, (x, bar_y, fill_width, bar_height))
     
     def _get_unit_max_hp(self, unit):
-        """Get the maximum HP for a unit from JSON data"""
-        try:
-            with open('data/units.json', 'r') as f:
-                units_data = json.load(f)
-            
-            for unit_data in units_data:
-                if unit_data['name'] == unit.name:
-                    return unit_data.get('hp', 100)
-        except:
-            pass
-        
-        # Default max HP if not found
+        """Get the maximum HP for a unit from cached game data."""
+        template = self.game.game_data["units"].get(unit.name)
+        if template:
+            return template.hp
         return 100
     
     def _get_health_color(self, hp_percentage):

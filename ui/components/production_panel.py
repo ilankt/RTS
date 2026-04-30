@@ -76,23 +76,14 @@ class ProductionPanel:
         button_y = ui_y + 35
         button_size = 75
         button_spacing = 5
-        
+
         human_player = self.game.players[0]
-        
-        # Load unit data for costs
-        try:
-            with open('data/units.json', 'r') as f:
-                units_data = json.load(f)
-            units_dict = {unit['name']: unit for unit in units_data}
-        except:
-            units_dict = {}
-        
+
+        # Use cached cost data from game_data
+        cost_lookup = self.game.game_data.get("costs", {})
+
         for i, unit_type in enumerate(selected_building.can_produce):
-            if unit_type not in units_dict:
-                continue
-            
-            unit_data = units_dict[unit_type]
-            costs = unit_data.get('costs', {})
+            costs = cost_lookup.get(unit_type, {})
             
             # Check if player can afford this unit
             can_afford = True
@@ -112,7 +103,6 @@ class ProductionPanel:
             self.unit_production_buttons.append({
                 'rect': button_rect,
                 'unit_type': unit_type,
-                'unit_data': unit_data,
                 'can_afford': can_afford,
                 'building': selected_building
             })
@@ -240,15 +230,10 @@ class ProductionPanel:
         for i, button in enumerate(self.unit_production_buttons):
             if button['rect'].collidepoint(mouse_pos):
                 if button['can_afford']:
-                    # Start production
-                    success, message = self.game.production_manager.start_production(
+                    self.game.production_manager.start_production(
                         button['building'], button['unit_type']
                     )
-                    print(f"Production: {message}")
-                    return True
-                else:
-                    print(f"Cannot afford {button['unit_type']}")
-                    return True
+                return True
         return False
     
     def handle_hover(self, mouse_pos):

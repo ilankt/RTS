@@ -154,28 +154,11 @@ class FloatingUI:
         pygame.draw.rect(surface, (0, 0, 0), background_rect, 1)
     
     def _get_max_hp(self, obj):
-        """Get maximum HP for an object from game data"""
-        try:
-            if obj in self.game.units:
-                # Load unit data to get max HP
-                import json
-                with open('data/units.json', 'r') as f:
-                    units_data = json.load(f)
-                for unit_data in units_data:
-                    if unit_data['name'] == obj.name:
-                        return unit_data['hp']
-            elif obj in self.game.buildings:
-                # Load building data to get max HP
-                import json
-                with open('data/buildings.json', 'r') as f:
-                    buildings_data = json.load(f)
-                for building_data in buildings_data:
-                    if building_data['name'] == obj.name:
-                        return building_data['hp']
-        except:
-            pass
-        
-        # Fallback: assume current HP is max HP if object is undamaged
+        """Get maximum HP for an object from cached game data."""
+        templates = self.game.game_data["units"] if obj in self.game.units else self.game.game_data["buildings"]
+        template = templates.get(obj.name)
+        if template:
+            return template.hp
         return getattr(obj, 'hp', 100)
     
     def add_resource_notification(self, building, resource_type, amount):

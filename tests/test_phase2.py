@@ -17,10 +17,6 @@ class MockPlayer:
         self.name = "Test"
         self.color = (255, 255, 255)
         self.resources = {"food": 100, "gold": 200, "stone": 100, "wood": 200}
-        self.tech_attack_bonus = 0
-        self.tech_armor_bonus = 0
-        self.tech_gathering_multiplier = 1.0
-        self.researched_techs = set()
 
 
 # ---------------------------------------------------------------------------
@@ -73,60 +69,6 @@ class TestNewBuildings:
         building = Building("wall", [1,1], 2000, None, 8, radius=32, armor_type="fortified", armor_value=10)
         assert building.armor_value == 10
         assert building.hp == 2000
-
-
-# ---------------------------------------------------------------------------
-# Tech System Tests
-# ---------------------------------------------------------------------------
-class TestTechSystem:
-    def test_player_starts_with_no_techs(self):
-        player = MockPlayer()
-        assert player.researched_techs == set()
-    
-    def test_tech_attack_bonus_applied(self):
-        player = MockPlayer()
-        player.tech_attack_bonus = 2
-        
-        unit = Unit("warrior", [1,1], 250, 50, 10, {}, radius=10, can_attack=True,
-                   min_damage=18, max_damage=22, player=player)
-        
-        # Mock target
-        class Target:
-            armor_type = "light"
-            armor_value = 0
-        
-        import random
-        random.seed(0)
-        dmg = unit.calculate_damage(Target())
-        # Base 18-22 + 2 tech bonus = 20-24, vs light slash = 1.5x = 30-36
-        assert dmg >= 30
-    
-    def test_tech_armor_bonus_applied(self):
-        p = MockPlayer()
-        p.tech_armor_bonus = 2
-        
-        unit = Unit("warrior", [1,1], 250, 50, 10, {}, radius=10, can_attack=True,
-                   min_damage=10, max_damage=10, player=p)
-        
-        class Target:
-            armor_type = "light"
-            armor_value = 0
-            player = p
-        
-        import random
-        random.seed(0)
-        dmg = unit.calculate_damage(Target())
-        # 10 * 1.5 = 15, minus target armor (0 + 2 tech) = 13
-        assert dmg == 13
-    
-    def test_techs_json_loads(self):
-        assert os.path.exists("data/techs.json")
-        with open("data/techs.json") as f:
-            techs = json.load(f)
-        assert len(techs) >= 3
-        tech_names = [t["name"] for t in techs]
-        assert "attack_upgrade_1" in tech_names
-        assert "armor_upgrade_1" in tech_names
 
 
 # ---------------------------------------------------------------------------

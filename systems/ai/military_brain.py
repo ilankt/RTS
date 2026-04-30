@@ -143,16 +143,10 @@ class MilitaryBrain:
         return best
     
     def _get_unit_max_hp(self, unit):
-        """Get max HP for a unit from game data"""
-        try:
-            import json
-            with open('data/units.json') as f:
-                units_data = json.load(f)
-            for ud in units_data:
-                if ud['name'] == unit.name:
-                    return ud.get('hp', 100)
-        except:
-            pass
+        """Get max HP for a unit from cached game data."""
+        template = self.game.game_data["units"].get(unit.name)
+        if template:
+            return template.hp
         return getattr(unit, 'hp', 100)
 
     def train_units(self, player, max_queue: int = 2):

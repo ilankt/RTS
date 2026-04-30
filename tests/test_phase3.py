@@ -26,6 +26,7 @@ class MockGame:
         self.construction_sites = []
         self.players = []
         self.game_map = None
+        self.game_data = {"costs": {}, "units": {}, "buildings": {}}
 
 
 # ---------------------------------------------------------------------------

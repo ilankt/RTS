@@ -75,22 +75,41 @@ def tint_surface_blue(surface, color):
     return tinted_surface
 
 
+UNIT_TYPE_TINTS = {
+    # Multiplicative RGB tint applied after player tint, so units that share
+    # a sprite sheet (warrior/spearman/cavalry, archer/healer) read distinct
+    # at a glance.
+    "spearman": (180, 230, 180),  # greenish - light infantry
+    "cavalry":  (240, 200, 160),  # tan/warm - mounted
+    "healer":   (200, 230, 240),  # cool cyan - support
+}
+
+
+def apply_unit_type_tint(surface, color):
+    """Multiply RGB by `color/255`, leaving alpha untouched."""
+    tinted = surface.copy()
+    overlay = pygame.Surface(surface.get_size())
+    overlay.fill(color)
+    tinted.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+    return tinted
+
+
 class SpriteManager:
     """Manages loading and tinting of game sprites"""
-    
+
     def __init__(self, game_data, players):
         self.game_data = game_data
         self.players = players
         self.sprites = self.load_sprites()
-    
+
     def load_sprites(self):
         sprites = {"buildings": {}, "resources": {}, "units": {}}
-        
+
         # Load and tint building sprites
         for building_name, building_data in self.game_data["buildings"].items():
             original_sprite = pygame.image.load(building_data.sprite).convert_alpha()
             sprites["buildings"][building_name] = [tint_surface(original_sprite, p.color) for p in self.players]
-        
+
         # Load and tint construction sprite
         construction_sprite = pygame.image.load("assets/sprites/Buildings/Construction.png").convert_alpha()
         sprites["buildings"]["construction"] = [tint_surface(construction_sprite, p.color) for p in self.players]
@@ -102,10 +121,14 @@ class SpriteManager:
         # Load and tint unit animation sheets
         for unit_name, unit_data in self.game_data["units"].items():
             sprites["units"][unit_name] = {}
+            type_tint = UNIT_TYPE_TINTS.get(unit_name)
             for anim_name, anim_path in unit_data.animations.items():
                 original_sheet = pygame.image.load(anim_path).convert_alpha()
-                sprites["units"][unit_name][anim_name] = [tint_surface_blue(original_sheet, p.color) for p in self.players]
-                
+                player_sheets = [tint_surface_blue(original_sheet, p.color) for p in self.players]
+                if type_tint:
+                    player_sheets = [apply_unit_type_tint(s, type_tint) for s in player_sheets]
+                sprites["units"][unit_name][anim_name] = player_sheets
+
         return sprites
     
     def get_building_sprite(self, building_name, player_index):

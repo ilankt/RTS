@@ -38,12 +38,5 @@ class Player:
         self.build_speed_bonus = 1.0  # Multiplier for construction speed
         self.resource_storage_bonus = 1.0  # Multiplier for resource storage capacity
         
-        # Technology tracking
-        self.researched_techs = set()
-        self.tech_attack_bonus = 0
-        self.tech_armor_bonus = 0
-        self.tech_gathering_multiplier = 1.0
-        self.tech_cavalry_speed_bonus = 1.0
-        
         # AI personality (for AI players only)
         self.ai_personality = "balanced"  # rusher, boomer, turtle, balanced

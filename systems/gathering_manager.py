@@ -75,9 +75,6 @@ class GatheringManager:
                 player_multiplier = 1.0
                 if hasattr(worker, 'player') and worker.player:
                     player_multiplier = worker.player.gathering_rates.get(resource_type, 1.0)
-                    # Apply tech gathering multiplier
-                    tech_multiplier = getattr(worker.player, 'tech_gathering_multiplier', 1.0)
-                    player_multiplier *= tech_multiplier
                 gather_rate = base_rate * player_multiplier
                 amount_to_gather = gather_rate * delta_time
                 
