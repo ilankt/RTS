@@ -1,6 +1,12 @@
 """Worker assignment logic - finds idle workers and gives them jobs."""
 import math
 from core.config import DROP_OFF_BUILDINGS
+from systems.ai.economy_helpers import (
+    CRITICAL_STOCKPILE,
+    RESOURCE_SERVICE_RADIUS,
+    find_nearest_dropoff,
+    known_resources,
+)
 from utils.debug_logger import debug_log
 
 
@@ -97,7 +103,7 @@ class WorkerBrain:
             self._command_build(worker, site)
             return
 
-        # 3. Gather the resource we have least of
+        # 3. Gather the best known resource for short gather/drop-off loops.
         resource = self._find_best_resource_to_gather(worker, player)
         if resource:
             debug_log.log(f"AI {player.name}: Worker assigned to gather {resource.name} at ({resource.x:.0f}, {resource.y:.0f})", "AI")
@@ -145,58 +151,70 @@ class WorkerBrain:
         return best
 
     def _find_best_resource_to_gather(self, worker, player):
-        """Pick the best resource to gather, spreading workers across types.
-
-        Uses a simple score: lower stockpile = higher need, but penalizes
-        types that already have many workers assigned.
-        """
+        """Pick the best known resource, preferring serviced short loops."""
         # Count how many workers are already gathering each type
-        gathering_counts = {"gold": 0, "wood": 0, "stone": 0, "food": 0}
+        gathering_counts = {"gold": 0, "wood": 0, "stone": 0}
         for unit in self.game.units:
             if unit.player == player and unit.name == "worker" and unit.gathering_target:
                 res_name = getattr(unit.gathering_target, "name", None)
                 if res_name in gathering_counts:
                     gathering_counts[res_name] += 1
 
-        resources = player.resources
-        best_type = None
-        best_score = float("inf")
+        candidates = [
+            resource
+            for resource in known_resources(self.game, player)
+            if resource.name in gathering_counts and resource.amount_remaining > 0
+        ]
+        if not candidates:
+            return None
 
-        for res_type in ["gold", "wood", "stone", "food"]:
-            # Check if this resource actually exists on the map (lightweight)
-            if not self._has_resource_of_type(res_type):
+        has_serviced_option = False
+        for resource in candidates:
+            dropoff, dropoff_dist = find_nearest_dropoff(
+                self.game,
+                player,
+                resource.name,
+                (resource.x, resource.y),
+            )
+            if dropoff and dropoff_dist <= RESOURCE_SERVICE_RADIUS:
+                has_serviced_option = True
+                break
+
+        best_resource = None
+        best_score = float("inf")
+        for resource in candidates:
+            stockpile = player.resources.get(resource.name, 0)
+            is_critical = stockpile <= CRITICAL_STOCKPILE.get(resource.name, 0)
+
+            dropoff, dropoff_dist = find_nearest_dropoff(
+                self.game,
+                player,
+                resource.name,
+                (resource.x, resource.y),
+            )
+            if not dropoff:
                 continue
-            # Score = stockpile + 100 per worker already assigned (lower is better)
-            score = resources.get(res_type, 0) + gathering_counts[res_type] * 100
+            serviced = dropoff_dist <= RESOURCE_SERVICE_RADIUS
+            if not serviced and has_serviced_option and not is_critical:
+                continue
+
+            worker_dist = math.hypot(worker.x - resource.x, worker.y - resource.y)
+            assigned = self._count_workers_at_resource(resource)
+            score = (
+                stockpile
+                + gathering_counts[resource.name] * 120
+                + assigned * 160
+                + worker_dist * 0.08
+                + dropoff_dist * 0.25
+            )
+            if not serviced:
+                score += 220 if is_critical else 450
+
             if score < best_score:
                 best_score = score
-                best_type = res_type
+                best_resource = resource
 
-        if best_type:
-            return self._find_closest_resource(worker, best_type)
-        return None
-
-    def _has_resource_of_type(self, resource_type):
-        """Quick check: does any resource of this type exist on the map?"""
-        for res in self.game.resources:
-            if res.name == resource_type and res.amount_remaining > 0:
-                return True
-        return False
-
-    def _find_closest_resource(self, worker, resource_type):
-        """Find closest resource of given type, penalizing crowded nodes."""
-        best = None
-        best_score = float("inf")
-        for res in self.game.resources:
-            if res.name != resource_type or res.amount_remaining <= 0:
-                continue
-            dist = math.hypot(worker.x - res.x, worker.y - res.y)
-            assigned = self._count_workers_at_resource(res)
-            effective_dist = dist + assigned * 80
-            if effective_dist < best_score:
-                best_score = effective_dist
-                best = res
-        return best
+        return best_resource
 
     def _count_workers_at_resource(self, resource):
         """Count how many workers are gathering or returning to a specific resource."""

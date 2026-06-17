@@ -4,6 +4,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from systems.collision_system import CollisionSystem
+from core.game import Game
 from systems.gathering_manager import GatheringManager
 from systems.movement_system import MovementSystem
 from systems.pathfinding import Pathfinding
@@ -212,6 +213,29 @@ def test_loaded_worker_without_dropoff_fails_cleanly():
     assert task.phase == FAILED
     assert task.failure_reason == "no_dropoff"
     assert worker.resource_amount == 4
+
+
+def test_depleted_resource_cleanup_preserves_carried_cargo():
+    game, player, _, wood = make_economy_game()
+    worker = game.units[0]
+    wood.amount_remaining = 0
+    worker.resource_type = "wood"
+    worker.resource_amount = 4
+    worker.gathering_target = wood
+    worker.previous_gathering_target = wood
+    worker.is_gathering = True
+
+    Game._cleanup_destroyed_objects(game)
+
+    assert wood not in game.resources
+    assert worker.resource_type == "wood"
+    assert worker.resource_amount == 4
+    assert game.worker_task_system.active_task(worker) is not None
+
+    tick(game, count=240, delta_time=0.1)
+
+    assert player.resources["wood"] >= 4
+    assert worker.resource_amount == 0
 
 
 def test_collision_blocked_worker_keeps_task_ownership():

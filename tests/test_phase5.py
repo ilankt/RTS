@@ -123,6 +123,46 @@ class TestFogOfWar:
         assert fog.is_object_visible(enemy_unit) is True
         assert fog.get_exploration_percent(human) == 100.0
 
+    def test_selection_ignores_hidden_resource_targets(self):
+        from managers.selection_manager import SelectionManager
+        from entities.resource import Resource
+
+        game = MockGame()
+        hidden_resource = Resource("wood", None, x=100, y=100, radius=16)
+        game.resources.append(hidden_resource)
+
+        class HiddenFog:
+            enabled = True
+
+            def is_object_visible(self, obj):
+                return False
+
+        game.fog_of_war = HiddenFog()
+
+        selection = SelectionManager(game)
+
+        assert selection._get_object_at_position((100, 100)) is None
+
+    def test_selection_allows_visible_resource_targets(self):
+        from managers.selection_manager import SelectionManager
+        from entities.resource import Resource
+
+        game = MockGame()
+        visible_resource = Resource("wood", None, x=100, y=100, radius=16)
+        game.resources.append(visible_resource)
+
+        class VisibleFog:
+            enabled = True
+
+            def is_object_visible(self, obj):
+                return True
+
+        game.fog_of_war = VisibleFog()
+
+        selection = SelectionManager(game)
+
+        assert selection._get_object_at_position((100, 100)) is visible_resource
+
     def test_main_menu_initializes_font_if_needed(self):
         import pygame
         from screens.main_menu import MainMenu
@@ -196,17 +236,16 @@ class TestSoundManager:
 
 
 # ---------------------------------------------------------------------------
-# Adaptive Build Orders Tests
+# Utility AI Wiring Tests
 # ---------------------------------------------------------------------------
-class TestAdaptiveBuildOrders:
-    def test_early_phase_in_simple_ai(self):
-        """Check that simple_ai uses adaptive scoring instead of scripted builds."""
-        with open("systems/ai/simple_ai.py") as f:
-            source = f.read()
-        # The adaptive system uses scoring
-        assert "actions.append" in source
-        assert "build_farm" in source or "build_house" in source
-        assert "actions.sort" in source
+class TestUtilityAIWiring:
+    def test_ai_package_exports_only_live_orchestrator(self):
+        import systems.ai as ai_package
+        from systems.ai import UtilityAISystem
+
+        assert UtilityAISystem.__name__ == "UtilityAISystem"
+        assert ai_package.__all__ == ["UtilityAISystem"]
+        assert not hasattr(ai_package, "SimpleAISystem")
 
 
 # ---------------------------------------------------------------------------

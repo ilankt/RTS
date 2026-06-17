@@ -1,4 +1,5 @@
 """Economy goals: train workers, build resource buildings, expand pop cap."""
+from systems.ai.economy_helpers import score_dropoff_building_need
 from systems.ai.utility.goal import Goal
 from systems.ai.utility.actions import start_construction, queue_unit
 
@@ -75,15 +76,11 @@ class BuildLumbermillGoal(Goal):
     def score(self, ctx):
         if ctx.has_construction_in_progress("lumbermill"):
             return 0
-        if ctx.buildings.get("lumbermill"):
-            return 0
         if not ctx.can_afford("lumbermill"):
             return 0
-        if len(ctx.workers) < 3:
+        if len(ctx.workers) < 2:
             return 0
-        # Higher when wood is low
-        wood = ctx.resources.get("wood", 0)
-        return 35 + max(0, 100 - wood) * 0.2
+        return score_dropoff_building_need(ctx, "lumbermill")
 
     def execute(self, ctx):
         return start_construction(ctx, "lumbermill", ctx.game.ai_system.building_placer)
@@ -96,14 +93,11 @@ class BuildMineGoal(Goal):
     def score(self, ctx):
         if ctx.has_construction_in_progress("mine"):
             return 0
-        if ctx.buildings.get("mine"):
-            return 0
         if not ctx.can_afford("mine"):
             return 0
-        if len(ctx.workers) < 3:
+        if len(ctx.workers) < 2:
             return 0
-        gold = ctx.resources.get("gold", 0)
-        return 30 + max(0, 150 - gold) * 0.2
+        return score_dropoff_building_need(ctx, "mine")
 
     def execute(self, ctx):
         return start_construction(ctx, "mine", ctx.game.ai_system.building_placer)
@@ -116,14 +110,11 @@ class BuildQuarryGoal(Goal):
     def score(self, ctx):
         if ctx.has_construction_in_progress("quarry"):
             return 0
-        if ctx.buildings.get("quarry"):
-            return 0
         if not ctx.can_afford("quarry"):
             return 0
-        if len(ctx.workers) < 4:
+        if len(ctx.workers) < 3:
             return 0
-        stone = ctx.resources.get("stone", 0)
-        return 25 + max(0, 100 - stone) * 0.2
+        return score_dropoff_building_need(ctx, "quarry")
 
     def execute(self, ctx):
         return start_construction(ctx, "quarry", ctx.game.ai_system.building_placer)

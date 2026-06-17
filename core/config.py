@@ -63,15 +63,15 @@ FARM_FOOD_AMOUNT = 10  # Amount of food generated per cycle
 FARM_FOOD_INTERVAL = 10.0  # Seconds between food generation
 
 RESOURCE_LIMITS = {
-    "gold": 500,
-    "stone": 500,
-    "wood": 300
+    "gold": 1000,
+    "stone": 1000,
+    "wood": 600
 }
 
 # Drop-off buildings for each resource type
 DROP_OFF_BUILDINGS = {
     "gold": ["mine", "castle"],
-    "stone": ["quarry", "castle"],  # Note: quarry not in buildings.json yet
+    "stone": ["quarry", "castle"],
     "wood": ["lumbermill", "castle"]
 }
 

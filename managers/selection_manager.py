@@ -53,7 +53,10 @@ class SelectionManager:
     def _handle_single_click(self, mouse_pos):
         """Handle single click selection with proper ownership filtering"""
         # Check all objects for selection
-        all_objects = self.game.units + self.game.buildings + self.game.resources
+        all_objects = [
+            obj for obj in self.game.units + self.game.buildings + self.game.resources
+            if self._is_object_visible_to_human(obj)
+        ]
         clicked_object = None
         
         # Convert mouse position to map coordinates (accounting for TOP_BAR_HEIGHT)
@@ -140,7 +143,10 @@ class SelectionManager:
         buildings = []
         resources = []
         
-        all_objects = self.game.units + self.game.buildings + self.game.resources
+        all_objects = [
+            obj for obj in self.game.units + self.game.buildings + self.game.resources
+            if self._is_object_visible_to_human(obj)
+        ]
         
         for obj in all_objects:
             draw_x = (obj.x * self.game.camera.zoom) + self.game.camera.x
@@ -594,7 +600,10 @@ class SelectionManager:
 
     def _get_object_at_position(self, world_pos):
         """Get the topmost object at a world position"""
-        all_objects = self.game.units + self.game.buildings + self.game.resources
+        all_objects = [
+            obj for obj in self.game.units + self.game.buildings + self.game.resources
+            if self._is_object_visible_to_human(obj)
+        ]
         
         for obj in sorted(all_objects, key=lambda o: o.y, reverse=True):
             distance = math.sqrt((world_pos[0] - obj.x)**2 + (world_pos[1] - obj.y)**2)
@@ -602,6 +611,12 @@ class SelectionManager:
                 return obj
         
         return None
+
+    def _is_object_visible_to_human(self, obj):
+        fog = getattr(self.game, "fog_of_war", None)
+        if not fog or not getattr(fog, "enabled", True):
+            return True
+        return fog.is_object_visible(obj)
     
     def draw_selection_box(self, surface):
         """Draw the selection box if active"""
@@ -626,7 +641,10 @@ class SelectionManager:
     
     def draw_selection_circles(self, surface, camera):
         """Draw selection circles around selected objects"""
-        all_objects = self.game.units + self.game.buildings + self.game.resources
+        all_objects = [
+            obj for obj in self.game.units + self.game.buildings + self.game.resources
+            if self._is_object_visible_to_human(obj)
+        ]
         
         for obj in all_objects:
             if not obj.selected:

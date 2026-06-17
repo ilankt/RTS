@@ -72,20 +72,20 @@ No gate, no thin profile, no special placement logic.
 
 ---
 
-## Plan: AI rewrite (Option B — utility AI)
+## Completed: AI rewrite (Option B — utility AI)
 
-Replace the 4-phase state machine in `systems/ai/simple_ai.py` with a flat list of weighted goals scored each tick.
+The 4-phase state machine was replaced with a flat list of weighted goals scored each tick. The live orchestrator is `systems/ai/utility/ai.py`, and the old `simple_ai.py` module has been deleted.
 
 ### Why
-The current "adaptive" AI is scripted in disguise. A utility AI will:
+The old "adaptive" AI was scripted in disguise. Utility AI now:
 - Genuinely react to the game state (e.g., switch from economy to defense when attacked)
-- Make personalities meaningful (weights on goal categories instead of threshold tweaks)
-- Make adding new content trivial (new unit type → new training goal, no orchestrator changes)
-- Surface bugs faster (narrow per-goal exception handling instead of a god-`try`)
+- Makes personalities meaningful (weights on goal categories instead of threshold tweaks)
+- Makes adding new content trivial (new unit type → new training goal, no orchestrator changes)
+- Surfaces bugs faster (narrow per-goal exception handling instead of a god-`try`)
 
-### Sketch
+### Current shape
 - Each tick, evaluate a list of `Goal` candidates. Each returns `(score, action_callable)`.
-- Goals carry their own state ("we're 50% through training a barracks") so they don't oscillate.
+- Goals are stateless; ongoing construction and production are read from game objects.
 - Personality params become per-category weights (rusher: military × 2, boomer: economy × 2, etc.).
 - Existing sub-brains (`worker_brain`, `military_brain`, `scout_brain`, `building_placer`) are reused as helpers — what changes is the orchestrator.
 

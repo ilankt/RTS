@@ -4,7 +4,7 @@ from utils.debug_logger import debug_log
 
 
 class MilitaryBrain:
-    """Every tick: defend base, train units, send army to attack."""
+    """Every tick: defend base, micro units, send army to attack."""
 
     DEFENSE_RADIUS = 300  # Enemies within this distance of castle trigger defense
 
@@ -149,81 +149,6 @@ class MilitaryBrain:
             return template.hp
         return getattr(unit, 'hp', 100)
 
-    def train_units(self, player, max_queue: int = 2):
-        """Train military units if barracks/stable exists and we can afford them.
-
-        Returns True if a unit was queued.
-        """
-        # Try barracks first
-        barracks_list = [b for b in self.game.buildings
-                         if b.player == player and b.name == "barracks"]
-        stable_list = [b for b in self.game.buildings
-                       if b.player == player and b.name == "stable"]
-        
-        queued = False
-        
-        # Train from barracks
-        for barracks in barracks_list:
-            queue_len = len(barracks.production_queue)
-            if barracks.current_production:
-                queue_len += 1
-            if queue_len >= max_queue:
-                continue
-
-            # 40% warriors, 30% archers, 30% spearmen
-            warriors = len([u for u in self.game.units if u.player == player and u.name == "warrior"])
-            archers = len([u for u in self.game.units if u.player == player and u.name == "archer"])
-            spearmen = len([u for u in self.game.units if u.player == player and u.name == "spearman"])
-            total = warriors + archers + spearmen
-            
-            if total == 0 or (warriors / max(total, 1)) < 0.4:
-                unit_type = "warrior"
-            elif (archers / max(total, 1)) < 0.3:
-                unit_type = "archer"
-            else:
-                unit_type = "spearman"
-
-            if not self._check_pop_space(player):
-                debug_log.log(f"AI {player.name}: No pop space for {unit_type}", "AI")
-                return False
-
-            success, msg = self.game.production_manager.start_production(barracks, unit_type)
-            if success:
-                debug_log.log(f"AI {player.name}: Training {unit_type} from barracks", "AI")
-                queued = True
-            else:
-                debug_log.log(f"AI {player.name}: Cannot train {unit_type}: {msg}", "AI")
-        
-        # Train cavalry from stable
-        for stable in stable_list:
-            queue_len = len(stable.production_queue)
-            if stable.current_production:
-                queue_len += 1
-            if queue_len >= max_queue:
-                continue
-            
-            cavalry_count = len([u for u in self.game.units if u.player == player and u.name == "cavalry"])
-            if cavalry_count < 3:
-                if not self._check_pop_space(player):
-                    return False
-                success, msg = self.game.production_manager.start_production(stable, "cavalry")
-                if success:
-                    debug_log.log(f"AI {player.name}: Training cavalry from stable", "AI")
-                    queued = True
-
-        return queued
-
-    def get_military_count(self, player) -> int:
-        """Count of military units (warriors + archers)."""
-        return len(self._get_military_units(player))
-
-    def get_military_breakdown(self, player) -> dict:
-        """Return {unit_type: count} for debug display."""
-        breakdown = {}
-        for unit in self._get_military_units(player):
-            breakdown[unit.name] = breakdown.get(unit.name, 0) + 1
-        return breakdown
-
     # --- Private helpers ---
 
     def _get_military_units(self, player):
@@ -294,12 +219,3 @@ class MilitaryBrain:
             if building.player == player and building.name == "castle":
                 return building
         return None
-
-    def _check_pop_space(self, player) -> bool:
-        """Check if player has population space for another unit."""
-        current_pop = len([u for u in self.game.units if u.player == player])
-        max_pop = 5  # Base castle limit
-        houses = [b for b in self.game.buildings
-                  if b.player == player and b.name == "house"]
-        max_pop += len(houses) * 5
-        return current_pop < max_pop

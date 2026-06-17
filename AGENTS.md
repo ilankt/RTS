@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-Guidance for Claude Code when working with this RTS game codebase.
+Guidance for Codex when working with this RTS game codebase.
 
 ## Quick Start
 

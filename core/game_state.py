@@ -116,8 +116,8 @@ class GameState:
             # Place 1 stone deposit near castle (3-5 tiles away)
             self._place_resource_near_spawn("stone", spawn_r, spawn_c, 3, 5, 1)
             
-            # Place 5 wood resources near castle (2-6 tiles away)
-            self._place_resource_near_spawn("wood", spawn_r, spawn_c, 2, 6, 5)
+            # Place 8 wood resources near castle (2-6 tiles away)
+            self._place_resource_near_spawn("wood", spawn_r, spawn_c, 2, 6, 8)
         
         # Calculate resource counts based on map size and player count
         map_area = self.game.game_map.width * self.game.game_map.height

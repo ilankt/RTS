@@ -12,7 +12,11 @@ from systems.ai.utility.goals.economy import (
     TrainWorkerGoal,
     BuildFarmGoal,
     BuildHouseGoal,
+    BuildLumbermillGoal,
+    BuildMineGoal,
+    BuildQuarryGoal,
 )
+from systems.ai.worker_brain import WorkerBrain
 from systems.ai.utility.goals.military import (
     BuildBarracksGoal,
     TrainWarriorGoal,
@@ -81,13 +85,36 @@ class FakeGame:
                 "farm":     {"wood": 75},
                 "house":    {"gold": 50, "wood": 50},
                 "barracks": {"gold": 150, "wood": 100, "stone": 50},
+                "lumbermill": {"gold": 75, "wood": 75},
+                "mine": {"gold": 75, "wood": 75, "stone": 25},
+                "quarry": {"gold": 75, "wood": 50, "stone": 50},
             },
             "buildings": {},
             "units": {},
         }
 
 
-def _ctx_with(player, *, units=(), buildings=(), sites=()):
+class FakeResource:
+    def __init__(self, name, x, y, amount=600):
+        self.name = name
+        self.x = x
+        self.y = y
+        self.radius = 16
+        self.amount_remaining = amount
+        self.gatherers = []
+
+
+class FakeFog:
+    enabled = True
+
+    def __init__(self, explored=True):
+        self.explored = explored
+
+    def is_explored(self, player, x, y):
+        return self.explored
+
+
+def _ctx_with(player, *, units=(), buildings=(), sites=(), resources=(), fog=None):
     """Convenience: build a context against a tiny fake game."""
     game = FakeGame(player)
     for b in buildings:
@@ -96,6 +123,10 @@ def _ctx_with(player, *, units=(), buildings=(), sites=()):
         game.units.append(u)
     for s in sites:
         game.construction_sites.append(s)
+    for r in resources:
+        game.resources.append(r)
+    if fog:
+        game.fog_of_war = fog
     return GoalContext.build(game, player)
 
 
@@ -181,6 +212,73 @@ class TestBuildHouseGoal:
         castle = FakeBuilding("castle", p)
         ctx = _ctx_with(p, buildings=[castle])  # no units, slack=5
         assert BuildHouseGoal().score(ctx) == 0
+
+
+class TestResourceDropoffGoals:
+    @pytest.mark.parametrize(
+        "goal_cls,building_name,resource_name,min_workers",
+        [
+            (BuildLumbermillGoal, "lumbermill", "wood", 2),
+            (BuildMineGoal, "mine", "gold", 2),
+            (BuildQuarryGoal, "quarry", "stone", 3),
+        ],
+    )
+    def test_scores_when_known_resource_cluster_is_unserved(self, goal_cls, building_name, resource_name, min_workers):
+        p = FakePlayer()
+        castle = FakeBuilding("castle", p, x=0, y=0)
+        existing = FakeBuilding(building_name, p, x=100, y=0)
+        workers = [FakeUnit("worker", p) for _ in range(min_workers)]
+        resource = FakeResource(resource_name, x=1200, y=0)
+
+        ctx = _ctx_with(p, units=workers, buildings=[castle, existing], resources=[resource])
+
+        assert goal_cls().score(ctx) > 0
+
+    @pytest.mark.parametrize(
+        "goal_cls,building_name,resource_name,min_workers",
+        [
+            (BuildLumbermillGoal, "lumbermill", "wood", 2),
+            (BuildMineGoal, "mine", "gold", 2),
+            (BuildQuarryGoal, "quarry", "stone", 3),
+        ],
+    )
+    def test_zero_when_known_resource_cluster_is_already_serviced(self, goal_cls, building_name, resource_name, min_workers):
+        p = FakePlayer()
+        castle = FakeBuilding("castle", p, x=0, y=0)
+        serviced_dropoff = FakeBuilding(building_name, p, x=1120, y=0)
+        workers = [FakeUnit("worker", p) for _ in range(min_workers)]
+        resource = FakeResource(resource_name, x=1200, y=0)
+
+        ctx = _ctx_with(p, units=workers, buildings=[castle, serviced_dropoff], resources=[resource])
+
+        assert goal_cls().score(ctx) == 0
+
+    def test_zero_when_resource_is_hidden_by_fog(self):
+        p = FakePlayer()
+        castle = FakeBuilding("castle", p, x=0, y=0)
+        workers = [FakeUnit("worker", p), FakeUnit("worker", p)]
+        resource = FakeResource("wood", x=1200, y=0)
+
+        ctx = _ctx_with(p, units=workers, buildings=[castle], resources=[resource], fog=FakeFog(explored=False))
+
+        assert BuildLumbermillGoal().score(ctx) == 0
+
+
+class TestWorkerResourceChoice:
+    def test_prefers_serviced_loop_over_closer_unserviced_resource(self):
+        p = FakePlayer()
+        game = FakeGame(p)
+        worker = FakeUnit("worker", p, x=500, y=0)
+        close_unserviced = FakeResource("wood", x=520, y=0)
+        farther_serviced = FakeResource("wood", x=900, y=0)
+        game.units.append(worker)
+        game.buildings.append(FakeBuilding("castle", p, x=0, y=0))
+        game.buildings.append(FakeBuilding("lumbermill", p, x=900, y=0))
+        game.resources.extend([close_unserviced, farther_serviced])
+
+        chosen = WorkerBrain(game)._find_best_resource_to_gather(worker, p)
+
+        assert chosen is farther_serviced
 
 
 # --- Military goals -------------------------------------------------------

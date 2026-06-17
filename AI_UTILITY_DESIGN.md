@@ -1,6 +1,6 @@
 # AI Rewrite — Utility AI Design
 
-Replace the 4-phase state machine in `systems/ai/simple_ai.py` with a goal-scored utility AI.
+The old 4-phase state machine has been replaced with a goal-scored utility AI.
 
 ## Why
 
@@ -138,16 +138,13 @@ Numbers above are first-pass; expect them to need tuning once we see games play 
 
 ## Migration
 
-1. Build `systems/ai/utility/` alongside `simple_ai`.
-2. Switch `core/game.py` to import `UtilityAISystem` instead of `SimpleAISystem`.
-3. Verify with smoke test: AI progresses through worker training → farm → house → barracks → military → attack.
-4. Once stable across personalities, delete `simple_ai.py`.
+Status: complete. `core/game.py` imports `UtilityAISystem`, and the old `simple_ai.py` module has been deleted.
 
-The two systems implement the same public interface (`update(delta_time)`, `get_ai_debug_info(player)`, `invalidate_memory_cache(player=None)`), so the swap is one import + one constructor line in `game.py`.
+The current AI public interface remains `update(delta_time)`, `get_ai_debug_info(player)`, and `invalidate_memory_cache(player=None)`.
 
 ## Testing
 
-Tests will live in `tests/test_utility_ai.py`. Initial coverage:
+Tests live in `tests/test_utility_ai.py`. Initial coverage:
 - `BuildFarmGoal.score()` returns 80 when no farm exists, 0 when one is being built.
 - `TrainWorkerGoal.score()` returns 0 when castle is producing.
 - Personality weighting: BuildBarracksGoal weighted-score for rusher > balanced > boomer.

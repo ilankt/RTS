@@ -32,47 +32,24 @@ class MockGame:
 # AI Personality Tests
 # ---------------------------------------------------------------------------
 class TestAIPersonalities:
-    def test_rusher_personality_params(self):
-        from systems.ai.simple_ai import SimpleAISystem
-        game = MockGame()
-        player = MockPlayer(human=False, personality="rusher")
-        game.players = [player]
-        ai = SimpleAISystem(game)
-        params = ai.personality_params[player]
-        assert params["attack_transition_threshold"] == 4
-        assert params["target_workers"] == 4
-        assert params["econ_focus"] is False
+    def test_rusher_prefers_military_and_tactics(self):
+        from systems.ai.utility.personality import get_weight
+        assert get_weight("rusher", "military") > get_weight("rusher", "economy")
+        assert get_weight("rusher", "tactical") > get_weight("rusher", "economy")
     
-    def test_boomer_personality_params(self):
-        from systems.ai.simple_ai import SimpleAISystem
-        game = MockGame()
-        player = MockPlayer(human=False, personality="boomer")
-        game.players = [player]
-        ai = SimpleAISystem(game)
-        params = ai.personality_params[player]
-        assert params["attack_transition_threshold"] == 8
-        assert params["target_workers"] == 8
-        assert params["econ_focus"] is True
+    def test_boomer_prefers_economy(self):
+        from systems.ai.utility.personality import get_weight
+        assert get_weight("boomer", "economy") > get_weight("boomer", "military")
+        assert get_weight("boomer", "economy") > get_weight("boomer", "tactical")
     
-    def test_turtle_personality_params(self):
-        from systems.ai.simple_ai import SimpleAISystem
-        game = MockGame()
-        player = MockPlayer(human=False, personality="turtle")
-        game.players = [player]
-        ai = SimpleAISystem(game)
-        params = ai.personality_params[player]
-        assert params["attack_transition_threshold"] == 10
-        assert params["retreat_threshold"] == 0.40
+    def test_turtle_deemphasizes_tactics(self):
+        from systems.ai.utility.personality import get_weight
+        assert get_weight("turtle", "tactical") < get_weight("turtle", "economy")
+        assert get_weight("turtle", "support") > get_weight("turtle", "tactical")
     
     def test_default_personality_is_balanced(self):
-        from systems.ai.simple_ai import SimpleAISystem
-        game = MockGame()
-        player = MockPlayer(human=False, personality="balanced")
-        game.players = [player]
-        ai = SimpleAISystem(game)
-        params = ai.personality_params[player]
-        assert params["attack_transition_threshold"] == 6
-        assert params["target_workers"] == 6
+        from systems.ai.utility.personality import PERSONALITY_WEIGHTS
+        assert all(weight == 1.0 for weight in PERSONALITY_WEIGHTS["balanced"].values())
 
 
 # ---------------------------------------------------------------------------

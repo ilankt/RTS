@@ -1,6 +1,6 @@
 """Utility-AI orchestrator.
 
-Replaces the 4-phase state machine in `systems/ai/simple_ai.py`. Each tick:
+Each tick:
 
   1. Build a GoalContext snapshot.
   2. Score every goal, weight by personality, sort.
@@ -8,10 +8,9 @@ Replaces the 4-phase state machine in `systems/ai/simple_ai.py`. Each tick:
   4. Run scout_brain, worker_brain (always), then military_brain with
      should_attack=True iff the chosen goal was AttackGoal.
 
-Per-goal and per-brain failures are logged but never propagate. The bug that
-hid for weeks under simple_ai's god-`try` (`random` not imported) would now
-log a clear traceback every tick instead of silently disabling worker
-assignment.
+Per-goal and per-brain failures are logged but never propagate. A broken goal
+or sub-brain logs a clear traceback instead of disabling the rest of the AI
+tick.
 """
 import traceback
 from typing import Optional

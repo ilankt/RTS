@@ -2,6 +2,7 @@
 import math
 from typing import Optional, Tuple
 from core.config import TILE_WIDTH, TILE_HEIGHT
+from systems.ai.economy_helpers import best_resource_for_dropoff
 from utils.debug_logger import debug_log
 
 
@@ -32,18 +33,11 @@ class BuildingPlacer:
         if not castle:
             return None
 
-        # Find closest matching resource to castle
-        best_resource = None
-        best_dist = float("inf")
-        for res in self.game.resources:
-            if res.name == resource_name and res.amount_remaining > 0:
-                dist = math.hypot(res.x - castle.x, res.y - castle.y)
-                if dist < best_dist:
-                    best_dist = dist
-                    best_resource = res
-
+        # Prefer the best known, unserved resource cluster over the closest
+        # resource to the castle.
+        best_resource = best_resource_for_dropoff(self.game, player, building_type)
         if not best_resource:
-            debug_log.log(f"AI BuildingPlacer: No {resource_name} resource found for {building_type}", "AI")
+            debug_log.log(f"AI BuildingPlacer: No unserved known {resource_name} resource found for {building_type}", "AI")
             return None
 
         # Ring search around that resource

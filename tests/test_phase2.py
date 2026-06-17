@@ -81,7 +81,13 @@ class TestResourceDepletion:
     
     def test_wood_resource_limit(self):
         res = Resource("wood", None, x=100, y=100, radius=16)
-        assert res.amount_remaining == 300  # From RESOURCE_LIMITS
+        assert res.amount_remaining == 600  # From RESOURCE_LIMITS
+
+    def test_gold_and_stone_resource_limits(self):
+        gold = Resource("gold", None, x=100, y=100, radius=16)
+        stone = Resource("stone", None, x=100, y=100, radius=16)
+        assert gold.amount_remaining == 1000
+        assert stone.amount_remaining == 1000
     
     def test_tree_regrowth_tracker_initializes(self):
         class MockGame:

@@ -32,6 +32,7 @@ from systems.ai import UtilityAISystem
 from systems.projectile_system import ProjectileSystem
 from systems.fog_of_war import FogOfWar
 from systems.particle_system import ParticleSystem as Particles
+from systems.ai.economy_helpers import find_nearest_dropoff
 from managers.save_manager import SaveManager
 from managers.sound_manager import SoundManager
 from utils.debug_logger import debug_log
@@ -493,8 +494,36 @@ class Game:
                         unit.x += (dx / distance) * push_force
                         unit.y += (dy / distance) * push_force
 
-                    # Full state wipe so worker becomes truly idle
-                    unit.clear_all_movement_state()
+                    if getattr(unit, "resource_amount", 0) > 0 and getattr(unit, "resource_type", None):
+                        worker_tasks = getattr(self, "worker_task_system", None)
+                        if worker_tasks:
+                            worker_tasks.cancel(unit)
+                        else:
+                            unit.path = None
+                            unit.path_index = 0
+                            unit.path_target = None
+                            unit.destination = None
+
+                        unit.is_gathering = False
+                        unit.gathering_target = None
+                        unit.previous_gathering_target = None
+                        unit.is_engaging = False
+                        unit.status = "idle"
+
+                        dropoff, _ = find_nearest_dropoff(
+                            self,
+                            unit.player,
+                            unit.resource_type,
+                            (unit.x, unit.y),
+                        )
+                        if dropoff:
+                            if worker_tasks:
+                                worker_tasks.assign_dropoff(unit, dropoff)
+                            else:
+                                self.pathfinder.issue_interact(unit, dropoff, "dropoff")
+                    else:
+                        # Full state wipe so an empty worker becomes truly idle.
+                        unit.clear_all_movement_state()
             
             # Track wood resource positions for regrowth
             if resource.name == "wood":

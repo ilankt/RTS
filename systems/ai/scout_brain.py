@@ -156,10 +156,6 @@ class ScoutBrain:
         c = random.randint(5, map_w - 6)
         return self.game.game_map.grid_to_world(c, r)
 
-    def get_enemy_castle_position(self, player):
-        """Return known enemy castle position or None."""
-        return self.known_enemy_castles.get(player)
-
     def get_exploration_percent(self, player):
         """Return percentage of map explored."""
         explored = self.explored_tiles.get(player, set())
