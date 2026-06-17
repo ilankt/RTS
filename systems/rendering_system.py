@@ -1,5 +1,5 @@
 import pygame
-from core.config import TILE_WIDTH, TILE_HEIGHT, TOP_BAR_HEIGHT
+from core.config import TILE_WIDTH, TOP_BAR_HEIGHT
 from entities import Building, Unit, Resource, ConstructionSite
 
 
@@ -261,11 +261,9 @@ class RenderingSystem:
                 if state == fog.UNEXPLORED:
                     # Completely black
                     alpha = 255
-                    color = (0, 0, 0)
                 elif state == fog.EXPLORED:
                     # Semi-transparent black
                     alpha = 150
-                    color = (0, 0, 0)
                 else:
                     continue  # VISIBLE - no overlay
                 

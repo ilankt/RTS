@@ -51,7 +51,7 @@ class TestScreenShake:
         from world.camera import Camera
         cam = Camera(800, 600)
         cam.add_shake(10.0)
-        offset = cam.update_shake(0.5)  # Half second
+        cam.update_shake(0.5)  # Half second
         assert cam.shake_amount < 10.0
         assert cam.shake_amount > 0
     
@@ -77,7 +77,6 @@ class TestMainMenu:
         assert "run" in methods
     
     def test_main_menu_has_correct_options(self):
-        import ast
         with open("screens/main_menu.py") as f:
             source = f.read()
         assert "Start Game" in source
@@ -90,7 +89,6 @@ class TestMainMenu:
 # ---------------------------------------------------------------------------
 class TestMainEntry:
     def test_main_py_imports_menu(self):
-        import ast
         with open("main.py") as f:
             source = f.read()
         assert "MainMenu" in source

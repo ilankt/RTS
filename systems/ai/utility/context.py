@@ -6,7 +6,7 @@ read from this snapshot, which keeps cost predictable and makes goals trivially
 testable with a mock context.
 """
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 
 @dataclass

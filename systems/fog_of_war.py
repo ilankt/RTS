@@ -1,6 +1,5 @@
 """Fog of War system - per-player visibility grid."""
 import math
-from typing import List
 
 
 class FogOfWar:
@@ -76,9 +75,6 @@ class FogOfWar:
         if not center:
             return
         col_center, row_center = center
-
-        # Tile step in grid units
-        tile_step = max(1, int(radius / 40))
 
         # Mark tiles in a circular area
         radius_tiles = int(radius / 40) + 1

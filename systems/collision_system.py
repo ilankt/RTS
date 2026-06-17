@@ -1,6 +1,5 @@
 import math
 import pygame
-from core.config import DEBUG_MOVEMENT, DEBUG_PATHFINDING
 from utils.debug_logger import debug_log
 
 
@@ -124,7 +123,6 @@ class CollisionSystem:
             unit_is_carrier = getattr(unit, 'resource_amount', 0) > 0
             other_is_carrier = getattr(other_unit, 'resource_amount', 0) > 0
             unit_approaching = (getattr(unit, 'is_engaging', False) and getattr(unit, 'gathering_target', None) and not unit_is_carrier)
-            other_approaching = (getattr(other_unit, 'is_engaging', False) and getattr(other_unit, 'gathering_target', None) and not other_is_carrier)
 
             if unit_approaching and other_is_carrier:
                 # This unit is approaching a resource; other is carrying — yield
@@ -156,10 +154,6 @@ class CollisionSystem:
                         
                         # After 30 frames (0.5s) of overlapping, force pathfinding
                         if unit._needs_separation >= 30:
-                            if DEBUG_MOVEMENT:
-                                # Debug: Unit overlapping - disabling LOS temporarily
-                                pass
-                                pass
                             unit.has_los = False  # Force pathfinding on next strategy evaluation
                             unit._needs_separation = 0
                     
@@ -488,59 +482,26 @@ class CollisionSystem:
         if (hasattr(unit, 'drop_off_target') and unit.drop_off_target and 
             hasattr(unit, 'resource_amount') and unit.resource_amount > 0):
             # Worker trying to drop off resources
-            if DEBUG_MOVEMENT:
-                # Debug: Worker blocked while trying to drop off resources
-                pass
-                pass
-            
             # Try to use pathfinding if not already using it
             if not unit.path:
-                if self.game.pathfinder.issue_interact(unit, unit.drop_off_target, "dropoff"):
-                    if DEBUG_PATHFINDING:
-                        # Debug: Found alternate path
-                        pass
-                        pass
+                self.game.pathfinder.issue_interact(unit, unit.drop_off_target, "dropoff")
             else:
                 # Already has path but still stuck - skip current waypoint
-                pass
                 if unit.path_index < len(unit.path) - 1:
                     unit.path_index += 1
                     unit.destination = unit.path[unit.path_index]
-                    if DEBUG_MOVEMENT:
-                        # Debug: Skipping to next waypoint
-                        pass
-                        pass
                 else:
                     # At last waypoint but stuck - clear path and try direct movement
-                    pass
                     unit.path = None
                     unit.path_index = 0
                     unit.destination = (unit.drop_off_target.x, unit.drop_off_target.y)
-                    if DEBUG_MOVEMENT:
-                        # Debug: Clearing path, trying direct movement
-        
-                        pass
         elif hasattr(unit, 'gathering_target') and unit.gathering_target:
             # Worker trying to gather resources
-            pass
-            if DEBUG_MOVEMENT:
-                # Debug: Worker blocked while trying to gather
-            
-                pass
             # Similar logic for gathering
             if not unit.path:
-                if self.game.pathfinder.issue_interact(unit, unit.gathering_target, "gather"):
-                    if DEBUG_PATHFINDING:
-                        # Debug: Found alternate path
-        
-                        pass
+                self.game.pathfinder.issue_interact(unit, unit.gathering_target, "gather")
         elif hasattr(unit, 'current_target') and unit.current_target and hasattr(unit, 'is_engaging') and unit.is_engaging:
             # Combat unit trying to reach target
-            pass
-            if DEBUG_MOVEMENT:
-                # Debug: Unit blocked while engaging target
-            
-                pass
             # Force re-pathfinding
             unit._needs_repath = True
             if hasattr(unit, '_stuck_detector'):
@@ -548,12 +509,7 @@ class CollisionSystem:
         
         else:
             # Generic movement - try to find alternate route
-            pass
             if unit.destination:
-                if DEBUG_MOVEMENT:
-                    # Debug: Unit blocked during generic movement
-                
-                    pass
                 # If using direct movement, try pathfinding
                 if not unit.path:
                     path = self.game.pathfinder.find_path(
@@ -562,19 +518,11 @@ class CollisionSystem:
                         unit.path = path
                         unit.path_index = 0
                         unit.destination = path[0] if path else None
-                        if DEBUG_PATHFINDING:
-                            # Debug: Switching to pathfinding
-                            pass
                 else:
                     # Has path but stuck - try skipping waypoint
-                    pass
                     if unit.path_index < len(unit.path) - 1:
                         unit.path_index += 1
                         unit.destination = unit.path[unit.path_index]
-                        if DEBUG_MOVEMENT:
-                            # Debug: Skipping to next waypoint
-    
-                            pass
     def find_blocking_object(self, start, end, radius, unit=None):
         """Find the first object blocking a path between two points"""
         # Sample points along the line

@@ -1,5 +1,5 @@
 import pygame
-from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT, MAP_VIEW_WIDTH, TOP_BAR_HEIGHT, BUILDING_BUTTON_HEIGHT, SMART_CURSORS_ENABLED
+from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
 from entities import ConstructionSite
 
 # Import UI components
@@ -207,16 +207,6 @@ class UIManager:
         start_x = (ui_width - grid_width) // 2
         start_y = y_offset + 20
         
-        # Action labels
-        action_labels = {
-            'move': 'Move',
-            'stop': 'Stop', 
-            'gather': 'Gather',
-            'deposit': 'Deposit',
-            'build': 'Build',
-            'attack': 'Attack'
-        }
-        
         # Get mouse position for hover detection
         mouse_pos = pygame.mouse.get_pos()
         
@@ -299,8 +289,6 @@ class UIManager:
         # Check action button clicks
         for button in self.action_buttons:
             if button['rect'].collidepoint(pos):
-                action = button['action']
-                
                 # Handle different button actions
                 if button['action'] == 'build':
                     self.show_building_menu = not self.show_building_menu

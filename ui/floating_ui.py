@@ -1,5 +1,4 @@
 import pygame
-import math
 
 class FloatingNotification:
     """Represents a floating text notification that moves up and fades out"""
@@ -279,13 +278,3 @@ class FloatingUI:
             
         # Draw floating notifications
         self.draw_notifications(surface, camera)
-    
-    def draw_unit_status_indicators(self, surface, camera):
-        """Draw status indicators for units (future feature)"""
-        # TODO: Implement status icons (gathering, building, etc.)
-        pass
-    
-    def draw_resource_indicators(self, surface, camera):
-        """Draw resource carrying indicators for workers (future feature)"""
-        # TODO: Implement resource carrying indicators
-        pass

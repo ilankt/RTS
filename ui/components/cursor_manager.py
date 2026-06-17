@@ -1,5 +1,6 @@
 import pygame
 from core.config import CURSOR_SIZE, SMART_CURSORS_ENABLED
+from utils.debug_logger import debug_log
 
 
 class CursorManager:
@@ -54,7 +55,7 @@ class CursorManager:
                     }
                     
                 except Exception as e:
-                    print(f"Failed to load cursor for {command_mode}: {e}")
+                    debug_log.log(f"Failed to load cursor for {command_mode}: {e}", "UI")
                     # Create fallback cursor data
                     self.command_cursors[command_mode] = {
                         'normal': self.default_cursor,
@@ -62,14 +63,13 @@ class CursorManager:
                     }
                     
         except Exception as e:
-            print(f"Failed to initialize cursor system: {e}")
+            debug_log.log(f"Failed to initialize cursor system: {e}", "UI")
             self.command_cursors = {}
     
     def _create_cursor_from_surface(self, surface):
         """Convert a pygame surface to cursor data with center hotspot"""
         try:
-            # Create mask and hotspot for cursor
-            mask = pygame.mask.from_surface(surface)
+            # Create hotspot for cursor
             hotspot = (CURSOR_SIZE // 2, CURSOR_SIZE // 2)  # Center of configurable cursor
             
             # Convert to cursor format
@@ -96,7 +96,7 @@ class CursorManager:
                 # Fallback to default cursor if setting fails
                 pass
         
-        print(f"Entered {command_mode} command mode")
+        debug_log.log(f"Entered {command_mode} command mode", "UI")
     
     def clear_command_mode(self):
         """Clear command mode and return to default cursor"""
@@ -110,7 +110,7 @@ class CursorManager:
         except:
             pass
             
-        print("Exited command mode")
+        debug_log.log("Exited command mode", "UI")
     
     def update_cursor_for_target(self, is_valid_target):
         """Update cursor based on target validity (red tint for invalid)"""

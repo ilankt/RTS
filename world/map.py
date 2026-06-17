@@ -178,10 +178,7 @@ class Map:
         # Define terrain compatibility groups
         water_types = {"water"}
         coastal_types = {"dirt", "cracked_dirt", "plains"}
-        vegetation_types = {"grass", "forest", "plains"}
         arid_types = {"desert", "desert_hills", "cracked_dirt"}
-        mountain_types = {"stone", "dark_stone", "rocky"}
-        volcanic_types = {"lava", "dark_stone"}
         
         for r in range(1, self.height - 1):
             for c in range(1, self.width - 1):
@@ -429,4 +426,3 @@ class Map:
                     y += tile_height / 2
 
                 surface.blit(tile_image, (x + camera.x, y + camera.y))
-

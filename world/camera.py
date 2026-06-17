@@ -1,4 +1,3 @@
-import pygame
 import random
 from core.config import CAMERA_SPEED, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP
 

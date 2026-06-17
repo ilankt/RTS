@@ -1,5 +1,5 @@
 import math
-from core.config import GATHERING_DISTANCE_MULTIPLIER, GATHERING_RATES, DROP_OFF_BUILDINGS, DROP_OFF_DELAY, FARM_FOOD_AMOUNT, FARM_FOOD_INTERVAL
+from core.config import GATHERING_RATES, DROP_OFF_BUILDINGS, DROP_OFF_DELAY, FARM_FOOD_AMOUNT, FARM_FOOD_INTERVAL
 from utils.debug_logger import debug_log
 
 def get_gathering_distance(worker, resource):
@@ -48,7 +48,6 @@ class GatheringManager:
                         self.game.floating_ui.add_resource_notification(building, "food", food_amount)
                     
                     building.food_timer = 0.0  # Reset timer
-                    # Debug: Farm produced food
         
         # Tree regrowth: track depleted tree positions and regrow after timer
         self._update_tree_regrowth(delta_time)
@@ -266,7 +265,7 @@ class GatheringManager:
             gathering_pos = self._calculate_gathering_position(worker, resource)
             if gathering_pos:
                 worker.gathering_position = gathering_pos
-        except Exception as e:
+        except Exception:
             # Fallback: use resource position
             worker.gathering_position = (resource.x, resource.y)
         
@@ -294,7 +293,6 @@ class GatheringManager:
             worker.drop_off_timer = 0.0
             worker.is_dropping_off = True
             worker.status = "idle"  # Use idle animation during drop-off
-            # Debug: Worker starting drop-off
             return False  # Not finished yet
         
         # Update drop-off timer
@@ -302,15 +300,12 @@ class GatheringManager:
         
         if worker.drop_off_timer >= DROP_OFF_DELAY:
             # Drop off resources
-            pass
             dropped_amount = worker.resource_amount
             dropped_type = worker.resource_type
             
             if worker.player:
                 worker.player.resources[worker.resource_type] += int(worker.resource_amount)
                 
-            # Debug: Worker dropped off resources
-            
             # Add floating notification
             if hasattr(self.game, 'floating_ui') and self.game.floating_ui:
                 self.game.floating_ui.add_resource_notification(building, dropped_type, dropped_amount)
@@ -329,7 +324,6 @@ class GatheringManager:
                 worker.previous_gathering_target.amount_remaining > 0):
                 worker.gathering_target = worker.previous_gathering_target
                 worker.previous_gathering_target = None
-                # Debug: Worker will return to gather
             else:
                 worker.previous_gathering_target = None
 
@@ -433,7 +427,7 @@ class GatheringManager:
             worker_index = gatherers_snapshot.index(worker)
         except ValueError:
             # This should not happen now, but keep as safety
-            debug_log.log(f"Warning: Worker still not found after adding to gatherers list", "GATHERING")
+            debug_log.log("Warning: Worker still not found after adding to gatherers list", "GATHERING")
             worker_index = 0  # Use first position as fallback
         
         # Define gathering radius around resource - use the official gathering distance

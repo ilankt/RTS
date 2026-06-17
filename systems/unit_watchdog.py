@@ -91,9 +91,6 @@ class UnitWatchdog:
             "WATCHDOG",
         )
 
-        # Save what we need before clearing
-        had_building_target = unit.building_target is not None
-
         # Full state wipe
         worker_tasks = getattr(self.game, "worker_task_system", None)
         if worker_tasks and worker_tasks.active_task(unit):

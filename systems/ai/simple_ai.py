@@ -6,7 +6,6 @@ Phases:
   ARMY   - Build up military while maintaining economy
   ATTACK - Send army to enemy, keep training replacements
 """
-import math
 import pygame
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
@@ -345,7 +344,6 @@ class SimpleAISystem:
             return
 
         # Build resource buildings last (expensive, not urgent for transition)
-        has_farm = any(b.name == "farm" for bl in [state.buildings.get("farm", [])] for b in bl)
         has_lumbermill = any(b.name == "lumbermill" for bl in [state.buildings.get("lumbermill", [])] for b in bl)
         has_mine = any(b.name == "mine" for bl in [state.buildings.get("mine", [])] for b in bl)
         has_quarry = any(b.name == "quarry" for bl in [state.buildings.get("quarry", [])] for b in bl)
