@@ -81,7 +81,12 @@ class GoalContext:
         are idle. Skips workers mid-build, mid-drop-off, or carrying resources.
         """
         idle, gathering = [], []
+        worker_tasks = getattr(self.game, "worker_task_system", None)
         for w in self.workers:
+            if worker_tasks:
+                task = worker_tasks.active_task(w)
+                if task and task.phase != "FAILED":
+                    continue
             if w.is_building or w.building_target:
                 continue
             if w.is_dropping_off or w.resource_amount > 0:

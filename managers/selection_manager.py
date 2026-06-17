@@ -356,6 +356,8 @@ class SelectionManager:
                         self._gather_from_target(obj, clicked_object, pathfinder)
                     # If clicking on a farm, garrison worker (workers only)
                     elif clicked_object in self.game.buildings and clicked_object.name == "farm" and obj.name == "worker":
+                        if hasattr(self.game, "worker_task_system"):
+                            self.game.worker_task_system.cancel(obj)
                         # Clear any drop-off state
                         pass
                         obj.is_dropping_off = False
@@ -387,28 +389,11 @@ class SelectionManager:
                     elif (clicked_object in self.game.buildings and 
                           obj.name == "worker" and 
                           obj.resource_amount > 0):
-                        # Move to closest reachable position near building
-                        path = pathfinder.find_path((obj.x, obj.y), (clicked_object.x, clicked_object.y), obj.radius, obj, drop_off_target=clicked_object)
-                        
-                        if path:
-                            obj.path = path
-                            obj.path_index = 0
-                            obj.path_target = path[-1]  # Use actual reachable position
-                            obj.destination = path[0] if path else None
-                            obj.drop_off_target = clicked_object
-                            obj.status = "run"
-                            
-                            # Check if we had to redirect
-                            final_pos = path[-1]
-                            distance_to_building = math.sqrt((final_pos[0] - clicked_object.x)**2 + (final_pos[1] - clicked_object.y)**2)
-                            if distance_to_building > clicked_object.radius + obj.radius + 10:
-                                # Debug: Worker moving to drop off
-                                pass
-                                pass
+                        worker_tasks = getattr(self.game, "worker_task_system", None)
+                        if worker_tasks:
+                            worker_tasks.assign_dropoff(obj, clicked_object)
                         else:
-                            # Debug: Worker cannot reach building for drop-off
-                            pass
-                            pass
+                            pathfinder.issue_interact(obj, clicked_object, "dropoff")
                     # If clicking on an enemy unit/building and this unit can attack
                     elif (hasattr(clicked_object, 'player') and 
                           clicked_object.player != obj.player):
@@ -434,6 +419,19 @@ class SelectionManager:
     
     def _attack_target(self, unit, target, pathfinder, new_destination=None):
         """Command unit to attack a target"""
+        if unit.can_attack(target):
+            unit.start_attack(target)
+            unit.last_task = {"type": "attack", "target": target}
+            return
+
+        if pathfinder.issue_interact(unit, target, "attack"):
+            return
+
+        unit.current_target = None
+        unit.is_engaging = False
+        unit.status = "idle"
+        return
+
         # Debug: _attack_target called
         
         # Clear any non-combat state
@@ -598,6 +596,19 @@ class SelectionManager:
     
     def _gather_from_target(self, worker, resource, pathfinder, new_destination=None):
         """Command worker to gather from a resource using a single, reliable pathfinding call"""
+        worker_tasks = getattr(self.game, "worker_task_system", None)
+        if worker_tasks and worker_tasks.assign_gather(worker, resource):
+            worker.last_task = {"type": "gather", "target": resource}
+            return
+        if not worker_tasks and pathfinder.issue_interact(worker, resource, "gather", preferred_point=new_destination):
+            worker.last_task = {"type": "gather", "target": resource}
+            return
+
+        worker.gathering_target = None
+        worker.is_engaging = False
+        worker.status = "idle"
+        return
+
         try:
             # Clear any non-gathering state
             worker.current_target = None
@@ -792,30 +803,30 @@ class SelectionManager:
             pass
             for worker in valid_units:
                 if self._can_drop_off_at_building(worker, clicked_object):
-                    path = pathfinder.find_path((worker.x, worker.y), (clicked_object.x, clicked_object.y), worker.radius, worker, drop_off_target=clicked_object)
-                    
-                    if path:
-                        worker.path = path
-                        worker.path_index = 0
-                        worker.path_target = path[-1]
-                        worker.destination = path[0] if path else None
-                        worker.drop_off_target = clicked_object
-                        worker.status = "run"
+                    worker_tasks = getattr(self.game, "worker_task_system", None)
+                    if worker_tasks:
+                        worker_tasks.assign_dropoff(worker, clicked_object)
+                    else:
+                        pathfinder.issue_interact(worker, clicked_object, "dropoff")
                         
         elif command_mode == 'attack':
             # Command units to attack the target
             pass
             for unit in valid_units:
                 if hasattr(unit, 'current_target'):
-                    unit.current_target = clicked_object
-                    unit.status = "run"
-                    # Debug: Unit attacking target
+                    self._attack_target(unit, clicked_object, pathfinder)
         
         # Debug: Executed command
         return True
 
     def _move_unit_to_position(self, unit, world_pos, pathfinder):
         """Move a unit to a specific position"""
+        if unit.name == "worker" and hasattr(self.game, "worker_task_system"):
+            self.game.worker_task_system.assign_move(unit, world_pos)
+            return
+        pathfinder.issue_move(unit, world_pos)
+        return
+
         # Clear any gathering/garrison/drop-off/combat state
         unit.is_gathering = False
         unit.gathering_target = None

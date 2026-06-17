@@ -6,6 +6,9 @@ class MainMenu:
     """Simple main menu with Start Game, Load Game, and Exit options"""
     
     def __init__(self, screen):
+        if not pygame.font.get_init():
+            pygame.font.init()
+
         self.screen = screen
         self.font_large = pygame.font.Font(None, 64)
         self.font_medium = pygame.font.Font(None, 36)

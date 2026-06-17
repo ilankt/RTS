@@ -55,7 +55,7 @@ def start_construction(ctx, building_name: str, building_placer) -> bool:
         "attack_speed": getattr(template, "attack_speed", 1.0),
         "attack_range": getattr(template, "attack_range", 0),
     }
-    radius = template.size[0] * TILE_WIDTH
+    radius = template.size[0] * TILE_WIDTH / 2
 
     try:
         site = ConstructionSite(
@@ -75,26 +75,16 @@ def start_construction(ctx, building_name: str, building_placer) -> bool:
 
     ctx.game.construction_sites.append(site)
     ctx.game.pathfinder.mark_dirty()
-    site.builder = worker
-
-    worker.clear_all_movement_state()
-    worker.building_target = site
-    worker.status = "run"
-
-    path = ctx.game.pathfinder.find_path(
-        (worker.x, worker.y),
-        (site.x, site.y),
-        worker.radius,
-        worker,
-        building_target=site,
-    )
-    if path:
-        worker.path = path
-        worker.path_index = 0
-        worker.path_target = (site.x, site.y)
-        worker.destination = path[0]
-    # If no path, the construction site still exists; worker watchdog or the
-    # worker_brain will pick another worker on a future tick.
+    worker_tasks = getattr(ctx.game, "worker_task_system", None)
+    if worker_tasks:
+        success = worker_tasks.assign_build(worker, site)
+    else:
+        success = ctx.game.pathfinder.issue_interact(worker, site, "build")
+    if not success:
+        debug_log.log(
+            f"AI {ctx.player.name}: no path to {building_name} site at ({position[0]:.0f}, {position[1]:.0f})",
+            "AI",
+        )
 
     debug_log.log(
         f"AI {ctx.player.name}: started {building_name} at ({position[0]:.0f}, {position[1]:.0f})",

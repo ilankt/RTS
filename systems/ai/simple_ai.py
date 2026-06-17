@@ -506,8 +506,7 @@ class SimpleAISystem:
             "attack_range": getattr(building_template, "attack_range", 0),
         }
 
-        # Calculate radius from size
-        building_radius = building_template.size[0] * 32  # TILE_WIDTH = 32
+        building_radius = building_template.radius
 
         try:
             construction_site = ConstructionSite(
@@ -521,28 +520,13 @@ class SimpleAISystem:
 
             self.game.construction_sites.append(construction_site)
             self.game.pathfinder.mark_dirty()
-            construction_site.builder = worker
-
-            # Wipe ALL prior state so movement system doesn't hijack the worker
-            worker.clear_all_movement_state()
-            worker.building_target = construction_site
-            worker.status = "run"
-
-            # Pathfind to site
-            path = self.game.pathfinder.find_path(
-                (worker.x, worker.y),
-                (construction_site.x, construction_site.y),
-                worker.radius,
-                worker,
-                building_target=construction_site,
-            )
-
-            if path:
-                worker.path = path
-                worker.path_index = 0
-                worker.path_target = (construction_site.x, construction_site.y)
-                worker.destination = path[0]
-                debug_log.log(f"AI {worker.player.name}: Worker pathed to {building_type} site at ({position[0]:.0f}, {position[1]:.0f}), path length {len(path)}", "AI")
+            worker_tasks = getattr(self.game, "worker_task_system", None)
+            if worker_tasks:
+                success = worker_tasks.assign_build(worker, construction_site)
+            else:
+                success = self.game.pathfinder.issue_interact(worker, construction_site, "build")
+            if success:
+                debug_log.log(f"AI {worker.player.name}: Worker pathed to {building_type} site at ({position[0]:.0f}, {position[1]:.0f})", "AI")
             else:
                 debug_log.log(f"AI {worker.player.name}: No path to {building_type} site!", "AI")
 
@@ -621,10 +605,15 @@ class SimpleAISystem:
         """
         idle_candidates = []
         gather_candidates = []
+        worker_tasks = getattr(self.game, "worker_task_system", None)
 
         for unit in self.game.units:
             if unit.player != player or unit.name != "worker":
                 continue
+            if worker_tasks:
+                task = worker_tasks.active_task(unit)
+                if task and task.phase != "FAILED":
+                    continue
             # Never pull from building or drop-off
             if unit.is_building or unit.building_target:
                 continue

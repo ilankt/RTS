@@ -166,6 +166,9 @@ class RenderingSystem:
         debug_info.append(f"Construction Sites: {len(self.game.construction_sites)}")
         debug_info.append(f"Camera Zoom: {self.game.camera.zoom:.2f}")
         debug_info.append(f"Camera Pos: ({self.game.camera.x:.1f}, {self.game.camera.y:.1f})")
+        debug_info.append(f"Game Speed: {getattr(self.game, 'game_speed', 1.0):.1f}x")
+        fog_state = "ON" if getattr(self.game, "fog_of_war_enabled", True) else "OFF"
+        debug_info.append(f"Fog of War: {fog_state} (F6)")
         
         # Draw debug text
         y_offset = 10
@@ -235,7 +238,7 @@ class RenderingSystem:
     def _draw_fog_overlay(self, map_surface, camera):
         """Draw fog of war overlay for the human player."""
         fog = getattr(self.game, 'fog_of_war', None)
-        if not fog:
+        if not fog or not fog.enabled:
             return
         
         human = self.game.players[0] if self.game.players else None

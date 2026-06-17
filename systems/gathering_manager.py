@@ -22,9 +22,10 @@ class GatheringManager:
         
     def update(self, delta_time):
         """Update all gathering workers, farms, and tree regrowth"""
-        for unit in self.game.units:
-            if unit.name == "worker" and unit.is_gathering:
-                self._update_gathering_worker(unit, delta_time)
+        if not getattr(self.game, "worker_task_system", None):
+            for unit in self.game.units:
+                if unit.name == "worker" and unit.is_gathering:
+                    self._update_gathering_worker(unit, delta_time)
         
         # Update farms - automatic food generation (10 food every 10 seconds)
         for building in self.game.buildings:
@@ -52,6 +53,42 @@ class GatheringManager:
         # Tree regrowth: track depleted tree positions and regrow after timer
         self._update_tree_regrowth(delta_time)
         
+    def gather_resource_tick(self, worker, resource, delta_time):
+        """Apply one deterministic gathering tick.
+
+        Returns: "gathering", "full", or "depleted".
+        """
+        if not resource or getattr(resource, "amount_remaining", 0) <= 0:
+            return "depleted"
+
+        resource_type = resource.name
+        base_rate = GATHERING_RATES.get(resource_type, 1)
+        player_multiplier = 1.0
+        if hasattr(worker, 'player') and worker.player:
+            player_multiplier = worker.player.gathering_rates.get(resource_type, 1.0)
+        gather_rate = base_rate * player_multiplier
+        amount_to_gather = gather_rate * delta_time
+
+        capacity = worker.max_capacity.get(resource_type, 20)
+        space_left = capacity - worker.resource_amount
+        if space_left <= 0:
+            return "full"
+
+        actual_gathered = min(amount_to_gather, space_left, resource.amount_remaining)
+        if actual_gathered <= 0:
+            return "depleted" if resource.amount_remaining <= 0 else "gathering"
+
+        worker.resource_amount += actual_gathered
+        worker.resource_type = resource_type
+        resource.amount_remaining -= actual_gathered
+        worker.status = "gather"
+        worker.gathering_timer += delta_time
+
+        if resource.amount_remaining <= 0:
+            return "full" if worker.resource_amount > 0 else "depleted"
+        if worker.resource_amount >= capacity:
+            return "full"
+        return "gathering"
     
     def _update_gathering_worker(self, worker, delta_time):
         """Update a single gathering worker"""
@@ -65,7 +102,8 @@ class GatheringManager:
             pass
             distance = self._get_distance(worker, worker.gathering_target)
             gathering_distance = get_gathering_distance(worker, worker.gathering_target)
-            if distance <= gathering_distance:
+            interaction_tolerance = max(24, worker.radius * 6)
+            if distance <= gathering_distance + interaction_tolerance:
                 # Gather resources
                 pass
                 resource_type = worker.gathering_target.name
@@ -205,7 +243,8 @@ class GatheringManager:
         # Check distance
         distance = self._get_distance(worker, resource)
         gathering_distance = get_gathering_distance(worker, resource)
-        if distance > gathering_distance:
+        interaction_tolerance = max(24, worker.radius * 6)
+        if distance > gathering_distance + interaction_tolerance:
             return False
             
         # Clear engagement state only if worker is actually starting to gather
@@ -246,7 +285,8 @@ class GatheringManager:
         # Check distance using same logic as gathering
         distance = self._get_distance(worker, building)
         required_distance = get_drop_off_distance(worker, building)
-        if distance > required_distance:
+        interaction_tolerance = max(24, worker.radius * 6)
+        if not worker.is_dropping_off and distance > required_distance + interaction_tolerance:
             return False
             
         # Start drop-off process with delay
@@ -292,8 +332,10 @@ class GatheringManager:
                 # Debug: Worker will return to gather
             else:
                 worker.previous_gathering_target = None
-            
-        return True
+
+            return True
+
+        return False
     
     def _update_tree_regrowth(self, delta_time):
         """Handle tree regrowth from depleted tree positions"""
@@ -355,63 +397,11 @@ class GatheringManager:
                     nearest_building = building
         
         if nearest_building:
-            worker.drop_off_target = nearest_building
-            
-            # Pathfind to drop-off building (excluded from collision)
-            path = self.game.pathfinder.find_path(
-                (worker.x, worker.y),
-                (nearest_building.x, nearest_building.y),
-                worker.radius,
-                worker,
-                drop_off_target=nearest_building
-            )
-            
-            if path:
-                worker.path = path
-                worker.path_index = 0
-                # Use the actual reachable position as target (may be different from building center)
-                worker.path_target = path[-1] if path else (nearest_building.x, nearest_building.y)
-                worker.destination = path[0] if path else None
-                worker.status = "run"
-                
-                # Preserve gathering target for return after drop-off
-                worker.previous_gathering_target = worker.gathering_target
-                worker.gathering_target = None
-                
-                # Check if we had to redirect to a reachable position
-                final_pos = path[-1]
-                distance_to_building = ((final_pos[0] - nearest_building.x)**2 + (final_pos[1] - nearest_building.y)**2) ** 0.5
-                if distance_to_building > nearest_building.radius + worker.radius + 10:
-                    # Debug: Worker moving to drop off from reachable position
-                    pass
-                    pass
-                else:
-                    # Debug: Worker moving to drop off
-                    pass
-                    pass
+            worker_tasks = getattr(self.game, "worker_task_system", None)
+            if worker_tasks:
+                worker_tasks.assign_dropoff(worker, nearest_building)
             else:
-                # Fallback: try to find a reachable position manually
-                pass
-                closest_reachable = pathfinder._find_closest_reachable_position(
-                    (worker.x, worker.y), (nearest_building.x, nearest_building.y), worker.radius)
-                
-                if closest_reachable:
-                    # Debug: No path found, moving to closest reachable position
-                    pass
-                    worker.destination = closest_reachable
-                    worker.path = None
-                    worker.path_index = 0
-                    worker.path_target = closest_reachable
-                    worker.status = "run"
-                else:
-                    # Complete fallback: try direct movement to building center (original behavior)
-                    pass
-                    # Debug: No reachable position found, trying direct movement
-                    worker.destination = (nearest_building.x, nearest_building.y)
-                    worker.path = None
-                    worker.path_index = 0
-                    worker.path_target = (nearest_building.x, nearest_building.y)
-                    worker.status = "run"
+                self.game.pathfinder.issue_interact(worker, nearest_building, "dropoff")
     
     def _get_distance(self, obj1, obj2):
         """Calculate distance between two objects"""

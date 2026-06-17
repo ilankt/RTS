@@ -113,6 +113,7 @@ class Unit(GameObject):
         self.path = None
         self.path_index = 0
         self.path_target = None
+        self._clear_navigation_metadata()
         self.status = "idle"
         self.is_gathering = False
         # Don't clear is_building if we have a building_target - we might be at the construction site
@@ -137,6 +138,7 @@ class Unit(GameObject):
         self.path = None
         self.path_index = 0
         self.path_target = None
+        self._clear_navigation_metadata()
         self.status = "idle"
 
         # Gathering state
@@ -166,6 +168,11 @@ class Unit(GameObject):
         # Reset any stuck detection state
         if hasattr(self, '_stuck_detector'):
             delattr(self, '_stuck_detector')
+
+    def _clear_navigation_metadata(self):
+        for attr in ("path_target_object", "path_target_object_pos", "path_target_mode"):
+            if hasattr(self, attr):
+                delattr(self, attr)
     
     def get_effective_attack_range(self, buffer_type="exact"):
         """Get effective attack range with standardized buffers"""
@@ -229,7 +236,8 @@ class Unit(GameObject):
         
         # Attack range checking happens silently
         
-        return distance <= attack_range
+        target_radius = getattr(target, 'radius', 0)
+        return distance <= attack_range + target_radius
     
     def has_line_of_sight(self, target, game_map, obstacles=None):
         """Check if there's a clear line of sight to target with improved accuracy"""

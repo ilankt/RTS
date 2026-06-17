@@ -185,29 +185,15 @@ class BuildingSystem:
         
         self.game.construction_sites.append(construction_site)
         self.game.pathfinder.mark_dirty()
-
-        # Assign builder to construction site
-        construction_site.builder = self.selected_builder
-        self.selected_builder.building_target = construction_site
-        self.selected_builder.is_building = False  # Will be set to true when worker arrives
         
         # Debug logging
         debug_log.log(f"Building placement: Assigned worker {id(self.selected_builder)} to construction site", "BUILDING")
         
-        # Move worker directly to the construction site
-        target_pos = (construction_site.x, construction_site.y)
-        path = self.game.pathfinder.find_path(
-            (self.selected_builder.x, self.selected_builder.y), target_pos,
-            self.selected_builder.radius, self.selected_builder,
-            building_target=construction_site)
-        if path:
-            self.selected_builder.path = path
-            self.selected_builder.path_index = 0
-            self.selected_builder.path_target = target_pos
-            self.selected_builder.destination = path[0] if path else None
-            self.selected_builder.status = "run"
-            self.selected_builder.last_task = {"type": "build", "target": construction_site}
-            debug_log.log(f"Building placement: Worker pathing directly to construction site at ({target_pos[0]:.0f}, {target_pos[1]:.0f})", "BUILDING")
+        worker_tasks = getattr(self.game, "worker_task_system", None)
+        if worker_tasks and worker_tasks.assign_build(self.selected_builder, construction_site):
+            debug_log.log(f"Building placement: Worker pathing to construction site at ({construction_site.x:.0f}, {construction_site.y:.0f})", "BUILDING")
+        elif not worker_tasks and self.game.pathfinder.issue_interact(self.selected_builder, construction_site, "build"):
+            debug_log.log(f"Building placement: Worker pathing to construction site at ({construction_site.x:.0f}, {construction_site.y:.0f})", "BUILDING")
         else:
             debug_log.log(f"Building placement: No path found to construction site!", "BUILDING")
             
@@ -266,6 +252,8 @@ class BuildingSystem:
                     
                     # Free the builder with complete state cleanup before nudging
                     if site.builder:
+                        if hasattr(self.game, "worker_task_system"):
+                            self.game.worker_task_system.complete_build(site.builder, site)
                         site.builder.clear_all_movement_state()
 
                     # Nudge the worker to a safe position outside the new building's radius
@@ -347,6 +335,8 @@ class BuildingSystem:
             
             # Free the builder with complete state cleanup
             if construction_site.builder:
+                if hasattr(self.game, "worker_task_system"):
+                    self.game.worker_task_system.cancel(construction_site.builder)
                 if hasattr(construction_site.builder, 'clear_all_movement_state'):
                     construction_site.builder.clear_all_movement_state()
                 else:

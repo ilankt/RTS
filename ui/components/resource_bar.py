@@ -70,6 +70,7 @@ class ResourceBar:
         
         # Draw game speed indicator
         self._draw_speed_indicator(screen)
+        self._draw_fog_indicator(screen)
     
     def _draw_speed_indicator(self, screen):
         """Draw game speed indicator in top-right corner of resource bar"""
@@ -102,3 +103,19 @@ class ResourceBar:
         hint_surface = self.small_font.render(hint_text, True, (150, 150, 150))
         hint_rect = hint_surface.get_rect(centerx=bg_rect.centerx, top=bg_rect.bottom + 2)
         screen.blit(hint_surface, hint_rect)
+
+    def _draw_fog_indicator(self, screen):
+        """Draw fog-of-war debug toggle state near the speed indicator."""
+        x = SCREEN_WIDTH - MINIMAP_WIDTH - 120
+        y = 62
+        enabled = getattr(self.game, "fog_of_war_enabled", True)
+
+        bg_rect = pygame.Rect(x, y, 100, 26)
+        pygame.draw.rect(screen, (40, 40, 40), bg_rect)
+        pygame.draw.rect(screen, (100, 100, 100), bg_rect, 2)
+
+        color = (255, 255, 255) if enabled else (255, 190, 90)
+        text = "Fog: On" if enabled else "Fog: Off"
+        text_surface = self.small_font.render(text, True, color)
+        text_rect = text_surface.get_rect(center=bg_rect.center)
+        screen.blit(text_surface, text_rect)

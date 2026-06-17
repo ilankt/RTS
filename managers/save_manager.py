@@ -64,6 +64,8 @@ class SaveManager:
                 "hp": unit.hp,
                 "player_index": game.players.index(unit.player) if unit.player in game.players else -1,
                 "stance": getattr(unit, "stance", "aggressive"),
+                "resource_type": getattr(unit, "resource_type", None),
+                "resource_amount": getattr(unit, "resource_amount", 0),
             }
             state["units"].append(unit_data)
         
@@ -114,6 +116,9 @@ class SaveManager:
         game.resources.clear()
         game.construction_sites.clear()
         game.selection_manager.selected_objects.clear()
+        if hasattr(game, "worker_task_system"):
+            for worker in list(game.worker_task_system.tasks.keys()):
+                game.worker_task_system.cancel(worker)
         
         # Restore players
         player_map = {}
@@ -187,6 +192,8 @@ class SaveManager:
             unit.x = udata["x"]
             unit.y = udata["y"]
             unit.stance = udata.get("stance", "aggressive")
+            unit.resource_type = udata.get("resource_type")
+            unit.resource_amount = udata.get("resource_amount", 0)
             
             # Re-link animations
             player_idx = game.players.index(player)
@@ -239,7 +246,7 @@ class SaveManager:
                 building_data=building_data,
                 x=cdata["x"],
                 y=cdata["y"],
-                radius=template.size[0] * 32,
+                radius=template.radius,
                 player=player,
             )
             site.hp = cdata["hp"]

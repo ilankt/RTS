@@ -30,6 +30,11 @@ class FogOfWar:
         for player in game.players:
             self._init_player_grid(player)
 
+    @property
+    def enabled(self):
+        """Whether fog should affect rendering and visibility checks."""
+        return getattr(self.game, "fog_of_war_enabled", True)
+
     def _init_player_grid(self, player):
         """Initialize a player's visibility grid."""
         self.visibility_grid[player] = [
@@ -91,6 +96,8 @@ class FogOfWar:
 
     def is_visible(self, player, wx: float, wy: float) -> bool:
         """Check if a world position is currently visible to player."""
+        if not self.enabled:
+            return True
         if player not in self.visibility_grid:
             return True  # No fog for unregistered players
         hex_coord = self.game.game_map.world_to_grid(wx, wy)
@@ -103,6 +110,8 @@ class FogOfWar:
 
     def is_explored(self, player, wx: float, wy: float) -> bool:
         """Check if a world position has ever been explored by player."""
+        if not self.enabled:
+            return True
         if player not in self.visibility_grid:
             return True
         hex_coord = self.game.game_map.world_to_grid(wx, wy)
@@ -115,6 +124,8 @@ class FogOfWar:
 
     def get_tile_state(self, player, r: int, c: int) -> int:
         """Get the fog state of a tile for a player."""
+        if not self.enabled:
+            return self.VISIBLE
         if player not in self.visibility_grid:
             return self.VISIBLE
         if 0 <= r < self.map_height and 0 <= c < self.map_width:
@@ -123,6 +134,9 @@ class FogOfWar:
 
     def is_object_visible(self, obj) -> bool:
         """Check if an object is visible to the human player."""
+        if not self.enabled:
+            return True
+
         human = self.game.players[0] if self.game.players else None
         if not human:
             return True
@@ -135,6 +149,8 @@ class FogOfWar:
 
     def get_exploration_percent(self, player):
         """Return percentage of map tiles explored."""
+        if not self.enabled:
+            return 100.0
         if player not in self.visibility_grid:
             return 100.0
         grid = self.visibility_grid[player]

@@ -107,6 +107,31 @@ class TestFogOfWar:
         second_state = fog.get_tile_state(human, 2, 2)
         assert second_state == fog.EXPLORED  # Should remain explored
 
+    def test_disabled_fog_makes_everything_visible(self):
+        from systems.fog_of_war import FogOfWar
+        from entities.unit import Unit
+        game = MockGame()
+        game.fog_of_war_enabled = False
+        fog = FogOfWar(game)
+        human = game.players[0]
+        enemy_unit = Unit("worker", [1, 1], 100, 40, 0, {}, radius=10, player=game.players[1])
+        enemy_unit.x = 1600
+        enemy_unit.y = 1600
+
+        assert fog.get_tile_state(human, 0, 0) == fog.VISIBLE
+        assert fog.is_visible(human, enemy_unit.x, enemy_unit.y) is True
+        assert fog.is_object_visible(enemy_unit) is True
+        assert fog.get_exploration_percent(human) == 100.0
+
+    def test_main_menu_initializes_font_if_needed(self):
+        import pygame
+        from screens.main_menu import MainMenu
+
+        pygame.font.quit()
+        MainMenu(screen=None)
+
+        assert pygame.font.get_init() is True
+
 
 # ---------------------------------------------------------------------------
 # Particle System Tests

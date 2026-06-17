@@ -5,6 +5,8 @@ from managers.save_manager import SaveManager
 
 def main():
     pygame.init()
+    if not pygame.font.get_init():
+        pygame.font.init()
     screen = pygame.display.set_mode((1280, 720))
     
     while True:

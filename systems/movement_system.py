@@ -16,6 +16,8 @@ class MovementSystem:
         """Main movement update for a single unit"""
         # Update animation with delta_time
         unit.update_animation(delta_time)
+        worker_task_system = getattr(self.game, "worker_task_system", None)
+        worker_task_owned = bool(worker_task_system and worker_task_system.owns(unit))
         
         # Update combat if applicable
         if hasattr(unit, 'update_combat'):
@@ -23,7 +25,11 @@ class MovementSystem:
             self._handle_combat_movement(unit)
         
         # Handle target checking during movement
-        if unit.path or unit.destination or unit.is_dropping_off or (hasattr(unit, 'building_target') and unit.building_target):
+        if (not worker_task_owned and
+                (unit.path or unit.destination or unit.is_dropping_off or
+                (hasattr(unit, 'building_target') and unit.building_target) or
+                (hasattr(unit, 'gathering_target') and unit.gathering_target) or
+                (hasattr(unit, 'drop_off_target') and unit.drop_off_target))):
             self._check_movement_targets(unit, delta_time)
         
         # Handle path following
@@ -292,6 +298,9 @@ class MovementSystem:
             pass
         pathfinder = self.game.pathfinder
         path = None
+
+        if unit.current_target and pathfinder.issue_interact(unit, unit.current_target, "attack"):
+            return
         
         # Option 1: Direct to target
         path = pathfinder.find_path((unit.x, unit.y), 
@@ -350,7 +359,12 @@ class MovementSystem:
         if (hasattr(unit, 'building_target') and unit.building_target and not unit.is_building):
             build_distance = math.sqrt((unit.x - unit.building_target.x)**2 +
                                      (unit.y - unit.building_target.y)**2)
-            required_distance = unit.radius + unit.building_target.radius - 5
+            if hasattr(self.game, "pathfinder"):
+                required_distance = self.game.pathfinder.get_interaction_distance(
+                    unit, unit.building_target, "build"
+                )
+            else:
+                required_distance = unit.radius + unit.building_target.radius + 4
 
             # Add tolerance for stuck units
             if hasattr(unit, '_stuck_detector') and unit._stuck_detector.get('stuck_timer', 0) >= 60:
@@ -361,19 +375,10 @@ class MovementSystem:
             if not unit.path and not unit.destination and unit.status == "idle":
                 if build_distance > required_distance + 5:
                     debug_log.log(f"Recovery: Re-pathing worker to construction site", "CONSTRUCTION")
-                    path = self.game.pathfinder.find_path(
-                        (unit.x, unit.y),
-                        (unit.building_target.x, unit.building_target.y),
-                        unit.radius, unit,
-                        building_target=unit.building_target)
-                    if path:
-                        unit.path = path
-                        unit.path_index = 0
-                        unit.destination = path[0] if path else None
-                        unit.status = "run"
+                    self.game.pathfinder.issue_interact(unit, unit.building_target, "build")
 
             # Check if worker is close enough to start building
-            if build_distance <= required_distance + 10:
+            if build_distance <= required_distance + 8:
                 debug_log.log(f"Worker reached construction site at dist {build_distance:.0f}", "CONSTRUCTION")
 
                 # Clear movement, start building
@@ -419,7 +424,8 @@ class MovementSystem:
                     dest_tolerance = unit.get_target_tolerance("movement")
                 reached_destination = dest_distance <= dest_tolerance
             
-            if drop_distance <= required_distance or unit.is_dropping_off or reached_destination:
+            interaction_tolerance = max(24, unit.radius * 6)
+            if drop_distance <= required_distance + interaction_tolerance or unit.is_dropping_off or reached_destination:
                 # Drop off resources
                 pass
                 unit.path = None
@@ -436,19 +442,20 @@ class MovementSystem:
                     pass
                     # Move away from building
                     if hasattr(unit, 'gathering_target') and unit.gathering_target:
-                        unit.destination = (unit.gathering_target.x, unit.gathering_target.y)
-                        unit.status = "run"
-                        unit.is_engaging = True  # Resume gathering after drop-off
+                        self.game.pathfinder.issue_interact(unit, unit.gathering_target, "gather")
                     else:
                         away_x = unit.x + (unit.x - building_x) * 0.5
                         away_y = unit.y + (unit.y - building_y) * 0.5
                         unit.destination = (away_x, away_y)
                         unit.status = "run"
                 return
+            elif not unit.path and not unit.destination and not unit.is_dropping_off:
+                self.game.pathfinder.issue_interact(unit, unit.drop_off_target, "dropoff")
+                return
         
         # Check gathering target
         elif (unit.name == "worker" and hasattr(unit, 'gathering_target') and 
-              unit.gathering_target and hasattr(unit, 'is_engaging') and unit.is_engaging):
+              unit.gathering_target):
             
             from systems.gathering_manager import get_gathering_distance
             target_distance = math.sqrt((unit.x - unit.gathering_target.x)**2 + 
@@ -576,16 +583,7 @@ class MovementSystem:
                 # Recovery: If too far from target, clear the stuck state and re-path
                 if target_distance > gathering_distance + 5:  # Small tolerance
                     debug_log.log(f"  - Recovery: Re-pathing to distant gathering target", "MOVEMENT")
-                    path = self.game.pathfinder.find_path(
-                        (unit.x, unit.y),
-                        (unit.gathering_target.x, unit.gathering_target.y),
-                        unit.radius, unit,
-                        gathering_target=unit.gathering_target)
-                    if path:
-                        unit.path = path
-                        unit.path_index = 0
-                        unit.destination = path[0] if path else None
-                        unit.status = "run"
+                    if self.game.pathfinder.issue_interact(unit, unit.gathering_target, "gather"):
                         debug_log.log(f"  - Recovery: Path found, worker moving again", "MOVEMENT")
                     else:
                         # Can't reach target - clear it
@@ -593,7 +591,8 @@ class MovementSystem:
                         unit.gathering_target = None
                         unit.is_engaging = False
             
-            if target_distance <= gathering_distance:
+            interaction_tolerance = max(24, unit.radius * 6)
+            if target_distance <= gathering_distance + interaction_tolerance:
                 debug_log.log(f"Worker at distance {target_distance:.1f} from {unit.gathering_target.name} (required: {gathering_distance:.1f})", "MOVEMENT")
                 # Attempt to start gathering. If successful, the gathering manager will handle state changes.
                 if self.game.gathering_manager.start_gathering(unit, unit.gathering_target):
@@ -684,10 +683,17 @@ class MovementSystem:
             target_object = unit.drop_off_target
         
         if target_object and unit.path_target:
-            target_displacement = math.sqrt(
-                (target_object.x - unit.path_target[0])**2 + 
-                (target_object.y - unit.path_target[1])**2
-            )
+            original_target_pos = getattr(unit, 'path_target_object_pos', None)
+            if original_target_pos:
+                target_displacement = math.sqrt(
+                    (target_object.x - original_target_pos[0])**2 +
+                    (target_object.y - original_target_pos[1])**2
+                )
+            else:
+                target_displacement = math.sqrt(
+                    (target_object.x - unit.path_target[0])**2 +
+                    (target_object.y - unit.path_target[1])**2
+                )
             
             # Skip for drop-off targets
             is_drop_off = (hasattr(unit, 'drop_off_target') and 
@@ -722,6 +728,11 @@ class MovementSystem:
             # Debug: Target moved - re-pathfinding
         
             pass
+        target_mode = getattr(unit, 'path_target_mode', None)
+        if target_mode in ("gather", "build", "dropoff", "attack"):
+            if self.game.pathfinder.issue_interact(unit, target_object, target_mode):
+                return
+
         drop_off = unit.drop_off_target if (hasattr(unit, 'drop_off_target') and unit.drop_off_target == target_object) else None
         new_path = self.game.pathfinder.find_path(
             (unit.x, unit.y),

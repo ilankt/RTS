@@ -26,6 +26,7 @@ from systems.combat_system import CombatSystem
 from systems.building_system import BuildingSystem
 from systems.rendering_system import RenderingSystem
 from systems.unit_watchdog import UnitWatchdog
+from systems.worker_task_system import WorkerTaskSystem
 from systems.ai import UtilityAISystem
 from systems.projectile_system import ProjectileSystem
 from systems.fog_of_war import FogOfWar
@@ -38,6 +39,9 @@ from utils.debug_logger import debug_log
 class Game:
     def __init__(self):
         pygame.init()
+        if not pygame.font.get_init():
+            pygame.font.init()
+
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.map_surface = pygame.Surface((MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT))
         pygame.display.set_caption("RTS Game")
@@ -88,9 +92,11 @@ class Game:
         self.combat_system = CombatSystem(self)
         self.building_system = BuildingSystem(self)
         self.rendering_system = RenderingSystem(self)
+        self.worker_task_system = WorkerTaskSystem(self)
         self.unit_watchdog = UnitWatchdog(self)
         self.ai_system = UtilityAISystem(self)
         self.projectile_system = ProjectileSystem(self)
+        self.fog_of_war_enabled = True
         self.fog_of_war = FogOfWar(self)
         self.particles = Particles(self)
         self.sound_manager = SoundManager(self)
@@ -117,6 +123,7 @@ class Game:
         
         # Set up initial game state
         self.game_state.setup_game_objects()
+        self.pathfinder.mark_dirty()
     
     def _load_resource_icons(self):
         """Load and scale resource icons"""
@@ -150,7 +157,6 @@ class Game:
             self.update()
             self.draw()
             self.clock.tick(60)
-        pygame.quit()
     
     def handle_events(self):
         """Handle all input events"""
@@ -200,6 +206,10 @@ class Game:
                 debug_log.log(f"ERROR: F4 debug panel crashed: {e}", "GENERAL")
                 import traceback
                 traceback.print_exc()
+        elif event.key == pygame.K_F6:
+            self.fog_of_war_enabled = not self.fog_of_war_enabled
+            state = "enabled" if self.fog_of_war_enabled else "disabled"
+            debug_log.log(f"Fog of war {state}", "GENERAL")
         elif event.key == pygame.K_F5:
             # Save game
             try:
@@ -384,16 +394,20 @@ class Game:
         # Update input
         self._update_camera_movement()
         
+        # Assign/update worker tasks before movement, then resolve arrivals after movement.
+        self.ai_system.update(self.delta_time)
+        self.ai_debug_panel.update(self.delta_time)
+        self.worker_task_system.update_pre_movement(self.delta_time)
+        
+        # Update unit movement and combat
+        self._update_units(self.delta_time)
+        self.worker_task_system.update_post_movement(self.delta_time)
+
         # Update core systems with speed-adjusted delta time
         self.gathering_manager.update(self.delta_time)
         self.building_system.update_construction(self.delta_time)
         self.production_manager.update(self.delta_time)
         self.unit_watchdog.update()
-        self.ai_system.update(self.delta_time)
-        self.ai_debug_panel.update(self.delta_time)
-        
-        # Update unit movement and combat
-        self._update_units(self.delta_time)
         
         # Update combat system (for both units and buildings)
         self.combat_system.update_combat_units(self.delta_time)
@@ -566,6 +580,7 @@ class Game:
     def _restart_game(self):
         """Restart the game by reinitializing core state"""
         self.game_over_state = None
+        self.worker_task_system = WorkerTaskSystem(self)
         self.buildings.clear()
         self.units.clear()
         self.resources.clear()

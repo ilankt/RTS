@@ -453,6 +453,9 @@ class CollisionSystem:
                 # For workers dropping off, prioritize separation over pathfinding
                 if (hasattr(unit, 'is_dropping_off') and unit.is_dropping_off) or \
                    (hasattr(unit, 'drop_off_target') and unit.drop_off_target and unit.resource_amount > 0):
+                    worker_tasks = getattr(self.game, "worker_task_system", None)
+                    if worker_tasks and worker_tasks.owns(unit):
+                        continue
                     # Clear destination temporarily to allow separation to take effect
                     if overlap > 5:  # Only for significant overlaps
                         unit.destination = None
@@ -475,6 +478,11 @@ class CollisionSystem:
         """Handle a unit that has been blocked for too long"""
         # Reset the blocked timer
         unit._movement_blocked_timer = 0
+
+        worker_tasks = getattr(self.game, "worker_task_system", None)
+        if worker_tasks and worker_tasks.owns(unit):
+            worker_tasks.request_repath(unit)
+            return
         
         # Different strategies based on what the unit is doing
         if (hasattr(unit, 'drop_off_target') and unit.drop_off_target and 
@@ -487,15 +495,7 @@ class CollisionSystem:
             
             # Try to use pathfinding if not already using it
             if not unit.path:
-                path = self.game.pathfinder.find_path(
-                    (unit.x, unit.y),
-                    (unit.drop_off_target.x, unit.drop_off_target.y),
-                    unit.radius, unit,
-                    drop_off_target=unit.drop_off_target)
-                if path:
-                    unit.path = path
-                    unit.path_index = 0
-                    unit.destination = path[0] if path else None
+                if self.game.pathfinder.issue_interact(unit, unit.drop_off_target, "dropoff"):
                     if DEBUG_PATHFINDING:
                         # Debug: Found alternate path
                         pass
@@ -529,15 +529,7 @@ class CollisionSystem:
                 pass
             # Similar logic for gathering
             if not unit.path:
-                path = self.game.pathfinder.find_path(
-                    (unit.x, unit.y),
-                    (unit.gathering_target.x, unit.gathering_target.y),
-                    unit.radius, unit,
-                    gathering_target=unit.gathering_target)
-                if path:
-                    unit.path = path
-                    unit.path_index = 0
-                    unit.destination = path[0] if path else None
+                if self.game.pathfinder.issue_interact(unit, unit.gathering_target, "gather"):
                     if DEBUG_PATHFINDING:
                         # Debug: Found alternate path
         

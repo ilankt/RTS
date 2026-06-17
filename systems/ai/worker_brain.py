@@ -1,5 +1,6 @@
 """Worker assignment logic - finds idle workers and gives them jobs."""
 import math
+from core.config import DROP_OFF_BUILDINGS
 from utils.debug_logger import debug_log
 
 
@@ -24,8 +25,20 @@ class WorkerBrain:
         Workers in the gather->dropoff->return cycle are NOT idle even if
         they briefly appear idle between steps.
         """
-        # Workers carrying resources or mid-drop-off are busy
-        if worker.resource_amount > 0 or worker.is_dropping_off:
+        worker_tasks = getattr(self.game, "worker_task_system", None)
+        if worker_tasks:
+            task = worker_tasks.active_task(worker)
+            if task and task.phase != "FAILED":
+                return False
+            if task and task.phase == "FAILED":
+                worker_tasks.cancel(worker)
+
+        # Carriers are busy unless they lost their drop-off command.
+        if worker.resource_amount > 0:
+            if not worker.drop_off_target and not worker.destination and not worker.path and not worker.is_dropping_off:
+                return True
+            return False
+        if worker.is_dropping_off:
             return False
 
         # Workers actively gathering or building are busy
@@ -65,6 +78,18 @@ class WorkerBrain:
 
     def _assign_worker(self, worker, player):
         """Assign a single idle worker to a task, in priority order."""
+        # 0. Carrying resources without a current route? Deposit first.
+        if worker.resource_amount > 0:
+            dropoff = self._find_dropoff(worker, player)
+            if dropoff:
+                debug_log.log(f"AI {player.name}: Worker carrying {worker.resource_type}, returning to {dropoff.name}", "AI")
+                worker_tasks = getattr(self.game, "worker_task_system", None)
+                if worker_tasks:
+                    worker_tasks.assign_dropoff(worker, dropoff)
+                else:
+                    self.game.pathfinder.issue_interact(worker, dropoff, "dropoff")
+                return
+
         # 1. Unattended construction site? -> Go build
         site = self._find_unattended_construction_site(worker, player)
         if site:
@@ -94,8 +119,7 @@ class WorkerBrain:
         for building in self.game.buildings:
             if building.player != player:
                 continue
-            # Castle and resource buildings accept drop-offs
-            if building.name in ("castle", "mine", "quarry", "lumbermill", "farm"):
+            if building.name in DROP_OFF_BUILDINGS.get(worker.resource_type, []):
                 dist = math.hypot(worker.x - building.x, worker.y - building.y)
                 if dist < best_dist:
                     best_dist = dist
@@ -190,35 +214,21 @@ class WorkerBrain:
         """Send a worker to gather a resource."""
         if not resource or getattr(resource, "amount_remaining", 0) <= 0:
             return
-        # Reserve a unique spread position so the worker doesn't path to the
-        # resource center (avoids congestion when multiple workers gather the
-        # same node).  _gather_from_target will also call reserve, but doing
-        # it here lets us pass the position explicitly for AI workers.
-        spread_pos = self.game.gathering_manager.reserve_gathering_position(worker, resource)
-        self.game.selection_manager._gather_from_target(worker, resource, self.game.pathfinder, new_destination=spread_pos)
+        worker_tasks = getattr(self.game, "worker_task_system", None)
+        if worker_tasks:
+            worker_tasks.assign_gather(worker, resource)
+        else:
+            spread_pos = self.game.gathering_manager.reserve_gathering_position(worker, resource)
+            self.game.selection_manager._gather_from_target(worker, resource, self.game.pathfinder, new_destination=spread_pos)
 
     def _command_build(self, worker, construction_site):
         """Send a worker to build at a construction site."""
-        # Wipe ALL prior state so movement system doesn't hijack the worker
-        worker.clear_all_movement_state()
-
-        construction_site.builder = worker
-        worker.building_target = construction_site
-        worker.status = "run"
-
-        path = self.game.pathfinder.find_path(
-            (worker.x, worker.y),
-            (construction_site.x, construction_site.y),
-            worker.radius,
-            worker,
-            building_target=construction_site,
-        )
-        if path:
-            worker.path = path
-            worker.path_index = 0
-            worker.path_target = (construction_site.x, construction_site.y)
-            worker.destination = path[0] if path else None
+        worker_tasks = getattr(self.game, "worker_task_system", None)
+        if worker_tasks:
+            success = worker_tasks.assign_build(worker, construction_site)
         else:
+            success = self.game.pathfinder.issue_interact(worker, construction_site, "build")
+        if not success:
             debug_log.log(f"AI: No path to construction site at ({construction_site.x:.0f}, {construction_site.y:.0f})", "AI")
 
     def _get_castle(self, player):

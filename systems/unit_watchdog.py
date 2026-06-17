@@ -95,6 +95,9 @@ class UnitWatchdog:
         had_building_target = unit.building_target is not None
 
         # Full state wipe
+        worker_tasks = getattr(self.game, "worker_task_system", None)
+        if worker_tasks and worker_tasks.active_task(unit):
+            worker_tasks.cancel(unit)
         unit.clear_all_movement_state()
 
         # Nudge to nearest safe position if overlapping something

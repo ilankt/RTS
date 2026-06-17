@@ -98,7 +98,7 @@ class BuildingPlacer:
         building_template = self.game.game_data["buildings"].get(building_type)
         if not building_template:
             return False
-        building_radius = building_template.size[0] * 32
+        building_radius = building_template.radius
         min_distance = building_radius + 30
 
         # Collision with existing buildings
