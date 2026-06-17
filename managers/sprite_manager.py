@@ -1,12 +1,9 @@
 import pygame
 import numpy as np
-from systems.animation import Animation
 
 
 def tint_surface(surface, color):
     """Tints a surface with a given color, affecting only whitish pixels."""
-    import numpy as np
-    
     # Convert to array for fast pixel manipulation
     arr = pygame.surfarray.array3d(surface).copy().astype(np.float32)
     
@@ -35,8 +32,6 @@ def tint_surface(surface, color):
 
 def tint_surface_blue(surface, color):
     """Tints a surface with a given color, affecting only blue pixels around RGB(72,88,132) or RGB(70,151,172)."""
-    import numpy as np
-    
     # Convert to array for fast pixel manipulation
     arr = pygame.surfarray.array3d(surface).copy().astype(np.float32)
     

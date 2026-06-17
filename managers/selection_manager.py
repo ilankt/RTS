@@ -1,8 +1,6 @@
 import pygame
 import math
-import random
-from typing import List, Tuple
-from core.config import SCREEN_HEIGHT, MAP_VIEW_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT, TOP_BAR_HEIGHT
+from core.config import MINIMAP_WIDTH, MINIMAP_HEIGHT, TOP_BAR_HEIGHT
 
 
 class SelectionManager:
@@ -43,7 +41,6 @@ class SelectionManager:
             self._handle_single_click(selection_end_pos)
         else:
             # Convert to map coordinates for drag selection
-            pass
             start_map_pos = (self.selection_start_pos[0], self.selection_start_pos[1] - TOP_BAR_HEIGHT)
             end_map_pos = (selection_end_pos[0], selection_end_pos[1] - TOP_BAR_HEIGHT)
             self._handle_drag_selection(start_map_pos, end_map_pos)
@@ -83,14 +80,12 @@ class SelectionManager:
         
         if clicked_object:
             # Check if this object can be selected with current selection
-            pass
             is_shift_held = pygame.key.get_pressed()[pygame.K_LSHIFT]
             clicked_is_human = hasattr(clicked_object, 'player') and clicked_object.player and clicked_object.player.human
             clicked_is_ai = hasattr(clicked_object, 'player') and clicked_object.player and not clicked_object.player.human
             clicked_is_neutral = not hasattr(clicked_object, 'player') or not clicked_object.player
             
             # Check current selection ownership
-            current_has_human = any(hasattr(obj, 'player') and obj.player and obj.player.human for obj in self.selected_objects)
             current_has_ai = any(hasattr(obj, 'player') and obj.player and not obj.player.human for obj in self.selected_objects)
             
             # Determine if we should clear selection
@@ -98,19 +93,15 @@ class SelectionManager:
             
             if not is_shift_held:
                 # Always clear if not holding shift
-                pass
                 should_clear_selection = True
             elif clicked_is_ai:
                 # Always clear when clicking AI units (never multi-select enemy units)
-                pass
                 should_clear_selection = True
             elif clicked_is_human and current_has_ai:
                 # Clear if trying to mix human and AI
-                pass
                 should_clear_selection = True
             elif (clicked_is_neutral and current_has_ai):
                 # Clear if trying to mix neutral and AI
-                pass
                 should_clear_selection = True
             
             # Clear selection if needed
@@ -120,30 +111,25 @@ class SelectionManager:
             # Handle selection toggle with Shift
             if clicked_object.selected and is_shift_held and not should_clear_selection:
                 # Deselect if already selected and using Shift (and we didn't clear)
-                pass
                 clicked_object.selected = False
                 if clicked_object in self.selected_objects:
                     self.selected_objects.remove(clicked_object)
             else:
                 # Select the object
-                pass
                 clicked_object.selected = True
                 
                 # Add to selected_objects based on ownership
                 if clicked_is_human:
                     # Human player objects - always add for control
-                    pass
                     if clicked_object not in self.selected_objects:
                         self.selected_objects.append(clicked_object)
                 elif clicked_is_neutral:
                     # Neutral objects (resources) - add for interaction
-                    pass
                     if clicked_object not in self.selected_objects:
                         self.selected_objects.append(clicked_object)
                 # Note: AI objects are not added to selected_objects (visual selection only)
         else:
             # No object clicked - clear selection unless shift is held
-            pass
             is_shift_held = pygame.key.get_pressed()[pygame.K_LSHIFT]
             if not is_shift_held:
                 self._clear_all_selections()
@@ -170,26 +156,6 @@ class SelectionManager:
         
         return units, buildings, resources
     
-    def _can_multi_select_together(self, objects):
-        """Check if objects can be multi-selected together based on ownership"""
-        if len(objects) <= 1:
-            return True
-            
-        # Get the player of the first object
-        first_player = None
-        for obj in objects:
-            if hasattr(obj, 'player') and obj.player:
-                first_player = obj.player
-                break
-        
-        # Check if all objects have the same player
-        for obj in objects:
-            obj_player = obj.player if hasattr(obj, 'player') else None
-            if obj_player != first_player:
-                return False
-                
-        return True
-    
     def _filter_selectable_objects(self, objects, allow_multi_select=True):
         """Filter objects to only include those that can be selected together"""
         if not objects:
@@ -212,14 +178,12 @@ class SelectionManager:
         # For multi-selection, only allow same-ownership objects
         if allow_multi_select and len(objects) > 1:
             # Never allow multi-selection of AI/enemy units
-            pass
             if ai_objects:
                 return []
             # Only return human objects for multi-selection
             return human_objects + neutral_objects
         else:
             # Single selection - allow any object but prioritize human player
-            pass
             if human_objects:
                 return human_objects[:1]
             elif ai_objects:
@@ -249,17 +213,14 @@ class SelectionManager:
         
         if units:
             # If there are units, only select units (ignore buildings/resources)
-            pass
             filtered_units = self._filter_selectable_objects(units, allow_multi_select=True)
             objects_to_select = filtered_units
         elif buildings:
             # No units, but there are buildings
-            pass
             filtered_buildings = self._filter_selectable_objects(buildings, allow_multi_select=True)
             objects_to_select = filtered_buildings
         elif resources:
             # Only resources available
-            pass
             filtered_resources = self._filter_selectable_objects(resources, allow_multi_select=True)
             objects_to_select = filtered_resources
         
@@ -291,7 +252,6 @@ class SelectionManager:
         
         if selected_units:
             # Set smart cursor for selected units
-            pass
             try:
                 if hasattr(self.game, 'ui_manager') and self.game.ui_manager:
                     self.game.ui_manager.set_smart_cursor_for_units(selected_units)
@@ -299,7 +259,6 @@ class SelectionManager:
                 pass
         else:
             # No units selected, restore default cursor
-            pass
             try:
                 if hasattr(self.game, 'ui_manager') and self.game.ui_manager and self.game.ui_manager.default_cursor:
                     pygame.mouse.set_cursor(self.game.ui_manager.default_cursor)
@@ -316,11 +275,8 @@ class SelectionManager:
     
     def _handle_regular_right_click(self, world_pos):
         """Handle regular right-click commands"""
-        # Debug: Right click position
-        
         # Check if clicking on a resource or building
         clicked_object = self._get_object_at_position(world_pos)
-        # Debug: Clicked object
         
         # Use singleton pathfinder
         pathfinder = self.game.pathfinder
@@ -328,9 +284,7 @@ class SelectionManager:
         # Filter only human player units that can move
         movable_units = [obj for obj in self.selected_objects 
                         if hasattr(obj, 'destination') and obj.player and obj.player.human]
-        # Debug: Movable units
-        
-        pass
+
         # If multiple units moving to empty space, use hexagonal ring formation
         if len(movable_units) > 1 and not clicked_object:
             positions = self._generate_formation_offsets(len(movable_units))
@@ -340,26 +294,17 @@ class SelectionManager:
                 self._move_unit_to_position(obj, target_pos, pathfinder)
         else:
             # Command units normally (single unit or clicking on object)
-            pass
             for obj in movable_units:
                 # Handle different click targets
-                pass
                 if clicked_object:
-                    # Debug: Checking unit against clicked object
-                    
-                    pass
                     # If clicking on a resource, gather it (workers only)
                     if clicked_object in self.game.resources and obj.name == "worker":
-                        # Debug: Calling _gather_from_target
-                        pass
-                        # Use the new combat-style resource gathering
                         self._gather_from_target(obj, clicked_object, pathfinder)
                     # If clicking on a farm, garrison worker (workers only)
                     elif clicked_object in self.game.buildings and clicked_object.name == "farm" and obj.name == "worker":
                         if hasattr(self.game, "worker_task_system"):
                             self.game.worker_task_system.cancel(obj)
                         # Clear any drop-off state
-                        pass
                         obj.is_dropping_off = False
                         obj.drop_off_timer = 0.0
                         obj.drop_off_target = None
@@ -373,18 +318,6 @@ class SelectionManager:
                             obj.destination = path[0] if path else None
                             obj.garrison_target = clicked_object  # Mark for garrisoning
                             obj.status = "run"
-                            
-                            # Check if we had to redirect
-                            final_pos = path[-1]
-                            distance_to_farm = math.sqrt((final_pos[0] - clicked_object.x)**2 + (final_pos[1] - clicked_object.y)**2)
-                            if distance_to_farm > clicked_object.radius + obj.radius + 10:
-                                # Debug: Worker moving to garrison at farm
-                                pass
-                                pass
-                        else:
-                            # Debug: Worker cannot reach farm
-                            pass
-                            pass
                     # If clicking on a drop-off building and carrying resources
                     elif (clicked_object in self.game.buildings and 
                           obj.name == "worker" and 
@@ -397,24 +330,17 @@ class SelectionManager:
                     # If clicking on an enemy unit/building and this unit can attack
                     elif (hasattr(clicked_object, 'player') and 
                           clicked_object.player != obj.player):
-                        # Debug: Click on enemy
-                        
                         if obj.can_attack_flag:
                             # Attack enemy target - this will automatically find best reachable attack position
-                            pass
                             self._attack_target(obj, clicked_object, pathfinder)
                         else:
                             # Can't attack, just move to closest reachable position near target
-                            pass
-                            # Debug: Unit cannot attack, moving close to target
                             self._move_unit_to_position(obj, world_pos, pathfinder)
                     else:
                         # Regular move to location
-                        pass
                         self._move_unit_to_position(obj, world_pos, pathfinder)
                 else:
                     # No object clicked, regular move
-                    pass
                     self._move_unit_to_position(obj, world_pos, pathfinder)
     
     def _attack_target(self, unit, target, pathfinder, new_destination=None):
@@ -430,169 +356,6 @@ class SelectionManager:
         unit.current_target = None
         unit.is_engaging = False
         unit.status = "idle"
-        return
-
-        # Debug: _attack_target called
-        
-        # Clear any non-combat state
-        unit.is_gathering = False
-        unit.gathering_target = None
-        unit.is_dropping_off = False
-        unit.drop_off_timer = 0.0
-        unit.drop_off_target = None
-        if hasattr(unit, 'garrison_target'):
-            unit.garrison_target = None
-
-        # If a new destination is provided by the watchdog, use it immediately.
-        if new_destination:
-            path = pathfinder.find_path((unit.x, unit.y), new_destination, unit.radius, unit)
-            if path:
-                unit.path = path
-                unit.path_index = 0
-                unit.path_target = path[-1] if path else new_destination
-                unit.destination = path[0] if path else None
-                unit.status = "run"
-                unit.current_target = target
-                unit.is_engaging = True
-                unit.has_los = False
-                unit.is_fallback_movement = False
-                unit.last_task = {"type": "attack", "target": target}
-            return # Skip the rest of the logic
-        
-        # Check if target is in attack range
-        distance = unit.get_distance_to(target)
-        # Debug: Distance and attack check
-        
-        if unit.can_attack(target):
-            # Target is in range, start attacking immediately
-            pass
-            unit.start_attack(target)
-            # Debug: Unit attacking immediately
-        else:
-            # Target is out of range, determine movement strategy
-            pass
-            dx = target.x - unit.x
-            dy = target.y - unit.y
-            
-            if distance > 0:
-                # Check if we have line of sight to target
-                pass
-                # Include buildings, other units, AND resources as obstacles
-                obstacles = (self.game.buildings + 
-                           [u for u in self.game.units if u != unit and u != target] + 
-                           self.game.resources)
-                has_los = unit.has_line_of_sight(target, self.game.game_map, obstacles)
-                
-                # Debug: Unit attacking target
-                
-                # Strategy 1: Pure LOS - if clear path exists, use direct movement
-                if has_los:
-                    # Debug: Using direct movement - clear LOS
-                    pass
-                    unit.destination = (target.x, target.y)
-                    unit.path = None
-                    unit.path_index = 0
-                    unit.path_target = None
-                    unit.status = "run"
-                    unit.current_target = target
-                    unit.is_engaging = True
-                    unit.has_los = True
-                    unit.is_fallback_movement = False  # Clear fallback flag when LOS is available
-                    unit.last_task = {"type": "attack", "target": target}
-                else:
-                    # Strategy 2: No LOS - try pathfinding to get closer
-                    pass
-                    # Debug: No clear LOS - attempting pathfinding
-                    
-                    # Try multiple approach positions to increase success chance
-                    approach_positions = []
-                    
-                    # Position 1: Direct approach to target
-                    approach_positions.append((target.x, target.y))
-                    
-                    # Position 2: Stop at attack range distance
-                    attack_distance = unit.get_effective_attack_range("approach")
-                    if distance > attack_distance:
-                        approach_x = target.x - (dx / distance) * attack_distance
-                        approach_y = target.y - (dy / distance) * attack_distance
-                        approach_positions.append((approach_x, approach_y))
-                    
-                    # Position 3: Halfway point
-                    if distance > unit.get_effective_attack_range("exact") * 2:
-                        halfway_x = unit.x + (dx * 0.6)
-                        halfway_y = unit.y + (dy * 0.6)
-                        approach_positions.append((halfway_x, halfway_y))
-                    
-                    # Try each position until one works
-                    path_found = False
-                    for i, (target_x, target_y) in enumerate(approach_positions):
-                        path = pathfinder.find_path((unit.x, unit.y), (target_x, target_y), unit.radius, unit)
-                        if path:
-                            unit.path = path
-                            unit.path_index = 0
-                            # Use the actual reachable position as target (may be different from requested)
-                            unit.path_target = path[-1] if path else (target_x, target_y)
-                            unit.destination = path[0] if path else None
-                            unit.status = "run"
-                            unit.current_target = target
-                            unit.is_engaging = True
-                            unit.has_los = False
-                            unit.is_fallback_movement = False  # Clear fallback flag when pathfinding succeeds
-                            
-                            # Check if we had to redirect to a different attack position
-                            final_pos = path[-1]
-                            distance_to_requested = math.sqrt((final_pos[0] - target_x)**2 + (final_pos[1] - target_y)**2)
-                            if distance_to_requested > 20:
-                                # Debug: Pathfinding redirected to reachable attack position
-                                pass
-                                pass
-                            else:
-                                # Debug: Pathfinding successful
-                                pass
-                                pass
-                            path_found = True
-                            break
-                    
-                    # Strategy 3: Direct movement fallback with collision detection
-                    if not path_found:
-                        # Check if target is completely unreachable due to permanent obstacles
-                        pass
-                        if self.game.pathfinder._is_position_permanently_blocked(target.x, target.y, unit.radius):
-                            # Try to find a position we can attack from
-                            pass
-                            closest_reachable = self.game.pathfinder._find_closest_reachable_position(
-                                (unit.x, unit.y), (target.x, target.y), unit.radius)
-                            
-                            if closest_reachable:
-                                # Debug: Target unreachable - moving to closest attack position
-                                pass
-                                unit.destination = closest_reachable
-                                unit.path = None
-                                unit.path_index = 0
-                                unit.path_target = closest_reachable
-                                unit.status = "run"
-                                unit.current_target = target
-                                unit.is_engaging = True
-                                unit.has_los = False
-                                unit.is_fallback_movement = True
-                            else:
-                                # Debug: Target completely unreachable - cancelling attack
-                                pass
-                                unit.current_target = None
-                                unit.is_engaging = False
-                                unit.status = "idle"
-                        else:
-                            # Debug: Pathfinding failed - direct fallback
-                            pass
-                            unit.destination = (target.x, target.y)
-                            unit.path = None
-                            unit.path_index = 0
-                            unit.path_target = None
-                            unit.status = "run"
-                            unit.current_target = target
-                            unit.is_engaging = True
-                            unit.has_los = False  # Keep LOS accurate - no actual line of sight
-                            unit.is_fallback_movement = True  # Flag to indicate this is fallback
     
     def _gather_from_target(self, worker, resource, pathfinder, new_destination=None):
         """Command worker to gather from a resource using a single, reliable pathfinding call"""
@@ -607,51 +370,6 @@ class SelectionManager:
         worker.gathering_target = None
         worker.is_engaging = False
         worker.status = "idle"
-        return
-
-        try:
-            # Clear any non-gathering state
-            worker.current_target = None
-            worker.in_combat = False
-            worker.is_engaging = False
-            worker.is_dropping_off = False
-            worker.drop_off_timer = 0.0
-            worker.drop_off_target = None
-            if hasattr(worker, 'garrison_target'):
-                worker.garrison_target = None
-
-            # Determine the destination for pathfinding
-            if new_destination:
-                destination = new_destination
-            else:
-                # Reserve a unique spread position around the resource
-                destination = self.game.gathering_manager.reserve_gathering_position(worker, resource)
-
-            # Pathfind to the destination (gathering_target excluded from collision)
-            path = pathfinder.find_path((worker.x, worker.y), destination, worker.radius, worker, gathering_target=resource)
-
-            if path:
-                worker.path = path
-                worker.path_index = 0
-                worker.path_target = path[-1] if path else destination
-                worker.destination = path[0] if path else None
-                worker.status = "run"
-                worker.gathering_target = resource
-                worker.is_engaging = True # Set engaging to true to signal movement towards a target
-                worker.last_task = {"type": "gather", "target": resource}
-
-                # Ensure worker is added to resource gatherers list
-                if hasattr(resource, 'gatherers') and worker not in resource.gatherers:
-                    resource.gatherers.append(worker)
-            else:
-                # No path found, cancel gathering
-                worker.gathering_target = None
-                worker.is_engaging = False
-                worker.status = "idle"
-
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
     
     def handle_command_mode_click(self, mouse_pos, command_mode):
         """Handle left click when in command mode"""
@@ -659,23 +377,17 @@ class SelectionManager:
             return False
         
         world_pos = self.game.screen_to_world(mouse_pos[0], mouse_pos[1])
-        # Debug: Command mode click
-        
         # Check what was clicked
         clicked_object = self._get_object_at_position(world_pos)
         
         # Filter selected units based on command mode requirements
         valid_units = self._get_valid_units_for_command(command_mode)
         if not valid_units:
-            # Debug: No valid units for command
-            pass
             return False
         
         # Validate target based on command mode
         is_valid_target = self._is_valid_target_for_command(command_mode, clicked_object, valid_units)
         if not is_valid_target:
-            # Debug: Invalid target for command
-            pass
             return False
         
         # Execute the command
@@ -687,28 +399,23 @@ class SelectionManager:
         
         for unit in self.selected_objects:
             # Only human player units
-            pass
             if not (hasattr(unit, 'player') and unit.player and unit.player.human):
                 continue
                 
             if command_mode == 'move':
                 # Any unit that can move
-                pass
                 if hasattr(unit, 'destination'):
                     valid_units.append(unit)
             elif command_mode == 'gather':
                 # Only workers
-                pass
                 if unit.name == 'worker':
                     valid_units.append(unit)
             elif command_mode == 'deposit':
                 # Only workers carrying resources
-                pass
                 if unit.name == 'worker' and hasattr(unit, 'resource_amount') and unit.resource_amount > 0:
                     valid_units.append(unit)
             elif command_mode == 'attack':
                 # Only combat units
-                pass
                 if hasattr(unit, 'can_attack') and unit.can_attack:
                     valid_units.append(unit)
         
@@ -718,15 +425,12 @@ class SelectionManager:
         """Check if the target is valid for the given command"""
         if command_mode == 'move':
             # Can always move to empty space or around objects
-            pass
             return True
         elif command_mode == 'gather':
             # Must click on a resource
-            pass
             return clicked_object and clicked_object in self.game.resources
         elif command_mode == 'deposit':
             # Must click on a drop-off building
-            pass
             if not clicked_object or clicked_object not in self.game.buildings:
                 return False
             # Check if any unit can drop off at this building
@@ -741,7 +445,6 @@ class SelectionManager:
                 return False
             if clicked_object in self.game.units or clicked_object in self.game.buildings:
                 # Check if it's an enemy (different player)
-                pass
                 human_player = self.game.players[0]
                 return (hasattr(clicked_object, 'player') and 
                        clicked_object.player != human_player)
@@ -778,7 +481,6 @@ class SelectionManager:
         
         if command_mode == 'move':
             # Use existing movement logic from right-click
-            pass
             if len(valid_units) > 1 and not clicked_object:
                 # Multiple units to empty space - use hexagonal formation
                 positions = self._generate_formation_offsets(len(valid_units))
@@ -788,19 +490,16 @@ class SelectionManager:
                     self._move_unit_to_position(unit, target_pos, pathfinder)
             else:
                 # Single unit or clicking on object
-                pass
                 for unit in valid_units:
                     self._move_unit_to_position(unit, world_pos, pathfinder)
             
         elif command_mode == 'gather':
             # Command workers to gather from the resource
-            pass
             for worker in valid_units:
                 self._gather_from_target(worker, clicked_object, pathfinder)
                 
         elif command_mode == 'deposit':
             # Command workers to drop off at the building
-            pass
             for worker in valid_units:
                 if self._can_drop_off_at_building(worker, clicked_object):
                     worker_tasks = getattr(self.game, "worker_task_system", None)
@@ -811,12 +510,10 @@ class SelectionManager:
                         
         elif command_mode == 'attack':
             # Command units to attack the target
-            pass
             for unit in valid_units:
                 if hasattr(unit, 'current_target'):
                     self._attack_target(unit, clicked_object, pathfinder)
         
-        # Debug: Executed command
         return True
 
     def _move_unit_to_position(self, unit, world_pos, pathfinder):
@@ -825,51 +522,6 @@ class SelectionManager:
             self.game.worker_task_system.assign_move(unit, world_pos)
             return
         pathfinder.issue_move(unit, world_pos)
-        return
-
-        # Clear any gathering/garrison/drop-off/combat state
-        unit.is_gathering = False
-        unit.gathering_target = None
-        unit.is_dropping_off = False
-        unit.drop_off_timer = 0.0
-        unit.drop_off_target = None
-        unit.current_target = None
-        unit.in_combat = False
-        unit.is_engaging = False
-        if hasattr(unit, 'garrison_target'):
-            unit.garrison_target = None
-        
-        # Find path from unit's current position to target
-        # The pathfinder will automatically find closest reachable position if target is blocked
-        path = pathfinder.find_path((unit.x, unit.y), world_pos, unit.radius, unit)
-        
-        if path:
-            # Set the path for the unit
-            pass
-            unit.path = path
-            unit.path_index = 0
-            # Use the final waypoint as the actual target (may be different from original if target was blocked)
-            unit.path_target = path[-1] if path else world_pos
-            unit.destination = path[0] if path else None
-            unit.status = "run"
-            unit.last_task = {"type": "move", "target": world_pos}
-            
-            # Check if we had to redirect to a different position
-            final_target = path[-1]
-            distance_to_original = math.sqrt((final_target[0] - world_pos[0])**2 + (final_target[1] - world_pos[1])**2)
-            if distance_to_original > 20:  # If we redirected more than 20 units
-                # Debug: Unit redirected to closest reachable position
-                pass
-                pass
-        else:
-            # No path found - target completely unreachable
-            pass
-            # Debug: Unit cannot reach target
-            unit.path = None
-            unit.path_index = 0
-            unit.path_target = None
-            unit.destination = None
-            unit.status = "idle"
     
     def cycle_formation(self):
         """Cycle to the next formation type"""
@@ -991,15 +643,12 @@ class SelectionManager:
             if hasattr(obj, 'player') and obj.player:
                 if obj.player.human:
                     # Human player - bright green
-                    pass
                     color = (0, 255, 0)
                 else:
                     # AI player - yellow
-                    pass
                     color = (255, 255, 0)
             else:
                 # No player (resources) - white
-                pass
                 color = (255, 255, 255)
             
             # Draw circle
@@ -1118,7 +767,6 @@ class SelectionManager:
             return ["move", "stop", "gather", "build"]
         else:
             # Check if any selected unit can attack
-            pass
             can_attack = any(hasattr(obj, 'can_attack_flag') and obj.can_attack_flag for obj in self.selected_objects)
             if can_attack:
                 return ["move", "stop", "attack"]
@@ -1133,7 +781,6 @@ class SelectionManager:
         for unit in self.selected_objects:
             if hasattr(unit, 'path') and unit.path and len(unit.path) > unit.path_index:
                 # Draw remaining path
-                pass
                 path_to_draw = [(unit.x, unit.y)] + unit.path[unit.path_index:]
                 
                 # Convert to screen coordinates
@@ -1196,7 +843,6 @@ class SelectionManager:
             
             if target:
                 # Draw LOS line
-                pass
                 unit_screen_x = (unit.x * camera.zoom) + camera.x
                 unit_screen_y = (unit.y * camera.zoom) + camera.y
                 target_screen_x = (target.x * camera.zoom) + camera.x
@@ -1205,13 +851,11 @@ class SelectionManager:
                 # Check current LOS - include ALL potential obstacles except target
                 if target == unit.current_target:
                     # Combat target - exclude target from obstacles
-                    pass
                     obstacles = (self.game.buildings + 
                                [u for u in self.game.units if u != unit and u != target] + 
                                self.game.resources)
                 else:
                     # Gathering target - exclude target resource from obstacles
-                    pass
                     obstacles = (self.game.buildings + 
                                [u for u in self.game.units if u != unit] + 
                                [r for r in self.game.resources if r != target])
@@ -1221,7 +865,6 @@ class SelectionManager:
                 # Color code: Green = clear LOS, Red = blocked LOS, Yellow = direct fallback, Blue = gathering
                 if target == getattr(unit, 'gathering_target', None):
                     # Gathering target - use blue color scheme
-                    pass
                     if has_los:
                         color = (0, 150, 255)  # Blue - gathering with LOS
                         strategy_text = "GATHER_LOS"
@@ -1236,7 +879,6 @@ class SelectionManager:
                         strategy_text = "GATHER_NONE"
                 else:
                     # Combat target - use original color scheme
-                    pass
                     if has_los:
                         color = (0, 255, 0)  # Green - clear LOS
                         strategy_text = "LOS"

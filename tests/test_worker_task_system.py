@@ -10,7 +10,6 @@ from systems.pathfinding import Pathfinding
 from systems.worker_task_system import (
     BUILDING,
     FAILED,
-    GATHERING,
     MOVING_TO_DROPOFF,
     WorkerTaskSystem,
 )

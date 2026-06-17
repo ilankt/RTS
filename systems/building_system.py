@@ -1,8 +1,7 @@
 import math
-import random
 import pygame
 from entities import Building, ConstructionSite
-from core.config import TILE_WIDTH, TILE_HEIGHT, SCREEN_HEIGHT, MAP_VIEW_HEIGHT, TOP_BAR_HEIGHT
+from core.config import TILE_WIDTH, TOP_BAR_HEIGHT
 from utils.debug_logger import debug_log
 
 
@@ -195,10 +194,9 @@ class BuildingSystem:
         elif not worker_tasks and self.game.pathfinder.issue_interact(self.selected_builder, construction_site, "build"):
             debug_log.log(f"Building placement: Worker pathing to construction site at ({construction_site.x:.0f}, {construction_site.y:.0f})", "BUILDING")
         else:
-            debug_log.log(f"Building placement: No path found to construction site!", "BUILDING")
+            debug_log.log("Building placement: No path found to construction site!", "BUILDING")
             
         # Exit building placement mode  
-        building_name = self.building_to_place['name']  # Store name before cancelling
         self.cancel_building_placement()
         # Placed construction site
         return True
@@ -212,7 +210,7 @@ class BuildingSystem:
             if site.builder:
                 builder_info = f"builder={id(site.builder)}, is_building={site.builder.is_building}, status={site.builder.status}"
             else:
-                builder_info = f"builder=None"
+                builder_info = "builder=None"
             debug_log.log(f"Checking construction site at ({site.x:.0f}, {site.y:.0f}) - {builder_info}", "BUILD_UPDATE")
             
             if site.builder and site.builder.is_building:
@@ -260,7 +258,7 @@ class BuildingSystem:
                     if site.builder:
                         # First ensure the builder still exists in game units
                         if site.builder not in self.game.units:
-                            debug_log.log(f"WARNING: Builder no longer exists in game units!", "BUILD_UPDATE")
+                            debug_log.log("WARNING: Builder no longer exists in game units!", "BUILD_UPDATE")
                             site.builder = None
                         else:
                             # Log worker position before nudging
@@ -300,12 +298,12 @@ class BuildingSystem:
                                         debug_log.log(f"AI: Worker nudged to position: ({site.builder.x:.0f}, {site.builder.y:.0f})", "BUILD_UPDATE")
                                     else:
                                         # Can't nudge to water/lava, just clear state
-                                        debug_log.log(f"WARNING: Nudge position is invalid terrain!", "BUILD_UPDATE")
+                                        debug_log.log("WARNING: Nudge position is invalid terrain!", "BUILD_UPDATE")
                                         site.builder.destination = None
                                         site.builder.status = "idle"
                             else:
                                 # Invalid position, just clear state
-                                debug_log.log(f"WARNING: Nudge position is off map!", "BUILD_UPDATE")
+                                debug_log.log("WARNING: Nudge position is off map!", "BUILD_UPDATE")
                                 site.builder.destination = None
                                 site.builder.status = "idle"
                             

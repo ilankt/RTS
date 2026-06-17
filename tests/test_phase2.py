@@ -7,7 +7,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from entities.unit import Unit
 from entities.building import Building
-from entities.player import Player
 from entities.resource import Resource
 
 

@@ -1,7 +1,7 @@
 import pygame
 import math
 import random
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 
 class Projectile:
@@ -62,7 +62,6 @@ class Projectile:
         for i, (trail_x, trail_y) in enumerate(self.trail):
             screen_x = (trail_x * camera.zoom) + camera.x
             screen_y = (trail_y * camera.zoom) + camera.y
-            alpha = int(255 * (i / len(self.trail))) if self.trail else 255
             color = tuple(int(c * (i / len(self.trail))) for c in self.color) if self.trail else self.color
             pygame.draw.circle(surface, color, (int(screen_x), int(screen_y)), 2)
             
@@ -137,7 +136,6 @@ class CannonBall(Projectile):
             screen_x = (trail_x * camera.zoom) + camera.x
             screen_y = (trail_y * camera.zoom) + camera.y
             size = int(self.size * (i / len(self.trail))) if self.trail else self.size
-            alpha = int(128 * (i / len(self.trail))) if self.trail else 128
             color = tuple(int(c * (i / len(self.trail))) for c in self.color) if self.trail else self.color
             if size > 0:
                 pygame.draw.circle(surface, color, (int(screen_x), int(screen_y)), size)

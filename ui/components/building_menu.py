@@ -1,6 +1,7 @@
 import pygame
 import json
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT, BUILDING_BUTTON_HEIGHT, BUILDING_ICON_SIZE
+from utils.debug_logger import debug_log
 
 
 class BuildingMenu:
@@ -275,7 +276,10 @@ class BuildingMenu:
         if self.show_category is not None:
             for i, button_info in enumerate(self.building_buttons):
                 if button_info['click_rect'].collidepoint(pos):
-                    print(f"Clicked on building {i}: {button_info['building']['name']}, can_afford: {button_info['can_afford']}")
+                    debug_log.log(
+                        f"Clicked on building {i}: {button_info['building']['name']}, can_afford: {button_info['can_afford']}",
+                        "UI",
+                    )
                     if button_info['can_afford']:
                         # Select building and notify game
                         building_data = button_info['building']
@@ -284,7 +288,7 @@ class BuildingMenu:
                         self.game.enter_building_placement_mode(building_data)
                         return True
                     else:
-                        print(f"Cannot afford {button_info['building']['name']}")
+                        debug_log.log(f"Cannot afford {button_info['building']['name']}", "UI")
                         return True
         
         return False
@@ -325,7 +329,6 @@ class BuildingMenu:
             ui_x = SCREEN_WIDTH - MINIMAP_WIDTH
             ui_y = MINIMAP_HEIGHT + 8
             ui_width = MINIMAP_WIDTH - 16
-            ui_height = SCREEN_HEIGHT - MINIMAP_HEIGHT - 40
             
             human_player = self.game.players[0]
             

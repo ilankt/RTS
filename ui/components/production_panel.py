@@ -63,7 +63,6 @@ class ProductionPanel:
         # Define UI panel area
         ui_x = SCREEN_WIDTH - MINIMAP_WIDTH
         ui_y = MINIMAP_HEIGHT + 200  # Below main info panel
-        ui_width = MINIMAP_WIDTH
         padding = 6
         
         # Production panel title
@@ -75,7 +74,6 @@ class ProductionPanel:
         
         button_y = ui_y + 35
         button_size = 75
-        button_spacing = 5
 
         human_player = self.game.players[0]
 

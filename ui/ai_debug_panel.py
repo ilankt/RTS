@@ -1,7 +1,6 @@
 """AI Debug Dashboard for monitoring AI players and game state"""
 import pygame
-from typing import Dict, List, Optional, Tuple
-from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
+from typing import Dict, Optional, Tuple
 
 
 class AIDebugPanel:
@@ -167,8 +166,6 @@ class AIDebugPanel:
     
     def _draw_player_info(self, surface: pygame.Surface, player, data: Dict, y_offset: int) -> int:
         """Draw information for a single player"""
-        start_y = y_offset
-        
         # Player name with color indicator
         player_color = getattr(player, 'color', (255, 255, 255))
         
@@ -304,8 +301,6 @@ class AIDebugPanel:
                     surface.blit(queue_surface, (20, y_offset))
                     y_offset += 24  # Increased from 16
             
-            # Strategy information
-            strategy_info = ai_info.get('strategy', {})
             priority_resource = ai_info.get('priority_resource')
             if priority_resource and priority_resource != 'Unknown':
                 # Color-code priority resource

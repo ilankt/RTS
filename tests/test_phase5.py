@@ -138,7 +138,7 @@ class TestFogOfWar:
 # ---------------------------------------------------------------------------
 class TestParticleSystem:
     def test_particle_initialization(self):
-        from systems.particle_system import Particle, ParticleSystem
+        from systems.particle_system import ParticleSystem
         game = MockGame()
         ps = ParticleSystem(game)
         assert len(ps.particles) == 0
@@ -187,7 +187,6 @@ class TestSoundManager:
         assert os.path.exists("managers/sound_manager.py")
     
     def test_sound_manager_methods_exist(self):
-        import ast
         with open("managers/sound_manager.py") as f:
             source = f.read()
         assert "play_attack" in source

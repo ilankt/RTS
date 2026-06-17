@@ -2,7 +2,7 @@ import random
 import math
 from entities import Building, Unit, Resource
 from systems.animation import Animation
-from core.config import MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, TILE_WIDTH, TILE_HEIGHT
+from core.config import MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
 
 
 class GameState:
@@ -60,112 +60,6 @@ class GameState:
         # Place some resources around the map
         self._place_resources(spawn_locations)
     
-    def _spawn_test_units(self, player, castle_pos):
-        """Spawn test units around the castle for formation testing"""
-        import random
-        
-        # Define test units to spawn
-        test_units = [
-            ("warrior", 3),  # 3 warriors
-            ("archer", 3)    # 3 archers
-        ]
-        
-        for unit_type, count in test_units:
-            for _ in range(count):
-                # Find a safe spawn position around the castle
-                pass
-                spawn_pos = self._find_safe_spawn_position(castle_pos, 80, 150)
-                if spawn_pos:
-                    # Create unit from template
-                    pass
-                    unit = self._create_instance_from_template(self.game.game_data["units"][unit_type])
-                    unit.x, unit.y = spawn_pos
-                    unit.player = player
-                    
-                    # Set up animations with player-specific colors
-                    animations = {}
-                    for anim_name, anim_path in unit.animations.items():
-                        sheet = self.game.sprite_manager.get_unit_animation_sheet(unit_type, anim_name, 0)
-                        animations[anim_name] = Animation(sheet, 192, 192, 100)
-                    unit.set_animations(animations)
-                    
-                    self.game.units.append(unit)
-                    # Debug: Spawned test unit
-    
-    def _spawn_enemy_test_units(self, castle_pos):
-        """Spawn enemy units for combat testing"""
-        import random
-        
-        # Use the second player as enemy (red player)
-        enemy_player = self.game.players[1] if len(self.game.players) > 1 else None
-        if not enemy_player:
-            return
-        
-        # Define enemy test units to spawn
-        enemy_units = [
-            ("warrior", 2),  # 2 enemy warriors
-            ("archer", 2)    # 2 enemy archers
-        ]
-        
-        for unit_type, count in enemy_units:
-            for _ in range(count):
-                # Find a spawn position slightly further from castle (200-300 pixels away)
-                pass
-                spawn_pos = self._find_safe_spawn_position(castle_pos, 200, 300)
-                if spawn_pos:
-                    # Create unit from template
-                    pass
-                    unit = self._create_instance_from_template(self.game.game_data["units"][unit_type])
-                    unit.x, unit.y = spawn_pos
-                    unit.player = enemy_player
-                    
-                    # Set up animations with enemy player colors (red)
-                    animations = {}
-                    for anim_name, anim_path in unit.animations.items():
-                        sheet = self.game.sprite_manager.get_unit_animation_sheet(unit_type, anim_name, 1)  # Player 1 = red
-                        animations[anim_name] = Animation(sheet, 192, 192, 100)
-                    unit.set_animations(animations)
-                    
-                    self.game.units.append(unit)
-                    # Debug: Spawned enemy unit
-    
-    def _find_safe_spawn_position(self, center_pos, min_distance, max_distance):
-        """Find a safe position to spawn a unit around a center point"""
-        import random
-        import math
-        
-        max_attempts = 20
-        for _ in range(max_attempts):
-            # Generate random position in ring around center
-            pass
-            angle = random.uniform(0, 2 * math.pi)
-            distance = random.uniform(min_distance, max_distance)
-            
-            spawn_x = center_pos[0] + math.cos(angle) * distance
-            spawn_y = center_pos[1] + math.sin(angle) * distance
-            
-            # Check if position is valid (walkable terrain)
-            hex_coord = self.game.game_map.world_to_grid(spawn_x, spawn_y)
-            if hex_coord:
-                col, row = hex_coord
-                if (0 <= row < self.game.game_map.height and 
-                    0 <= col < self.game.game_map.width):
-                    tile_type = self.game.game_map.grid[row][col]
-                    if tile_type not in {"water", "lava"}:
-                        # Check for collision with existing objects
-                        pass
-                        collision = False
-                        for obj in self.game.buildings + self.game.units:
-                            dist = math.sqrt((spawn_x - obj.x)**2 + (spawn_y - obj.y)**2)
-                            if dist < (obj.radius + 20):  # 20 = unit radius + buffer
-                                collision = True
-                                break
-                        
-                        if not collision:
-                            return (spawn_x, spawn_y)
-        
-        return None  # Couldn't find safe position
-    
     def _create_instance_from_template(self, template):
         """Create a new instance from a template object"""
         if isinstance(template, Building):
@@ -204,7 +98,6 @@ class GameState:
             )
         else:
             # Fallback for other GameObject types
-            pass
             return template.__class__(
                 name=template.name,
                 size=template.size,
@@ -218,7 +111,6 @@ class GameState:
         # First, place guaranteed resources near each castle
         for spawn_r, spawn_c in spawn_locations:
             # Place 1 gold deposit near castle (3-5 tiles away)
-            pass
             self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 5, 1)
             
             # Place 1 stone deposit near castle (3-5 tiles away)
@@ -261,7 +153,6 @@ class GameState:
         
         while placed < count and attempts < max_attempts:
             # Random angle and distance for better distribution
-            pass
             angle = random.uniform(0, 2 * 3.14159)
             distance = random.uniform(min_dist, max_dist)
             
@@ -393,7 +284,6 @@ class GameState:
             
             if suitable:
                 # Check distance from spawn points
-                pass
                 too_close = False
                 for spawn_r, spawn_c in spawn_locations:
                     dist = ((r - spawn_r)**2 + (c - spawn_c)**2)**0.5
@@ -406,8 +296,6 @@ class GameState:
                     
                     # Check collision with all game objects
                     if not self._check_collision_with_objects(world_pos[0], world_pos[1], 16):  # 16 is resource radius (TILE_WIDTH/4)
-                        # Determine which wood sprite to use
-                        pass
                         resource_name = resource_type
                         
                         resource = self._create_instance_from_template(self.game.game_data["resources"][resource_name])

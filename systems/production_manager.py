@@ -43,7 +43,6 @@ class ProductionManager:
         # If already producing, add to queue
         if building.current_production:
             building.production_queue.append(unit_type)
-            # Debug: Added unit to production queue
             return True, f"Added {unit_type} to queue"
         
         # Start production immediately
@@ -63,7 +62,6 @@ class ProductionManager:
             "unit_data": unit_data
         }
         
-        # Debug: Started producing unit
         return True, f"Started producing {unit_type}"
     
     def _can_afford(self, player, costs):
@@ -126,8 +124,6 @@ class ProductionManager:
         # Add to game
         self.game.units.append(new_unit)
         
-        # Debug: Completed production of unit
-        
         # Invalidate AI memory cache for immediate detection of new unit
         if hasattr(self.game, 'ai_system') and self.game.ai_system:
             self.game.ai_system.invalidate_memory_cache(building.player)
@@ -144,9 +140,6 @@ class ProductionManager:
                 costs = next_unit_data.get('costs', {})
                 if self._can_afford(building.player, costs):
                     self._start_immediate_production(building, next_unit_type, next_unit_data, costs)
-                else:
-                    # Debug: Cannot afford next unit in queue
-                    pass
     
     def _find_spawn_position(self, building):
         """Find a valid spawn position near the building"""
@@ -219,7 +212,6 @@ class ProductionManager:
             refund_amount = int(amount * refund_percentage)
             building.player.resources[resource] += refund_amount
         
-        # Debug: Cancelled production
         building.current_production = None
         
         # Start next in queue if any

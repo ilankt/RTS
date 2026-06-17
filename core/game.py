@@ -1,7 +1,8 @@
 import pygame
 import math
-from core.config import (SCREEN_WIDTH, SCREEN_HEIGHT, MAP_WIDTH, MAP_HEIGHT, 
-                        WHITE, CAMERA_SPEED, TILE_WIDTH, TILE_HEIGHT, 
+import traceback
+from core.config import (SCREEN_WIDTH, SCREEN_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
+                        CAMERA_SPEED, TILE_WIDTH, TILE_HEIGHT,
                         MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, MINIMAP_WIDTH, 
                         MINIMAP_HEIGHT, NUM_PLAYERS, PLAYER_COLORS, TOP_BAR_HEIGHT,
                         SMART_CURSORS_ENABLED, DEFAULT_GAME_SPEED, MIN_GAME_SPEED,
@@ -204,8 +205,7 @@ class Game:
                 self.ai_debug_panel.toggle_visibility()
             except Exception as e:
                 debug_log.log(f"ERROR: F4 debug panel crashed: {e}", "GENERAL")
-                import traceback
-                traceback.print_exc()
+                debug_log.log(traceback.format_exc(), "GENERAL")
         elif event.key == pygame.K_F6:
             self.fog_of_war_enabled = not self.fog_of_war_enabled
             state = "enabled" if self.fog_of_war_enabled else "disabled"
@@ -224,8 +224,7 @@ class Game:
                 debug_log.log(f"Load: {msg}", "GENERAL")
             except Exception as e:
                 debug_log.log(f"Load failed: {e}", "GENERAL")
-                import traceback
-                traceback.print_exc()
+                debug_log.log(traceback.format_exc(), "GENERAL")
         elif event.key == pygame.K_LEFTBRACKET:  # [ key - decrease speed
             self.game_speed = max(MIN_GAME_SPEED, self.game_speed - GAME_SPEED_INCREMENT)
             debug_log.log(f"Game speed: {self.game_speed:.1f}x", "GENERAL")

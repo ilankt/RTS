@@ -1,5 +1,5 @@
 import pygame
-from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, TILE_WIDTH, TILE_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
+from core.config import SCREEN_WIDTH, TILE_WIDTH, TILE_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
 
 class Minimap:
     def __init__(self, game, width, height):

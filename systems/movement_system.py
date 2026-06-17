@@ -1,7 +1,7 @@
 import math
 import pygame
 from systems.gathering_manager import get_gathering_distance, get_drop_off_distance
-from core.config import DEBUG_MOVEMENT, DEBUG_PATHFINDING
+from core.config import DEBUG_MOVEMENT
 from utils.debug_logger import debug_log
 
 
@@ -45,33 +45,19 @@ class MovementSystem:
         # Auto-attack when reaching target during movement
         if unit.current_target and not unit.in_combat and unit.status == "run":
             if unit.can_attack(unit.current_target):
-                # Debug: Unit attacking target
-                pass
                 unit.start_attack(unit.current_target)
         
         # Handle engaging state - continuously track and pursue target
         if unit.is_engaging and unit.current_target:
             # Check if target still exists and is valid
-            pass
             if unit.current_target.hp <= 0:
                 unit.current_target = None
                 unit.is_engaging = False
                 unit.status = "idle"
                 return
             
-            # Check if we can attack now
-            distance = unit.get_distance_to(unit.current_target)
-            
-            # Debug engaging state only when stuck
-            if (unit.status == "idle" and self.game.frame_counter % 120 == 0 and DEBUG_MOVEMENT):
-                # Debug: Unit stuck while engaging
-                pass
-                pass
-            
             # Handle combat units attacking
             if unit.current_target and unit.can_attack(unit.current_target):
-                # Debug: Unit attacking target
-                pass
                 unit.start_attack(unit.current_target)
                 return
             
@@ -103,7 +89,6 @@ class MovementSystem:
         # Periodic stuck check
         if detector['frames_since_check'] >= detector['check_interval']:
             # Calculate movement since last check
-            pass
             movement = math.sqrt(
                 (unit.x - detector['last_position'][0])**2 + 
                 (unit.y - detector['last_position'][1])**2
@@ -117,7 +102,6 @@ class MovementSystem:
                 detector['stuck_timer'] += detector['check_interval']
             else:
                 # Reduce stuck timer if making progress
-                pass
                 detector['stuck_timer'] = max(0, detector['stuck_timer'] - detector['check_interval'] // 2)
             
             detector['last_position'] = (unit.x, unit.y)
@@ -131,7 +115,6 @@ class MovementSystem:
         # Handle stuck conditions
         if is_stuck and unit.path and not is_very_stuck:
             # Try path adjustment first
-            pass
             if self._adjust_stuck_unit_path(unit):
                 detector['stuck_timer'] = max(0, detector['stuck_timer'] - 30)
                 return
@@ -172,8 +155,6 @@ class MovementSystem:
         
         # Periodic check when stuck
         if (self.game.frame_counter % 300 == 0 and force_strategy_change and unit.path):
-            # Debug: Unit requesting repath due to collision
-            pass
             return True
         
         return False
@@ -205,14 +186,6 @@ class MovementSystem:
             unit._stuck_counter += 1
             if unit._stuck_counter >= 60:
                 debug_this_eval = DEBUG_MOVEMENT
-                if DEBUG_MOVEMENT:
-                    # Debug: Unit stuck analysis
-                    pass
-                    pass
-        
-        if debug_this_eval and detector['stuck_timer'] == 0 and DEBUG_MOVEMENT:
-            distance = unit.get_distance_to(unit.current_target)
-            # Debug: Unit strategy
         
         # Strategy 1: Line of sight available
         if has_los and not detector['strategy_timer'] >= 300:  # Avoid LOS if timed out
@@ -238,10 +211,6 @@ class MovementSystem:
             current_los = unit.has_line_of_sight(unit.current_target, self.game_map, obstacles)
             
             if not current_los:
-                if debug_this_eval and DEBUG_MOVEMENT:
-                    # Debug: LOS no longer valid while stuck
-                    pass
-                    pass
                 # Force pathfinding strategy
                 self._use_pathfinding_strategy(unit, True, debug_this_eval)
                 return
@@ -252,14 +221,9 @@ class MovementSystem:
         
         if len(attacking_same_target) >= 2:
             # Multi-unit attack positioning
-            pass
             optimal_position = self.game._find_optimal_attack_position(unit, unit.current_target, attacking_same_target)
             
             if optimal_position:
-                if debug_this_eval:
-                    # Debug: Multi-unit attack - using optimal position
-                    pass
-                    pass
                 unit.destination = optimal_position
                 unit.path = None
                 unit.path_index = 0
@@ -271,10 +235,6 @@ class MovementSystem:
         # Single unit attack
         if unit.status != "idle" or not hasattr(unit, '_blocked_by_collision'):
             if not unit.has_los:  # Switching to LOS
-                if debug_this_eval:
-                    # Debug: Switching to direct LOS movement
-                    pass
-                    pass
                 unit.path = None
                 unit.path_index = 0
                 unit.path_target = None
@@ -286,16 +246,8 @@ class MovementSystem:
         """Use pathfinding movement strategy"""
         # Don't interrupt existing working paths
         if unit.path and not force_strategy_change:
-            if debug_this_eval:
-                # Debug: Path exists - continuing current path
-                pass
-                pass
             return
         
-        if debug_this_eval and DEBUG_PATHFINDING:
-            # Debug: No LOS - attempting pathfinding
-        
-            pass
         pathfinder = self.game.pathfinder
         path = None
 
@@ -314,9 +266,6 @@ class MovementSystem:
             unit.destination = path[0]
             unit.has_los = False
             unit.is_fallback_movement = False
-            if debug_this_eval and DEBUG_PATHFINDING:
-                # Debug: Pathfinding successful
-                pass
             return
         
         # Option 2: Approach to attack range
@@ -336,15 +285,9 @@ class MovementSystem:
                 unit.destination = path[0]
                 unit.has_los = False
                 unit.is_fallback_movement = False
-                if debug_this_eval and DEBUG_PATHFINDING:
-                    # Debug: Pathfinding to range
-                    pass
                 return
         
         # Option 3: Fallback to direct movement
-        if debug_this_eval and DEBUG_PATHFINDING:
-            # Debug: Pathfinding failed - using direct fallback
-            pass
         unit.destination = (unit.current_target.x, unit.current_target.y)
         unit.path = None
         unit.path_index = 0
@@ -374,7 +317,7 @@ class MovementSystem:
             # Recovery: worker has building_target but no movement
             if not unit.path and not unit.destination and unit.status == "idle":
                 if build_distance > required_distance + 5:
-                    debug_log.log(f"Recovery: Re-pathing worker to construction site", "CONSTRUCTION")
+                    debug_log.log("Recovery: Re-pathing worker to construction site", "CONSTRUCTION")
                     self.game.pathfinder.issue_interact(unit, unit.building_target, "build")
 
             # Check if worker is close enough to start building
@@ -433,13 +376,9 @@ class MovementSystem:
                 unit.path_target = None
                 unit.destination = None
                 
-                building_name = unit.drop_off_target.name
                 building_x = unit.drop_off_target.x  # Store building position before it's cleared
                 building_y = unit.drop_off_target.y
-                resource_type = unit.resource_type
                 if self.game.gathering_manager.drop_off_resources(unit, unit.drop_off_target, delta_time):
-                    # Debug: Worker dropped off resources
-                    pass
                     # Move away from building
                     if hasattr(unit, 'gathering_target') and unit.gathering_target:
                         self.game.pathfinder.issue_interact(unit, unit.gathering_target, "gather")
@@ -457,7 +396,6 @@ class MovementSystem:
         elif (unit.name == "worker" and hasattr(unit, 'gathering_target') and 
               unit.gathering_target):
             
-            from systems.gathering_manager import get_gathering_distance
             target_distance = math.sqrt((unit.x - unit.gathering_target.x)**2 + 
                                       (unit.y - unit.gathering_target.y)**2)
             gathering_distance = get_gathering_distance(unit, unit.gathering_target)
@@ -533,11 +471,11 @@ class MovementSystem:
                             break
                     unit._gathering_stuck_timer = 0
                     if not moved:
-                        debug_log.log(f"  - All gathering positions on water, staying put", "MOVEMENT")
+                        debug_log.log("  - All gathering positions on water, staying put", "MOVEMENT")
                 
                 # Option 2: More drastic - temporarily stop gathering
                 else:
-                    debug_log.log(f"  - Drastic recovery: Stopping gathering temporarily", "MOVEMENT")
+                    debug_log.log("  - Drastic recovery: Stopping gathering temporarily", "MOVEMENT")
                     unit.is_gathering = False
                     unit.status = "idle"
                     unit.destination = None
@@ -582,12 +520,12 @@ class MovementSystem:
                 
                 # Recovery: If too far from target, clear the stuck state and re-path
                 if target_distance > gathering_distance + 5:  # Small tolerance
-                    debug_log.log(f"  - Recovery: Re-pathing to distant gathering target", "MOVEMENT")
+                    debug_log.log("  - Recovery: Re-pathing to distant gathering target", "MOVEMENT")
                     if self.game.pathfinder.issue_interact(unit, unit.gathering_target, "gather"):
-                        debug_log.log(f"  - Recovery: Path found, worker moving again", "MOVEMENT")
+                        debug_log.log("  - Recovery: Path found, worker moving again", "MOVEMENT")
                     else:
                         # Can't reach target - clear it
-                        debug_log.log(f"  - Recovery: No path to target, clearing gathering target", "MOVEMENT")
+                        debug_log.log("  - Recovery: No path to target, clearing gathering target", "MOVEMENT")
                         unit.gathering_target = None
                         unit.is_engaging = False
             
@@ -596,7 +534,7 @@ class MovementSystem:
                 debug_log.log(f"Worker at distance {target_distance:.1f} from {unit.gathering_target.name} (required: {gathering_distance:.1f})", "MOVEMENT")
                 # Attempt to start gathering. If successful, the gathering manager will handle state changes.
                 if self.game.gathering_manager.start_gathering(unit, unit.gathering_target):
-                    debug_log.log(f"  Started gathering successfully", "MOVEMENT")
+                    debug_log.log("  Started gathering successfully", "MOVEMENT")
                     # Now that gathering has officially started, clear the movement state.
                     unit.path = None
                     unit.path_index = 0
@@ -605,7 +543,7 @@ class MovementSystem:
                     unit.is_engaging = False
                 else:
                     # Failed to start gathering - resource might be depleted
-                    debug_log.log(f"  Failed to start gathering - resource might be depleted", "MOVEMENT")
+                    debug_log.log("  Failed to start gathering - resource might be depleted", "MOVEMENT")
                     unit.gathering_target = None
                     unit.is_engaging = False
                     unit.status = "idle"
@@ -619,9 +557,6 @@ class MovementSystem:
         # Force re-pathfinding if stuck
         if (unit.is_engaging and unit.current_target and 
             hasattr(unit, '_stuck_detector') and unit._stuck_detector['stuck_timer'] >= 120):
-            if DEBUG_MOVEMENT:
-                # Debug: Unit stuck in path processing
-                pass
             unit.path = None
             unit.path_index = 0
             unit.path_target = None
@@ -712,8 +647,6 @@ class MovementSystem:
             has_los = unit.has_line_of_sight(target_object, self.game_map, obstacles)
             
             if has_los:
-                # Debug: Target moved - switching to direct LOS
-                pass
                 unit.path = None
                 unit.path_index = 0
                 unit.path_target = None
@@ -723,11 +656,6 @@ class MovementSystem:
                 return
         
         # Re-pathfind
-        target_type = "combat" if unit.is_engaging else "movement"
-        if DEBUG_PATHFINDING:
-            # Debug: Target moved - re-pathfinding
-        
-            pass
         target_mode = getattr(unit, 'path_target_mode', None)
         if target_mode in ("gather", "build", "dropoff", "attack"):
             if self.game.pathfinder.issue_interact(unit, target_object, target_mode):
@@ -747,14 +675,9 @@ class MovementSystem:
             unit.path_index = 0
             unit.path_target = (target_object.x, target_object.y)
             unit.destination = new_path[0]
-            # Debug: New path found
         else:
             # Fallback for combat units
-            pass
             if unit.is_engaging:
-                if DEBUG_PATHFINDING:
-                    # Debug: Re-pathfinding failed - using direct fallback
-                    pass
                 unit.path = None
                 unit.path_index = 0
                 unit.path_target = None
@@ -762,9 +685,6 @@ class MovementSystem:
                 unit.has_los = False
                 unit.is_fallback_movement = True
             else:
-                if DEBUG_PATHFINDING:
-                    # Debug: Re-pathfinding failed - clearing path
-                    pass
                 unit.path = None
                 unit.path_index = 0
                 unit.path_target = None
@@ -947,9 +867,6 @@ class MovementSystem:
         if not unit.path or not unit.current_target:
             return False
         
-        if DEBUG_MOVEMENT:
-            # Debug: Unit stuck - forcing complete re-pathfinding
-            pass
         unit.path = None
         unit.path_index = 0
         unit.path_target = None
