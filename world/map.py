@@ -347,7 +347,6 @@ class Map:
 
     def grid_to_world(self, grid_x, grid_y):
         """Convert grid coordinates to world coordinates (matching hex grid positioning)"""
-        from core.config import TILE_WIDTH, TILE_HEIGHT
         # Match the hex grid positioning used in draw()
         col, row = grid_x, grid_y
         world_x = col * TILE_WIDTH * 0.75
@@ -358,8 +357,6 @@ class Map:
     
     def world_to_grid(self, world_x, world_y):
         """Convert world coordinates to grid coordinates (inverse of grid_to_world)"""
-        from core.config import TILE_WIDTH, TILE_HEIGHT
-        
         # First approximation for column
         col = int(world_x / (TILE_WIDTH * 0.75))
         
@@ -380,7 +377,7 @@ class Map:
         # Verify and refine by checking neighboring tiles
         # This is needed because hex grids can be tricky at tile boundaries
         best_col, best_row = col, row
-        best_dist = float('inf')
+        best_dist_sq = float('inf')
         
         # Check the guessed tile and its neighbors
         for dc in [-1, 0, 1]:
@@ -395,10 +392,10 @@ class Map:
                     center_y += TILE_HEIGHT / 2
                     
                     # Calculate distance to our point
-                    dist = ((world_x - center_x) ** 2 + (world_y - center_y) ** 2) ** 0.5
+                    dist_sq = (world_x - center_x) ** 2 + (world_y - center_y) ** 2
                     
-                    if dist < best_dist:
-                        best_dist = dist
+                    if dist_sq < best_dist_sq:
+                        best_dist_sq = dist_sq
                         best_col = check_col
                         best_row = check_row
         

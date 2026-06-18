@@ -26,6 +26,7 @@ from .context import GoalContext
 from .personality import get_weight
 from .goals import ALL_GOALS
 from .goals.tactical import AttackGoal
+from utils.perf_stats import perf_stats
 
 
 class UtilityAISystem:
@@ -42,7 +43,11 @@ class UtilityAISystem:
 
         self.goals = [cls() for cls in ALL_GOALS]
 
-        self.tick_timer = {p: 0.0 for p in self.ai_players}
+        player_count = max(1, len(self.ai_players))
+        self.tick_timer = {
+            player: (index * self.TICK_INTERVAL / player_count)
+            for index, player in enumerate(self.ai_players)
+        }
         self.last_chosen = {p: None for p in self.ai_players}
         self.last_scores = {p: [] for p in self.ai_players}  # [(weighted, base, name), ...]
 
@@ -54,7 +59,8 @@ class UtilityAISystem:
             if self.tick_timer[player] < self.TICK_INTERVAL:
                 continue
             self.tick_timer[player] = 0.0
-            self._tick(player)
+            with perf_stats.time_ai_tick():
+                self._tick(player)
 
     def invalidate_memory_cache(self, player=None):
         """Compatibility shim — the snapshot is rebuilt from scratch each tick,
@@ -101,6 +107,7 @@ class UtilityAISystem:
                 "total": sum(len(v) for v in ctx.buildings.values()),
                 "castle": 1 if ctx.castle else 0,
                 "barracks": len(ctx.buildings.get("barracks", [])),
+                "watchtowers": len(ctx.buildings.get("watchtower", [])),
                 "houses": len(ctx.buildings.get("house", [])),
             },
             "production_queue": ", ".join(production_parts) if production_parts else "None",

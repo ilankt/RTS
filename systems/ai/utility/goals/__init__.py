@@ -9,6 +9,7 @@ from .economy import (
 from .military import (
     BuildBarracksGoal,
     BuildStableGoal,
+    BuildWatchtowerGoal,
     TrainWarriorGoal,
     TrainArcherGoal,
     TrainSpearmanGoal,
@@ -29,6 +30,7 @@ ALL_GOALS = [
     # Military structures and training
     BuildBarracksGoal,
     BuildStableGoal,
+    BuildWatchtowerGoal,
     TrainWarriorGoal,
     TrainArcherGoal,
     TrainSpearmanGoal,

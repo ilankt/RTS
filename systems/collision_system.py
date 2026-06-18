@@ -1,6 +1,10 @@
 import math
 import pygame
 from utils.debug_logger import debug_log
+from utils.perf_stats import perf_stats
+
+
+SPATIAL_BUCKET_SIZE = 96
 
 
 class CollisionSystem:
@@ -9,18 +13,123 @@ class CollisionSystem:
     def __init__(self, game):
         self.game = game
         self.game_map = game.game_map
+        self.bucket_size = SPATIAL_BUCKET_SIZE
+        self._static_buckets = {}
+        self._unit_buckets = {}
+        self._static_signature = None
+        self._unit_bucket_frame = None
+
+    def begin_frame(self):
+        """Prepare collision acceleration structures for the current frame."""
+        self._ensure_static_index()
+        frame = getattr(self.game, "frame_counter", 0)
+        if self._unit_bucket_frame != frame:
+            self._rebuild_unit_index()
+            self._unit_bucket_frame = frame
+
+    def _cell_for(self, x, y):
+        return (int(x // self.bucket_size), int(y // self.bucket_size))
+
+    def _cells_for_bounds(self, x, y, radius):
+        min_cell = self._cell_for(x - radius, y - radius)
+        max_cell = self._cell_for(x + radius, y + radius)
+        for cell_x in range(min_cell[0], max_cell[0] + 1):
+            for cell_y in range(min_cell[1], max_cell[1] + 1):
+                yield (cell_x, cell_y)
+
+    def _index_object(self, buckets, obj, padding=2):
+        radius = getattr(obj, "radius", 0) + padding
+        for cell in self._cells_for_bounds(obj.x, obj.y, radius):
+            buckets.setdefault(cell, []).append(obj)
+
+    def _make_static_signature(self):
+        return (
+            tuple(id(obj) for obj in self.game.buildings),
+            tuple(id(obj) for obj in self.game.construction_sites),
+            tuple(id(obj) for obj in self.game.resources),
+        )
+
+    def _ensure_static_index(self):
+        signature = self._make_static_signature()
+        if signature == self._static_signature:
+            return
+        self._static_buckets = {}
+        for obj in self.game.buildings:
+            self._index_object(self._static_buckets, obj)
+        for obj in self.game.construction_sites:
+            self._index_object(self._static_buckets, obj)
+        for obj in self.game.resources:
+            self._index_object(self._static_buckets, obj)
+        self._static_signature = signature
+
+    def _rebuild_unit_index(self):
+        self._unit_buckets = {}
+        for unit in self.game.units:
+            self._index_object(self._unit_buckets, unit)
+
+    def _query_ids(self, buckets, x, y, radius):
+        seen = set()
+        for cell in self._cells_for_bounds(x, y, radius):
+            for obj in buckets.get(cell, ()):
+                obj_id = id(obj)
+                if obj_id in seen:
+                    continue
+                seen.add(obj_id)
+        return seen
+
+    def _nearby_static(
+        self,
+        x,
+        y,
+        radius,
+        *,
+        include_buildings=True,
+        include_construction_sites=True,
+        include_resources=True,
+    ):
+        self._ensure_static_index()
+        nearby = self._query_ids(self._static_buckets, x, y, radius + 2)
+        if include_buildings:
+            for obj in self.game.buildings:
+                if id(obj) in nearby:
+                    yield obj
+        if include_construction_sites:
+            for obj in self.game.construction_sites:
+                if id(obj) in nearby:
+                    yield obj
+        if include_resources:
+            for obj in self.game.resources:
+                if id(obj) in nearby:
+                    yield obj
+
+    def _nearby_units(self, x, y, radius, exclude=None):
+        self.begin_frame()
+        nearby = self._query_ids(self._unit_buckets, x, y, radius + 2)
+        for unit in self.game.units:
+            if unit is exclude:
+                continue
+            if id(unit) in nearby:
+                yield unit
+
+    def _record_collision_check(self):
+        perf_stats.increment("collision_checks")
         
     def check_unit_collision_and_adjust(self, unit, new_pos, direction):
         """Smart collision detection with sliding behavior"""
         if not unit.collision:
             return new_pos
+        self.begin_frame()
 
         original_pos = pygame.math.Vector2(unit.x, unit.y)
         final_pos = new_pos
         
         # First, check for collisions with static objects (buildings, construction sites)
-        all_buildings = self.game.buildings + self.game.construction_sites
-        for building in all_buildings:
+        for building in self._nearby_static(
+            final_pos.x,
+            final_pos.y,
+            unit.radius,
+            include_resources=False,
+        ):
             # Skip drop-off targets when unit is dropping off
             if (hasattr(unit, 'drop_off_target') and unit.drop_off_target == building and
                 hasattr(unit, 'resource_amount') and unit.resource_amount > 0):
@@ -35,6 +144,7 @@ class CollisionSystem:
                 
             dx = final_pos.x - building.x
             dy = final_pos.y - building.y
+            self._record_collision_check()
             distance = math.sqrt(dx * dx + dy * dy)
             
             if distance < min_distance:
@@ -47,9 +157,16 @@ class CollisionSystem:
                                                          unit, overlap)
         
         # Check resources
-        for resource in self.game.resources:
+        for resource in self._nearby_static(
+            final_pos.x,
+            final_pos.y,
+            unit.radius,
+            include_buildings=False,
+            include_construction_sites=False,
+        ):
             dx = final_pos.x - resource.x
             dy = final_pos.y - resource.y
+            self._record_collision_check()
             distance = math.sqrt(dx * dx + dy * dy)
             
             # For gathering targets, allow closer approach but prevent complete overlap
@@ -114,10 +231,7 @@ class CollisionSystem:
                                                              unit, overlap)
         
         # Then check other units with special handling
-        for other_unit in self.game.units:
-            if other_unit == unit:
-                continue
-
+        for other_unit in self._nearby_units(final_pos.x, final_pos.y, unit.radius, exclude=unit):
             # --- Drop-off right-of-way ---
             # Workers approaching a resource yield to workers carrying resources
             unit_is_carrier = getattr(unit, 'resource_amount', 0) > 0
@@ -126,12 +240,14 @@ class CollisionSystem:
 
             if unit_approaching and other_is_carrier:
                 # This unit is approaching a resource; other is carrying — yield
+                self._record_collision_check()
                 approach_dist = math.sqrt((final_pos.x - other_unit.x)**2 + (final_pos.y - other_unit.y)**2)
                 if approach_dist < unit.radius + other_unit.radius + 2:
                     final_pos = original_pos
                     continue
 
             # Calculate distances
+            self._record_collision_check()
             current_distance = math.sqrt((unit.x - other_unit.x)**2 + (unit.y - other_unit.y)**2)
             new_distance = math.sqrt((final_pos.x - other_unit.x)**2 + (final_pos.y - other_unit.y)**2)
             min_distance = unit.radius + other_unit.radius + 2
@@ -286,13 +402,27 @@ class CollisionSystem:
     def _would_collide_with_static(self, unit, test_pos):
         """Check if a position would collide with static obstacles"""
         # Check buildings
-        for building in self.game.buildings:
+        for building in self._nearby_static(
+            test_pos.x,
+            test_pos.y,
+            unit.radius,
+            include_construction_sites=False,
+            include_resources=False,
+        ):
+            self._record_collision_check()
             dist = math.sqrt((test_pos.x - building.x)**2 + (test_pos.y - building.y)**2)
             if dist < building.radius + unit.radius + 2:
                 return True
         
         # Check resources
-        for resource in self.game.resources:
+        for resource in self._nearby_static(
+            test_pos.x,
+            test_pos.y,
+            unit.radius,
+            include_buildings=False,
+            include_construction_sites=False,
+        ):
+            self._record_collision_check()
             dist = math.sqrt((test_pos.x - resource.x)**2 + (test_pos.y - resource.y)**2)
             if dist < resource.radius + unit.radius + 2:
                 return True
@@ -341,18 +471,23 @@ class CollisionSystem:
 
     def separate_overlapping_units(self):
         """Push apart units that are overlapping with priority for drop-off workers"""
+        self.begin_frame()
         base_separation_force = 0.8  # Increased base separation force
         
         for i, unit1 in enumerate(self.game.units):
             if not unit1.collision:
                 continue
+            nearby_units = {id(unit) for unit in self._nearby_units(unit1.x, unit1.y, unit1.radius, exclude=unit1)}
             for unit2 in self.game.units[i + 1:]:
+                if id(unit2) not in nearby_units:
+                    continue
                 if not unit2.collision:
                     continue
                 # Calculate distance between units
                 pass
                 dx = unit2.x - unit1.x
                 dy = unit2.y - unit1.y
+                self._record_collision_check()
                 distance = math.sqrt(dx * dx + dy * dy)
                 
                 # Check if they're overlapping
@@ -411,13 +546,11 @@ class CollisionSystem:
         separation_applied = False
         max_separation_force = 2.0  # Stronger force for individual separation
         
-        for other_unit in self.game.units:
-            if other_unit == unit:
-                continue
-                
+        for other_unit in self._nearby_units(unit.x, unit.y, unit.radius, exclude=unit):
             # Calculate distance between units
             dx = unit.x - other_unit.x
             dy = unit.y - other_unit.y
+            self._record_collision_check()
             distance = math.sqrt(dx * dx + dy * dy)
             
             # Check if they're overlapping
@@ -541,21 +674,34 @@ class CollisionSystem:
             check_y = start[1] + dy * t
             
             # Check collision with buildings
-            for building in self.game.buildings:
+            for building in self._nearby_static(
+                check_x,
+                check_y,
+                radius,
+                include_construction_sites=False,
+                include_resources=False,
+            ):
+                self._record_collision_check()
                 dist = math.sqrt((building.x - check_x)**2 + (building.y - check_y)**2)
                 if dist < building.radius + radius + 2:
                     return building
             
             # Check collision with other units
-            for other_unit in self.game.units:
-                if unit and other_unit == unit:
-                    continue  # Skip self
+            for other_unit in self._nearby_units(check_x, check_y, radius, exclude=unit):
+                self._record_collision_check()
                 dist = math.sqrt((other_unit.x - check_x)**2 + (other_unit.y - check_y)**2)
                 if dist < other_unit.radius + radius + 2:
                     return other_unit
             
             # Check collision with resources
-            for resource in self.game.resources:
+            for resource in self._nearby_static(
+                check_x,
+                check_y,
+                radius,
+                include_buildings=False,
+                include_construction_sites=False,
+            ):
+                self._record_collision_check()
                 dist = math.sqrt((resource.x - check_x)**2 + (resource.y - check_y)**2)
                 if dist < resource.radius + radius + 2:
                     return resource
@@ -596,7 +742,10 @@ class CollisionSystem:
                     # Check if detour point is clear of obstacles
                     pass
                     is_clear = True
-                    for obj in self.game.buildings + self.game.units + self.game.resources:
+                    obstacles = list(self._nearby_static(detour_x, detour_y, unit_radius, include_construction_sites=False))
+                    obstacles.extend(self._nearby_units(detour_x, detour_y, unit_radius))
+                    for obj in obstacles:
+                        self._record_collision_check()
                         dist = math.sqrt((obj.x - detour_x)**2 + (obj.y - detour_y)**2)
                         if dist < obj.radius + unit_radius + 5:
                             is_clear = False
@@ -613,25 +762,36 @@ class CollisionSystem:
         obstacles = []
         
         # Add other units
-        for other_unit in self.game.units:
-            if other_unit == unit:
-                continue
+        for other_unit in self._nearby_units(position.x, position.y, unit.radius + buffer, exclude=unit):
             obstacles.append(other_unit)
         
         # Add buildings (unless it's the unit's drop-off target)
-        for building in self.game.buildings:
+        for building in self._nearby_static(
+            position.x,
+            position.y,
+            unit.radius + buffer,
+            include_construction_sites=False,
+            include_resources=False,
+        ):
             if hasattr(unit, 'drop_off_target') and building == unit.drop_off_target:
                 continue
             obstacles.append(building)
         
         # Add resources (unless it's the unit's gathering target)
-        for resource in self.game.resources:
+        for resource in self._nearby_static(
+            position.x,
+            position.y,
+            unit.radius + buffer,
+            include_buildings=False,
+            include_construction_sites=False,
+        ):
             if hasattr(unit, 'gathering_target') and resource == unit.gathering_target:
                 continue
             obstacles.append(resource)
         
         # Check collision with all obstacles
         for obstacle in obstacles:
+            self._record_collision_check()
             distance = math.sqrt((position.x - obstacle.x)**2 + (position.y - obstacle.y)**2)
             min_distance = unit.radius + obstacle.radius + buffer
             
@@ -643,10 +803,10 @@ class CollisionSystem:
     def get_safe_position(self, unit, target_pos):
         """Checks if a target position is valid and returns a safe position if not."""
         # Check for collisions at the target position
-        for obstacle in self.game.buildings + self.game.resources + self.game.units:
-            if obstacle == unit:
-                continue
-
+        obstacles = list(self._nearby_static(target_pos[0], target_pos[1], unit.radius, include_construction_sites=False))
+        obstacles.extend(self._nearby_units(target_pos[0], target_pos[1], unit.radius, exclude=unit))
+        for obstacle in obstacles:
+            self._record_collision_check()
             distance = math.sqrt((target_pos[0] - obstacle.x)**2 + (target_pos[1] - obstacle.y)**2)
             min_distance = unit.radius + obstacle.radius
 

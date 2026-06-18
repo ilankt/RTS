@@ -14,10 +14,20 @@ class GameState:
     def setup_game_objects(self):
         """Set up initial game objects for all players"""
         spawn_locations = []
+        spread_spawns = []
+        try:
+            spread_spawns = self.game.game_map.find_spawn_locations(len(self.game.players))
+        except ValueError:
+            spread_spawns = []
+
         for i, player in enumerate(self.game.players):
             # Find a safe spawn location for the castle
             castle_template = self.game.game_data["buildings"]["castle"]
-            castle_world_pos = self.game.game_map.find_safe_spawn_position(castle_template.radius)
+            if i < len(spread_spawns):
+                spawn_r, spawn_c = spread_spawns[i]
+                castle_world_pos = self.game.game_map.grid_to_world(spawn_c, spawn_r)
+            else:
+                castle_world_pos = self.game.game_map.find_safe_spawn_position(castle_template.radius)
             if castle_world_pos is None:
                 raise Exception("Could not find a safe spawn position for the castle.")
             grid_x, grid_y = self.game.game_map.world_to_grid(castle_world_pos[0], castle_world_pos[1])
@@ -51,11 +61,13 @@ class GameState:
             
             self.game.units.append(worker)
 
-        # Center camera on human player's starting position
-        human_castle = next((b for b in self.game.buildings if b.player.human), None)
-        if human_castle:
-            self.game.camera.x = (MAP_VIEW_WIDTH / 2) - human_castle.x
-            self.game.camera.y = (MAP_VIEW_HEIGHT / 2) - human_castle.y
+        # Center camera on the human castle, or on the first AI castle in spectator mode.
+        focus_castle = next((b for b in self.game.buildings if b.player.human), None)
+        if not focus_castle:
+            focus_castle = next((b for b in self.game.buildings if b.name == "castle"), None)
+        if focus_castle:
+            self.game.camera.x = (MAP_VIEW_WIDTH / 2) - focus_castle.x * self.game.camera.zoom
+            self.game.camera.y = (MAP_VIEW_HEIGHT / 2) - focus_castle.y * self.game.camera.zoom
 
         # Place some resources around the map
         self._place_resources(spawn_locations)
@@ -69,7 +81,16 @@ class GameState:
                 hp=template.hp,
                 sprite=template.sprite,
                 build_duration=template.build_duration,
-                radius=template.radius
+                radius=template.radius,
+                costs=getattr(template, "costs", {}),
+                armor_type=getattr(template, "armor_type", "fortified"),
+                armor_value=getattr(template, "armor_value", 0),
+                can_attack=getattr(template, "can_attack", False),
+                min_damage=getattr(template, "min_damage", 0),
+                max_damage=getattr(template, "max_damage", 0),
+                attack_type=getattr(template, "attack_type", "slash"),
+                attack_speed=getattr(template, "attack_speed", 1.0),
+                attack_range=getattr(template, "attack_range", 0),
             )
         elif isinstance(template, Unit):
             return Unit(

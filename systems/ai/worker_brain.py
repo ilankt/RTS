@@ -10,6 +10,9 @@ from systems.ai.economy_helpers import (
 from utils.debug_logger import debug_log
 
 
+MAX_IDLE_WORKER_ASSIGNMENTS_PER_TICK = 2
+
+
 class WorkerBrain:
     """Every tick: find idle workers, send them to the most useful thing."""
 
@@ -19,11 +22,15 @@ class WorkerBrain:
     def assign_idle_workers(self, player):
         """Find all idle workers for this player and give them jobs."""
         workers = [u for u in self.game.units if u.player == player and u.name == "worker"]
+        assignments = 0
 
         for worker in workers:
             if not self._is_idle(worker):
                 continue
             self._assign_worker(worker, player)
+            assignments += 1
+            if assignments >= MAX_IDLE_WORKER_ASSIGNMENTS_PER_TICK:
+                break
 
     def _is_idle(self, worker) -> bool:
         """A worker is idle if it has nothing useful to do.

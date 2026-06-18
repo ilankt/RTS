@@ -152,6 +152,15 @@ class SaveManager:
                 build_duration=template.build_duration,
                 radius=template.radius,
                 player=player,
+                costs=getattr(template, "costs", {}),
+                armor_type=getattr(template, "armor_type", "fortified"),
+                armor_value=getattr(template, "armor_value", 0),
+                can_attack=getattr(template, "can_attack", False),
+                min_damage=getattr(template, "min_damage", 0),
+                max_damage=getattr(template, "max_damage", 0),
+                attack_type=getattr(template, "attack_type", "slash"),
+                attack_speed=getattr(template, "attack_speed", 1.0),
+                attack_range=getattr(template, "attack_range", 0),
             )
             building.x = bdata["x"]
             building.y = bdata["y"]
@@ -240,6 +249,15 @@ class SaveManager:
                 "hp": template.hp,
                 "sprite": template.sprite,
                 "build_duration": template.build_duration,
+                "costs": getattr(template, "costs", {}),
+                "armor_type": getattr(template, "armor_type", "fortified"),
+                "armor_value": getattr(template, "armor_value", 0),
+                "can_attack": getattr(template, "can_attack", False),
+                "min_damage": getattr(template, "min_damage", 0),
+                "max_damage": getattr(template, "max_damage", 0),
+                "attack_type": getattr(template, "attack_type", "slash"),
+                "attack_speed": getattr(template, "attack_speed", 1.0),
+                "attack_range": getattr(template, "attack_range", 0),
             }
             site = ConstructionSite(
                 building_name=cdata["building_name"],

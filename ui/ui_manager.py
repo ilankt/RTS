@@ -125,7 +125,9 @@ class UIManager:
         # Handle single selection
         if len(selected_objects) == 1 and selected_info:
             # Draw action buttons for units
-            if selected_info["type"] == "Unit" and selected_info["object"].player == self.game.players[0]:
+            if (selected_info["type"] == "Unit" and
+                selected_info["object"].player == self.game.players[0] and
+                getattr(selected_info["object"].player, "human", False)):
                 self.draw_action_buttons(panel_surface, ui_x, ui_y, ui_width, y_offset, selected_info["object"])
             else:
                 # Close building menu if non-builder unit is selected or no unit selected
@@ -166,7 +168,10 @@ class UIManager:
         # Draw action buttons for multi-selection
         if len(selected_objects) > 1:
             # Multi-selection: show action buttons if all selected are units from player
-            selected_units = [obj for obj in selected_objects if obj in self.game.units and obj.player == self.game.players[0]]
+            selected_units = [
+                obj for obj in selected_objects
+                if obj in self.game.units and obj.player == self.game.players[0] and getattr(obj.player, "human", False)
+            ]
             if selected_units:
                 # Use the first unit as reference for button types
                 self.draw_action_buttons(panel_surface, ui_x, ui_y, ui_width, 200, selected_units[0])
@@ -178,6 +183,7 @@ class UIManager:
         if selected_info and selected_info["type"] == "Building":
             selected_building = selected_info["object"]
             if (selected_building.player == self.game.players[0] and 
+                getattr(selected_building.player, "human", False) and
                 hasattr(selected_building, 'can_produce') and selected_building.can_produce):
                 self.production_panel.draw(screen, selected_building)
         
@@ -300,7 +306,10 @@ class UIManager:
                         self.set_command_mode('move')
                 elif button['action'] == 'stop':
                     # Stop selected units
-                    selected_units = [unit for unit in self.game.units if unit.selected and unit.player == self.game.players[0]]
+                    selected_units = [
+                        unit for unit in self.game.units
+                        if unit.selected and unit.player == self.game.players[0] and getattr(unit.player, "human", False)
+                    ]
                     for unit in selected_units:
                         if hasattr(unit, 'stop'):
                             unit.stop()

@@ -17,8 +17,10 @@ from systems.ai.utility.goals.economy import (
     BuildQuarryGoal,
 )
 from systems.ai.worker_brain import WorkerBrain
+from systems.ai.utility.ai import UtilityAISystem
 from systems.ai.utility.goals.military import (
     BuildBarracksGoal,
+    BuildWatchtowerGoal,
     TrainWarriorGoal,
 )
 from systems.ai.utility.goals.tactical import (
@@ -85,6 +87,7 @@ class FakeGame:
                 "farm":     {"wood": 75},
                 "house":    {"gold": 50, "wood": 50},
                 "barracks": {"gold": 150, "wood": 100, "stone": 50},
+                "watchtower": {"wood": 150, "stone": 100},
                 "lumbermill": {"gold": 75, "wood": 75},
                 "mine": {"gold": 75, "wood": 75, "stone": 25},
                 "quarry": {"gold": 75, "wood": 50, "stone": 50},
@@ -92,6 +95,12 @@ class FakeGame:
             "buildings": {},
             "units": {},
         }
+
+
+class FakeAIGame(FakeGame):
+    def __init__(self, players):
+        super().__init__(players[0])
+        self.players = players
 
 
 class FakeResource:
@@ -112,6 +121,28 @@ class FakeFog:
 
     def is_explored(self, player, x, y):
         return self.explored
+
+
+def test_ai_ticks_are_staggered_across_players():
+    players = [FakePlayer() for _ in range(4)]
+    for index, player in enumerate(players):
+        player.name = f"AI {index + 1}"
+    ai = UtilityAISystem(FakeAIGame(players))
+    ticked_by_frame = []
+    ticked_players = []
+
+    def record_tick(player):
+        ticked_players.append(player.name)
+
+    ai._tick = record_tick
+
+    for _ in range(4):
+        before = len(ticked_players)
+        ai.update(UtilityAISystem.TICK_INTERVAL / len(players))
+        ticked_by_frame.append(len(ticked_players) - before)
+
+    assert max(ticked_by_frame) == 1
+    assert set(ticked_players) == {player.name for player in players}
 
 
 def _ctx_with(player, *, units=(), buildings=(), sites=(), resources=(), fog=None):
@@ -303,6 +334,31 @@ class TestBuildBarracksGoal:
         rusher_score = 90 * get_weight("rusher", "military")
         boomer_score = 90 * get_weight("boomer", "military")
         assert rusher_score > boomer_score
+
+
+class TestBuildWatchtowerGoal:
+    def test_scores_when_no_watchtower(self):
+        p = FakePlayer()
+        castle = FakeBuilding("castle", p)
+        workers = [FakeUnit("worker", p) for _ in range(3)]
+        ctx = _ctx_with(p, units=workers, buildings=[castle])
+        assert BuildWatchtowerGoal().score(ctx) == 45
+
+    def test_zero_when_watchtower_exists(self):
+        p = FakePlayer()
+        castle = FakeBuilding("castle", p)
+        tower = FakeBuilding("watchtower", p)
+        workers = [FakeUnit("worker", p) for _ in range(3)]
+        ctx = _ctx_with(p, units=workers, buildings=[castle, tower])
+        assert BuildWatchtowerGoal().score(ctx) == 0
+
+    def test_zero_when_watchtower_is_unaffordable(self):
+        p = FakePlayer()
+        p.resources["stone"] = 50
+        castle = FakeBuilding("castle", p)
+        workers = [FakeUnit("worker", p) for _ in range(3)]
+        ctx = _ctx_with(p, units=workers, buildings=[castle])
+        assert BuildWatchtowerGoal().score(ctx) == 0
 
 
 class TestTrainWarriorGoal:

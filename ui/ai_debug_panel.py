@@ -281,6 +281,7 @@ class AIDebugPanel:
                 total_buildings = buildings.get('total', 0)
                 houses = buildings.get('houses', 0)
                 barracks = buildings.get('barracks', 0)
+                watchtowers = buildings.get('watchtowers', 0)
                 
                 # Building counts
                 build_parts = [f"{total_buildings} Total"]
@@ -288,6 +289,8 @@ class AIDebugPanel:
                     build_parts.append(f"{houses} Houses")
                 if barracks > 0:
                     build_parts.append(f"{barracks} Barracks")
+                if watchtowers > 0:
+                    build_parts.append(f"{watchtowers} Towers")
                 
                 build_text = f"Buildings: {', '.join(build_parts)}"
                 build_surface = self.ai_font.render(build_text, True, self.ai_text_color)

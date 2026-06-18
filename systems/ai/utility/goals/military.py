@@ -43,6 +43,27 @@ class BuildStableGoal(Goal):
         return start_construction(ctx, "stable", ctx.game.ai_system.building_placer)
 
 
+class BuildWatchtowerGoal(Goal):
+    name = "build_watchtower"
+    category = "military"
+
+    def score(self, ctx):
+        if ctx.has_construction_in_progress("watchtower"):
+            return 0
+        if ctx.buildings.get("watchtower"):
+            return 0
+        if not ctx.castle:
+            return 0
+        if len(ctx.workers) < 3:
+            return 0
+        if not ctx.can_afford("watchtower"):
+            return 0
+        return 45
+
+    def execute(self, ctx):
+        return start_construction(ctx, "watchtower", ctx.game.ai_system.building_placer)
+
+
 def _military_fraction(ctx, name):
     total = max(1, len(ctx.military))
     count = sum(1 for u in ctx.military if u.name == name)

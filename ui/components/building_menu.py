@@ -209,16 +209,9 @@ class BuildingMenu:
             menu_surface.blit(name_text, (name_x, name_y))
             
             # Draw cost below name
-            cost_text_parts = []
-            if building.get('gold_cost', 0) > 0:
-                cost_text_parts.append(f"Gold: {building['gold_cost']}")
-            if building.get('wood_cost', 0) > 0:
-                cost_text_parts.append(f"Wood: {building['wood_cost']}")
-            if building.get('stone_cost', 0) > 0:
-                cost_text_parts.append(f"Stone: {building['stone_cost']}")
-            
-            if cost_text_parts:
-                cost_text = self.small_font.render(", ".join(cost_text_parts), True, text_color)
+            cost_text = self._format_costs(building)
+            if cost_text:
+                cost_text = self.small_font.render(cost_text, True, text_color)
                 menu_surface.blit(cost_text, (name_x, name_y + 25))
             
             buttons_drawn += 1
@@ -364,6 +357,16 @@ class BuildingMenu:
     
     def _can_afford(self, player, building):
         """Check if player can afford the building"""
-        return (player.resources.get('gold', 0) >= building.get('gold_cost', 0) and
-                player.resources.get('wood', 0) >= building.get('wood_cost', 0) and
-                player.resources.get('stone', 0) >= building.get('stone_cost', 0))
+        costs = building.get('costs', {})
+        return all(player.resources.get(resource, 0) >= amount for resource, amount in costs.items())
+
+    def _format_costs(self, building):
+        """Format nested building costs for display."""
+        costs = building.get('costs', {})
+        if not costs:
+            return ""
+        return ", ".join(
+            f"{resource.title()}: {amount}"
+            for resource, amount in costs.items()
+            if amount > 0
+        )

@@ -5,8 +5,8 @@ MAP_VIEW_WIDTH = 1102
 MAP_VIEW_HEIGHT = 620
 
 
-MAP_WIDTH = 50
-MAP_HEIGHT = 50
+MAP_WIDTH = 70
+MAP_HEIGHT = 70
 
 TILE_WIDTH = 64
 TILE_HEIGHT = 56
@@ -26,7 +26,11 @@ MINIMAP_WIDTH = 200
 MINIMAP_HEIGHT = 200
 
 # Players
-NUM_PLAYERS = 2  # Configurable number of players (minimum 2)
+AI_ONLY_MODE = True  # Spectator test mode: all players are AI-controlled
+AI_ONLY_PLAYER_COUNT = 4
+SPECTATOR_FOG_OF_WAR = False
+SPECTATOR_START_ZOOM = 0.5
+NUM_PLAYERS = 4  # Configurable number of players (minimum 2)
 PLAYER_COLORS = [
     (0, 100, 255),    # Blue (Human player)
     (255, 50, 50),    # Red
@@ -40,6 +44,10 @@ PLAYER_COLORS = [
 
 # Pathfinding Configuration
 GRID_SIZE = 20  # World units per navigation cell (larger = faster but coarser)
+PATHFINDING_MAX_EXPANSIONS = 12000
+PATHFINDING_MAX_REQUEST_MS = 150
+PATHFINDING_FRAME_BUDGET_MS = 180
+PATH_CACHE_MAX_ENTRIES = 4096
 
 # Resource Gathering Configuration
 GATHERING_RATES = {
@@ -116,6 +124,21 @@ DEBUG_PATHFINDING = False  # Enable/disable pathfinding debug output
 DEBUG_MOVEMENT = False     # Enable/disable movement debug output
 DEBUG_TO_FILE = True       # Enable/disable debug output to file
 DEBUG_FILE_PATH = "debug.dat"  # Path to debug output file
+DEBUG_ENABLED_CATEGORIES = {
+    "GENERAL",
+    "ERROR",
+    "WARNING",
+    "BUILDING",
+    "CONSTRUCTION",
+    "PRODUCTION",
+    "WATCHDOG",
+    "UI",
+}
+DEBUG_FLUSH_INTERVAL = 1.0
+
+# Performance instrumentation
+PERF_STATS_ENABLED = False
+PERF_BENCHMARK_SECONDS = 600
 
 # Cursor Configuration
 CURSOR_SIZE = 48  # Size in pixels for command mode cursors (configurable)

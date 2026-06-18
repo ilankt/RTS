@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
+import time
 from typing import Dict, Iterable, Optional, Tuple
 
 from core.config import DROP_OFF_BUILDINGS
@@ -40,6 +41,7 @@ OUT_OF_RANGE_GRACE = 0.35
 REPATH_COOLDOWN = 0.75
 NO_PROGRESS_REROLL_TIME = 3.0
 NO_PROGRESS_TIMEOUT = 5.0
+FAILED_PATH_COOLDOWN = 2.0
 SLOT_COUNT = 24
 SLOT_EXTRA_RINGS = (0.0, 8.0, 16.0, 24.0, 40.0)
 
@@ -77,6 +79,7 @@ class WorkerTaskSystem:
         self.game = game
         self.tasks: Dict[object, WorkerTask] = {}
         self._slots: Dict[Tuple[int, str], Dict[object, Point]] = {}
+        self._failed_path_until: Dict[Tuple[int, int, str], float] = {}
 
     # ------------------------------------------------------------------
     # Public command API
@@ -223,6 +226,8 @@ class WorkerTaskSystem:
         task.phase = phase
         task.contact_point = task.resource_contact_point
         task.dropoff = None
+        if self._recent_path_failure(task.worker, task.resource, "gather"):
+            return False
         if not task.contact_point:
             task.contact_point = self._reserve_slot(task.worker, task.resource, "gather", self._blocked_points(task))
             task.resource_contact_point = task.contact_point
@@ -235,6 +240,8 @@ class WorkerTaskSystem:
         task.dropoff = task.dropoff or self._find_dropoff(task.worker)
         if not task.dropoff:
             return self._set_failed(task, "no_dropoff")
+        if self._recent_path_failure(task.worker, task.dropoff, "dropoff"):
+            return False
         task.dropoff_contact_point = self._reserve_slot(task.worker, task.dropoff, "dropoff", self._blocked_points(task))
         if not task.dropoff_contact_point:
             return self._set_failed(task, "no_dropoff_slot")
@@ -244,6 +251,8 @@ class WorkerTaskSystem:
     def _begin_path_to_build(self, task: WorkerTask) -> bool:
         task.phase = MOVING_TO_BUILD
         task.contact_point = task.build_contact_point
+        if self._recent_path_failure(task.worker, task.construction_site, "build"):
+            return False
         if not task.contact_point:
             task.contact_point = self._reserve_slot(task.worker, task.construction_site, "build", self._blocked_points(task))
             task.build_contact_point = task.contact_point
@@ -365,6 +374,7 @@ class WorkerTaskSystem:
 
         result = self.game.pathfinder.find_result((worker.x, worker.y), contact, worker.radius, worker, mode="move")
         if not result.ok:
+            self._remember_path_failure(worker, target, mode)
             return False
 
         worker.path = result.waypoints[:]
@@ -435,8 +445,6 @@ class WorkerTaskSystem:
                     continue
                 if not self.game.pathfinder.is_position_walkable(point, worker.radius):
                     continue
-                if not self._can_reach_point(worker, point):
-                    continue
                 slots[worker] = point
                 return point
         return None
@@ -478,6 +486,20 @@ class WorkerTaskSystem:
 
     def _slot_key(self, target, mode: str) -> Tuple[int, str]:
         return (id(target), mode)
+
+    def _path_failure_key(self, worker, target, mode: str) -> Tuple[int, int, str]:
+        return (id(worker), id(target), mode)
+
+    def _recent_path_failure(self, worker, target, mode: str) -> bool:
+        if target is None:
+            return False
+        until = self._failed_path_until.get(self._path_failure_key(worker, target, mode), 0)
+        return until > time.monotonic()
+
+    def _remember_path_failure(self, worker, target, mode: str) -> None:
+        if target is None:
+            return
+        self._failed_path_until[self._path_failure_key(worker, target, mode)] = time.monotonic() + FAILED_PATH_COOLDOWN
 
     # ------------------------------------------------------------------
     # Validation, progress, and compatibility fields

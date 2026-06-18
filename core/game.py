@@ -6,7 +6,9 @@ from core.config import (SCREEN_WIDTH, SCREEN_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
                         MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, MINIMAP_WIDTH, 
                         MINIMAP_HEIGHT, NUM_PLAYERS, PLAYER_COLORS, TOP_BAR_HEIGHT,
                         SMART_CURSORS_ENABLED, DEFAULT_GAME_SPEED, MIN_GAME_SPEED,
-                        MAX_GAME_SPEED, GAME_SPEED_INCREMENT)
+                        MAX_GAME_SPEED, GAME_SPEED_INCREMENT, AI_ONLY_MODE,
+                        AI_ONLY_PLAYER_COUNT, SPECTATOR_FOG_OF_WAR,
+                        SPECTATOR_START_ZOOM)
 from world.map import Map
 from world.camera import Camera
 from entities import load_game_data
@@ -36,6 +38,7 @@ from systems.ai.economy_helpers import find_nearest_dropoff
 from managers.save_manager import SaveManager
 from managers.sound_manager import SoundManager
 from utils.debug_logger import debug_log
+from utils.perf_stats import perf_stats
 
 
 class Game:
@@ -60,15 +63,20 @@ class Game:
         # Create players dynamically based on config
         import random
         ai_personalities = ["rusher", "boomer", "turtle", "balanced"]
-        num_players = max(2, min(NUM_PLAYERS, len(PLAYER_COLORS)))
+        configured_players = AI_ONLY_PLAYER_COUNT if AI_ONLY_MODE else NUM_PLAYERS
+        num_players = max(2, min(configured_players, len(PLAYER_COLORS)))
         self.players = []
         for i in range(num_players):
-            if i == 0:
+            if i == 0 and not AI_ONLY_MODE:
                 self.players.append(Player("Human", human=True, color=PLAYER_COLORS[i]))
             else:
-                player = Player(f"AI {i}", human=False, color=PLAYER_COLORS[i])
+                ai_number = i + 1 if AI_ONLY_MODE else i
+                player = Player(f"AI {ai_number}", human=False, color=PLAYER_COLORS[i])
                 player.ai_personality = random.choice(ai_personalities)
                 self.players.append(player)
+        self.spectator_mode = not any(player.human for player in self.players)
+        if self.spectator_mode:
+            self.camera.zoom = SPECTATOR_START_ZOOM
         
         # Game objects
         self.buildings = []
@@ -98,7 +106,7 @@ class Game:
         self.unit_watchdog = UnitWatchdog(self)
         self.ai_system = UtilityAISystem(self)
         self.projectile_system = ProjectileSystem(self)
-        self.fog_of_war_enabled = True
+        self.fog_of_war_enabled = SPECTATOR_FOG_OF_WAR if self.spectator_mode else True
         self.fog_of_war = FogOfWar(self)
         self.particles = Particles(self)
         self.sound_manager = SoundManager(self)
@@ -121,10 +129,12 @@ class Game:
         
         # Game over state: None, "victory", or "defeat"
         self.game_over_state = None
+        self.winning_player = None
         self.game_paused = False
         
         # Set up initial game state
         self.game_state.setup_game_objects()
+        self.game_map.scale_tiles(self.camera.zoom)
         self.pathfinder.mark_dirty()
     
     def _load_resource_icons(self):
@@ -375,60 +385,65 @@ class Game:
                     except:
                         pass
     
-    def update(self):
+    def update(self, delta_time_override=None):
         """Update all game systems"""
-        # Skip updates when paused or game over
-        if self.game_paused or self.game_over_state:
-            raw_delta_time = self.clock.get_time() / 1000.0
+        perf_stats.begin_frame()
+        try:
+            # Skip updates when paused or game over
+            if self.game_paused or self.game_over_state:
+                raw_delta_time = delta_time_override if delta_time_override is not None else self.clock.get_time() / 1000.0
+                self.delta_time = raw_delta_time * self.game_speed
+                # Still update animations and particles for visual appeal
+                if hasattr(self, 'particles') and self.particles:
+                    self.particles.update(self.delta_time)
+                return
+            
+            # Apply game speed to delta time
+            raw_delta_time = delta_time_override if delta_time_override is not None else self.clock.get_time() / 1000.0
             self.delta_time = raw_delta_time * self.game_speed
-            # Still update animations and particles for visual appeal
-            if hasattr(self, 'particles') and self.particles:
-                self.particles.update(self.delta_time)
-            return
-        
-        # Apply game speed to delta time
-        raw_delta_time = self.clock.get_time() / 1000.0
-        self.delta_time = raw_delta_time * self.game_speed
-        self.frame_counter += 1
-        
-        # Update input
-        self._update_camera_movement()
-        
-        # Assign/update worker tasks before movement, then resolve arrivals after movement.
-        self.ai_system.update(self.delta_time)
-        self.ai_debug_panel.update(self.delta_time)
-        self.worker_task_system.update_pre_movement(self.delta_time)
-        
-        # Update unit movement and combat
-        self._update_units(self.delta_time)
-        self.worker_task_system.update_post_movement(self.delta_time)
+            self.frame_counter += 1
+            
+            # Update input
+            self._update_camera_movement()
+            
+            # Assign/update worker tasks before movement, then resolve arrivals after movement.
+            self.ai_system.update(self.delta_time)
+            self.ai_debug_panel.update(self.delta_time)
+            self.worker_task_system.update_pre_movement(self.delta_time)
+            
+            # Update unit movement and combat
+            self.collision_system.begin_frame()
+            self._update_units(self.delta_time)
+            self.worker_task_system.update_post_movement(self.delta_time)
 
-        # Update core systems with speed-adjusted delta time
-        self.gathering_manager.update(self.delta_time)
-        self.building_system.update_construction(self.delta_time)
-        self.production_manager.update(self.delta_time)
-        self.unit_watchdog.update()
-        
-        # Update combat system (for both units and buildings)
-        self.combat_system.update_combat_units(self.delta_time)
-        
-        # Update projectiles
-        self.projectile_system.update(self.delta_time)
-        
-        # Update fog of war
-        self.fog_of_war.update()
-        
-        # Update particles
-        self.particles.update(self.delta_time)
-        
-        # Remove destroyed objects
-        self._cleanup_destroyed_objects()
-        
-        # Check victory/defeat conditions
-        self._check_victory_defeat()
-        
-        # Update camera bounds
-        self._update_camera_bounds()
+            # Update core systems with speed-adjusted delta time
+            self.gathering_manager.update(self.delta_time)
+            self.building_system.update_construction(self.delta_time)
+            self.production_manager.update(self.delta_time)
+            self.unit_watchdog.update()
+            
+            # Update combat system (for both units and buildings)
+            self.combat_system.update_combat_units(self.delta_time)
+            
+            # Update projectiles
+            self.projectile_system.update(self.delta_time)
+            
+            # Update fog of war
+            self.fog_of_war.update()
+            
+            # Update particles
+            self.particles.update(self.delta_time)
+            
+            # Remove destroyed objects
+            self._cleanup_destroyed_objects()
+            
+            # Check victory/defeat conditions
+            self._check_victory_defeat()
+            
+            # Update camera bounds
+            self._update_camera_bounds()
+        finally:
+            perf_stats.end_frame()
     
     def _update_camera_movement(self):
         """Update camera movement from keyboard input"""
@@ -552,8 +567,19 @@ class Game:
             if building.name == "castle":
                 castles_by_player[building.player] = castles_by_player.get(building.player, 0) + 1
         
-        human_player = self.players[0] if self.players else None
+        human_players = [p for p in self.players if p.human]
         ai_players = [p for p in self.players if not p.human]
+
+        if not human_players:
+            active_players = [p for p in ai_players if castles_by_player.get(p, 0) > 0]
+            if len(active_players) <= 1 and len(ai_players) > 1:
+                self.winning_player = active_players[0] if active_players else None
+                self.game_over_state = "simulation_complete"
+                winner_name = self.winning_player.name if self.winning_player else "No player"
+                debug_log.log(f"AI simulation complete: {winner_name} remains", "GENERAL")
+            return
+
+        human_player = human_players[0]
         
         # Check human defeat (no castle)
         if human_player and castles_by_player.get(human_player, 0) == 0:
@@ -608,6 +634,7 @@ class Game:
     def _restart_game(self):
         """Restart the game by reinitializing core state"""
         self.game_over_state = None
+        self.winning_player = None
         self.worker_task_system = WorkerTaskSystem(self)
         self.buildings.clear()
         self.units.clear()
@@ -628,10 +655,12 @@ class Game:
         self.selection_manager.selected_objects.clear()
         
         # Reset camera
-        human_castle = next((b for b in self.buildings if b.player.human and b.name == "castle"), None)
-        if human_castle:
-            self.camera.x = (MAP_VIEW_WIDTH / 2) - human_castle.x
-            self.camera.y = (MAP_VIEW_HEIGHT / 2) - human_castle.y
+        focus_castle = next((b for b in self.buildings if b.player.human and b.name == "castle"), None)
+        if not focus_castle:
+            focus_castle = next((b for b in self.buildings if b.name == "castle"), None)
+        if focus_castle:
+            self.camera.x = (MAP_VIEW_WIDTH / 2) - focus_castle.x * self.camera.zoom
+            self.camera.y = (MAP_VIEW_HEIGHT / 2) - focus_castle.y * self.camera.zoom
         
         debug_log.log("Game restarted", "GENERAL")
     
@@ -653,6 +682,10 @@ class Game:
         if self.game_over_state == "victory":
             title_text = "VICTORY!"
             title_color = (0, 255, 0)
+        elif self.game_over_state == "simulation_complete":
+            winner_name = self.winning_player.name if self.winning_player else "No Player"
+            title_text = f"{winner_name} WINS"
+            title_color = getattr(self.winning_player, "color", (255, 255, 255)) if self.winning_player else (255, 255, 255)
         else:
             title_text = "DEFEAT"
             title_color = (255, 0, 0)

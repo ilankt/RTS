@@ -9,18 +9,29 @@ collision system during movement.
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass
 import heapq
 import math
+import time
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-from core.config import TILE_HEIGHT, TILE_WIDTH
+from core.config import (
+    GRID_SIZE,
+    PATHFINDING_FRAME_BUDGET_MS,
+    PATHFINDING_MAX_EXPANSIONS,
+    PATHFINDING_MAX_REQUEST_MS,
+    PATH_CACHE_MAX_ENTRIES,
+    TILE_HEIGHT,
+    TILE_WIDTH,
+)
+from utils.perf_stats import perf_stats
 
 
 Point = Tuple[float, float]
 Cell = Tuple[int, int]
 
-NAV_CELL_SIZE = 16
+NAV_CELL_SIZE = GRID_SIZE
 CLEARANCE_BUFFER = 2.0
 CONTACT_BUFFER = 4.0
 MAX_NEAREST_CELLS = 24
@@ -55,13 +66,18 @@ class NavigationGrid:
         self.cell_size = cell_size
         self.revision = 0
         self.blockers: List[object] = []
+        self._blocker_buckets: Dict[Cell, List[object]] = {}
         self._walkable_cache: Dict[Tuple, bool] = {}
+        self._terrain_probe_cache: Dict[Tuple[float, float], bool] = {}
         self.world_width, self.world_height = self._calculate_world_bounds()
         self.rebuild()
 
     def rebuild(self):
+        start_time = time.perf_counter()
         self._walkable_cache.clear()
+        self._terrain_probe_cache.clear()
         self.blockers = []
+        self._blocker_buckets = {}
         for obj in (
             list(getattr(self.game, "buildings", []))
             + list(getattr(self.game, "resources", []))
@@ -69,9 +85,12 @@ class NavigationGrid:
         ):
             if self._blocks_navigation(obj):
                 self.blockers.append(obj)
+                self._index_blocker(obj)
+        perf_stats.add_time("path_rebuild_ms", (time.perf_counter() - start_time) * 1000.0)
 
     def mark_dirty(self):
         self.revision += 1
+        perf_stats.increment("path_mark_dirty")
         self.rebuild()
 
     def world_to_cell(self, point: Point) -> Cell:
@@ -90,7 +109,7 @@ class NavigationGrid:
         if not self._terrain_clear(point, unit_radius):
             return False
         ignored = set(ignore or ())
-        for obj in self.blockers:
+        for obj in self._candidate_blockers(point, unit_radius):
             if obj in ignored:
                 continue
             if math.hypot(obj.x - x, obj.y - y) < obj.radius + unit_radius + CLEARANCE_BUFFER:
@@ -187,6 +206,28 @@ class NavigationGrid:
             return False
         return hasattr(obj, "x") and hasattr(obj, "y") and hasattr(obj, "radius")
 
+    def _index_blocker(self, obj):
+        padding = getattr(obj, "radius", 0) + CLEARANCE_BUFFER
+        min_cell = self.world_to_cell((obj.x - padding, obj.y - padding))
+        max_cell = self.world_to_cell((obj.x + padding, obj.y + padding))
+        for cell_x in range(min_cell[0], max_cell[0] + 1):
+            for cell_y in range(min_cell[1], max_cell[1] + 1):
+                self._blocker_buckets.setdefault((cell_x, cell_y), []).append(obj)
+
+    def _candidate_blockers(self, point: Point, unit_radius: float) -> Iterable[object]:
+        padding = unit_radius + CLEARANCE_BUFFER
+        min_cell = self.world_to_cell((point[0] - padding, point[1] - padding))
+        max_cell = self.world_to_cell((point[0] + padding, point[1] + padding))
+        seen = set()
+        for cell_x in range(min_cell[0], max_cell[0] + 1):
+            for cell_y in range(min_cell[1], max_cell[1] + 1):
+                for obj in self._blocker_buckets.get((cell_x, cell_y), ()):
+                    obj_id = id(obj)
+                    if obj_id in seen:
+                        continue
+                    seen.add(obj_id)
+                    yield obj
+
     def _terrain_clear(self, point: Point, unit_radius: float) -> bool:
         x, y = point
         diag = unit_radius * 0.7
@@ -202,15 +243,27 @@ class NavigationGrid:
             (x - diag, y - diag),
         )
         for check_x, check_y in check_points:
-            grid_pos = self.game_map.world_to_grid(check_x, check_y)
-            if grid_pos is None:
-                return False
-            col, row = grid_pos
-            if row < 0 or row >= self.game_map.height or col < 0 or col >= self.game_map.width:
-                return False
-            if self.game_map.grid[row][col] in {"water", "lava"}:
+            if not self._terrain_probe_walkable(check_x, check_y):
                 return False
         return True
+
+    def _terrain_probe_walkable(self, check_x: float, check_y: float) -> bool:
+        key = (check_x, check_y)
+        cached = self._terrain_probe_cache.get(key)
+        if cached is not None:
+            return cached
+        grid_pos = self.game_map.world_to_grid(check_x, check_y)
+        if grid_pos is None:
+            self._terrain_probe_cache[key] = False
+            return False
+        col, row = grid_pos
+        walkable = (
+            0 <= row < self.game_map.height
+            and 0 <= col < self.game_map.width
+            and self.game_map.grid[row][col] not in {"water", "lava"}
+        )
+        self._terrain_probe_cache[key] = walkable
+        return walkable
 
 
 class Pathfinding:
@@ -223,7 +276,14 @@ class Pathfinding:
         self.grid = NavigationGrid(game_map, game, NAV_CELL_SIZE)
         self.cache_hits = 0
         self.cache_misses = 0
-        self._path_cache: Dict[Tuple, NavigationResult] = {}
+        self.astar_calls = 0
+        self.astar_expanded_cells = 0
+        self.astar_capped = 0
+        self._path_cache: OrderedDict[Tuple, NavigationResult] = OrderedDict()
+        self._astar_budget_frame = None
+        self._astar_frame_spent_ms = 0.0
+        self._path_budget_frame = None
+        self._path_frame_spent_ms = 0.0
 
     def mark_dirty(self):
         self.grid.mark_dirty()
@@ -266,10 +326,19 @@ class Pathfinding:
         mode: str = "move",
         target=None,
     ) -> NavigationResult:
+        perf_stats.increment("path_requests")
         mode, target = self._resolve_mode_and_target(mode, target, gathering_target, building_target, drop_off_target)
-        if target is not None:
-            return self._find_interaction_path(start, unit_radius, unit, mode, target)
-        return self._find_move_path(start, goal, unit_radius, unit, mode)
+        if self._remaining_path_frame_budget() <= 0:
+            return self._failed(mode, "too_expensive", target=target)
+        started = time.perf_counter()
+        request_budget_ms = min(PATHFINDING_MAX_REQUEST_MS, self._remaining_path_frame_budget())
+        deadline = started + (request_budget_ms / 1000.0)
+        try:
+            if target is not None:
+                return self._find_interaction_path(start, unit_radius, unit, mode, target, deadline)
+            return self._find_move_path(start, goal, unit_radius, unit, mode)
+        finally:
+            self._add_path_frame_spent((time.perf_counter() - started) * 1000.0)
 
     def issue_move(self, unit, world_pos: Point) -> bool:
         self._clear_task_state_for_move(unit)
@@ -334,7 +403,6 @@ class Pathfinding:
         return self.is_position_walkable((x, y), unit_radius)
 
     def _simple_line_clear(self, start: Point, end: Point, unit_radius: float = 20) -> bool:
-        self.grid.rebuild()
         return self.grid.segment_clear(start, end, unit_radius)
 
     def _path_segment_clear(self, start: Point, end: Point, unit_radius: float) -> bool:
@@ -366,13 +434,15 @@ class Pathfinding:
 
         return self._build_path(start, start_cell, final_point, goal_cell, unit_radius, mode, None)
 
-    def _find_interaction_path(self, start: Point, unit_radius: float, unit, mode: str, target) -> NavigationResult:
+    def _find_interaction_path(self, start: Point, unit_radius: float, unit, mode: str, target, deadline=None) -> NavigationResult:
         start_cell = self.grid.nearest_walkable_cell(start, unit_radius)
         if not start_cell:
             return self._failed(mode, "invalid_start", target=target)
 
         candidates = self._interaction_candidates(start, unit, target, mode)
         for point in candidates:
+            if deadline is not None and time.perf_counter() >= deadline:
+                return self._failed(mode, "too_expensive", target=target)
             if not self.grid.point_walkable(point, unit_radius):
                 continue
             goal_cell = self.grid.nearest_walkable_cell(point, unit_radius)
@@ -380,6 +450,8 @@ class Pathfinding:
                 continue
             result = self._build_path(start, start_cell, point, goal_cell, unit_radius, mode, target)
             if result.ok:
+                return result
+            if result.failure_reason == "too_expensive":
                 return result
         return self._failed(mode, "no_reachable_interaction_point", target=target)
 
@@ -397,16 +469,21 @@ class Pathfinding:
         cached = self._path_cache.get(cache_key)
         if cached and cached.ok and self.grid.segment_clear(start, cached.waypoints[0], unit_radius):
             self.cache_hits += 1
+            perf_stats.increment("path_cache_hits")
+            self._path_cache.move_to_end(cache_key)
             return NavigationResult("ok", cached.waypoints[:], cached.final_point, mode=mode, target=target, revision=self.grid.revision)
 
         self.cache_misses += 1
+        perf_stats.increment("path_cache_misses")
         if self.grid.segment_clear(start, final_point, unit_radius):
             waypoints = [final_point]
             result = NavigationResult("ok", waypoints, final_point, mode=mode, target=target, revision=self.grid.revision)
-            self._path_cache[cache_key] = result
+            self._cache_result(cache_key, result)
             return result
 
         cells = self._astar(start_cell, goal_cell, unit_radius)
+        if cells == "too_expensive":
+            return self._failed(mode, "too_expensive", target=target)
         if not cells:
             return self._failed(mode, "no_path", target=target)
 
@@ -415,10 +492,20 @@ class Pathfinding:
             raw_points.append(final_point)
         waypoints = self._smooth_path(start, raw_points, unit_radius)
         result = NavigationResult("ok", waypoints, final_point, mode=mode, target=target, revision=self.grid.revision)
-        self._path_cache[cache_key] = result
+        self._cache_result(cache_key, result)
         return result
 
-    def _astar(self, start: Cell, goal: Cell, unit_radius: float) -> Optional[List[Cell]]:
+    def _astar(self, start: Cell, goal: Cell, unit_radius: float):
+        self.astar_calls += 1
+        perf_stats.increment("astar_calls")
+        remaining_budget_ms = self._remaining_astar_frame_budget()
+        if remaining_budget_ms <= 0:
+            self.astar_capped += 1
+            perf_stats.increment("astar_capped")
+            return "too_expensive"
+        request_budget_ms = min(PATHFINDING_MAX_REQUEST_MS, remaining_budget_ms)
+        started = time.perf_counter()
+        deadline = started + (request_budget_ms / 1000.0)
         open_heap = []
         counter = 0
         g_score: Dict[Cell, float] = {start: 0.0}
@@ -426,26 +513,80 @@ class Pathfinding:
         heapq.heappush(open_heap, (self._heuristic(start, goal), counter, start))
         closed = set()
 
-        while open_heap:
-            _, _, current = heapq.heappop(open_heap)
-            if current in closed:
-                continue
-            if current == goal:
-                return self._reconstruct_cells(current, parent)
-            closed.add(current)
+        try:
+            while open_heap:
+                _, _, current = heapq.heappop(open_heap)
+                if current in closed:
+                    continue
+                if len(closed) >= PATHFINDING_MAX_EXPANSIONS:
+                    self.astar_capped += 1
+                    perf_stats.increment("astar_capped")
+                    self.astar_expanded_cells += len(closed)
+                    perf_stats.increment("astar_expanded_cells", len(closed))
+                    return "too_expensive"
+                if len(closed) and len(closed) % 256 == 0 and time.perf_counter() >= deadline:
+                    self.astar_capped += 1
+                    perf_stats.increment("astar_capped")
+                    self.astar_expanded_cells += len(closed)
+                    perf_stats.increment("astar_expanded_cells", len(closed))
+                    return "too_expensive"
+                if current == goal:
+                    self.astar_expanded_cells += len(closed)
+                    perf_stats.increment("astar_expanded_cells", len(closed))
+                    return self._reconstruct_cells(current, parent)
+                closed.add(current)
 
-            for neighbor, move_cost in self._neighbors(current, unit_radius):
-                if neighbor in closed:
-                    continue
-                tentative = g_score[current] + move_cost
-                if tentative >= g_score.get(neighbor, float("inf")):
-                    continue
-                parent[neighbor] = current
-                g_score[neighbor] = tentative
-                counter += 1
-                priority = tentative + self._heuristic(neighbor, goal)
-                heapq.heappush(open_heap, (priority, counter, neighbor))
-        return None
+                for neighbor, move_cost in self._neighbors(current, unit_radius):
+                    if neighbor in closed:
+                        continue
+                    tentative = g_score[current] + move_cost
+                    if tentative >= g_score.get(neighbor, float("inf")):
+                        continue
+                    parent[neighbor] = current
+                    g_score[neighbor] = tentative
+                    counter += 1
+                    priority = tentative + self._heuristic(neighbor, goal)
+                    heapq.heappush(open_heap, (priority, counter, neighbor))
+            self.astar_expanded_cells += len(closed)
+            perf_stats.increment("astar_expanded_cells", len(closed))
+            return None
+        finally:
+            self._add_astar_frame_spent((time.perf_counter() - started) * 1000.0)
+
+    def _remaining_astar_frame_budget(self) -> float:
+        frame = getattr(self.game, "frame_counter", 0)
+        if self._astar_budget_frame != frame:
+            self._astar_budget_frame = frame
+            self._astar_frame_spent_ms = 0.0
+        return max(0.0, PATHFINDING_FRAME_BUDGET_MS - self._astar_frame_spent_ms)
+
+    def _add_astar_frame_spent(self, milliseconds: float) -> None:
+        frame = getattr(self.game, "frame_counter", 0)
+        if self._astar_budget_frame != frame:
+            self._astar_budget_frame = frame
+            self._astar_frame_spent_ms = 0.0
+        self._astar_frame_spent_ms += milliseconds
+
+    def _remaining_path_frame_budget(self) -> float:
+        frame = getattr(self.game, "frame_counter", 0)
+        if self._path_budget_frame != frame:
+            self._path_budget_frame = frame
+            self._path_frame_spent_ms = 0.0
+        return max(0.0, PATHFINDING_FRAME_BUDGET_MS - self._path_frame_spent_ms)
+
+    def _add_path_frame_spent(self, milliseconds: float) -> None:
+        frame = getattr(self.game, "frame_counter", 0)
+        if self._path_budget_frame != frame:
+            self._path_budget_frame = frame
+            self._path_frame_spent_ms = 0.0
+        self._path_frame_spent_ms += milliseconds
+
+    def _cache_result(self, cache_key: Tuple, result: NavigationResult):
+        self._path_cache[cache_key] = result
+        self._path_cache.move_to_end(cache_key)
+        while len(self._path_cache) > PATH_CACHE_MAX_ENTRIES:
+            self._path_cache.popitem(last=False)
+            perf_stats.increment("path_cache_evictions")
 
     def _neighbors(self, cell: Cell, unit_radius: float) -> Iterable[Tuple[Cell, float]]:
         for dx in (-1, 0, 1):
@@ -655,7 +796,11 @@ class Pathfinding:
         )
 
     def _heuristic(self, a: Cell, b: Cell) -> float:
-        return math.hypot(a[0] - b[0], a[1] - b[1]) * self.grid.cell_size
+        dx = abs(a[0] - b[0])
+        dy = abs(a[1] - b[1])
+        straight = max(dx, dy) - min(dx, dy)
+        diagonal = min(dx, dy)
+        return (straight + math.sqrt(2) * diagonal) * self.grid.cell_size
 
     def _path_cost(self, start: Point, waypoints: List[Point]) -> float:
         cost = 0.0

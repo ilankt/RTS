@@ -1,6 +1,7 @@
 import pygame
 from core.config import TILE_WIDTH, TOP_BAR_HEIGHT
 from entities import Building, Unit, Resource, ConstructionSite
+from utils.perf_stats import perf_stats
 
 
 class RenderingSystem:
@@ -169,6 +170,21 @@ class RenderingSystem:
         debug_info.append(f"Game Speed: {getattr(self.game, 'game_speed', 1.0):.1f}x")
         fog_state = "ON" if getattr(self.game, "fog_of_war_enabled", True) else "OFF"
         debug_info.append(f"Fog of War: {fog_state} (F6)")
+        if perf_stats.enabled:
+            summary = perf_stats.summary()
+            debug_info.append(
+                f"Update ms avg/p95/max: {summary['frame_avg_ms']:.1f}/"
+                f"{summary['frame_p95_ms']:.1f}/{summary['frame_max_ms']:.1f}"
+            )
+            debug_info.append(
+                f"Path req/A*/hit: {summary['path_requests']}/"
+                f"{summary['astar_calls']}/{summary['path_cache_hits']}"
+            )
+            debug_info.append(
+                f"A* cells/caps: {summary['astar_expanded_cells']}/"
+                f"{summary['astar_capped']}"
+            )
+            debug_info.append(f"Collision checks: {summary['collision_checks']}")
         
         # Draw debug text
         y_offset = 10
