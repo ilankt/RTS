@@ -35,7 +35,7 @@ def parse_args():
 
 def run_benchmark(args):
     perf_stats.enabled = True
-    game = Game()
+    game = Game(mode="ai_spectator", player_count=4)
     game.game_speed = args.speed
 
     for _ in range(max(0, args.warmup_frames)):
