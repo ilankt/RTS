@@ -28,6 +28,7 @@ Thumbs.db
 saves/
 debug.dat
 screenshots/
+tmp/
 
 # Test cache
 .pytest_cache/
