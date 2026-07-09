@@ -26,7 +26,7 @@ MINIMAP_WIDTH = 200
 MINIMAP_HEIGHT = 200
 
 # Players
-AI_ONLY_MODE = True  # Spectator test mode: all players are AI-controlled
+AI_ONLY_MODE = False  # Legacy fallback; Game() now defaults to human 1v1.
 AI_ONLY_PLAYER_COUNT = 4
 SPECTATOR_FOG_OF_WAR = False
 SPECTATOR_START_ZOOM = 0.5
@@ -106,17 +106,17 @@ BUILDING_ICON_SIZE = 48  # Button height - padding (60 - 12 = 48)
 # Higher values = easier start, lower values = more challenging
 
 HUMAN_STARTING_RESOURCES = {
-    "food": 100,        # Starting food for human player
-    "gold": 200,        # Starting gold for human player
-    "stone": 100,       # Starting stone for human player
-    "wood": 200         # Starting wood for human player
+    "food": 10000,      # Starting food for human player
+    "gold": 10000,      # Starting gold for human player
+    "stone": 10000,     # Starting stone for human player
+    "wood": 10000       # Starting wood for human player
 }
 
 AI_STARTING_RESOURCES = {
-    "food": 100,        # Starting food for AI players
-    "gold": 200,        # Starting gold for AI players  
-    "stone": 100,       # Starting stone for AI players
-    "wood": 200         # Starting wood for AI players
+    "food": 10000,      # Starting food for AI players
+    "gold": 10000,      # Starting gold for AI players
+    "stone": 10000,     # Starting stone for AI players
+    "wood": 10000       # Starting wood for AI players
 }
 
 # Debug Configuration

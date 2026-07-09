@@ -13,11 +13,14 @@ def load_game_data():
         units_data = json.load(f)
     with open('data/resources.json', 'r') as f:
         resources_data = json.load(f)
+    with open('data/techs.json', 'r') as f:
+        techs_data = json.load(f)
 
     game_data = {
         "buildings": {},
         "units": {},
         "resources": {},
+        "techs": {},
         "costs": {},
     }
 
@@ -25,6 +28,9 @@ def load_game_data():
         game_data["costs"][u["name"]] = u.get("costs", {})
     for b in buildings_data:
         game_data["costs"][b["name"]] = b.get("costs", {})
+    for tech in techs_data:
+        game_data["techs"][tech["id"]] = tech
+        game_data["costs"][tech["id"]] = tech.get("costs", {})
 
     for b in buildings_data:
         # Calculate radius based on size[0] and TILE_WIDTH
@@ -46,7 +52,13 @@ def load_game_data():
             max_damage=b.get('max_damage', 0),
             attack_type=b.get('attack_type', 'slash'),
             attack_speed=b.get('attack_speed', 1.0),
-            attack_range=b.get('attack_range', 0)
+            attack_range=b.get('attack_range', 0),
+            display_name=b.get('display_name'),
+            role=b.get('role', ''),
+            requires=b.get('requires', []),
+            buildable=b.get('buildable', True),
+            strong_against=b.get('strong_against', []),
+            weak_against=b.get('weak_against', []),
         )
 
     for u in units_data:
@@ -70,7 +82,14 @@ def load_game_data():
             armor_type=u.get('armor_type', 'light'),
             armor_value=u.get('armor_value', 0),
             attack_speed=u.get('attack_speed', 1.0),
-            attack_range=u.get('attack_range', 32)
+            attack_range=u.get('attack_range', 32),
+            display_name=u.get('display_name'),
+            role=u.get('role', ''),
+            requires=u.get('requires', []),
+            buildable=u.get('buildable', True),
+            strong_against=u.get('strong_against', []),
+            weak_against=u.get('weak_against', []),
+            building_only_attack=u.get('building_only_attack', False),
         )
 
     for r in resources_data:

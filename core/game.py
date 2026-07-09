@@ -34,6 +34,7 @@ from systems.ai import UtilityAISystem
 from systems.projectile_system import ProjectileSystem
 from systems.fog_of_war import FogOfWar
 from systems.particle_system import ParticleSystem as Particles
+from systems.research_manager import ResearchManager
 from systems.ai.economy_helpers import find_nearest_dropoff
 from managers.save_manager import SaveManager
 from managers.sound_manager import SoundManager
@@ -42,7 +43,7 @@ from utils.perf_stats import perf_stats
 
 
 class Game:
-    def __init__(self):
+    def __init__(self, mode="human_1v1", player_count=2):
         pygame.init()
         if not pygame.font.get_init():
             pygame.font.init()
@@ -63,14 +64,24 @@ class Game:
         # Create players dynamically based on config
         import random
         ai_personalities = ["rusher", "boomer", "turtle", "balanced"]
-        configured_players = AI_ONLY_PLAYER_COUNT if AI_ONLY_MODE else NUM_PLAYERS
+        self.mode = mode
+        if mode == "ai_spectator":
+            configured_players = player_count or AI_ONLY_PLAYER_COUNT
+            ai_only = True
+        elif mode == "human_1v1":
+            configured_players = player_count or 2
+            ai_only = False
+        else:
+            configured_players = AI_ONLY_PLAYER_COUNT if AI_ONLY_MODE else (player_count or NUM_PLAYERS)
+            ai_only = AI_ONLY_MODE
+
         num_players = max(2, min(configured_players, len(PLAYER_COLORS)))
         self.players = []
         for i in range(num_players):
-            if i == 0 and not AI_ONLY_MODE:
+            if i == 0 and not ai_only:
                 self.players.append(Player("Human", human=True, color=PLAYER_COLORS[i]))
             else:
-                ai_number = i + 1 if AI_ONLY_MODE else i
+                ai_number = i + 1 if ai_only else i
                 player = Player(f"AI {ai_number}", human=False, color=PLAYER_COLORS[i])
                 player.ai_personality = random.choice(ai_personalities)
                 self.players.append(player)
@@ -92,6 +103,7 @@ class Game:
         self.ui_manager = UIManager(self)
         self.floating_ui = FloatingUI(self)
         self.production_manager = ProductionManager(self)
+        self.research_manager = ResearchManager(self)
         self.game_state = GameState(self)
         self.gathering_manager = GatheringManager(self)
         self.pathfinder = Pathfinding(self.game_map, self)
@@ -126,6 +138,7 @@ class Game:
         
         # Game speed factor
         self.game_speed = DEFAULT_GAME_SPEED
+        self.tree_regrowth_enabled = mode != "human_1v1"
         
         # Game over state: None, "victory", or "defeat"
         self.game_over_state = None
@@ -420,6 +433,7 @@ class Game:
             self.gathering_manager.update(self.delta_time)
             self.building_system.update_construction(self.delta_time)
             self.production_manager.update(self.delta_time)
+            self.research_manager.update(self.delta_time)
             self.unit_watchdog.update()
             
             # Update combat system (for both units and buildings)
@@ -541,7 +555,7 @@ class Game:
                         unit.clear_all_movement_state()
             
             # Track wood resource positions for regrowth
-            if resource.name == "wood":
+            if resource.name == "wood" and getattr(self, "tree_regrowth_enabled", True):
                 if not hasattr(self, '_tree_regrowth'):
                     self._tree_regrowth = []
                 self._tree_regrowth.append((resource.x, resource.y, 60.0))  # 60 seconds regrow
@@ -645,9 +659,9 @@ class Game:
         # Reset players resources
         for player in self.players:
             if player.human:
-                player.resources = self.game_data.get("starting_resources_human", {"food": 100, "gold": 200, "stone": 100, "wood": 200}).copy()
+                player.resources = self.game_data.get("starting_resources_human", {"food": 10000, "gold": 10000, "stone": 10000, "wood": 10000}).copy()
             else:
-                player.resources = self.game_data.get("starting_resources_ai", {"food": 100, "gold": 200, "stone": 100, "wood": 200}).copy()
+                player.resources = self.game_data.get("starting_resources_ai", {"food": 10000, "gold": 10000, "stone": 10000, "wood": 10000}).copy()
         
         # Reinitialize game state
         self.game_state.setup_game_objects()

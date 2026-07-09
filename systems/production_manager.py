@@ -115,7 +115,14 @@ class ProductionManager:
             armor_type=unit_data.get('armor_type', 'light'),
             armor_value=unit_data.get('armor_value', 0),
             attack_speed=unit_data.get('attack_speed', 1.0),
-            attack_range=unit_data.get('attack_range', 32)
+            attack_range=unit_data.get('attack_range', 32),
+            display_name=unit_data.get('display_name'),
+            role=unit_data.get('role', ''),
+            requires=unit_data.get('requires', []),
+            buildable=unit_data.get('buildable', True),
+            strong_against=unit_data.get('strong_against', []),
+            weak_against=unit_data.get('weak_against', []),
+            building_only_attack=unit_data.get('building_only_attack', False),
         )
         
         # Set up animations using sprite manager

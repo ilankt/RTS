@@ -1,5 +1,11 @@
 import math
 from core.config import DEBUG_MOVEMENT
+from systems.combat_rules import (
+    calculate_damage as calculate_combat_damage,
+    effective_attack_range,
+    is_valid_attack_target,
+    type_effectiveness,
+)
 
 
 class CombatSystem:
@@ -97,13 +103,13 @@ class CombatSystem:
         for other_unit in self.game.units:
             if other_unit.player != unit.player:
                 distance = unit.get_distance_to(other_unit)
-                if distance <= unit.get_effective_attack_range("search"):
+                if is_valid_attack_target(unit, other_unit) and distance <= unit.get_effective_attack_range("search"):
                     potential_targets.append((other_unit, distance))
         
         for building in self.game.buildings:
             if building.player != unit.player:
                 distance = unit.get_distance_to(building)
-                if distance <= unit.get_effective_attack_range("search"):
+                if is_valid_attack_target(unit, building) and distance <= unit.get_effective_attack_range("search"):
                     potential_targets.append((building, distance))
         
         # Sort by distance
@@ -235,14 +241,14 @@ class CombatSystem:
                     for unit in self.game.units:
                         if unit.player != building.player:
                             distance = ((building.x - unit.x) ** 2 + (building.y - unit.y) ** 2) ** 0.5
-                            if distance <= building.attack_range:
+                            if distance <= effective_attack_range(building):
                                 potential_targets.append((unit, distance))
                     
                     # Check enemy buildings
                     for other_building in self.game.buildings:
                         if other_building.player != building.player:
                             distance = ((building.x - other_building.x) ** 2 + (building.y - other_building.y) ** 2) ** 0.5
-                            if distance <= building.attack_range:
+                            if distance <= effective_attack_range(building):
                                 potential_targets.append((other_building, distance))
                     
                     # Sort by distance and engage closest
@@ -268,32 +274,11 @@ class CombatSystem:
     def calculate_damage(self, attacker, target):
         """Calculate damage dealt from attacker to target"""
         # Base damage
-        base_damage = attacker.get_attack_damage()
-        
-        # Apply type effectiveness
-        effectiveness = self.get_type_effectiveness(attacker.attack_type, target.armor_type)
-        
-        # Apply armor reduction
-        armor_reduction = 1.0 - (target.armor * 0.05)  # 5% reduction per armor point
-        armor_reduction = max(0.1, armor_reduction)  # Minimum 10% damage
-        
-        # Calculate final damage
-        final_damage = base_damage * effectiveness * armor_reduction
-        
-        return int(final_damage)
+        return calculate_combat_damage(attacker, target)
     
     def get_type_effectiveness(self, attack_type, armor_type):
         """Get damage effectiveness multiplier based on attack and armor types"""
-        effectiveness_table = {
-            ("slash", "light"): 1.5,
-            ("pierce", "heavy"): 1.5,
-            ("siege", "fortified"): 2.0,
-            ("slash", "heavy"): 0.75,
-            ("pierce", "fortified"): 0.5,
-            ("siege", "light"): 0.5,
-        }
-        
-        return effectiveness_table.get((attack_type, armor_type), 1.0)
+        return type_effectiveness(attack_type, armor_type)
     
     def handle_unit_death(self, unit):
         """Handle cleanup when a unit dies"""

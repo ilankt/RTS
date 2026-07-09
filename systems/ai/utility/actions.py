@@ -8,6 +8,7 @@ factored out here.
 from entities import ConstructionSite
 from utils.debug_logger import debug_log
 from core.config import TILE_WIDTH
+from systems.upgrade_effects import has_required_buildings
 
 
 def start_construction(ctx, building_name: str, building_placer) -> bool:
@@ -32,6 +33,10 @@ def start_construction(ctx, building_name: str, building_placer) -> bool:
     if not template:
         debug_log.log(f"AI {ctx.player.name}: No template for {building_name}", "AI")
         return False
+    if not getattr(template, "buildable", True):
+        return False
+    if not has_required_buildings(ctx.game, ctx.player, getattr(template, "requires", [])):
+        return False
 
     costs = ctx.cost_data.get(building_name, {})
 
@@ -54,6 +59,12 @@ def start_construction(ctx, building_name: str, building_placer) -> bool:
         "attack_type": getattr(template, "attack_type", "slash"),
         "attack_speed": getattr(template, "attack_speed", 1.0),
         "attack_range": getattr(template, "attack_range", 0),
+        "display_name": getattr(template, "display_name", None),
+        "role": getattr(template, "role", ""),
+        "requires": list(getattr(template, "requires", [])),
+        "buildable": getattr(template, "buildable", True),
+        "strong_against": list(getattr(template, "strong_against", [])),
+        "weak_against": list(getattr(template, "weak_against", [])),
     }
     radius = template.size[0] * TILE_WIDTH / 2
 
@@ -102,4 +113,19 @@ def queue_unit(ctx, building, unit_type: str) -> bool:
     success, _ = ctx.game.production_manager.start_production(building, unit_type)
     if success:
         debug_log.log(f"AI {ctx.player.name}: queued {unit_type} at {building.name}", "AI")
+    return success
+
+
+def queue_research(ctx, building, tech_id: str) -> bool:
+    """Try to start or queue research at `building`. Returns True on success."""
+    if building is None:
+        return False
+    manager = getattr(ctx.game, "research_manager", None)
+    if not manager:
+        return False
+    success, reason = manager.start_research(building, tech_id)
+    if success:
+        debug_log.log(f"AI {ctx.player.name}: queued research {tech_id} at {building.name}", "AI")
+    else:
+        debug_log.log(f"AI {ctx.player.name}: research {tech_id} failed: {reason}", "AI")
     return success

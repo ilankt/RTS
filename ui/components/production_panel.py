@@ -1,7 +1,7 @@
 import pygame
 import json
 import math
-from core.config import SCREEN_WIDTH, MINIMAP_WIDTH, MINIMAP_HEIGHT
+from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
 
 
 class ProductionPanel:
@@ -14,11 +14,13 @@ class ProductionPanel:
         
         # Production icons
         self.unit_production_icons = {}
+        self.tech_icons = {}
         self.unit_production_buttons = []
         self.hover_production_button = None
         
         # Load unit production icons from JSON data
         self._load_unit_production_icons()
+        self._load_tech_icons()
     
     def _load_unit_production_icons(self):
         """Load unit production icons from their sprites"""
@@ -33,6 +35,7 @@ class ProductionPanel:
                 sprite_path = f"assets/ui/Units/{unit_type}_icon.png"
                 
                 try:
+                    sprite_path = unit.get('icon', sprite_path)
                     unit_icon = pygame.image.load(sprite_path).convert_alpha()
                     # Scale to production button size
                     unit_icon = pygame.transform.scale(unit_icon, (60, 60))
@@ -54,10 +57,36 @@ class ProductionPanel:
                 placeholder.fill((100, 50, 50))
                 pygame.draw.rect(placeholder, (150, 100, 100), (0, 0, 60, 60), 2)
                 self.unit_production_icons[unit_type] = placeholder
+
+    def _load_tech_icons(self):
+        """Load blacksmith research icons from tech metadata."""
+        try:
+            with open('data/techs.json', 'r') as f:
+                techs_data = json.load(f)
+
+            for tech in techs_data:
+                icon_path = tech.get("icon")
+                if not icon_path:
+                    continue
+                try:
+                    icon = pygame.image.load(icon_path).convert_alpha()
+                    self.tech_icons[tech["id"]] = pygame.transform.smoothscale(icon, (34, 34))
+                except:
+                    continue
+        except:
+            self.tech_icons = {}
     
     def draw(self, screen, selected_building):
         """Draw unit production UI for production buildings"""
-        if not selected_building or not hasattr(selected_building, 'can_produce') or not selected_building.can_produce:
+        research_rows = []
+        if selected_building and hasattr(self.game, "research_manager"):
+            research_rows = self.game.research_manager.available_for_building(selected_building)
+        can_produce = bool(
+            selected_building
+            and hasattr(selected_building, 'can_produce')
+            and selected_building.can_produce
+        )
+        if not selected_building or (not can_produce and not research_rows):
             return
         
         # Define UI panel area
@@ -66,7 +95,8 @@ class ProductionPanel:
         padding = 6
         
         # Production panel title
-        title_text = self.small_font.render("Unit Production", True, (255, 255, 255))
+        title = "Production" if can_produce else "Research"
+        title_text = self.small_font.render(title, True, (255, 255, 255))
         screen.blit(title_text, (ui_x + padding, ui_y + padding))
         
         # Clear production buttons for this frame
@@ -100,6 +130,7 @@ class ProductionPanel:
             # Store button info
             self.unit_production_buttons.append({
                 'rect': button_rect,
+                'kind': 'unit',
                 'unit_type': unit_type,
                 'can_afford': can_afford,
                 'building': selected_building
@@ -139,6 +170,80 @@ class ProductionPanel:
             cost_text = self._format_costs(costs)
             cost_surface = self.cost_font.render(cost_text, True, (255, 255, 255) if can_afford else (255, 100, 100))
             screen.blit(cost_surface, (button_x, cost_y))
+
+        next_y = button_y + len(selected_building.can_produce) * (button_size + 25)
+        if research_rows:
+            self._draw_research_section(screen, selected_building, research_rows, ui_x, max(next_y, ui_y + 35), padding)
+
+        self._draw_hover_tooltip(screen, ui_x, ui_y, selected_building)
+
+    def _draw_research_section(self, screen, selected_building, research_rows, ui_x, start_y, padding):
+        header_y = start_y
+        if selected_building.can_produce:
+            header = self.small_font.render("Research", True, (255, 255, 255))
+            screen.blit(header, (ui_x + padding, header_y))
+            header_y += 22
+
+        research_info = self.game.research_manager.get_research_info(selected_building)
+        if research_info:
+            progress_rect = pygame.Rect(ui_x + padding, header_y, MINIMAP_WIDTH - 2 * padding - 12, 14)
+            pygame.draw.rect(screen, (55, 55, 55), progress_rect)
+            fill = pygame.Rect(progress_rect.x, progress_rect.y, int(progress_rect.width * research_info["progress"]), progress_rect.height)
+            pygame.draw.rect(screen, (90, 150, 220), fill)
+            label = self.cost_font.render(research_info["display_name"][:24], True, (255, 255, 255))
+            screen.blit(label, (progress_rect.x, progress_rect.y - 16))
+            header_y += 24
+
+        row_h = 46
+        row_w = MINIMAP_WIDTH - 2 * padding - 12
+        for i, (tech, can_research, reason) in enumerate(research_rows):
+            row_rect = pygame.Rect(ui_x + padding, header_y + i * (row_h + 5), row_w, row_h)
+            is_hovered = row_rect.collidepoint(pygame.mouse.get_pos())
+            done = reason == "Already researched"
+            queued = reason == "Already in progress"
+            if done:
+                color = (35, 80, 45)
+                border = (80, 170, 100)
+            elif can_research:
+                color = (35, 75, 105)
+                border = (90, 170, 230)
+            elif reason == "Insufficient resources":
+                color = (95, 35, 35)
+                border = (180, 70, 70)
+            else:
+                color = (80, 70, 35)
+                border = (170, 140, 60)
+            if queued:
+                color = (55, 55, 90)
+                border = (120, 120, 210)
+            if is_hovered:
+                color = tuple(min(255, c + 30) for c in color)
+
+            pygame.draw.rect(screen, color, row_rect)
+            pygame.draw.rect(screen, border, row_rect, 2)
+            text_x = row_rect.x + 6
+            icon = self.tech_icons.get(tech["id"])
+            if icon:
+                icon_rect = icon.get_rect()
+                icon_rect.x = row_rect.x + 5
+                icon_rect.centery = row_rect.centery
+                screen.blit(icon, icon_rect)
+                text_x = icon_rect.right + 6
+
+            name = self.cost_font.render(tech.get("display_name", tech["id"])[:24], True, (255, 255, 255))
+            screen.blit(name, (text_x, row_rect.y + 5))
+            sub = "Done" if done else ("Queued" if queued else (self._format_costs(tech.get("costs", {})) or reason))
+            sub_text = self.cost_font.render(sub[:28], True, (220, 220, 220))
+            screen.blit(sub_text, (text_x, row_rect.y + 25))
+            self.unit_production_buttons.append({
+                'rect': row_rect,
+                'kind': 'tech',
+                'tech_id': tech['id'],
+                'tech': tech,
+                'can_afford': can_research,
+                'reason': reason,
+                'building': selected_building,
+            })
     
     def _format_costs(self, costs):
         """Format resource costs for display"""
@@ -150,6 +255,44 @@ class ProductionPanel:
             cost_parts.append(f"{amount} {resource.title()}")
         
         return ", ".join(cost_parts)
+
+    def _draw_hover_tooltip(self, screen, ui_x, ui_y, selected_building):
+        hovered = None
+        for button in self.unit_production_buttons:
+            if button['rect'].collidepoint(pygame.mouse.get_pos()):
+                hovered = button
+                break
+        if not hovered:
+            return
+
+        tooltip_rect = pygame.Rect(ui_x + 6, SCREEN_HEIGHT - 95, MINIMAP_WIDTH - 12, 88)
+        pygame.draw.rect(screen, (10, 10, 10), tooltip_rect)
+        pygame.draw.rect(screen, (120, 120, 120), tooltip_rect, 1)
+
+        lines = []
+        if hovered.get('kind') == 'unit':
+            unit = self.game.game_data.get("units", {}).get(hovered["unit_type"])
+            lines = [
+                getattr(unit, "display_name", hovered["unit_type"].title()),
+                getattr(unit, "role", ""),
+            ]
+            if getattr(unit, "strong_against", None):
+                lines.append("Strong: " + ", ".join(x.title() for x in unit.strong_against[:2]))
+            if getattr(unit, "weak_against", None):
+                lines.append("Weak: " + ", ".join(x.title() for x in unit.weak_against[:2]))
+        else:
+            tech = hovered.get("tech", {})
+            lines = [
+                tech.get("display_name", hovered.get("tech_id", "")),
+                tech.get("tooltip", ""),
+                hovered.get("reason", ""),
+            ]
+
+        y = tooltip_rect.y + 6
+        for line in [line for line in lines if line][:4]:
+            text = self.cost_font.render(line[:30], True, (230, 230, 230))
+            screen.blit(text, (tooltip_rect.x + 6, y))
+            y += 18
     
     def _draw_icon_with_radial_progress(self, screen, icon, icon_rect, progress):
         """Draw icon with radial clockwise progress effect"""
@@ -228,9 +371,20 @@ class ProductionPanel:
         for i, button in enumerate(self.unit_production_buttons):
             if button['rect'].collidepoint(mouse_pos):
                 if button['can_afford']:
-                    self.game.production_manager.start_production(
-                        button['building'], button['unit_type']
-                    )
+                    if button.get('kind') == 'tech':
+                        success, _ = self.game.research_manager.start_research(
+                            button['building'], button['tech_id']
+                        )
+                    else:
+                        success, _ = self.game.production_manager.start_production(
+                            button['building'], button['unit_type']
+                        )
+                    if success and hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+                        self.game.sound_manager.play_ui_click()
+                    elif hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+                        self.game.sound_manager.play_error()
+                elif hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+                    self.game.sound_manager.play_error()
                 return True
         return False
     

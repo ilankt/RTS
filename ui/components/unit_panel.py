@@ -19,7 +19,7 @@ class UnitPanel:
     def _load_unit_panel_icons(self):
         """Pre-load and cache unit panel icons at different sizes for performance"""
         # Define the unit types and required sizes
-        unit_types = ['worker', 'warrior', 'archer', 'spearman', 'cavalry', 'healer']
+        unit_types = ['worker', 'warrior', 'archer', 'spearman', 'cavalry', 'ram', 'healer']
         sizes = {
             'single': 64,  # For single unit selection
             'multi': 48    # For multi-unit selection
@@ -92,7 +92,7 @@ class UnitPanel:
                     display_type = obj_type
                 
                 info = {
-                    "name": obj.name if hasattr(obj, 'name') else obj_type,
+                    "name": getattr(obj, "display_name", obj.name if hasattr(obj, 'name') else obj_type),
                     "type": display_type,
                     "owner": obj.player.name if hasattr(obj, 'player') and obj.player else "Neutral",
                     "player_color": obj.player.color if hasattr(obj, 'player') and obj.player else (100, 100, 100),
@@ -179,12 +179,16 @@ class UnitPanel:
             # Combat stats for fighting units (exclude workers)
             if hasattr(unit, 'can_attack') and unit.can_attack and unit.name != 'worker':
                 # Damage range and type
-                damage_text = self.stat_font.render(f"Damage: {unit.min_damage}-{unit.max_damage} ({unit.attack_type.title()})", True, (255, 200, 100))
+                damage_text = self.stat_font.render(
+                    f"Damage: {unit.get_effective_min_damage()}-{unit.get_effective_max_damage()} ({unit.attack_type.title()})",
+                    True,
+                    (255, 200, 100),
+                )
                 panel_surface.blit(damage_text, (10, y_offset))
                 y_offset += 20
                 
                 # Attack range
-                range_text = self.stat_font.render(f"Range: {unit.attack_range}", True, (100, 200, 255))
+                range_text = self.stat_font.render(f"Range: {int(unit.get_effective_attack_range())}", True, (100, 200, 255))
                 panel_surface.blit(range_text, (10, y_offset))
                 y_offset += 20
                 
@@ -194,7 +198,11 @@ class UnitPanel:
                 y_offset += 25
             
             # Armor info
-            armor_text = self.stat_font.render(f"Armor: {unit.armor_type.title()} ({unit.armor_value})", True, (200, 200, 200))
+            armor_text = self.stat_font.render(
+                f"Armor: {unit.armor_type.title()} ({unit.get_effective_armor_value()})",
+                True,
+                (200, 200, 200),
+            )
             panel_surface.blit(armor_text, (10, y_offset))
             y_offset += 25
             
@@ -264,14 +272,14 @@ class UnitPanel:
                 
                 # Damage range and type
                 damage_text = self.stat_font.render(
-                    f"Damage: {obj.min_damage}-{obj.max_damage} ({obj.attack_type.title()})", 
+                    f"Damage: {obj.get_effective_min_damage()}-{obj.get_effective_max_damage()} ({obj.attack_type.title()})",
                     True, (255, 200, 100)
                 )
                 panel_surface.blit(damage_text, (10, y_offset))
                 y_offset += 20
                 
                 # Attack range
-                range_text = self.stat_font.render(f"Range: {obj.attack_range}", True, (100, 200, 255))
+                range_text = self.stat_font.render(f"Range: {int(obj.get_effective_attack_range())}", True, (100, 200, 255))
                 panel_surface.blit(range_text, (10, y_offset))
                 y_offset += 20
                 
@@ -282,7 +290,7 @@ class UnitPanel:
                 
                 # Armor info
                 armor_text = self.stat_font.render(
-                    f"Armor: {obj.armor_type.title()} ({obj.armor_value})", 
+                    f"Armor: {obj.armor_type.title()} ({obj.get_effective_armor_value()})",
                     True, (200, 200, 200)
                 )
                 panel_surface.blit(armor_text, (10, y_offset))

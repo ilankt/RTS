@@ -33,6 +33,8 @@ class SoundManager:
         self.sounds["death"] = self._make_descending_sound(300, 100, 0.15)
         # Construction complete - ascending tone
         self.sounds["build_complete"] = self._make_ascending_sound(200, 500, 0.2)
+        # Research complete - brighter ascending tone
+        self.sounds["research_complete"] = self._make_ascending_sound(300, 700, 0.22)
         # Unit selection - short click
         self.sounds["select"] = self._make_sound(600, 0.03, "sine")
         # Unit move order - confirmation tone
@@ -43,6 +45,8 @@ class SoundManager:
         self.sounds["ui_click"] = self._make_sound(500, 0.02, "square")
         # Alert / warning
         self.sounds["alert"] = self._make_sound(880, 0.1, "square")
+        # Insufficient resources / invalid command
+        self.sounds["error"] = self._make_descending_sound(220, 120, 0.12)
     
     def _make_sound(self, frequency, duration, wave_type="sine"):
         """Create a synthesized sound."""
@@ -126,6 +130,9 @@ class SoundManager:
     
     def play_build_complete(self):
         self.play("build_complete")
+
+    def play_research_complete(self):
+        self.play("research_complete")
     
     def play_select(self):
         self.play("select")
@@ -141,6 +148,9 @@ class SoundManager:
     
     def play_alert(self):
         self.play("alert")
+
+    def play_error(self):
+        self.play("error")
     
     def toggle_sound(self):
         self.enabled = not self.enabled

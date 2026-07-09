@@ -1,6 +1,7 @@
 import pygame
 import json
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT, BUILDING_BUTTON_HEIGHT, BUILDING_ICON_SIZE
+from systems.upgrade_effects import has_required_buildings
 from utils.debug_logger import debug_log
 
 
@@ -45,7 +46,7 @@ class BuildingMenu:
             
             for building in buildable_buildings:
                 try:
-                    sprite_path = f"assets/sprites/Buildings/{building['name'].title()}.png"
+                    sprite_path = building.get('sprite', f"assets/sprites/Buildings/{building['name'].title()}.png")
                     building_sprite = pygame.image.load(sprite_path).convert_alpha()
                     # Pre-scale to icon size
                     building_icon = pygame.transform.scale(building_sprite, (self.icon_size, self.icon_size))
@@ -176,20 +177,29 @@ class BuildingMenu:
         for i, button_info in enumerate(self.building_buttons):
             building = button_info['building']
             
-            # Re-check affordability (resources may have changed)
-            can_afford_now = self._can_afford(human_player, building)
-            button_info['can_afford'] = can_afford_now
+            # Re-check availability (resources/building prerequisites may have changed)
+            can_build_now, reason = self._availability(human_player, building)
+            button_info['can_afford'] = can_build_now
+            button_info['reason'] = reason
             button_rect = button_info['draw_rect']
+            screen_rect = button_info['click_rect']
+            is_hovered = screen_rect.collidepoint(pygame.mouse.get_pos())
             
             # Draw button background with improved colors
-            if can_afford_now:
+            if can_build_now:
                 button_color = (0, 100, 0)  # Green when affordable
                 border_color = (0, 200, 0)
                 text_color = (255, 255, 255)
+            elif reason.startswith("Requires"):
+                button_color = (80, 70, 35)
+                border_color = (170, 140, 60)
+                text_color = (245, 210, 120)
             else:
                 button_color = (100, 0, 0)  # Red when not affordable
                 border_color = (200, 0, 0)
                 text_color = (255, 150, 150)
+            if is_hovered:
+                button_color = tuple(min(255, c + 35) for c in button_color)
             
             pygame.draw.rect(menu_surface, button_color, button_rect)
             pygame.draw.rect(menu_surface, border_color, button_rect, 2)
@@ -205,7 +215,8 @@ class BuildingMenu:
             # Draw building name to the right of icon with improved position
             name_x = button_rect.x + icon_padding + self.icon_size + 10
             name_y = button_rect.y + 8
-            name_text = self.button_font.render(building['name'].title(), True, text_color)
+            display_name = building.get('display_name', building['name'].replace('_', ' ').title())
+            name_text = self.button_font.render(display_name, True, text_color)
             menu_surface.blit(name_text, (name_x, name_y))
             
             # Draw cost below name
@@ -213,6 +224,9 @@ class BuildingMenu:
             if cost_text:
                 cost_text = self.small_font.render(cost_text, True, text_color)
                 menu_surface.blit(cost_text, (name_x, name_y + 25))
+
+            if is_hovered:
+                self._draw_building_tooltip(menu_surface, building, reason, ui_width, ui_height)
             
             buttons_drawn += 1
         
@@ -279,9 +293,13 @@ class BuildingMenu:
                         self.close_menu()
                         # Notify game to enter building placement mode
                         self.game.enter_building_placement_mode(building_data)
+                        if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+                            self.game.sound_manager.play_ui_click()
                         return True
                     else:
                         debug_log.log(f"Cannot afford {button_info['building']['name']}", "UI")
+                        if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+                            self.game.sound_manager.play_error()
                         return True
         
         return False
@@ -295,7 +313,7 @@ class BuildingMenu:
             
             # Define building categories
             economy_buildings = ['farm', 'house', 'lumbermill', 'mine', 'quarry']
-            military_buildings = ['barracks', 'watchtower']
+            military_buildings = ['barracks', 'stable', 'blacksmith', 'siege_workshop', 'watchtower']
             
             # Filter buildings based on category
             if self.show_category == 'economy':
@@ -337,8 +355,8 @@ class BuildingMenu:
                 button_rect = pygame.Rect(button_x, button_y + i * (button_height + button_spacing),
                                         button_width, button_height)
                 
-                # Check if player can afford
-                can_afford = self._can_afford(human_player, building)
+                # Check if player can build now
+                can_afford, reason = self._availability(human_player, building)
                 
                 # Store button info for click detection AND drawing
                 self.building_buttons.append({
@@ -346,6 +364,7 @@ class BuildingMenu:
                     'draw_rect': button_rect,  # Store visual rectangle for consistent drawing
                     'building': building,
                     'can_afford': can_afford,
+                    'reason': reason,
                     'visible': True
                 })
                 
@@ -360,6 +379,15 @@ class BuildingMenu:
         costs = building.get('costs', {})
         return all(player.resources.get(resource, 0) >= amount for resource, amount in costs.items())
 
+    def _availability(self, player, building):
+        """Return (can_build, reason) for a building button."""
+        requirements = building.get('requires', [])
+        if requirements and not has_required_buildings(self.game, player, requirements):
+            return False, "Requires " + ", ".join(r.replace('_', ' ').title() for r in requirements)
+        if not self._can_afford(player, building):
+            return False, "Insufficient resources"
+        return True, "Ready"
+
     def _format_costs(self, building):
         """Format nested building costs for display."""
         costs = building.get('costs', {})
@@ -370,3 +398,24 @@ class BuildingMenu:
             for resource, amount in costs.items()
             if amount > 0
         )
+
+    def _draw_building_tooltip(self, surface, building, reason, ui_width, ui_height):
+        tooltip_h = 78
+        tooltip_rect = pygame.Rect(6, ui_height - BUILDING_BUTTON_HEIGHT - tooltip_h - 12, ui_width - 12, tooltip_h)
+        pygame.draw.rect(surface, (12, 12, 12), tooltip_rect)
+        pygame.draw.rect(surface, (120, 120, 120), tooltip_rect, 1)
+
+        lines = [
+            building.get('role', ''),
+            reason,
+        ]
+        if building.get('strong_against'):
+            lines.append("Strong: " + ", ".join(x.title() for x in building['strong_against'][:2]))
+        if building.get('weak_against'):
+            lines.append("Weak: " + ", ".join(x.title() for x in building['weak_against'][:2]))
+
+        y = tooltip_rect.y + 6
+        for line in [line for line in lines if line][:4]:
+            rendered = self.small_font.render(line[:28], True, (230, 230, 230))
+            surface.blit(rendered, (tooltip_rect.x + 6, y))
+            y += 17

@@ -91,6 +91,12 @@ class GameState:
                 attack_type=getattr(template, "attack_type", "slash"),
                 attack_speed=getattr(template, "attack_speed", 1.0),
                 attack_range=getattr(template, "attack_range", 0),
+                display_name=getattr(template, "display_name", None),
+                role=getattr(template, "role", ""),
+                requires=list(getattr(template, "requires", [])),
+                buildable=getattr(template, "buildable", True),
+                strong_against=list(getattr(template, "strong_against", [])),
+                weak_against=list(getattr(template, "weak_against", [])),
             )
         elif isinstance(template, Unit):
             return Unit(
@@ -109,7 +115,14 @@ class GameState:
                 armor_type=template.armor_type,
                 armor_value=template.armor_value,
                 attack_speed=template.attack_speed,
-                attack_range=template.attack_range
+                attack_range=template.attack_range,
+                display_name=getattr(template, "display_name", None),
+                role=getattr(template, "role", ""),
+                requires=list(getattr(template, "requires", [])),
+                buildable=getattr(template, "buildable", True),
+                strong_against=list(getattr(template, "strong_against", [])),
+                weak_against=list(getattr(template, "weak_against", [])),
+                building_only_attack=getattr(template, "building_only_attack", False),
             )
         elif isinstance(template, Resource):
             return Resource(
@@ -132,13 +145,13 @@ class GameState:
         # First, place guaranteed resources near each castle
         for spawn_r, spawn_c in spawn_locations:
             # Place 1 gold deposit near castle (3-5 tiles away)
-            self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 5, 1)
+            self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 5, 1, amount_override=500)
             
             # Place 1 stone deposit near castle (3-5 tiles away)
-            self._place_resource_near_spawn("stone", spawn_r, spawn_c, 3, 5, 1)
+            self._place_resource_near_spawn("stone", spawn_r, spawn_c, 3, 5, 1, amount_override=500)
             
             # Place 8 wood resources near castle (2-6 tiles away)
-            self._place_resource_near_spawn("wood", spawn_r, spawn_c, 2, 6, 8)
+            self._place_resource_near_spawn("wood", spawn_r, spawn_c, 2, 6, 8, amount_override=250)
         
         # Calculate resource counts based on map size and player count
         map_area = self.game.game_map.width * self.game.game_map.height
@@ -158,15 +171,15 @@ class GameState:
         
         # Place scarce additional resources across the map
         for _ in range(extra_gold):
-            self._place_random_resource("gold", spawn_locations, min_distance=15)
+            self._place_random_resource("gold", spawn_locations, min_distance=15, amount_override=1500)
         
         for _ in range(extra_stone):
-            self._place_random_resource("stone", spawn_locations, min_distance=15)
+            self._place_random_resource("stone", spawn_locations, min_distance=15, amount_override=1500)
         
         # Instead of individual trees, create forest clusters
         self._place_forest_clusters(extra_wood, spawn_locations)
     
-    def _place_resource_near_spawn(self, resource_type, spawn_r, spawn_c, min_dist, max_dist, count):
+    def _place_resource_near_spawn(self, resource_type, spawn_r, spawn_c, min_dist, max_dist, count, amount_override=None):
         """Place a specific number of resources near a spawn location"""
         placed = 0
         attempts = 0
@@ -205,6 +218,8 @@ class GameState:
                         
                         resource = self._create_instance_from_template(self.game.game_data["resources"][resource_name])
                         resource.x, resource.y = world_pos
+                        if amount_override is not None:
+                            resource.amount_remaining = amount_override
                         self.game.resources.append(resource)
                         placed += 1
             
@@ -286,7 +301,7 @@ class GameState:
             if trees_placed > 5:  # Only count as successful if we placed at least 5 trees
                 forests_placed += 1
     
-    def _place_random_resource(self, resource_type, spawn_locations, min_distance):
+    def _place_random_resource(self, resource_type, spawn_locations, min_distance, amount_override=None):
         """Place a resource randomly on the map, away from spawn locations"""
         attempts = 0
         edge_buffer = 5  # Keep resources well away from edges
@@ -321,6 +336,8 @@ class GameState:
                         
                         resource = self._create_instance_from_template(self.game.game_data["resources"][resource_name])
                         resource.x, resource.y = world_pos
+                        if amount_override is not None:
+                            resource.amount_remaining = amount_override
                         self.game.resources.append(resource)
                         break
             

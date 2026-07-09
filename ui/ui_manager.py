@@ -182,9 +182,13 @@ class UIManager:
         # Draw unit production panel if a production building is selected
         if selected_info and selected_info["type"] == "Building":
             selected_building = selected_info["object"]
+            has_research = (
+                hasattr(self.game, "research_manager") and
+                bool(self.game.research_manager.available_for_building(selected_building))
+            )
             if (selected_building.player == self.game.players[0] and 
                 getattr(selected_building.player, "human", False) and
-                hasattr(selected_building, 'can_produce') and selected_building.can_produce):
+                ((hasattr(selected_building, 'can_produce') and selected_building.can_produce) or has_research)):
                 self.production_panel.draw(screen, selected_building)
         
         # Draw building menu if showing

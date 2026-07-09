@@ -240,8 +240,8 @@ class ProjectileSystem:
             elif attacker.name == "watchtower":
                 # Cannonballs are slower but impactful
                 projectile = CannonBall(start_x, start_y, target_x, target_y, 200, damage, attacker)
-            elif attacker.name == "warrior":
-                # Warriors don't use projectiles (melee)
+            elif attacker.name in ("warrior", "spearman", "cavalry", "ram"):
+                # Melee and ram attacks don't use projectiles.
                 return
             else:
                 # Default projectile

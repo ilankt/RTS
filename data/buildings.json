@@ -1,6 +1,12 @@
 [
     {
         "name": "barracks",
+        "display_name": "Barracks",
+        "role": "Trains infantry and ranged core units",
+        "requires": [],
+        "buildable": true,
+        "strong_against": [],
+        "weak_against": ["ram"],
         "sprite": "assets/sprites/Buildings/Barracks.png",
         "size": [1.5,1.5],
         "hp": 1000,
@@ -15,6 +21,12 @@
     },
     {
         "name": "castle",
+        "display_name": "Castle",
+        "role": "Town center and victory objective",
+        "requires": [],
+        "buildable": false,
+        "strong_against": [],
+        "weak_against": ["ram"],
         "sprite": "assets/sprites/Buildings/Castle.png",
         "size": [2.5,2.5],
         "hp": 5000,
@@ -29,6 +41,12 @@
     },
     {
         "name": "farm",
+        "display_name": "Farm",
+        "role": "Generates food over time",
+        "requires": [],
+        "buildable": true,
+        "strong_against": [],
+        "weak_against": ["raiders"],
         "sprite": "assets/sprites/Buildings/Farm.png",
         "size": [1,1],
         "hp": 250,
@@ -41,6 +59,12 @@
     },
     {
         "name": "house",
+        "display_name": "House",
+        "role": "Increases population capacity",
+        "requires": [],
+        "buildable": true,
+        "strong_against": [],
+        "weak_against": ["raiders"],
         "sprite": "assets/sprites/Buildings/House.png",
         "size": [1,1],
         "hp": 500,
@@ -48,12 +72,17 @@
         "armor_type": "fortified",
         "armor_value": 2,
         "costs": {
-            "gold": 50,
             "wood": 50
         }
     },
     {
         "name": "lumbermill",
+        "display_name": "Lumbermill",
+        "role": "Wood drop-off near forests",
+        "requires": [],
+        "buildable": true,
+        "strong_against": [],
+        "weak_against": ["raiders"],
         "sprite": "assets/sprites/Buildings/Lumbermill.png",
         "size": [1.5,1.5],
         "hp": 750,
@@ -61,12 +90,17 @@
         "armor_type": "fortified",
         "armor_value": 4,
         "costs": {
-            "gold": 75,
             "wood": 75
         }
     },
     {
         "name": "mine",
+        "display_name": "Mine",
+        "role": "Gold drop-off near deposits",
+        "requires": [],
+        "buildable": true,
+        "strong_against": [],
+        "weak_against": ["raiders"],
         "sprite": "assets/sprites/Buildings/Mine.png",
         "size": [1.5,1.5],
         "hp": 750,
@@ -74,27 +108,37 @@
         "armor_type": "fortified",
         "armor_value": 4,
         "costs": {
-            "gold": 75,
             "wood": 75,
             "stone": 25
         }
     },
     {
         "name": "quarry",
-        "sprite": "assets/sprites/Buildings/Quarry.png",
+        "display_name": "Quarry",
+        "role": "Stone drop-off near deposits",
+        "requires": [],
+        "buildable": true,
+        "strong_against": [],
+        "weak_against": ["raiders"],
+        "sprite": "assets/sprites/Buildings/quarry.png",
         "size": [1.5,1.5],
         "hp": 750,
         "build_duration": 8,
         "armor_type": "fortified",
         "armor_value": 4,
         "costs": {
-            "gold": 75,
             "wood": 50,
             "stone": 50
         }
     },
     {
         "name": "watchtower",
+        "display_name": "Watchtower",
+        "role": "Static defense that controls territory",
+        "requires": [],
+        "buildable": true,
+        "strong_against": ["archer", "worker"],
+        "weak_against": ["ram"],
         "sprite": "assets/sprites/Buildings/Watchtower.png",
         "size": [2,2],
         "hp": 1500,
@@ -114,7 +158,13 @@
     },
     {
         "name": "stable",
-        "sprite": "assets/sprites/Buildings/Barracks.png",
+        "display_name": "Stable",
+        "role": "Trains cavalry for raids and archer pressure",
+        "requires": ["barracks"],
+        "buildable": true,
+        "strong_against": [],
+        "weak_against": ["ram"],
+        "sprite": "assets/sprites/Buildings/Stable.png",
         "size": [1.5,1.5],
         "hp": 900,
         "build_duration": 10,
@@ -128,6 +178,12 @@
     },
     {
         "name": "temple",
+        "display_name": "Temple",
+        "role": "Deferred support building",
+        "requires": ["barracks"],
+        "buildable": false,
+        "strong_against": [],
+        "weak_against": ["ram"],
         "sprite": "assets/sprites/Buildings/House.png",
         "size": [1.5,1.5],
         "hp": 800,
@@ -141,19 +197,51 @@
     },
     {
         "name": "blacksmith",
-        "sprite": "assets/sprites/Buildings/Lumbermill.png",
+        "display_name": "Blacksmith",
+        "role": "Researches economy and military upgrades",
+        "requires": ["barracks"],
+        "buildable": true,
+        "strong_against": [],
+        "weak_against": ["ram"],
+        "sprite": "assets/sprites/Buildings/Blacksmith.png",
         "size": [1.5,1.5],
         "hp": 800,
         "build_duration": 10,
         "armor_type": "fortified",
         "armor_value": 4,
         "costs": {
-            "gold": 150,
-            "wood": 100
+            "gold": 50,
+            "wood": 75
+        }
+    },
+    {
+        "name": "siege_workshop",
+        "display_name": "Siege Workshop",
+        "role": "Builds rams to break towers and castles",
+        "requires": ["blacksmith"],
+        "buildable": true,
+        "strong_against": [],
+        "weak_against": ["ram"],
+        "sprite": "assets/sprites/Buildings/SiegeWorkshop.png",
+        "size": [1.5,1.5],
+        "hp": 900,
+        "build_duration": 12,
+        "armor_type": "fortified",
+        "armor_value": 4,
+        "costs": {
+            "gold": 60,
+            "wood": 160,
+            "stone": 60
         }
     },
     {
         "name": "wall",
+        "display_name": "Wall",
+        "role": "Deferred defensive structure",
+        "requires": ["barracks"],
+        "buildable": false,
+        "strong_against": [],
+        "weak_against": ["ram"],
         "sprite": "assets/sprites/Buildings/Watchtower.png",
         "size": [1,1],
         "hp": 2000,

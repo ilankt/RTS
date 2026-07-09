@@ -1,0 +1,157 @@
+[
+    {
+        "id": "improved_tools",
+        "display_name": "Improved Tools",
+        "icon": "assets/ui/Techs/improved_tools_icon.png",
+        "building": "blacksmith",
+        "costs": {
+            "wood": 75
+        },
+        "research_time": 20,
+        "requires": [],
+        "effects": {
+            "gather_rate_multipliers": {
+                "gold": 1.2,
+                "stone": 1.2,
+                "wood": 1.2
+            }
+        },
+        "tooltip": "Workers gather wood, gold, and stone 20% faster."
+    },
+    {
+        "id": "reinforced_frames",
+        "display_name": "Reinforced Frames",
+        "icon": "assets/ui/Techs/reinforced_frames_icon.png",
+        "building": "blacksmith",
+        "costs": {
+            "stone": 100,
+            "wood": 100
+        },
+        "research_time": 22,
+        "requires": [],
+        "effects": {
+            "building_stat_bonuses": {
+                "all": {
+                    "armor_value": 1
+                }
+            }
+        },
+        "tooltip": "Buildings gain +1 armor."
+    },
+    {
+        "id": "forged_blades",
+        "display_name": "Forged Blades",
+        "icon": "assets/ui/Techs/forged_blades_icon.png",
+        "building": "blacksmith",
+        "costs": {
+            "gold": 120,
+            "wood": 80
+        },
+        "research_time": 24,
+        "requires": [],
+        "effects": {
+            "unit_stat_multipliers": {
+                "warrior": {
+                    "min_damage": 1.15,
+                    "max_damage": 1.15
+                },
+                "spearman": {
+                    "min_damage": 1.12,
+                    "max_damage": 1.12
+                },
+                "cavalry": {
+                    "min_damage": 1.15,
+                    "max_damage": 1.15
+                }
+            }
+        },
+        "tooltip": "Warriors, spearmen, and cavalry deal more melee damage."
+    },
+    {
+        "id": "fletching",
+        "display_name": "Fletching",
+        "icon": "assets/ui/Techs/fletching_icon.png",
+        "building": "blacksmith",
+        "costs": {
+            "gold": 100,
+            "wood": 120
+        },
+        "research_time": 24,
+        "requires": [],
+        "effects": {
+            "unit_stat_multipliers": {
+                "archer": {
+                    "min_damage": 1.15,
+                    "max_damage": 1.15
+                }
+            },
+            "unit_stat_bonuses": {
+                "archer": {
+                    "attack_range": 25
+                }
+            },
+            "building_stat_bonuses": {
+                "watchtower": {
+                    "attack_range": 25
+                }
+            }
+        },
+        "tooltip": "Archers and watchtowers gain range; archers deal more damage."
+    },
+    {
+        "id": "padded_armor",
+        "display_name": "Padded Armor",
+        "icon": "assets/ui/Techs/padded_armor_icon.png",
+        "building": "blacksmith",
+        "costs": {
+            "gold": 100,
+            "food": 80
+        },
+        "research_time": 24,
+        "requires": [],
+        "effects": {
+            "unit_stat_bonuses": {
+                "warrior": {
+                    "armor_value": 1
+                },
+                "archer": {
+                    "armor_value": 1
+                },
+                "spearman": {
+                    "armor_value": 1
+                },
+                "cavalry": {
+                    "armor_value": 1
+                }
+            }
+        },
+        "tooltip": "Core army units gain +1 armor."
+    },
+    {
+        "id": "siege_engineering",
+        "display_name": "Siege Engineering",
+        "icon": "assets/ui/Techs/siege_engineering_icon.png",
+        "building": "blacksmith",
+        "costs": {
+            "gold": 150,
+            "wood": 150,
+            "stone": 80
+        },
+        "research_time": 30,
+        "requires": ["siege_workshop"],
+        "effects": {
+            "unit_stat_multipliers": {
+                "ram": {
+                    "min_damage": 1.25,
+                    "max_damage": 1.25
+                }
+            },
+            "unit_stat_bonuses": {
+                "ram": {
+                    "armor_value": 1
+                }
+            }
+        },
+        "tooltip": "Rams deal 25% more siege damage and gain +1 armor."
+    }
+]

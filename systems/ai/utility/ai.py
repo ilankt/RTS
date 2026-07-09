@@ -107,9 +107,13 @@ class UtilityAISystem:
                 "total": sum(len(v) for v in ctx.buildings.values()),
                 "castle": 1 if ctx.castle else 0,
                 "barracks": len(ctx.buildings.get("barracks", [])),
+                "stable": len(ctx.buildings.get("stable", [])),
+                "blacksmith": len(ctx.buildings.get("blacksmith", [])),
+                "siege_workshop": len(ctx.buildings.get("siege_workshop", [])),
                 "watchtowers": len(ctx.buildings.get("watchtower", [])),
                 "houses": len(ctx.buildings.get("house", [])),
             },
+            "upgrades": ", ".join(getattr(player, "upgrades", {}).keys()) or "None",
             "production_queue": ", ".join(production_parts) if production_parts else "None",
             "current_tasks": [],
         }

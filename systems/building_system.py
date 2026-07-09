@@ -2,6 +2,7 @@ import math
 import pygame
 from entities import Building, ConstructionSite
 from core.config import TILE_WIDTH, TOP_BAR_HEIGHT
+from systems.upgrade_effects import effective_build_speed_multiplier, has_required_buildings
 from utils.debug_logger import debug_log
 
 
@@ -165,6 +166,10 @@ class BuildingSystem:
             
         # Deduct resources
         human_player = self.game.players[0]
+        if not self.can_player_build(human_player, self.building_to_place):
+            if hasattr(self.game, "sound_manager") and self.game.sound_manager:
+                self.game.sound_manager.play_error()
+            return False
         costs = self.building_to_place.get('costs', {})
         for resource, amount in costs.items():
             human_player.resources[resource] -= amount
@@ -218,6 +223,7 @@ class BuildingSystem:
                 build_speed = delta_time
                 if hasattr(site, 'player') and site.player:
                     build_speed *= site.player.build_speed_bonus
+                    build_speed *= effective_build_speed_multiplier(site.player)
                 site.construction_progress += build_speed
                 debug_log.log(f"  Construction progress: {site.construction_progress:.2f}/{site.construction_duration} (+{build_speed:.3f})", "BUILD_UPDATE")
                 
@@ -242,7 +248,13 @@ class BuildingSystem:
                         max_damage=site.building_data.get('max_damage', 0),
                         attack_type=site.building_data.get('attack_type', 'slash'),
                         attack_speed=site.building_data.get('attack_speed', 1.0),
-                        attack_range=site.building_data.get('attack_range', 0)
+                        attack_range=site.building_data.get('attack_range', 0),
+                        display_name=site.building_data.get('display_name'),
+                        role=site.building_data.get('role', ''),
+                        requires=site.building_data.get('requires', []),
+                        buildable=site.building_data.get('buildable', True),
+                        strong_against=site.building_data.get('strong_against', []),
+                        weak_against=site.building_data.get('weak_against', []),
                     )
                     
                     self.game.buildings.append(building_class)
@@ -312,6 +324,8 @@ class BuildingSystem:
                     
                     # Construction complete
                     debug_log.log(f"AI: Construction of {site.building_name} completed at ({site.x:.0f}, {site.y:.0f})", "BUILD_UPDATE")
+                    if hasattr(self.game, "sound_manager") and self.game.sound_manager:
+                        self.game.sound_manager.play_build_complete()
                     
                     # Force AI to immediately re-evaluate after construction completion
                     if hasattr(self.game, 'ai_system') and self.game.ai_system and site.player:
@@ -382,6 +396,9 @@ class BuildingSystem:
     
     def can_player_build(self, player, building_data):
         """Check if a player can afford to build a building"""
+        requirements = building_data.get('requires', [])
+        if requirements and not has_required_buildings(self.game, player, requirements):
+            return False
         costs = building_data.get('costs', {})
         for resource, amount in costs.items():
             if player.resources.get(resource, 0) < amount:

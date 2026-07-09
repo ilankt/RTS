@@ -1,6 +1,6 @@
 """Military goals: build production buildings and train combat units."""
 from systems.ai.utility.goal import Goal
-from systems.ai.utility.actions import start_construction, queue_unit
+from systems.ai.utility.actions import start_construction, queue_unit, queue_research
 
 
 class BuildBarracksGoal(Goal):
@@ -41,6 +41,46 @@ class BuildStableGoal(Goal):
 
     def execute(self, ctx):
         return start_construction(ctx, "stable", ctx.game.ai_system.building_placer)
+
+
+class BuildBlacksmithGoal(Goal):
+    name = "build_blacksmith"
+    category = "military"
+
+    def score(self, ctx):
+        if ctx.has_building_or_site("blacksmith"):
+            return 0
+        if not ctx.buildings.get("barracks"):
+            return 0
+        if len(ctx.workers) < 3:
+            return 0
+        if not ctx.can_afford("blacksmith"):
+            return 0
+        return 80
+
+    def execute(self, ctx):
+        return start_construction(ctx, "blacksmith", ctx.game.ai_system.building_placer)
+
+
+class BuildSiegeWorkshopGoal(Goal):
+    name = "build_siege_workshop"
+    category = "military"
+
+    def score(self, ctx):
+        if ctx.has_building_or_site("siege_workshop"):
+            return 0
+        if not ctx.buildings.get("blacksmith"):
+            return 0
+        if len(ctx.workers) < 4:
+            return 0
+        if not ctx.can_afford("siege_workshop"):
+            return 0
+        if len(ctx.military) < 4:
+            return 75
+        return 100
+
+    def execute(self, ctx):
+        return start_construction(ctx, "siege_workshop", ctx.game.ai_system.building_placer)
 
 
 class BuildWatchtowerGoal(Goal):
@@ -137,3 +177,112 @@ class TrainCavalryGoal(Goal):
     def execute(self, ctx):
         building = ctx.find_idle_production_building("stable")
         return queue_unit(ctx, building, "cavalry")
+
+
+class TrainRamGoal(Goal):
+    name = "train_ram"
+    category = "military"
+
+    CAP = 3
+
+    def score(self, ctx):
+        if not ctx.has_pop_space():
+            return 0
+        if not ctx.can_afford("ram"):
+            return 0
+        building = ctx.find_idle_production_building("siege_workshop")
+        if not building:
+            return 0
+        rams = sum(1 for u in ctx.military if u.name == "ram")
+        enemy_buildings = sum(1 for b in ctx.game.buildings if b.player is not ctx.player and b.hp > 0)
+        if rams >= self.CAP:
+            return 15
+        return 65 + min(enemy_buildings, 4) * 5
+
+    def execute(self, ctx):
+        building = ctx.find_idle_production_building("siege_workshop")
+        return queue_unit(ctx, building, "ram")
+
+
+class ResearchTechGoal(Goal):
+    name = "research_tech"
+    category = "military"
+    tech_id = "<unset>"
+    base_score = 45
+
+    def score(self, ctx):
+        if not ctx.can_research(self.tech_id):
+            return 0
+        building = ctx.find_idle_research_building("blacksmith")
+        if not building:
+            return 0
+        return self._score(ctx)
+
+    def _score(self, ctx):
+        return self.base_score
+
+    def execute(self, ctx):
+        building = ctx.find_idle_research_building("blacksmith")
+        return queue_research(ctx, building, self.tech_id)
+
+
+class ResearchImprovedToolsGoal(ResearchTechGoal):
+    name = "research_improved_tools"
+    category = "economy"
+    tech_id = "improved_tools"
+    base_score = 70
+
+    def _score(self, ctx):
+        if len(ctx.workers) < 3:
+            return 0
+        return self.base_score
+
+
+class ResearchForgedBladesGoal(ResearchTechGoal):
+    name = "research_forged_blades"
+    tech_id = "forged_blades"
+    base_score = 55
+
+    def _score(self, ctx):
+        melee = sum(1 for u in ctx.military if u.name in ("warrior", "spearman", "cavalry"))
+        return self.base_score + melee * 4 if melee >= 2 else 0
+
+
+class ResearchFletchingGoal(ResearchTechGoal):
+    name = "research_fletching"
+    tech_id = "fletching"
+    base_score = 55
+
+    def _score(self, ctx):
+        archers = sum(1 for u in ctx.military if u.name == "archer")
+        towers = len(ctx.buildings.get("watchtower", []))
+        return self.base_score + archers * 5 + towers * 5 if archers or towers else 0
+
+
+class ResearchPaddedArmorGoal(ResearchTechGoal):
+    name = "research_padded_armor"
+    tech_id = "padded_armor"
+    base_score = 45
+
+    def _score(self, ctx):
+        return self.base_score if len(ctx.military) >= 5 else 0
+
+
+class ResearchReinforcedFramesGoal(ResearchTechGoal):
+    name = "research_reinforced_frames"
+    category = "support"
+    tech_id = "reinforced_frames"
+    base_score = 35
+
+    def _score(self, ctx):
+        return self.base_score if len(ctx.buildings) >= 4 else 0
+
+
+class ResearchSiegeEngineeringGoal(ResearchTechGoal):
+    name = "research_siege_engineering"
+    tech_id = "siege_engineering"
+    base_score = 65
+
+    def _score(self, ctx):
+        rams = sum(1 for u in ctx.military if u.name == "ram")
+        return self.base_score + rams * 8 if ctx.buildings.get("siege_workshop") else 0

@@ -51,7 +51,7 @@ class IconLoader:
             
             for building in buildings_data:
                 try:
-                    sprite_path = f"assets/sprites/Buildings/{building['name'].title()}.png"
+                    sprite_path = building.get('sprite', f"assets/sprites/Buildings/{building['name'].title()}.png")
                     building_sprite = pygame.image.load(sprite_path).convert_alpha()
                     # Pre-scale to icon size
                     building_icon = pygame.transform.scale(building_sprite, (icon_size, icon_size))
@@ -74,7 +74,7 @@ class IconLoader:
             
             for unit in units_data:
                 unit_name = unit['name']
-                icon_path = f"assets/ui/Units/{unit_name}_icon.png"
+                icon_path = unit.get('icon', f"assets/ui/Units/{unit_name}_icon.png")
                 
                 try:
                     unit_icon = pygame.image.load(icon_path).convert_alpha()

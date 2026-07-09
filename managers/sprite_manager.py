@@ -76,6 +76,7 @@ UNIT_TYPE_TINTS = {
     # at a glance.
     "spearman": (180, 230, 180),  # greenish - light infantry
     "cavalry":  (240, 200, 160),  # tan/warm - mounted
+    "ram":      (170, 150, 120),  # muted wood - siege
     "healer":   (200, 230, 240),  # cool cyan - support
 }
 

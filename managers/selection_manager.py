@@ -131,6 +131,8 @@ class SelectionManager:
                     if clicked_object not in self.selected_objects:
                         self.selected_objects.append(clicked_object)
                 # Note: AI objects are not added to selected_objects (visual selection only)
+            if clicked_is_human:
+                self._play_human_sound("select")
         else:
             # No object clicked - clear selection unless shift is held
             is_shift_held = pygame.key.get_pressed()[pygame.K_LSHIFT]
@@ -354,9 +356,11 @@ class SelectionManager:
         if unit.can_attack(target):
             unit.start_attack(target)
             unit.last_task = {"type": "attack", "target": target}
+            self._play_unit_sound(unit, "attack")
             return
 
         if pathfinder.issue_interact(unit, target, "attack"):
+            self._play_unit_sound(unit, "attack")
             return
 
         unit.current_target = None
@@ -368,9 +372,11 @@ class SelectionManager:
         worker_tasks = getattr(self.game, "worker_task_system", None)
         if worker_tasks and worker_tasks.assign_gather(worker, resource):
             worker.last_task = {"type": "gather", "target": resource}
+            self._play_unit_sound(worker, "gather")
             return
         if not worker_tasks and pathfinder.issue_interact(worker, resource, "gather", preferred_point=new_destination):
             worker.last_task = {"type": "gather", "target": resource}
+            self._play_unit_sound(worker, "gather")
             return
 
         worker.gathering_target = None
@@ -526,8 +532,28 @@ class SelectionManager:
         """Move a unit to a specific position"""
         if unit.name == "worker" and hasattr(self.game, "worker_task_system"):
             self.game.worker_task_system.assign_move(unit, world_pos)
+            self._play_unit_sound(unit, "move")
             return
         pathfinder.issue_move(unit, world_pos)
+        self._play_unit_sound(unit, "move")
+
+    def _play_unit_sound(self, unit, sound_type):
+        if not getattr(getattr(unit, "player", None), "human", False):
+            return
+        self._play_human_sound(sound_type)
+
+    def _play_human_sound(self, sound_type):
+        sound_manager = getattr(self.game, "sound_manager", None)
+        if not sound_manager:
+            return
+        if sound_type == "select":
+            sound_manager.play_select()
+        elif sound_type == "move":
+            sound_manager.play_move_order()
+        elif sound_type == "attack":
+            sound_manager.play_attack()
+        elif sound_type == "gather":
+            sound_manager.play_gather()
     
     def cycle_formation(self):
         """Cycle to the next formation type"""

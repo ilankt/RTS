@@ -1,6 +1,12 @@
 [
     {
         "name": "worker",
+        "display_name": "Worker",
+        "role": "Builder and gatherer",
+        "requires": [],
+        "buildable": true,
+        "strong_against": [],
+        "weak_against": ["raiders"],
         "size": [1,1],
         "hp": 100,
         "movement_speed": 40,
@@ -9,7 +15,6 @@
         "build_time": 5,
         "icon": "assets/ui/Units/worker_icon.png",
         "costs": {
-            "gold": 50,
             "food": 25
         },
         "min_damage": 0,
@@ -28,6 +33,12 @@
     },
     {
         "name": "warrior",
+        "display_name": "Warrior",
+        "role": "Generalist front-line infantry",
+        "requires": ["barracks"],
+        "buildable": true,
+        "strong_against": ["archer", "ram"],
+        "weak_against": ["archer", "watchtower"],
         "size": [1,1],
         "hp": 250,
         "movement_speed": 50,
@@ -56,6 +67,12 @@
     },
     {
         "name": "archer",
+        "display_name": "Archer",
+        "role": "Ranged damage dealer",
+        "requires": ["barracks"],
+        "buildable": true,
+        "strong_against": ["warrior", "spearman"],
+        "weak_against": ["cavalry"],
         "size": [1,1],
         "hp": 150,
         "movement_speed": 60,
@@ -83,13 +100,19 @@
     },
     {
         "name": "spearman",
+        "display_name": "Spearman",
+        "role": "Anti-cavalry infantry",
+        "requires": ["barracks"],
+        "buildable": true,
+        "strong_against": ["cavalry"],
+        "weak_against": ["archer", "ram"],
         "size": [1,1],
         "hp": 200,
         "movement_speed": 45,
         "attack": 8,
         "can_attack": true,
         "build_time": 7,
-        "icon": "assets/ui/Units/warrior_icon.png",
+        "icon": "assets/ui/Units/spearman_icon.png",
         "costs": {
             "gold": 60,
             "wood": 25,
@@ -103,21 +126,27 @@
         "attack_speed": 1.1,
         "attack_range": 48,
         "animations": {
-            "idle": "assets/sprites/Units/Warrior/Warrior_Idle.png",
-            "run": "assets/sprites/Units/Warrior/Warrior_Run.png",
-            "attack": "assets/sprites/Units/Warrior/Warrior_Attack.png",
-            "guard": "assets/sprites/Units/Warrior/Warrior_Guard.png"
+            "idle": "assets/sprites/Units/Spearman/Spearman_Idle.png",
+            "run": "assets/sprites/Units/Spearman/Spearman_Run.png",
+            "attack": "assets/sprites/Units/Spearman/Spearman_Attack.png",
+            "guard": "assets/sprites/Units/Spearman/Spearman_Guard.png"
         }
     },
     {
         "name": "cavalry",
+        "display_name": "Cavalry",
+        "role": "Fast raider and archer counter",
+        "requires": ["stable"],
+        "buildable": true,
+        "strong_against": ["archer", "worker"],
+        "weak_against": ["spearman", "watchtower"],
         "size": [1,1],
         "hp": 300,
         "movement_speed": 90,
         "attack": 12,
         "can_attack": true,
         "build_time": 10,
-        "icon": "assets/ui/Units/warrior_icon.png",
+        "icon": "assets/ui/Units/cavalry_icon.png",
         "costs": {
             "gold": 120,
             "food": 80
@@ -130,14 +159,54 @@
         "attack_speed": 1.0,
         "attack_range": 48,
         "animations": {
-            "idle": "assets/sprites/Units/Warrior/Warrior_Idle.png",
-            "run": "assets/sprites/Units/Warrior/Warrior_Run.png",
-            "attack": "assets/sprites/Units/Warrior/Warrior_Attack.png",
-            "guard": "assets/sprites/Units/Warrior/Warrior_Guard.png"
+            "idle": "assets/sprites/Units/Cavalry/Cavalry_Idle.png",
+            "run": "assets/sprites/Units/Cavalry/Cavalry_Run.png",
+            "attack": "assets/sprites/Units/Cavalry/Cavalry_Attack.png",
+            "guard": "assets/sprites/Units/Cavalry/Cavalry_Guard.png"
+        }
+    },
+    {
+        "name": "ram",
+        "display_name": "Battering Ram",
+        "role": "Slow siege unit that destroys buildings",
+        "requires": ["siege_workshop"],
+        "buildable": true,
+        "strong_against": ["building", "watchtower", "castle"],
+        "weak_against": ["warrior", "spearman", "cavalry"],
+        "size": [1.25,1.25],
+        "hp": 650,
+        "movement_speed": 28,
+        "attack": 45,
+        "can_attack": true,
+        "building_only_attack": true,
+        "build_time": 14,
+        "icon": "assets/ui/Units/ram_icon.png",
+        "costs": {
+            "wood": 160,
+            "stone": 40
+        },
+        "min_damage": 55,
+        "max_damage": 75,
+        "attack_type": "siege",
+        "armor_type": "siege",
+        "armor_value": 2,
+        "attack_speed": 0.45,
+        "attack_range": 56,
+        "animations": {
+            "idle": "assets/sprites/Units/Ram/Ram_Idle.png",
+            "run": "assets/sprites/Units/Ram/Ram_Run.png",
+            "attack": "assets/sprites/Units/Ram/Ram_Attack.png",
+            "guard": "assets/sprites/Units/Ram/Ram_Guard.png"
         }
     },
     {
         "name": "healer",
+        "display_name": "Healer",
+        "role": "Deferred support unit",
+        "requires": ["temple"],
+        "buildable": false,
+        "strong_against": [],
+        "weak_against": ["cavalry", "archer"],
         "size": [1,1],
         "hp": 120,
         "movement_speed": 55,

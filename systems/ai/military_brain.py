@@ -1,5 +1,6 @@
 """Military AI logic - defense, training, and attack commands."""
 import math
+from systems.combat_rules import is_building_target
 from utils.debug_logger import debug_log
 
 
@@ -154,7 +155,7 @@ class MilitaryBrain:
     def _get_military_units(self, player):
         """All military units for this player."""
         return [u for u in self.game.units
-                if u.player == player and u.name in ("warrior", "archer", "spearman", "cavalry", "healer")]
+                if u.player == player and u.name in ("warrior", "archer", "spearman", "cavalry", "ram", "healer")]
 
     def _is_idle_military(self, unit) -> bool:
         """Military unit with nothing to do."""
@@ -211,6 +212,10 @@ class MilitaryBrain:
 
     def _command_attack(self, unit, target):
         """Send a military unit to attack a target."""
+        if getattr(unit, "building_only_attack", False) and not is_building_target(target):
+            target = self._find_attack_target(unit.player)
+            if not target:
+                return
         self.game.selection_manager._attack_target(unit, target, self.game.pathfinder)
 
     def _get_castle(self, player):

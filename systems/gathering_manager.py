@@ -1,5 +1,6 @@
 import math
 from core.config import GATHERING_RATES, DROP_OFF_BUILDINGS, DROP_OFF_DELAY, FARM_FOOD_AMOUNT, FARM_FOOD_INTERVAL
+from systems.upgrade_effects import effective_gather_rate_multiplier
 from utils.debug_logger import debug_log
 
 def get_gathering_distance(worker, resource):
@@ -50,7 +51,8 @@ class GatheringManager:
                     building.food_timer = 0.0  # Reset timer
         
         # Tree regrowth: track depleted tree positions and regrow after timer
-        self._update_tree_regrowth(delta_time)
+        if getattr(self.game, "tree_regrowth_enabled", True):
+            self._update_tree_regrowth(delta_time)
         
     def gather_resource_tick(self, worker, resource, delta_time):
         """Apply one deterministic gathering tick.
@@ -65,6 +67,7 @@ class GatheringManager:
         player_multiplier = 1.0
         if hasattr(worker, 'player') and worker.player:
             player_multiplier = worker.player.gathering_rates.get(resource_type, 1.0)
+            player_multiplier *= effective_gather_rate_multiplier(worker.player, resource_type)
         gather_rate = base_rate * player_multiplier
         amount_to_gather = gather_rate * delta_time
 
@@ -112,6 +115,7 @@ class GatheringManager:
                 player_multiplier = 1.0
                 if hasattr(worker, 'player') and worker.player:
                     player_multiplier = worker.player.gathering_rates.get(resource_type, 1.0)
+                    player_multiplier *= effective_gather_rate_multiplier(worker.player, resource_type)
                 gather_rate = base_rate * player_multiplier
                 amount_to_gather = gather_rate * delta_time
                 

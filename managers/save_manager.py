@@ -43,6 +43,7 @@ class SaveManager:
                 "human": player.human,
                 "color": player.color,
                 "resources": dict(player.resources),
+                "upgrades": list(getattr(player, "upgrades", {}).keys()),
             })
         
         # Save buildings
@@ -53,6 +54,11 @@ class SaveManager:
                 "y": building.y,
                 "hp": building.hp,
                 "player_index": game.players.index(building.player) if building.player in game.players else -1,
+                "current_research": {
+                    "tech_id": building.current_research["tech_id"],
+                    "progress": building.current_research["progress"],
+                } if getattr(building, "current_research", None) else None,
+                "research_queue": list(getattr(building, "research_queue", [])),
             })
         
         # Save units
@@ -130,6 +136,11 @@ class SaveManager:
                 player.human = player_data["human"]
                 player.color = tuple(player_data["color"])
                 player.resources = player_data["resources"]
+                player.upgrades = {
+                    tech_id: game.game_data.get("techs", {}).get(tech_id)
+                    for tech_id in player_data.get("upgrades", [])
+                    if tech_id in game.game_data.get("techs", {})
+                }
                 player_map[idx] = player
         
         # Restore buildings
@@ -161,9 +172,30 @@ class SaveManager:
                 attack_type=getattr(template, "attack_type", "slash"),
                 attack_speed=getattr(template, "attack_speed", 1.0),
                 attack_range=getattr(template, "attack_range", 0),
+                display_name=getattr(template, "display_name", None),
+                role=getattr(template, "role", ""),
+                requires=list(getattr(template, "requires", [])),
+                buildable=getattr(template, "buildable", True),
+                strong_against=list(getattr(template, "strong_against", [])),
+                weak_against=list(getattr(template, "weak_against", [])),
             )
             building.x = bdata["x"]
             building.y = bdata["y"]
+            current_research = bdata.get("current_research")
+            if current_research:
+                tech = game.game_data.get("techs", {}).get(current_research.get("tech_id"))
+                if tech:
+                    building.current_research = {
+                        "tech_id": tech["id"],
+                        "display_name": tech.get("display_name", tech["id"]),
+                        "progress": current_research.get("progress", 0),
+                        "total_time": tech.get("research_time", 20),
+                        "tech": tech,
+                    }
+            building.research_queue = [
+                tech_id for tech_id in bdata.get("research_queue", [])
+                if tech_id in game.game_data.get("techs", {})
+            ]
             game.buildings.append(building)
         
         # Restore units
@@ -197,6 +229,13 @@ class SaveManager:
                 armor_value=template.armor_value,
                 attack_speed=template.attack_speed,
                 attack_range=template.attack_range,
+                display_name=getattr(template, "display_name", None),
+                role=getattr(template, "role", ""),
+                requires=list(getattr(template, "requires", [])),
+                buildable=getattr(template, "buildable", True),
+                strong_against=list(getattr(template, "strong_against", [])),
+                weak_against=list(getattr(template, "weak_against", [])),
+                building_only_attack=getattr(template, "building_only_attack", False),
             )
             unit.x = udata["x"]
             unit.y = udata["y"]
@@ -258,6 +297,12 @@ class SaveManager:
                 "attack_type": getattr(template, "attack_type", "slash"),
                 "attack_speed": getattr(template, "attack_speed", 1.0),
                 "attack_range": getattr(template, "attack_range", 0),
+                "display_name": getattr(template, "display_name", None),
+                "role": getattr(template, "role", ""),
+                "requires": list(getattr(template, "requires", [])),
+                "buildable": getattr(template, "buildable", True),
+                "strong_against": list(getattr(template, "strong_against", [])),
+                "weak_against": list(getattr(template, "weak_against", [])),
             }
             site = ConstructionSite(
                 building_name=cdata["building_name"],

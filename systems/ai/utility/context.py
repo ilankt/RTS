@@ -24,6 +24,7 @@ class GoalContext:
 
     resources: Dict[str, int] = field(default_factory=dict)
     cost_data: Dict[str, dict] = field(default_factory=dict)
+    tech_data: Dict[str, dict] = field(default_factory=dict)
 
     pop_current: int = 0
     pop_max: int = 5
@@ -33,6 +34,7 @@ class GoalContext:
         ctx = cls(game=game, player=player)
         ctx.resources = dict(player.resources)  # snapshot, not live ref
         ctx.cost_data = game.game_data.get("costs", {})
+        ctx.tech_data = game.game_data.get("techs", {})
 
         for building in game.buildings:
             if building.player is not player:
@@ -41,7 +43,7 @@ class GoalContext:
                 ctx.castle = building
             ctx.buildings.setdefault(building.name, []).append(building)
 
-        military_names = ("warrior", "archer", "spearman", "cavalry", "healer")
+        military_names = ("warrior", "archer", "spearman", "cavalry", "ram", "healer")
         for unit in game.units:
             if unit.player is not player:
                 continue
@@ -73,6 +75,9 @@ class GoalContext:
 
     def has_construction_in_progress(self, building_name: str) -> bool:
         return building_name in self.site_types
+
+    def has_building_or_site(self, building_name: str) -> bool:
+        return bool(self.buildings.get(building_name)) or self.has_construction_in_progress(building_name)
 
     def find_idle_worker(self) -> Optional[object]:
         """Return a worker free to take a new job.
@@ -124,3 +129,14 @@ class GoalContext:
             if queue_len < max_queue:
                 return b
         return None
+
+    def find_idle_research_building(self, name: str, max_queue: int = 2):
+        for b in self.buildings.get(name, []):
+            queue_len = len(b.research_queue) + (1 if b.current_research else 0)
+            if queue_len < max_queue:
+                return b
+        return None
+
+    def can_research(self, tech_id: str) -> bool:
+        manager = getattr(self.game, "research_manager", None)
+        return bool(manager and manager.can_research(self.player, tech_id))

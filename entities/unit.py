@@ -1,7 +1,12 @@
 import pygame
-import random
 from entities.game_object import GameObject
 from core.config import WORKER_CAPACITY, DEBUG_MOVEMENT
+from systems.combat_rules import (
+    calculate_damage as calculate_combat_damage,
+    effective_attack_range,
+    effective_stat,
+    is_valid_attack_target,
+)
 from utils.debug_logger import debug_log
 
 
@@ -14,8 +19,16 @@ STANCE_NO_ATTACK = "no_attack"
 class Unit(GameObject):
     """Unit entity class"""
     def __init__(self, name, size, hp, movement_speed, attack, animations, x=0, y=0, radius=0, player=None, can_build=False, can_attack=False,
-                 min_damage=0, max_damage=0, attack_type="slash", armor_type="light", armor_value=0, attack_speed=1.0, attack_range=32):
+                 min_damage=0, max_damage=0, attack_type="slash", armor_type="light", armor_value=0, attack_speed=1.0, attack_range=32,
+                 display_name=None, role="", requires=None, buildable=True, strong_against=None, weak_against=None,
+                 building_only_attack=False):
         super().__init__(name, size, hp, None, x, y, radius, player)  # Units don't have a single sprite
+        self.display_name = display_name or name.replace("_", " ").title()
+        self.role = role
+        self.requires = requires or []
+        self.buildable = buildable
+        self.strong_against = strong_against or []
+        self.weak_against = weak_against or []
         self.movement_speed = movement_speed
         self.attack = attack  # Keep for backward compatibility
         self.animations = animations
@@ -33,6 +46,7 @@ class Unit(GameObject):
         self.armor_value = armor_value
         self.attack_speed = attack_speed  # Attacks per second
         self.attack_range = attack_range  # Range in pixels
+        self.building_only_attack = building_only_attack
         
         # Stance system
         self.stance = STANCE_AGGRESSIVE  # Default stance
@@ -176,16 +190,17 @@ class Unit(GameObject):
     
     def get_effective_attack_range(self, buffer_type="exact"):
         """Get effective attack range with standardized buffers"""
+        attack_range = effective_attack_range(self)
         if buffer_type == "exact":
-            return self.attack_range
+            return attack_range
         elif buffer_type == "approach":
             # For pathfinding approach - stay slightly within range
-            return self.attack_range * 0.9
+            return attack_range * 0.9
         elif buffer_type == "positioning":
             # For positioning around targets - more conservative
-            return max(self.attack_range - 5, self.attack_range * 0.85)
+            return max(attack_range - 5, attack_range * 0.85)
         else:
-            return self.attack_range
+            return attack_range
     
     def get_distance_to(self, target):
         """Standardized distance calculation"""
@@ -218,6 +233,8 @@ class Unit(GameObject):
     def can_attack(self, target, use_tolerance=False):
         """Check if target is in range and valid for attack"""
         if not target or target == self:
+            return False
+        if not is_valid_attack_target(self, target):
             return False
         
         # Check if target has different player (can't attack own units)
@@ -300,28 +317,16 @@ class Unit(GameObject):
     
     def calculate_damage(self, target):
         """Calculate damage dealt to target based on attack and armor types"""
-        # Base damage (random between min and max)
-        base_damage = random.randint(self.min_damage, self.max_damage)
+        return calculate_combat_damage(self, target)
 
-        # Get target armor
-        target_armor_type = getattr(target, 'armor_type', 'light')
-        target_armor_value = getattr(target, 'armor_value', 0)
+    def get_effective_min_damage(self):
+        return int(effective_stat(self, "min_damage"))
 
-        # Attack type effectiveness matrix
-        effectiveness = {
-            "slash": {"light": 1.5, "heavy": 1.0, "fortified": 0.5},
-            "pierce": {"light": 1.0, "heavy": 1.5, "fortified": 0.5},
-            "siege": {"light": 0.75, "heavy": 1.0, "fortified": 2.0}
-        }
-        
-        # Apply type effectiveness
-        multiplier = effectiveness.get(self.attack_type, {}).get(target_armor_type, 1.0)
-        damage = base_damage * multiplier
-        
-        # Apply armor reduction
-        damage = max(1, damage - target_armor_value)  # Minimum 1 damage
-        
-        return int(damage)
+    def get_effective_max_damage(self):
+        return int(effective_stat(self, "max_damage"))
+
+    def get_effective_armor_value(self):
+        return int(effective_stat(self, "armor_value"))
     
     def start_attack(self, target):
         """Begin attacking a target"""

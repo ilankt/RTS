@@ -1,0 +1,130 @@
+"""Data-driven building research for the strategy vertical slice."""
+from __future__ import annotations
+
+from systems.upgrade_effects import has_required_buildings, is_tech_completed
+from utils.debug_logger import debug_log
+
+
+class ResearchManager:
+    """Manages one-time upgrades researched at buildings."""
+
+    def __init__(self, game):
+        self.game = game
+
+    def start_research(self, building, tech_id: str):
+        """Start or queue a technology at a building."""
+        if building is None or not getattr(building, "player", None):
+            return False, "No research building"
+
+        ok, reason = self.research_status(building.player, tech_id, building=building)
+        if not ok:
+            return False, reason
+
+        if building.current_research:
+            if tech_id in building.research_queue:
+                return False, "Already queued"
+            building.research_queue.append(tech_id)
+            return True, f"Queued {tech_id}"
+
+        return self._start_immediate_research(building, tech_id)
+
+    def can_research(self, player, tech_id: str) -> bool:
+        ok, _ = self.research_status(player, tech_id)
+        return ok
+
+    def research_status(self, player, tech_id: str, building=None):
+        tech = self.game.game_data.get("techs", {}).get(tech_id)
+        if not tech:
+            return False, "Unknown tech"
+        if is_tech_completed(player, tech_id):
+            return False, "Already researched"
+        if self._is_in_progress_or_queued(player, tech_id):
+            return False, "Already in progress"
+        if building is not None and building.name != tech.get("building"):
+            return False, f"Requires {tech.get('building', 'research building')}"
+        if not has_required_buildings(self.game, player, tech.get("requires", [])):
+            return False, "Missing prerequisite"
+        costs = tech.get("costs", {})
+        for resource, amount in costs.items():
+            if player.resources.get(resource, 0) < amount:
+                return False, "Insufficient resources"
+        return True, "Ready"
+
+    def get_research_info(self, building):
+        research = getattr(building, "current_research", None)
+        if not research:
+            return None
+        total_time = max(0.001, research["total_time"])
+        return {
+            "tech_id": research["tech_id"],
+            "display_name": research.get("display_name", research["tech_id"]),
+            "progress": min(1.0, research["progress"] / total_time),
+            "time_remaining": max(0.0, total_time - research["progress"]),
+            "queue_length": len(getattr(building, "research_queue", [])),
+        }
+
+    def available_for_building(self, building):
+        if not building or not getattr(building, "player", None):
+            return []
+        techs = []
+        for tech in self.game.game_data.get("techs", {}).values():
+            if tech.get("building") == building.name:
+                ok, reason = self.research_status(building.player, tech["id"], building=building)
+                techs.append((tech, ok, reason))
+        return techs
+
+    def update(self, delta_time: float):
+        for building in self.game.buildings:
+            if building.current_research:
+                self._update_building_research(building, delta_time)
+
+    def _start_immediate_research(self, building, tech_id: str):
+        tech = self.game.game_data["techs"][tech_id]
+        for resource, amount in tech.get("costs", {}).items():
+            building.player.resources[resource] -= amount
+
+        building.current_research = {
+            "tech_id": tech_id,
+            "display_name": tech.get("display_name", tech_id),
+            "progress": 0.0,
+            "total_time": tech.get("research_time", 20),
+            "tech": tech,
+        }
+        debug_log.log(f"{building.player.name}: started research {tech_id}", "PRODUCTION")
+        return True, f"Started {tech_id}"
+
+    def _update_building_research(self, building, delta_time: float):
+        research = building.current_research
+        research["progress"] += delta_time
+        if research["progress"] < research["total_time"]:
+            return
+
+        tech = research["tech"]
+        building.player.upgrades[tech["id"]] = tech
+        debug_log.log(f"{building.player.name}: completed research {tech['id']}", "PRODUCTION")
+        if hasattr(self.game, "sound_manager") and self.game.sound_manager:
+            self.game.sound_manager.play_research_complete()
+        if hasattr(self.game, "ai_system") and self.game.ai_system:
+            self.game.ai_system.invalidate_memory_cache(building.player)
+
+        building.current_research = None
+        self._start_next_queued_research(building)
+
+    def _start_next_queued_research(self, building):
+        while building.research_queue:
+            next_tech_id = building.research_queue.pop(0)
+            ok, _ = self.research_status(building.player, next_tech_id, building=building)
+            if ok:
+                self._start_immediate_research(building, next_tech_id)
+                return
+
+    def _is_in_progress_or_queued(self, player, tech_id: str) -> bool:
+        for building in self.game.buildings:
+            if getattr(building, "player", None) is not player:
+                continue
+            current = getattr(building, "current_research", None)
+            if current and current.get("tech_id") == tech_id:
+                return True
+            if tech_id in getattr(building, "research_queue", []):
+                return True
+        return False

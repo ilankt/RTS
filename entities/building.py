@@ -1,14 +1,25 @@
 import pygame
-import random
 from entities.game_object import GameObject
+from systems.combat_rules import (
+    calculate_damage as calculate_combat_damage,
+    effective_attack_range,
+    effective_stat,
+)
 
 
 class Building(GameObject):
     """Building entity class"""
     def __init__(self, name, size, hp, sprite, build_duration, x=0, y=0, radius=0, player=None, costs=None, 
                  armor_type="light", armor_value=0, can_attack=False, min_damage=0, max_damage=0, 
-                 attack_type="slash", attack_speed=1.0, attack_range=0):
+                 attack_type="slash", attack_speed=1.0, attack_range=0,
+                 display_name=None, role="", requires=None, buildable=True, strong_against=None, weak_against=None):
         super().__init__(name, size, hp, sprite, x, y, radius, player)
+        self.display_name = display_name or name.replace("_", " ").title()
+        self.role = role
+        self.requires = requires or []
+        self.buildable = buildable
+        self.strong_against = strong_against or []
+        self.weak_against = weak_against or []
         self.build_duration = build_duration
         self.costs = costs or {}
         
@@ -44,6 +55,7 @@ class Building(GameObject):
             "castle": ["worker"],
             "barracks": ["warrior", "archer", "spearman"],
             "stable": ["cavalry"],
+            "siege_workshop": ["ram"],
             "temple": ["healer"],
         }
         return production_map.get(self.name, [])
@@ -63,32 +75,23 @@ class Building(GameObject):
         
         # Check range
         distance = ((self.x - target.x) ** 2 + (self.y - target.y) ** 2) ** 0.5
-        return distance <= self.attack_range
+        return distance <= effective_attack_range(self)
     
     def calculate_damage(self, target):
         """Calculate damage dealt to target based on attack and armor types"""
-        # Base damage (random between min and max)
-        base_damage = random.randint(self.min_damage, self.max_damage)
-        
-        # Get target armor
-        target_armor_type = getattr(target, 'armor_type', 'light')
-        target_armor_value = getattr(target, 'armor_value', 0)
-        
-        # Attack type effectiveness matrix
-        effectiveness = {
-            "slash": {"light": 1.5, "heavy": 1.0, "fortified": 0.5},
-            "pierce": {"light": 1.0, "heavy": 1.5, "fortified": 0.5},
-            "siege": {"light": 0.75, "heavy": 1.0, "fortified": 2.0}
-        }
-        
-        # Apply type effectiveness
-        multiplier = effectiveness.get(self.attack_type, {}).get(target_armor_type, 1.0)
-        damage = base_damage * multiplier
-        
-        # Apply armor reduction
-        damage = max(1, damage - target_armor_value)  # Minimum 1 damage
-        
-        return int(damage)
+        return calculate_combat_damage(self, target)
+
+    def get_effective_min_damage(self):
+        return int(effective_stat(self, "min_damage"))
+
+    def get_effective_max_damage(self):
+        return int(effective_stat(self, "max_damage"))
+
+    def get_effective_attack_range(self):
+        return effective_attack_range(self)
+
+    def get_effective_armor_value(self):
+        return int(effective_stat(self, "armor_value"))
     
     def start_attack(self, target):
         """Begin attacking a target"""
