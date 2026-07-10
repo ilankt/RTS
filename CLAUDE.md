@@ -20,13 +20,16 @@ python tools/benchmark_ai_spectator.py --seconds 300 --speed 5
 ### Core Systems
 - **Coordinates**: Hex grid (row, col) for tile rendering/terrain (`world/map.py`), World (x, y) for
   smooth movement and combat/collision math.
-- **Pathfinding**: A* over a separate **square navigation grid** (`systems/pathfinding.py`,
-  `GRID_SIZE = 20` world units/cell in `core/config.py`) laid on top of the hex render map — not
-  8 units, and not the hex grid itself. Static blockers only (buildings, resources, construction
-  sites, terrain); unit-unit avoidance is handled by the real-time collision system, not baked
-  into the search. Per-frame time budgets (`PATHFINDING_FRAME_BUDGET_MS`,
-  `PATHFINDING_MAX_REQUEST_MS`) currently cap A* cost but are generous enough to cause visible
-  hitches at scale — see [MASTER_PLAN.md](MASTER_PLAN.md) for the fix plan.
+- **Pathfinding**: Jump Point Search over a separate **square navigation grid**
+  (`systems/pathfinding.py`, `GRID_SIZE = 20` world units/cell in `core/config.py`) laid on top
+  of the hex render map — not the hex grid itself. Static blockers only (buildings, resources,
+  construction sites, terrain) with **incremental** per-object updates
+  (`notify_blocker_added/removed`; `mark_dirty()` is the bulk fallback); a static terrain
+  bitmap + connected-components reject unreachable goals O(1). Tight budgets
+  (`PATHFINDING_FRAME_BUDGET_MS=10`, `PATHFINDING_MAX_REQUEST_MS=12`) with a **cross-frame
+  command queue** (over-budget commands defer, never silently fail). Group moves of 8+ units
+  ride one shared **flow field** (`systems/flow_field.py`). Unit-unit avoidance is context
+  steering + right-of-way in the collision/movement systems, not baked into the search.
 - **Combat**: Type effectiveness via `strong_against`/`weak_against` tags + Slash/Pierce/Siege
   multipliers (`systems/combat_rules.py`); auto-approach to attack range; tech upgrades modify
   effective stats (`systems/upgrade_effects.py`).
@@ -88,12 +91,13 @@ tools/          - benchmark_ai_spectator.py (headless perf benchmark), sprite pi
 Per-goal and per-brain calls are individually wrapped in try/except so one broken goal can't take
 the rest of the tick down — failures log to `debug.dat` under category `AI`.
 
-**Known architectural gap** (see MASTER_PLAN.md §3C): several goals and sub-brains re-scan
-`game.units`/`game.buildings` directly instead of reading the `GoalContext` snapshot, which is
-the intended contract. This is being fixed as part of the AI performance work, not a pattern to
-copy in new goals — new goals should read only from `ctx`.
+The blackboard contract is enforced: goals and sub-brains read only the `GoalContext`
+snapshot (never `game.units`/`game.buildings` directly) — `tests/test_ai_contract.py`
+fails on violations. AI ticks run with deferred pathfinding: path commands enqueue into
+the cross-frame queue instead of searching inside the tick.
 
 ## Debug Keys
+- **F1**: Select/cycle idle workers (centers camera; top-bar badge shows count)
 - **F3**: Pathfinding/coordinate overlay
 - **F4**: AI debug panel (shows chosen goal + top-5 scores per AI player)
 - **F5 / F9**: Save / load (slot 0) — partial state only, see Known Gaps below
