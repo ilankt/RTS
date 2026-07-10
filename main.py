@@ -46,6 +46,21 @@ def launch_spectator(player_count=4, speed=None, seed=None):
     game.run()
 
 
+def create_game_from_setup(setup):
+    """Build a configured Game from a match-setup dict (§7.5)."""
+    random.seed(setup["seed"])
+    if setup["mode"] == "spectate":
+        game = Game(mode="ai_spectator", player_count=max(2, setup["opponents"] + 1))
+    else:
+        game = Game(mode="human_1v1", player_count=setup["opponents"] + 1)
+    if setup.get("personality", "random") != "random":
+        for player in game.players:
+            if not player.human:
+                player.ai_personality = setup["personality"]
+    game.game_speed = max(MIN_GAME_SPEED, min(MAX_GAME_SPEED, setup.get("speed", 1)))
+    return game
+
+
 def main():
     args = parse_args()
     pygame.init()
@@ -65,8 +80,12 @@ def main():
         if choice == "exit":
             break
         elif choice == "start":
-            game = Game()
-            game.run()
+            from screens.match_setup import MatchSetupScreen
+
+            setup = MatchSetupScreen(screen).run()
+            if setup:
+                game = create_game_from_setup(setup)
+                game.run()
         elif choice == "spectate":
             launch_spectator(player_count=args.players, speed=args.speed, seed=args.seed)
         elif choice == "load":

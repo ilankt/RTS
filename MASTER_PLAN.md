@@ -518,10 +518,14 @@ and should override "obvious" instincts.
 
 ### 7.5 Replayability — *cheap match-to-match variety; mostly **⚡***
 
-- [ ] ⚡ **Match-setup screen** *(low)* — pick map size, #opponents, each AI's
-  personality + difficulty, resource richness. Turns one fixed skirmish into many.
-- [ ] ⚡ **Map/start randomization** *(low–med)* — seed-based terrain + randomized start
-  locations & resource layouts (terrain is already procedural).
+- [x] ⚡ **Match-setup screen** *(low)* — `screens/match_setup.py` (from Start
+  Game): play-vs-AI or spectate, 1–7 opponents, AI personality, map seed
+  (R rerolls), game speed. (2026-07-10. Not yet: map size, per-opponent
+  personality, resource richness — extend the same rows when wanted.)
+- [x] ⚡ **Map/start randomization** *(low–med)* — seed exposed in the setup
+  screen and `--seed` CLI; same seed reproduces terrain + starts + layouts
+  (verified), fresh seed each screen visit. Terrain/starts/resources were
+  already procedural.
 - [ ] **Victory conditions beyond annihilation** *(med)* — annihilation feels bad
   (losing = you can't play anymore). Add economic / landmark / king-of-the-hill /
   timed-score / relic-hold.
