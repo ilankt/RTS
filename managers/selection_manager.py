@@ -314,6 +314,7 @@ class SelectionManager:
                         building.rally_point = world_pos
                         building.rally_resource = None
                 self._play_human_sound("move")
+                self._add_order_flash(world_pos, "rally")
                 return
 
         # Shift held = queue the command instead of replacing the current one
@@ -335,11 +336,33 @@ class SelectionManager:
             else:
                 for obj, target_pos in zip(movable_units, slots):
                     self._issue_or_queue(obj, ("move", target_pos), shift_held)
+            self._add_order_flash(world_pos, "move")
         else:
             # Command units normally (single unit or clicking on object)
+            flash_kind = "move"
             for obj in movable_units:
                 spec = self._command_spec_for(obj, clicked_object, world_pos)
+                if spec[0] in ("gather", "dropoff", "garrison"):
+                    flash_kind = "gather"
+                elif spec[0] == "attack":
+                    flash_kind = "attack"
                 self._issue_or_queue(obj, spec, shift_held)
+            if movable_units:
+                self._play_human_sound("move")
+                target = clicked_object if clicked_object is not None else None
+                flash_pos = (target.x, target.y) if target is not None else world_pos
+                self._add_order_flash(flash_pos, flash_kind)
+
+    def _add_order_flash(self, world_pos, kind):
+        """Instant command feedback (§7.4): a brief ring at the order target."""
+        flashes = getattr(self.game, "order_flashes", None)
+        if flashes is None:
+            flashes = self.game.order_flashes = []
+        flashes.append((world_pos[0], world_pos[1], kind, pygame.time.get_ticks()))
+
+    # Right-clicking one of these with an empty worker means "work this
+    # drop-off": gather its resource type nearby (§7.4 smart commands).
+    DROPOFF_RESOURCE = {"lumbermill": "wood", "mine": "gold", "quarry": "stone"}
 
     def _command_spec_for(self, unit, clicked_object, world_pos):
         """Resolve a right-click into a (kind, payload) command spec."""
@@ -354,12 +377,34 @@ class SelectionManager:
                 and unit.resource_amount > 0
             ):
                 return ("dropoff", clicked_object)
+            if (
+                clicked_object in self.game.buildings
+                and unit.name == "worker"
+                and clicked_object.player is unit.player
+                and clicked_object.name in self.DROPOFF_RESOURCE
+            ):
+                resource = self._nearest_resource_to(
+                    clicked_object, self.DROPOFF_RESOURCE[clicked_object.name]
+                )
+                if resource is not None:
+                    return ("gather", resource)
             if hasattr(clicked_object, 'player') and clicked_object.player != unit.player:
                 if unit.can_attack_flag:
                     return ("attack", clicked_object)
                 return ("move", world_pos)
             return ("move", world_pos)
         return ("move", world_pos)
+
+    def _nearest_resource_to(self, building, resource_name, max_distance=400):
+        """Closest live resource of a type around a drop-off building."""
+        best, best_sq = None, max_distance * max_distance
+        for resource in self.game.resources:
+            if resource.name != resource_name or getattr(resource, "amount_remaining", 0) <= 0:
+                continue
+            d_sq = (resource.x - building.x) ** 2 + (resource.y - building.y) ** 2
+            if d_sq < best_sq:
+                best, best_sq = resource, d_sq
+        return best
 
     def _issue_or_queue(self, unit, spec, shift_held):
         """Execute a command spec now, or queue it while the unit is busy (§7.4)."""

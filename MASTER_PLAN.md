@@ -512,10 +512,15 @@ and should override "obvious" instincts.
   triggers once, 30 s per-resource throttle). "Unit idle" is the amber F1
   badge from idle-worker management. Sound hooks were wired in the §8.5 audit.
   Tests in `tests/test_alerts.py`.
-- [ ] ⚡ **Smart context commands** *(low)* — right-click a resource = gather; a built
-  drop-off auto-converts a move-onto into gather.
-- [ ] ⚡ **Instant command feedback** *(low)* — click/confirm cue + brief flash so
-  every order feels registered (single-player isn't lockstep — instant feedback is free).
+- [x] ⚡ **Smart context commands** *(low)* — right-click resource=gather /
+  farm=garrison / enemy=attack / carrying-worker-on-building=dropoff were
+  already in; 2026-07-10 added the missing case: an empty worker right-clicked
+  onto an own lumbermill/mine/quarry gathers the nearest matching live
+  resource (within 400 px). Tests in `tests/test_smart_commands.py`.
+- [x] ⚡ **Instant command feedback** *(low)* — 2026-07-10: every right-click
+  order plays the move-confirm sound and draws a shrinking ring at the target
+  (green move / red attack / amber gather / blue rally), drawn over fog on the
+  map surface, ~0.45 s. Rally and group moves included.
 - [ ] **Production/queue UI** *(med)* — queue multiple units, see progress + rally.
 - [ ] **Readability pass** *(med)* — HP bars, team-color clarity, hover/selection
   highlights, damage/heal floats.

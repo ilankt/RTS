@@ -54,7 +54,10 @@ class RenderingSystem:
         
         # Draw fog of war overlay
         self._draw_fog_overlay(map_surface, camera)
-        
+
+        # Instant command feedback rings (§7.4)
+        self._draw_order_flashes(map_surface, camera)
+
         # Restore camera position after shake
         camera.x -= shake_offset[0]
         camera.y -= shake_offset[1]
@@ -69,6 +72,36 @@ class RenderingSystem:
         self.game.ui_manager.draw_alerts(screen)
         self.game.ai_debug_panel.draw(screen)
     
+    ORDER_FLASH_MS = 450
+    ORDER_FLASH_COLORS = {
+        "move": (90, 255, 120),
+        "attack": (255, 90, 90),
+        "gather": (255, 210, 80),
+        "rally": (130, 190, 255),
+    }
+
+    def _draw_order_flashes(self, map_surface, camera):
+        """Shrinking ring at each recent order target (§7.4)."""
+        flashes = getattr(self.game, "order_flashes", None)
+        if not flashes:
+            return
+        now = pygame.time.get_ticks()
+        alive = []
+        for x, y, kind, started in flashes:
+            age = now - started
+            if age > self.ORDER_FLASH_MS:
+                continue
+            alive.append((x, y, kind, started))
+            progress = age / self.ORDER_FLASH_MS
+            radius = max(3, int((26 - 20 * progress) * camera.zoom))
+            color = self.ORDER_FLASH_COLORS.get(kind, (255, 255, 255))
+            pygame.draw.circle(
+                map_surface, color,
+                (int(x * camera.zoom + camera.x), int(y * camera.zoom + camera.y)),
+                radius, 2,
+            )
+        self.game.order_flashes = alive
+
     def _draw_all_objects(self, map_surface, camera):
         """Draw visible game objects (frustum-culled, fog-filtered, y-sorted)"""
         zoom = camera.zoom
