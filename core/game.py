@@ -378,6 +378,9 @@ class Game:
                 self.building_system.cancel_building_placement()
             else:
                 mouse_pos = pygame.mouse.get_pos()
+                # Right-click on a production button cancels a queued unit
+                if self.ui_manager.production_panel.handle_right_click(mouse_pos):
+                    return
                 self.selection_manager.handle_right_click(mouse_pos)
     
     def _handle_mouse_motion(self, event):

@@ -521,7 +521,14 @@ and should override "obvious" instincts.
   order plays the move-confirm sound and draws a shrinking ring at the target
   (green move / red attack / amber gather / blue rally), drawn over fog on the
   map surface, ~0.45 s. Rally and group moves included.
-- [ ] **Production/queue UI** *(med)* — queue multiple units, see progress + rally.
+- [x] **Production/queue UI** *(med)* — the panel already had radial progress,
+  per-type queue badges, click-to-queue, and rally flags; 2026-07-10 closed
+  the real gaps: queueing now **pays up front** (was: queued units were free
+  and silently dropped if unaffordable when popped), queue capped at 5,
+  **right-click a unit button removes the last queued of that type (full
+  refund)** or cancels the in-progress one (50 % refund) when none queued.
+  Stale panel rects no longer eat clicks after deselecting. Tests in
+  `tests/test_production_queue.py`.
 - [ ] **Readability pass** *(med)* — HP bars, team-color clarity, hover/selection
   highlights, damage/heal floats.
 - **✅ Verify:** each item is observable in-game — idle-worker key selects/cycles and

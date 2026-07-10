@@ -87,6 +87,7 @@ class ProductionPanel:
             and selected_building.can_produce
         )
         if not selected_building or (not can_produce and not research_rows):
+            self.unit_production_buttons = []  # stale rects must not eat clicks
             return
         
         # Define UI panel area
@@ -388,6 +389,26 @@ class ProductionPanel:
                 return True
         return False
     
+    def handle_right_click(self, mouse_pos):
+        """Right-click a unit button: remove a queued unit (full refund), or
+        cancel the in-progress one (50% refund) when nothing is queued (§7.4)."""
+        for button in self.unit_production_buttons:
+            if not button['rect'].collidepoint(mouse_pos):
+                continue
+            if button.get('kind') == 'tech':
+                return True  # consume the click; tech cancel not offered here
+            building = button['building']
+            unit_type = button['unit_type']
+            success, _ = self.game.production_manager.cancel_queued(building, unit_type)
+            if not success and building.current_production \
+                    and building.current_production.get('unit_type') == unit_type:
+                success, _ = self.game.production_manager.cancel_production(building)
+            sound = getattr(self.game, 'sound_manager', None)
+            if sound:
+                sound.play_ui_click() if success else sound.play_error()
+            return True
+        return False
+
     def handle_hover(self, mouse_pos):
         """Handle hover effects for production buttons"""
         self.hover_production_button = None

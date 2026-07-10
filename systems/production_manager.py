@@ -40,20 +40,27 @@ class ProductionManager:
         if not self._can_afford(building.player, costs):
             return False, "Cannot afford unit"
         
-        # If already producing, add to queue
+        # If already producing, add to queue — paid up front, like the
+        # immediate start, so the queue can't order units for free (§7.4)
         if building.current_production:
+            if len(building.production_queue) >= self.MAX_QUEUE:
+                return False, "Queue is full"
+            for resource, amount in costs.items():
+                building.player.resources[resource] -= amount
             building.production_queue.append(unit_type)
             return True, f"Added {unit_type} to queue"
-        
+
         # Start production immediately
         return self._start_immediate_production(building, unit_type, unit_data, costs)
-    
-    def _start_immediate_production(self, building, unit_type, unit_data, costs):
-        """Start production immediately (no queue)"""
-        # Deduct resources
-        for resource, amount in costs.items():
-            building.player.resources[resource] -= amount
-        
+
+    MAX_QUEUE = 5  # queued entries beyond the one in progress
+
+    def _start_immediate_production(self, building, unit_type, unit_data, costs, charge=True):
+        """Start production now. charge=False for queue pops (paid on queue)."""
+        if charge:
+            for resource, amount in costs.items():
+                building.player.resources[resource] -= amount
+
         # Start production
         building.current_production = {
             "unit_type": unit_type,
@@ -61,8 +68,32 @@ class ProductionManager:
             "total_time": unit_data.get('build_time', 10),
             "unit_data": unit_data
         }
-        
+
         return True, f"Started producing {unit_type}"
+
+    def _start_next_queued(self, building):
+        """Pop the queue into production. Queued units were already paid for."""
+        while building.production_queue:
+            next_unit_type = building.production_queue.pop(0)
+            unit_data = self.units_data.get(next_unit_type)
+            if unit_data is None:
+                continue
+            self._start_immediate_production(
+                building, next_unit_type, unit_data, unit_data.get('costs', {}), charge=False
+            )
+            return
+
+    def cancel_queued(self, building, unit_type):
+        """Remove the last queued unit of a type, refunding its full cost."""
+        for i in range(len(building.production_queue) - 1, -1, -1):
+            if building.production_queue[i] != unit_type:
+                continue
+            building.production_queue.pop(i)
+            costs = self.units_data.get(unit_type, {}).get('costs', {})
+            for resource, amount in costs.items():
+                building.player.resources[resource] += amount
+            return True, f"Removed {unit_type} from queue"
+        return False, f"No {unit_type} queued"
     
     def _can_afford(self, player, costs):
         """Check if player can afford the costs"""
@@ -147,15 +178,9 @@ class ProductionManager:
         
         # Clear current production
         building.current_production = None
-        
-        # Start next in queue if any
-        if building.production_queue:
-            next_unit_type = building.production_queue.pop(0)
-            if next_unit_type in self.units_data:
-                next_unit_data = self.units_data[next_unit_type]
-                costs = next_unit_data.get('costs', {})
-                if self._can_afford(building.player, costs):
-                    self._start_immediate_production(building, next_unit_type, next_unit_data, costs)
+
+        # Start next in queue if any (already paid for)
+        self._start_next_queued(building)
     
     def _apply_rally(self, building, unit):
         """Path a newly produced unit to its building's rally point, if any.
@@ -252,16 +277,10 @@ class ProductionManager:
             building.player.resources[resource] += refund_amount
         
         building.current_production = None
-        
-        # Start next in queue if any
-        if building.production_queue:
-            next_unit_type = building.production_queue.pop(0)
-            if next_unit_type in self.units_data:
-                next_unit_data = self.units_data[next_unit_type]
-                next_costs = next_unit_data.get('costs', {})
-                if self._can_afford(building.player, next_costs):
-                    self._start_immediate_production(building, next_unit_type, next_unit_data, next_costs)
-        
+
+        # Start next in queue if any (already paid for)
+        self._start_next_queued(building)
+
         return True, "Production cancelled"
     
     def get_production_info(self, building):
