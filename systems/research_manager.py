@@ -111,11 +111,43 @@ class ResearchManager:
         if getattr(building.player, "human", False) and getattr(self.game, "ui_manager", None):
             name = tech.get("display_name", tech["id"])
             self.game.ui_manager.add_alert(f"Research complete: {name}", (building.x, building.y))
+        self._show_power_spike(building.player, tech)
         if hasattr(self.game, "ai_system") and self.game.ai_system:
             self.game.ai_system.invalidate_memory_cache(building.player)
 
         building.current_research = None
         self._start_next_queued_research(building)
+
+    POWER_SPIKE_FLOAT_CAP = 15  # don't flood huge armies with floats
+
+    @staticmethod
+    def affected_unit_names(tech):
+        """Unit types a tech's effect touches (§7.2 power spikes)."""
+        effect = tech.get("effects") or tech.get("effect") or {}
+        names = set(effect.get("unit_stat_multipliers", {}))
+        names |= set(effect.get("unit_stat_bonuses", {}))
+        if effect.get("gather_rate_multipliers"):
+            names.add("worker")
+        return names
+
+    def _show_power_spike(self, player, tech):
+        """Float the upgrade name over affected units so tech completion is a
+        visible, feelable moment (§7.2), for every player — the floats only
+        render where the viewer can see anyway."""
+        floating_ui = getattr(self.game, "floating_ui", None)
+        if floating_ui is None:
+            return
+        affected = self.affected_unit_names(tech)
+        if not affected:
+            return
+        label = "+" + tech.get("display_name", tech["id"])
+        shown = 0
+        for unit in self.game.units:
+            if unit.player is player and unit.hp > 0 and unit.name in affected:
+                floating_ui.add_buff_notification(unit, label)
+                shown += 1
+                if shown >= self.POWER_SPIKE_FLOAT_CAP:
+                    break
 
     def _start_next_queued_research(self, building):
         while building.research_queue:

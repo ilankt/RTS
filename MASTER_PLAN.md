@@ -479,7 +479,11 @@ and should override "obvious" instincts.
 
 ### 7.3 Economy & combat decision depth
 
-- [ ] **Power spikes / timing** *(low)* — make tech/upgrade completion a visible,
+- [x] **Power spikes / timing** *(low)* — 2026-07-10: research completion is
+  now a moment — sound + "Research complete" alert/ping (own techs), and a
+  gold "+Tech Name" float over every affected unit (both players, capped at
+  15; affected types derived from the tech's effect keys, gather techs →
+  workers). Tests in `tests/test_power_spikes.py`. Original scope: tech/upgrade completion a visible,
   meaningful army-strength jump so "attack right after Forged Blades finishes" is a
   real decision. Mostly surfacing existing upgrades + feedback.
 - [ ] **Legible, imperfect counters** *(low–med)* — show strong/weak-against in the UI

@@ -178,6 +178,16 @@ class FloatingUI:
         
         self.notifications.append(notification)
     
+    def add_buff_notification(self, target, text):
+        """Gold float above a unit that just received an upgrade (§7.2)."""
+        self.notifications.append(FloatingNotification(
+            text=text,
+            x=target.x + (hash(id(target)) % 16 - 8),
+            y=target.y - 40,
+            color=(255, 215, 80),
+            duration=1.4,
+        ))
+
     def add_damage_notification(self, target, damage_amount, is_critical=False, is_resisted=False):
         """Add a floating damage number above a target"""
         if damage_amount <= 0:
