@@ -29,6 +29,7 @@ from core.config import (
     TILE_HEIGHT,
     TILE_WIDTH,
 )
+from systems.flow_field import FlowFieldManager
 from utils.perf_stats import perf_stats
 
 
@@ -462,6 +463,8 @@ class Pathfinding:
         # When True (AI ticks), every search fast-fails as too_expensive so
         # commands land in the queue instead of burning the tick's wall time.
         self._defer_paths = False
+        # One shared flow field per group move order (Phase 5).
+        self.flow_fields = FlowFieldManager(self.grid)
 
     def mark_dirty(self):
         """Full nav + path-cache rebuild. Bulk fallback only — runtime world
@@ -469,6 +472,7 @@ class Pathfinding:
         self.grid.mark_dirty()
         self._path_cache.clear()
         self._negative_path_keys.clear()
+        self.flow_fields.invalidate()
 
     def notify_blocker_added(self, obj):
         """Incrementally register a new static blocker (building/site/resource)."""
@@ -476,6 +480,7 @@ class Pathfinding:
         if bbox is not None:
             perf_stats.increment("path_incremental_updates")
             self._invalidate_paths_in_bbox(bbox)
+            self.flow_fields.invalidate()
 
     def notify_blocker_removed(self, obj):
         """Incrementally unregister a removed/destroyed/depleted blocker."""
@@ -485,6 +490,26 @@ class Pathfinding:
             # A removal can make previously unreachable goals reachable.
             self._drop_negative_path_entries()
             self._invalidate_paths_in_bbox(bbox)
+            self.flow_fields.invalidate()
+
+    def request_group_move(self, units, goal: Point, slots: Sequence[Point]) -> bool:
+        """Group move via ONE shared flow field instead of N searches (A7).
+
+        Each unit follows the field, then peels off to its personal formation
+        slot for the final approach. Returns False if no field is possible
+        (caller falls back to per-unit moves)."""
+        pairs = []
+        worker_tasks = getattr(self.game, "worker_task_system", None)
+        for unit, slot in zip(units, slots):
+            if worker_tasks is not None and unit.name == "worker":
+                worker_tasks.cancel(unit)
+            self._clear_task_state_for_move(unit)
+            unit.path = None
+            unit.path_index = 0
+            unit.path_target = None
+            unit.destination = None  # wait in place while the field builds
+            pairs.append((unit, slot))
+        return self.flow_fields.request_group_field(goal, pairs)
 
     def _drop_negative_path_entries(self):
         for key in self._negative_path_keys:
@@ -595,11 +620,12 @@ class Pathfinding:
         return _Deferred()
 
     def process_pending(self):
-        """Drain queued path commands within a slice of this frame's budget.
+        """Drain queued path commands and advance flow-field builds.
 
         Called once per frame (before the AI issues new commands) so that an
         AI tick handing out a whole army's worth of orders spreads its path
         cost across the following frames instead of spiking one."""
+        self.flow_fields.process()
         if not self._pending_high and not self._pending_low:
             return
         processed = 0
@@ -1227,6 +1253,8 @@ class Pathfinding:
 
     def _clear_task_state_for_move(self, unit):
         self._unlink_gatherer(unit)
+        unit.flow_field = None
+        unit.flow_slot_target = None
         unit.is_gathering = False
         unit.gathering_target = None
         unit.is_dropping_off = False

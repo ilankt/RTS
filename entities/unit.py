@@ -85,6 +85,10 @@ class Unit(GameObject):
         self.collision = True
         self.ghost_timer = None
 
+        # Group-move flow field (Phase 5)
+        self.flow_field = None
+        self.flow_slot_target = None
+
     def set_animations(self, animations):
         self.animations = animations
 
@@ -127,6 +131,8 @@ class Unit(GameObject):
         self.path = None
         self.path_index = 0
         self.path_target = None
+        self.flow_field = None
+        self.flow_slot_target = None
         self._clear_navigation_metadata()
         self.status = "idle"
         self.is_gathering = False
@@ -152,6 +158,8 @@ class Unit(GameObject):
         self.path = None
         self.path_index = 0
         self.path_target = None
+        self.flow_field = None
+        self.flow_slot_target = None
         self._clear_navigation_metadata()
         self.status = "idle"
 

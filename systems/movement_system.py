@@ -40,6 +40,11 @@ class MovementSystem:
             unit.update_combat(delta_time)
             self._handle_combat_movement(unit)
         
+        # Flow-field followers: shared field until the personal-slot handoff
+        if getattr(unit, "flow_field", None) is not None:
+            self._follow_flow_field(unit, delta_time)
+            return
+
         # Handle target checking during movement
         if (not worker_task_owned and
                 (unit.path or unit.destination or unit.is_dropping_off or
@@ -841,6 +846,48 @@ class MovementSystem:
         adjusted_pos = self.game._check_unit_collision_and_adjust(unit, new_pos, direction)
 
         # Check terrain and update position
+        self._check_terrain_and_update(unit, adjusted_pos)
+
+    def _follow_flow_field(self, unit, delta_time):
+        """Drive a unit along its group flow field (Phase 5, A7)."""
+        from systems.flow_field import HANDOFF_DISTANCE
+
+        pathfinder = self.game.pathfinder
+        field = unit.flow_field
+        slot = unit.flow_slot_target or field.goal_point
+        dx = slot[0] - unit.x
+        dy = slot[1] - unit.y
+        dist_sq = dx * dx + dy * dy
+
+        # Handoff: near the slot (or field went stale) -> personal short path.
+        if field.revision != pathfinder.flow_fields.revision or dist_sq <= HANDOFF_DISTANCE * HANDOFF_DISTANCE:
+            unit.flow_field = None
+            unit.flow_slot_target = None
+            pathfinder.issue_move(unit, slot)
+            return
+
+        cell = pathfinder.grid.world_to_cell((unit.x, unit.y))
+        direction = field.direction_at(cell)
+        if direction is None:
+            if cell == field.goal_cell:
+                norm = math.sqrt(dist_sq)
+                direction = (dx / norm, dy / norm)
+            else:
+                # Cell the field never reached (disconnected pocket) - fall
+                # back to an individual path.
+                unit.flow_field = None
+                unit.flow_slot_target = None
+                pathfinder.issue_move(unit, slot)
+                return
+
+        pos = pygame.math.Vector2(unit.x, unit.y)
+        desired = pygame.math.Vector2(direction)
+        steered = self._context_steer_direction(unit, pos, desired)
+        step = unit.movement_speed * delta_time
+        new_pos = pos + steered * step
+        unit.status = "run"
+        unit.destination = slot  # keeps watchdog/HUD semantics sane
+        adjusted_pos = self.game._check_unit_collision_and_adjust(unit, new_pos, steered)
         self._check_terrain_and_update(unit, adjusted_pos)
 
     def _context_steer_direction(self, unit, pos, desired_dir):

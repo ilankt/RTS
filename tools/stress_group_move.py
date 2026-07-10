@@ -103,8 +103,17 @@ def main():
     mid = ((src.x + dst.x) / 2, (src.y + dst.y) / 2)
     goal_cell = game.pathfinder.grid.nearest_walkable_cell(mid, 10)
     target = game.pathfinder.grid.cell_to_world(goal_cell) if goal_cell else mid
-    for unit in spawned:
-        game.pathfinder.issue_move(unit, target)
+
+    # Group order via one shared flow field (sunflower-packed slots),
+    # falling back to per-unit paths if no field is possible.
+    slots = []
+    for i in range(len(spawned)):
+        angle = i * 2.39996
+        ring = 16.0 * math.sqrt(i)
+        slots.append((target[0] + math.cos(angle) * ring, target[1] + math.sin(angle) * ring))
+    if not game.pathfinder.request_group_move(spawned, target, slots):
+        for unit, slot in zip(spawned, slots):
+            game.pathfinder.issue_move(unit, slot)
 
     total_frames = max(1, int(math.ceil(args.seconds / (args.dt * game.game_speed))))
     arrived_at = None

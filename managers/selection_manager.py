@@ -296,10 +296,17 @@ class SelectionManager:
         # If multiple units moving to empty space, use hexagonal ring formation
         if len(movable_units) > 1 and not clicked_object:
             positions = self._generate_formation_offsets(len(movable_units))
-            for i, obj in enumerate(movable_units):
-                offset_x, offset_y = positions[i]
-                target_pos = (world_pos[0] + offset_x, world_pos[1] + offset_y)
-                self._move_unit_to_position(obj, target_pos, pathfinder)
+            slots = [
+                (world_pos[0] + offset_x, world_pos[1] + offset_y)
+                for offset_x, offset_y in positions
+            ]
+            # Large groups ride ONE shared flow field (Phase 5) instead of
+            # issuing a path search per unit.
+            if len(movable_units) >= 8 and pathfinder.request_group_move(movable_units, world_pos, slots):
+                self._play_human_sound("move")
+            else:
+                for obj, target_pos in zip(movable_units, slots):
+                    self._move_unit_to_position(obj, target_pos, pathfinder)
         else:
             # Command units normally (single unit or clicking on object)
             for obj in movable_units:
