@@ -629,8 +629,15 @@ The UI works but is ad-hoc (delegated panels in `ui/components/*`) and hardcoded
   selection with grid hotkeys, replacing bespoke panels.
 - [ ] **Multi-select panel** *(med)* — grouped unit icons + counts + health for mixed
   selections.
-- [ ] ⚡ **Settings menu** *(low–med)* — resolution, volume, default game speed,
-  hotkeys — long-deferred.
+- [x] ⚡ **Settings menu** *(low–med)* — landed 2026-07-10: Settings entry in
+  the main menu (`screens/settings_menu.py`) with resolution (720p/900p/1080p,
+  applied at startup — main.py patches `core.config` before UI modules import
+  the constants; live layout awaits the resolution-independence rework above),
+  volume + sound on/off (live via `SoundManager.set_volume`), and default
+  game speed. Persisted as diffs in `settings.json` (`core/settings.py`,
+  git-ignored); hotkey *rebinds* live in §8.6's `keybindings.json` — an
+  in-game remap UI is the remaining piece of both items. Tests in
+  `tests/test_settings.py`.
 - [ ] **Universal tooltips** *(low–med)* — cost, counters, description on hover for
   every unit/building/tech.
 - [ ] **Event/notification feed** *(low–med)* — scrolling log of alerts. Pairs with §7.4.

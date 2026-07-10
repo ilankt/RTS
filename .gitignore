@@ -53,3 +53,6 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+# User-local runtime files (settings + hotkey overrides)
+settings.json
+keybindings.json

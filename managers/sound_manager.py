@@ -14,12 +14,18 @@ class SoundManager:
         self.game = game
         self.enabled = True
         self.volume = 0.3
-        
+
         try:
             pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
             self._generate_sounds()
         except Exception:
             self.enabled = False
+
+    def set_volume(self, volume):
+        """Master volume 0.0-1.0, applied to every loaded sound (§8.2)."""
+        self.volume = min(1.0, max(0.0, float(volume)))
+        for sound in getattr(self, "sounds", {}).values():
+            sound.set_volume(self.volume)
     
     def _generate_sounds(self):
         """Generate simple synthesized sounds as placeholders."""

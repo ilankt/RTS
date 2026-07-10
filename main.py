@@ -3,6 +3,15 @@ import random
 
 import pygame
 
+# Apply persisted settings BEFORE the game/UI modules import the screen
+# constants by value (§8.2: full resolution independence is future work —
+# until then a resolution change takes effect at startup).
+import core.config as _config
+from core.settings import Settings
+
+settings = Settings()
+_config.SCREEN_WIDTH, _config.SCREEN_HEIGHT = settings.get("resolution")
+
 from core.config import MIN_GAME_SPEED, MAX_GAME_SPEED
 from core.game import Game
 from screens.main_menu import MainMenu
@@ -41,6 +50,7 @@ def launch_spectator(player_count=4, speed=None, seed=None):
     if seed is not None:
         random.seed(seed)
     game = Game(mode="ai_spectator", player_count=player_count)
+    settings.apply_to_game(game)
     if speed is not None:
         game.game_speed = max(MIN_GAME_SPEED, min(MAX_GAME_SPEED, speed))
     game.run()
@@ -66,6 +76,7 @@ def create_game_from_setup(setup):
         game.mutators = {mutator}
         if mutator == "revealed_map":
             game.fog_of_war_enabled = False
+    settings.apply_to_game(game)  # volume/mute + default speed (§8.2)
     game.game_speed = max(MIN_GAME_SPEED, min(MAX_GAME_SPEED, setup.get("speed", 1)))
     return game
 
@@ -75,7 +86,8 @@ def main():
     pygame.init()
     if not pygame.font.get_init():
         pygame.font.init()
-    screen = pygame.display.set_mode((1280, 720))
+    resolution = (_config.SCREEN_WIDTH, _config.SCREEN_HEIGHT)
+    screen = pygame.display.set_mode(resolution)
 
     if args.spectate:
         launch_spectator(player_count=args.players, speed=args.speed, seed=args.seed)
@@ -99,12 +111,18 @@ def main():
             launch_spectator(player_count=args.players, speed=args.speed, seed=args.seed)
         elif choice == "load":
             game = Game()
+            settings.apply_to_game(game)  # before load: the save's speed wins
             success, msg = SaveManager.load_game(game, slot=0)
             if success:
                 game.run()
+        elif choice == "settings":
+            from screens.settings_menu import SettingsMenu
+
+            SettingsMenu(screen).run()
+            settings.load()  # pick up what the screen saved
 
         # Reset display mode in case game modified it
-        screen = pygame.display.set_mode((1280, 720))
+        screen = pygame.display.set_mode(resolution)
 
     pygame.quit()
 
