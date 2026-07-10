@@ -424,7 +424,11 @@ class Game:
             
             # Update input
             self._update_camera_movement()
-            
+
+            # Drain queued path commands first so an AI tick's mass orders
+            # spread across frames instead of spiking this one.
+            self.pathfinder.process_pending()
+
             # Assign/update worker tasks before movement, then resolve arrivals after movement.
             self.ai_system.update(self.delta_time)
             self.ai_debug_panel.update(self.delta_time)

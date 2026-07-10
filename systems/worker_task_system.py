@@ -374,6 +374,13 @@ class WorkerTaskSystem:
 
         result = self.game.pathfinder.find_result((worker.x, worker.y), contact, worker.radius, worker, mode="move")
         if not result.ok:
+            if result.failure_reason == "too_expensive":
+                # Out of frame budget, not unreachable: keep the task alive and
+                # let the cooldown retry (jittered so a cache event doesn't
+                # align every worker onto the same frame).
+                task.contact_point = contact
+                task.repath_cooldown = 0.3 + self._worker_jitter(worker)
+                return True
             self._remember_path_failure(worker, target, mode)
             return False
 
@@ -392,9 +399,13 @@ class WorkerTaskSystem:
             task.last_progress_time = task.elapsed
             task.no_progress_time = 0.0
         task.last_distance = self._point_distance((worker.x, worker.y), contact)
-        task.repath_cooldown = REPATH_COOLDOWN
+        task.repath_cooldown = REPATH_COOLDOWN + self._worker_jitter(worker)
         task.repath_attempts += 1
         return True
+
+    def _worker_jitter(self, worker) -> float:
+        """Deterministic per-worker cooldown jitter (0-0.35s)."""
+        return (id(worker) % 8) * 0.05
 
     def _repath_current_phase(self, task: WorkerTask) -> bool:
         if task.phase in (MOVING_TO_RESOURCE, RETURNING_TO_RESOURCE):

@@ -45,8 +45,14 @@ PLAYER_COLORS = [
 # Pathfinding Configuration
 GRID_SIZE = 20  # World units per navigation cell (larger = faster but coarser)
 PATHFINDING_MAX_EXPANSIONS = 12000
-PATHFINDING_MAX_REQUEST_MS = 150
-PATHFINDING_FRAME_BUDGET_MS = 180
+# Post-JPS budgets: a single request gets a few ms, a frame stays well under a
+# 60 FPS tick. Over-budget commands are queued across frames (see
+# Pathfinding.process_pending), never silently rejected.
+PATHFINDING_MAX_REQUEST_MS = 12
+PATHFINDING_FRAME_BUDGET_MS = 10
+PATHFINDING_QUEUE_REQUEST_MS = 20   # per-request ceiling when drained from the queue
+PATHFINDING_QUEUE_MAX_PER_FRAME = 8
+PATHFINDING_QUEUE_MAX_RETRIES = 5
 PATH_CACHE_MAX_ENTRIES = 4096
 
 # Resource Gathering Configuration

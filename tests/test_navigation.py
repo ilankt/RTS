@@ -411,8 +411,12 @@ def jps_path_cost(pathfinder, cells):
     return cost
 
 
-def test_jps_matches_plain_astar_cost_on_random_maps():
+def test_jps_matches_plain_astar_cost_on_random_maps(monkeypatch):
     import random
+
+    # Generous budgets: this test verifies optimality, not scheduling.
+    monkeypatch.setattr(pathfinding_module, "PATHFINDING_MAX_REQUEST_MS", 10_000)
+    monkeypatch.setattr(pathfinding_module, "PATHFINDING_FRAME_BUDGET_MS", 10_000)
 
     rng = random.Random(4242)
     radius = 8

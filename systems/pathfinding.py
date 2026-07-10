@@ -9,7 +9,7 @@ collision system during movement.
 
 from __future__ import annotations
 
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from dataclasses import dataclass
 import heapq
 import math
@@ -21,6 +21,9 @@ from core.config import (
     PATHFINDING_FRAME_BUDGET_MS,
     PATHFINDING_MAX_EXPANSIONS,
     PATHFINDING_MAX_REQUEST_MS,
+    PATHFINDING_QUEUE_MAX_PER_FRAME,
+    PATHFINDING_QUEUE_MAX_RETRIES,
+    PATHFINDING_QUEUE_REQUEST_MS,
     PATH_CACHE_MAX_ENTRIES,
     TILE_HEIGHT,
     TILE_WIDTH,
@@ -94,9 +97,10 @@ class NavigationGrid:
         self.revision = 0
         self.blockers: List[object] = []
         self._blocker_buckets: Dict[Cell, List[object]] = {}
-        # cell -> {unit_radius: walkable}; invalidated per-region on blocker
-        # changes, fully cleared only by rebuild()
-        self._walkable_cache: Dict[Cell, Dict[float, bool]] = {}
+        # unit_radius -> {cell: walkable}; flat per-radius views so the search
+        # inner loop is one dict lookup. Invalidated per-region on blocker
+        # changes, fully cleared only by rebuild().
+        self._walkable_cache: Dict[float, Dict[Cell, bool]] = {}
         self.world_width, self.world_height = self._calculate_world_bounds()
         self._terrain_cols = int(self.world_width // cell_size) + 2
         self._terrain_rows = int(self.world_height // cell_size) + 2
@@ -173,10 +177,10 @@ class NavigationGrid:
         max_x, max_y = obj.x + pad, obj.y + pad
         min_cell = self.world_to_cell((min_x, min_y))
         max_cell = self.world_to_cell((max_x, max_y))
-        cache = self._walkable_cache
-        for cell_x in range(min_cell[0], max_cell[0] + 1):
-            for cell_y in range(min_cell[1], max_cell[1] + 1):
-                cache.pop((cell_x, cell_y), None)
+        for view in self._walkable_cache.values():
+            for cell_x in range(min_cell[0], max_cell[0] + 1):
+                for cell_y in range(min_cell[1], max_cell[1] + 1):
+                    view.pop((cell_x, cell_y), None)
         return (min_x, min_y, max_x, max_y)
 
     def world_to_cell(self, point: Point) -> Cell:
@@ -202,23 +206,23 @@ class NavigationGrid:
                 return False
         return True
 
+    def walkable_view(self, unit_radius: float) -> Dict[Cell, bool]:
+        """The lazily-filled {cell: walkable} view for one radius."""
+        view = self._walkable_cache.get(unit_radius)
+        if view is None:
+            view = self._walkable_cache[unit_radius] = {}
+        return view
+
     def cell_walkable(self, cell: Cell, unit_radius: float, ignore: Sequence[object] = ()) -> bool:
         if cell[0] < 0 or cell[1] < 0:
             return False
-        if not ignore:
-            per_cell = self._walkable_cache.get(cell)
-            if per_cell is not None:
-                cached = per_cell.get(unit_radius)
-                if cached is not None:
-                    return cached
-        point = self.cell_to_world(cell)
-        walkable = self.point_walkable(point, unit_radius, ignore)
-        if not ignore:
-            per_cell = self._walkable_cache.get(cell)
-            if per_cell is None:
-                per_cell = self._walkable_cache[cell] = {}
-            per_cell[unit_radius] = walkable
-        return walkable
+        if ignore:
+            return self.point_walkable(self.cell_to_world(cell), unit_radius, ignore)
+        view = self.walkable_view(unit_radius)
+        cached = view.get(cell)
+        if cached is None:
+            cached = view[cell] = self.point_walkable(self.cell_to_world(cell), unit_radius)
+        return cached
 
     def segment_clear(
         self,
@@ -448,6 +452,12 @@ class Pathfinding:
         self._astar_frame_spent_ms = 0.0
         self._path_budget_frame = None
         self._path_frame_spent_ms = 0.0
+        # Cross-frame command queue: over-budget commands wait here instead of
+        # failing. Human-owned units drain first.
+        self._pending_high = deque()
+        self._pending_low = deque()
+        self._pending_seq = 0
+        self._request_budget_override: Optional[float] = None
 
     def mark_dirty(self):
         """Full nav + path-cache rebuild. Bulk fallback only — runtime world
@@ -534,10 +544,15 @@ class Pathfinding:
     ) -> NavigationResult:
         perf_stats.increment("path_requests")
         mode, target = self._resolve_mode_and_target(mode, target, gathering_target, building_target, drop_off_target)
-        if self._remaining_path_frame_budget() <= 0:
-            return self._failed(mode, "too_expensive", target=target)
+        if self._request_budget_override is not None:
+            # Queue-drained request: gets its full ceiling regardless of how
+            # much of this frame's budget is left (the queue paces itself).
+            request_budget_ms = self._request_budget_override
+        else:
+            if self._remaining_path_frame_budget() <= 0:
+                return self._failed(mode, "too_expensive", target=target)
+            request_budget_ms = min(self._request_budget_ms(), self._remaining_path_frame_budget())
         started = time.perf_counter()
-        request_budget_ms = min(PATHFINDING_MAX_REQUEST_MS, self._remaining_path_frame_budget())
         deadline = started + (request_budget_ms / 1000.0)
         try:
             if target is not None:
@@ -549,7 +564,70 @@ class Pathfinding:
     def issue_move(self, unit, world_pos: Point) -> bool:
         self._clear_task_state_for_move(unit)
         result = self.find_result((unit.x, unit.y), world_pos, unit.radius, unit, mode="move")
+        if not result.ok and result.failure_reason == "too_expensive":
+            self._enqueue_command(unit, "move", world_pos, None, None)
+            return True
         return self._apply_result(unit, result, "move", None)
+
+    def process_pending(self):
+        """Drain queued path commands within a slice of this frame's budget.
+
+        Called once per frame (before the AI issues new commands) so that an
+        AI tick handing out a whole army's worth of orders spreads its path
+        cost across the following frames instead of spiking one."""
+        if not self._pending_high and not self._pending_low:
+            return
+        processed = 0
+        self._request_budget_override = PATHFINDING_QUEUE_REQUEST_MS
+        try:
+            while processed < PATHFINDING_QUEUE_MAX_PER_FRAME:
+                if self._remaining_path_frame_budget() < PATHFINDING_FRAME_BUDGET_MS * 0.25:
+                    break
+                queue = self._pending_high if self._pending_high else self._pending_low
+                if not queue:
+                    break
+                entry = queue.popleft()
+                processed += 1
+                self._process_pending_entry(entry)
+        finally:
+            self._request_budget_override = None
+
+    def _process_pending_entry(self, entry):
+        kind, unit, payload, mode, preferred_point, seq, retries = entry
+        if getattr(unit, "hp", 1) <= 0 or not getattr(unit, "in_world", True):
+            return
+        if getattr(unit, "_pending_path_seq", None) != seq:
+            return  # superseded by a newer command
+        unit._pending_path_seq = None
+        self._requeue_retries = retries
+        try:
+            if kind == "move":
+                ok = self.issue_move(unit, payload)
+            else:
+                ok = self.issue_interact(unit, payload, mode, preferred_point)
+        finally:
+            self._requeue_retries = 0
+        # If it queued again, issue_* already stamped a fresh seq. If it failed
+        # outright (unreachable), the command was cleared - nothing to do.
+        perf_stats.increment("path_queue_processed")
+        if not ok:
+            perf_stats.increment("path_queue_failed")
+
+    def _enqueue_command(self, unit, kind, payload, mode, preferred_point):
+        retries = getattr(self, "_requeue_retries", 0)
+        if retries >= PATHFINDING_QUEUE_MAX_RETRIES:
+            perf_stats.increment("path_queue_dropped")
+            self._clear_failed_command(unit)
+            return
+        self._pending_seq += 1
+        unit._pending_path_seq = self._pending_seq
+        entry = (kind, unit, payload, mode, preferred_point, self._pending_seq, retries + 1)
+        player = getattr(unit, "player", None)
+        if player is not None and getattr(player, "human", False):
+            self._pending_high.append(entry)
+        else:
+            self._pending_low.append(entry)
+        perf_stats.increment("path_queue_enqueued")
 
     def issue_interact(self, unit, target, mode: str, preferred_point: Optional[Point] = None) -> bool:
         if target is None:
@@ -575,6 +653,10 @@ class Pathfinding:
         else:
             result = self.find_result((unit.x, unit.y), (target.x, target.y), unit.radius, unit, mode=mode, target=target)
         if not result.ok:
+            if result.failure_reason == "too_expensive":
+                # Out of frame budget - queue the command instead of failing it.
+                self._enqueue_command(unit, "interact", target, mode, preferred_point)
+                return True
             return self._clear_failed_command(unit)
 
         if mode == "gather":
@@ -739,38 +821,42 @@ class Pathfinding:
         stretches are collapsed), None if unreachable, or "too_expensive"."""
         self.astar_calls += 1
         perf_stats.increment("astar_calls")
-        remaining_budget_ms = self._remaining_astar_frame_budget()
-        if remaining_budget_ms <= 0:
-            self.astar_capped += 1
-            perf_stats.increment("astar_capped")
-            return "too_expensive"
-        request_budget_ms = min(PATHFINDING_MAX_REQUEST_MS, remaining_budget_ms)
+        if self._request_budget_override is not None:
+            request_budget_ms = self._request_budget_override
+        else:
+            remaining_budget_ms = self._remaining_astar_frame_budget()
+            if remaining_budget_ms <= 0:
+                self.astar_capped += 1
+                perf_stats.increment("astar_capped")
+                return "too_expensive"
+            request_budget_ms = min(self._request_budget_ms(), remaining_budget_ms)
         started = time.perf_counter()
         deadline = started + (request_budget_ms / 1000.0)
 
         grid = self.grid
         cell_walkable = grid.cell_walkable
-        # Line scans re-probe the same cells many times; memoize per search.
-        walkable_memo: Dict[Cell, bool] = {}
+        # Flat persistent per-radius view: the scan inner loop is one dict get.
+        view = grid.walkable_view(unit_radius)
 
         def walkable(x: int, y: int) -> bool:
-            cell = (x, y)
-            cached = walkable_memo.get(cell)
+            cached = view.get((x, y))
             if cached is None:
-                cached = x >= 0 and y >= 0 and cell_walkable(cell, unit_radius)
-                walkable_memo[cell] = cached
+                cached = x >= 0 and y >= 0 and cell_walkable((x, y), unit_radius)
             return cached
 
-        # Shared scan-step counter for deadline checks inside line scans.
-        scan_state = {"steps": 0}
+        # Shared scan-step counter for deadline checks inside line scans; the
+        # counter stays a cheap local-int bump, time is polled every 2048 steps.
+        scan_state = {"steps": 0, "next_check": 2048}
 
         class _Expensive(Exception):
             pass
 
         def check_budget():
-            scan_state["steps"] += 1
-            if scan_state["steps"] % 1024 == 0 and time.perf_counter() >= deadline:
-                raise _Expensive
+            steps = scan_state["steps"] = scan_state["steps"] + 1
+            if steps >= scan_state["next_check"]:
+                scan_state["next_check"] = steps + 2048
+                if time.perf_counter() >= deadline:
+                    raise _Expensive
 
         def jump_straight(x: int, y: int, dx: int, dy: int):
             """Scan cardinally from (x, y) in (dx, dy); return jump point or None."""
@@ -953,6 +1039,12 @@ class Pathfinding:
                     seen.add(neighbor)
                     stack.append(neighbor)
         return False
+
+    def _request_budget_ms(self) -> float:
+        """Per-request wall-clock ceiling; queue-drained requests get more."""
+        if self._request_budget_override is not None:
+            return self._request_budget_override
+        return PATHFINDING_MAX_REQUEST_MS
 
     def _remaining_astar_frame_budget(self) -> float:
         frame = getattr(self.game, "frame_counter", 0)
