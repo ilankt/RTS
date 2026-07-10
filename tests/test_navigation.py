@@ -379,6 +379,81 @@ def test_incremental_add_invalidates_cached_straight_path():
         assert math.hypot(point[0] - blocker.x, point[1] - blocker.y) >= blocker.radius + 8 + CLEARANCE_BUFFER
 
 
+def reference_astar_cost(pathfinder, start_cell, goal_cell, radius):
+    """Plain A* over the exact same neighbor rule (pathfinder._neighbors);
+    optimal-cost oracle for the JPS implementation."""
+    import heapq
+
+    open_heap = [(pathfinder._heuristic(start_cell, goal_cell), 0, start_cell)]
+    g = {start_cell: 0.0}
+    closed = set()
+    counter = 0
+    while open_heap:
+        _, _, current = heapq.heappop(open_heap)
+        if current == goal_cell:
+            return g[current]
+        if current in closed:
+            continue
+        closed.add(current)
+        for neighbor, cost in pathfinder._neighbors(current, radius):
+            tentative = g[current] + cost
+            if tentative < g.get(neighbor, float("inf")):
+                g[neighbor] = tentative
+                counter += 1
+                heapq.heappush(open_heap, (tentative + pathfinder._heuristic(neighbor, goal_cell), counter, neighbor))
+    return None
+
+
+def jps_path_cost(pathfinder, cells):
+    cost = 0.0
+    for a, b in zip(cells, cells[1:]):
+        cost += pathfinder._heuristic(a, b)
+    return cost
+
+
+def test_jps_matches_plain_astar_cost_on_random_maps():
+    import random
+
+    rng = random.Random(4242)
+    radius = 8
+    trials_run = 0
+    for trial in range(30):
+        game_map = FakeMap(width=12, height=12)
+        for _ in range(rng.randint(4, 14)):
+            game_map.grid[rng.randrange(12)][rng.randrange(12)] = "water"
+        pathfinder, game = make_pathfinder(game_map)
+        for _ in range(rng.randint(0, 4)):
+            game.buildings.append(
+                FakeObject("house", x=rng.uniform(64, 700), y=rng.uniform(64, 700), radius=rng.choice((20, 28, 36)))
+            )
+        pathfinder.mark_dirty()
+        # Give each trial its own frame so A* budgets never accumulate.
+        game.frame_counter = trial + 1
+
+        for _ in range(4):
+            start_cell = pathfinder.grid.nearest_walkable_cell((rng.uniform(30, 730), rng.uniform(30, 730)), radius)
+            goal_cell = pathfinder.grid.nearest_walkable_cell((rng.uniform(30, 730), rng.uniform(30, 730)), radius)
+            if not start_cell or not goal_cell:
+                continue
+            expected = reference_astar_cost(pathfinder, start_cell, goal_cell, radius)
+            actual = pathfinder._astar(start_cell, goal_cell, radius)
+            assert actual != "too_expensive"
+            if expected is None:
+                assert actual is None, f"JPS found a path where A* found none: {start_cell}->{goal_cell}"
+            else:
+                assert actual is not None, f"JPS found no path where A* found one: {start_cell}->{goal_cell}"
+                assert actual[0] == start_cell and actual[-1] == goal_cell
+                assert abs(jps_path_cost(pathfinder, actual) - expected) < 1e-6, (
+                    f"cost mismatch {start_cell}->{goal_cell}: jps={jps_path_cost(pathfinder, actual)} astar={expected}"
+                )
+                # Every jump-point hop must be a straight or diagonal ray.
+                for a, b in zip(actual, actual[1:]):
+                    dx, dy = b[0] - a[0], b[1] - a[1]
+                    assert dx == 0 or dy == 0 or abs(dx) == abs(dy), f"non-ray hop {a}->{b}"
+            trials_run += 1
+    assert trials_run > 60  # sanity: the comparison actually exercised many pairs
+
+
 def reference_terrain_walkable(game_map, x, y, cell_size=20):
     """Independent implementation of the conservative per-nav-cell terrain rule:
     a probe point is walkable iff every terrain sample (center + 4 inset corners)

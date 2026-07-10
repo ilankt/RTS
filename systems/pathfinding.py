@@ -101,6 +101,7 @@ class NavigationGrid:
         self._terrain_cols = int(self.world_width // cell_size) + 2
         self._terrain_rows = int(self.world_height // cell_size) + 2
         self._terrain_bitmap = self._build_terrain_bitmap()
+        self._terrain_components = self._build_terrain_components()
         # Share the O(1) terrain probe with collision/movement/LOS code that only
         # has a map reference.
         setattr(self.game_map, "nav_terrain_walkable", self.terrain_walkable)
@@ -318,6 +319,48 @@ class NavigationGrid:
                     seen.add(obj_id)
                     yield obj
 
+    def terrain_connected(self, cell_a: Cell, cell_b: Cell) -> bool:
+        """O(1): can cell_b ever be reached from cell_a given terrain alone?
+
+        Different terrain components are provably unreachable for every unit
+        radius (larger radii and object blockers only further restrict). Same
+        component is necessary but not sufficient."""
+        components = self._terrain_components
+        ax, ay = cell_a
+        bx, by = cell_b
+        if not (0 <= ax < self._terrain_cols and 0 <= ay < self._terrain_rows):
+            return False
+        if not (0 <= bx < self._terrain_cols and 0 <= by < self._terrain_rows):
+            return False
+        label_a = components[ay][ax]
+        label_b = components[by][bx]
+        return label_a >= 0 and label_a == label_b
+
+    def _build_terrain_components(self) -> List[List[int]]:
+        """4-connected components over the terrain bitmap (once; terrain is
+        static). With the no-corner-cut rule, diagonal connectivity implies
+        4-connectivity, so 4-connected labels are exact."""
+        cols = self._terrain_cols
+        rows = self._terrain_rows
+        bitmap = self._terrain_bitmap
+        labels = [[-1] * cols for _ in range(rows)]
+        next_label = 0
+        for start_y in range(rows):
+            bitmap_row = bitmap[start_y]
+            for start_x in range(cols):
+                if not bitmap_row[start_x] or labels[start_y][start_x] != -1:
+                    continue
+                stack = [(start_x, start_y)]
+                labels[start_y][start_x] = next_label
+                while stack:
+                    x, y = stack.pop()
+                    for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                        if 0 <= nx < cols and 0 <= ny < rows and bitmap[ny][nx] and labels[ny][nx] == -1:
+                            labels[ny][nx] = next_label
+                            stack.append((nx, ny))
+                next_label += 1
+        return labels
+
     def terrain_walkable(self, x: float, y: float) -> bool:
         """O(1) static-terrain probe against the precomputed walkable bitmap."""
         if x < 0 or y < 0:
@@ -400,6 +443,7 @@ class Pathfinding:
         self.astar_expanded_cells = 0
         self.astar_capped = 0
         self._path_cache: OrderedDict[Tuple, NavigationResult] = OrderedDict()
+        self._negative_path_keys: set = set()
         self._astar_budget_frame = None
         self._astar_frame_spent_ms = 0.0
         self._path_budget_frame = None
@@ -410,6 +454,7 @@ class Pathfinding:
         changes should go through notify_blocker_added/removed instead."""
         self.grid.mark_dirty()
         self._path_cache.clear()
+        self._negative_path_keys.clear()
 
     def notify_blocker_added(self, obj):
         """Incrementally register a new static blocker (building/site/resource)."""
@@ -423,13 +468,22 @@ class Pathfinding:
         bbox = self.grid.remove_blocker(obj)
         if bbox is not None:
             perf_stats.increment("path_incremental_updates")
+            # A removal can make previously unreachable goals reachable.
+            self._drop_negative_path_entries()
             self._invalidate_paths_in_bbox(bbox)
+
+    def _drop_negative_path_entries(self):
+        for key in self._negative_path_keys:
+            self._path_cache.pop(key, None)
+        self._negative_path_keys.clear()
 
     def _invalidate_paths_in_bbox(self, bbox):
         """Drop cached paths whose polyline crosses the changed region."""
         stale_keys = []
         cell_to_world = self.grid.cell_to_world
         for key, result in self._path_cache.items():
+            if not result.waypoints:
+                continue
             start_point = cell_to_world(key[0])
             previous = start_point
             for waypoint in result.waypoints:
@@ -439,6 +493,7 @@ class Pathfinding:
                 previous = waypoint
         for key in stale_keys:
             del self._path_cache[key]
+            self._negative_path_keys.discard(key)
 
     def find_path(
         self,
@@ -618,11 +673,18 @@ class Pathfinding:
     ) -> NavigationResult:
         cache_key = (start_cell, goal_cell, round(unit_radius, 2), mode, id(target))
         cached = self._path_cache.get(cache_key)
-        if cached and cached.ok and self.grid.segment_clear(start, cached.waypoints[0], unit_radius):
-            self.cache_hits += 1
-            perf_stats.increment("path_cache_hits")
-            self._path_cache.move_to_end(cache_key)
-            return NavigationResult("ok", cached.waypoints[:], cached.final_point, mode=mode, target=target, revision=self.grid.revision)
+        if cached is not None:
+            if cached.ok and self.grid.segment_clear(start, cached.waypoints[0], unit_radius):
+                self.cache_hits += 1
+                perf_stats.increment("path_cache_hits")
+                self._path_cache.move_to_end(cache_key)
+                return NavigationResult("ok", cached.waypoints[:], cached.final_point, mode=mode, target=target, revision=self.grid.revision)
+            if not cached.ok and cached.failure_reason == "no_path":
+                # Negative cache: adding blockers can't open a path, and any
+                # blocker removal drops these entries.
+                self.cache_hits += 1
+                perf_stats.increment("path_cache_hits")
+                return self._failed(mode, "no_path", target=target)
 
         self.cache_misses += 1
         perf_stats.increment("path_cache_misses")
@@ -632,11 +694,32 @@ class Pathfinding:
             self._cache_result(cache_key, result)
             return result
 
+        # O(1) rejection of goals on terrain islands — the worst-case searches
+        # otherwise flood the whole free region before hitting the deadline.
+        if not self.grid.terrain_connected(start_cell, goal_cell):
+            perf_stats.increment("astar_component_rejects")
+            failure = self._failed(mode, "no_path", target=target)
+            self._cache_result(cache_key, failure)
+            self._negative_path_keys.add(cache_key)
+            return failure
+
+        # Bounded reverse flood fill: goals walled into a small pocket by
+        # objects/radius are proven unreachable in a few hundred probes.
+        if self._goal_pocket_reachable(start_cell, goal_cell, unit_radius) is False:
+            perf_stats.increment("astar_pocket_rejects")
+            failure = self._failed(mode, "no_path", target=target)
+            self._cache_result(cache_key, failure)
+            self._negative_path_keys.add(cache_key)
+            return failure
+
         cells = self._astar(start_cell, goal_cell, unit_radius)
         if cells == "too_expensive":
             return self._failed(mode, "too_expensive", target=target)
         if not cells:
-            return self._failed(mode, "no_path", target=target)
+            failure = self._failed(mode, "no_path", target=target)
+            self._cache_result(cache_key, failure)
+            self._negative_path_keys.add(cache_key)
+            return failure
 
         raw_points = [self.grid.cell_to_world(cell) for cell in cells[1:]]
         if not raw_points or math.hypot(raw_points[-1][0] - final_point[0], raw_points[-1][1] - final_point[1]) > 1:
@@ -647,6 +730,13 @@ class Pathfinding:
         return result
 
     def _astar(self, start: Cell, goal: Cell, unit_radius: float):
+        """Jump Point Search over the uniform nav grid.
+
+        Strict no-corner-cutting variant (diagonal step requires both adjacent
+        cardinals walkable) mirroring PathFinding.js's
+        JPFMoveDiagonallyIfNoObstacles — optimal w.r.t. the same neighbor rule
+        the plain A* used. Returns a list of jump-point cells (colinear
+        stretches are collapsed), None if unreachable, or "too_expensive"."""
         self.astar_calls += 1
         perf_stats.increment("astar_calls")
         remaining_budget_ms = self._remaining_astar_frame_budget()
@@ -657,12 +747,136 @@ class Pathfinding:
         request_budget_ms = min(PATHFINDING_MAX_REQUEST_MS, remaining_budget_ms)
         started = time.perf_counter()
         deadline = started + (request_budget_ms / 1000.0)
+
+        grid = self.grid
+        cell_walkable = grid.cell_walkable
+        # Line scans re-probe the same cells many times; memoize per search.
+        walkable_memo: Dict[Cell, bool] = {}
+
+        def walkable(x: int, y: int) -> bool:
+            cell = (x, y)
+            cached = walkable_memo.get(cell)
+            if cached is None:
+                cached = x >= 0 and y >= 0 and cell_walkable(cell, unit_radius)
+                walkable_memo[cell] = cached
+            return cached
+
+        # Shared scan-step counter for deadline checks inside line scans.
+        scan_state = {"steps": 0}
+
+        class _Expensive(Exception):
+            pass
+
+        def check_budget():
+            scan_state["steps"] += 1
+            if scan_state["steps"] % 1024 == 0 and time.perf_counter() >= deadline:
+                raise _Expensive
+
+        def jump_straight(x: int, y: int, dx: int, dy: int):
+            """Scan cardinally from (x, y) in (dx, dy); return jump point or None."""
+            while True:
+                check_budget()
+                if not walkable(x, y):
+                    return None
+                if (x, y) == goal:
+                    return (x, y)
+                if dx != 0:
+                    if (walkable(x, y - 1) and not walkable(x - dx, y - 1)) or (
+                        walkable(x, y + 1) and not walkable(x - dx, y + 1)
+                    ):
+                        return (x, y)
+                else:
+                    if (walkable(x - 1, y) and not walkable(x - 1, y - dy)) or (
+                        walkable(x + 1, y) and not walkable(x + 1, y - dy)
+                    ):
+                        return (x, y)
+                x += dx
+                y += dy
+
+        def jump_diagonal(x: int, y: int, dx: int, dy: int):
+            """Scan diagonally; jump point where a straight sub-scan hits one."""
+            while True:
+                check_budget()
+                if not walkable(x, y):
+                    return None
+                if (x, y) == goal:
+                    return (x, y)
+                if jump_straight(x + dx, y, dx, 0) is not None:
+                    return (x, y)
+                if jump_straight(x, y + dy, 0, dy) is not None:
+                    return (x, y)
+                # No corner cutting: both cardinals must be open to continue.
+                if not (walkable(x + dx, y) and walkable(x, y + dy)):
+                    return None
+                x += dx
+                y += dy
+
+        def successor_directions(x: int, y: int, direction):
+            """Pruned successor directions given the arrival direction."""
+            if direction is None:
+                dirs = []
+                for dx, dy in (
+                    (-1, -1), (-1, 0), (-1, 1), (0, -1),
+                    (0, 1), (1, -1), (1, 0), (1, 1),
+                ):
+                    if dx != 0 and dy != 0:
+                        if walkable(x + dx, y) and walkable(x, y + dy) and walkable(x + dx, y + dy):
+                            dirs.append((dx, dy))
+                    elif walkable(x + dx, y + dy):
+                        dirs.append((dx, dy))
+                return dirs
+            dx, dy = direction
+            dirs = []
+            if dx != 0 and dy != 0:
+                side_v = walkable(x, y + dy)
+                side_h = walkable(x + dx, y)
+                if side_v:
+                    dirs.append((0, dy))
+                if side_h:
+                    dirs.append((dx, 0))
+                if side_v and side_h and walkable(x + dx, y + dy):
+                    dirs.append((dx, dy))
+            elif dx != 0:
+                forward = walkable(x + dx, y)
+                top = walkable(x, y + 1)
+                bottom = walkable(x, y - 1)
+                if forward:
+                    dirs.append((dx, 0))
+                    if top and walkable(x + dx, y + 1):
+                        dirs.append((dx, 1))
+                    if bottom and walkable(x + dx, y - 1):
+                        dirs.append((dx, -1))
+                if top:
+                    dirs.append((0, 1))
+                if bottom:
+                    dirs.append((0, -1))
+            else:
+                forward = walkable(x, y + dy)
+                right = walkable(x + 1, y)
+                left = walkable(x - 1, y)
+                if forward:
+                    dirs.append((0, dy))
+                    if right and walkable(x + 1, y + dy):
+                        dirs.append((1, dy))
+                    if left and walkable(x - 1, y + dy):
+                        dirs.append((-1, dy))
+                if right:
+                    dirs.append((1, 0))
+                if left:
+                    dirs.append((-1, 0))
+            return dirs
+
         open_heap = []
         counter = 0
         g_score: Dict[Cell, float] = {start: 0.0}
         parent: Dict[Cell, Cell] = {}
         heapq.heappush(open_heap, (self._heuristic(start, goal), counter, start))
         closed = set()
+
+        def finish_counters():
+            self.astar_expanded_cells += len(closed)
+            perf_stats.increment("astar_expanded_cells", len(closed))
+            perf_stats.increment("astar_scan_steps", scan_state["steps"])
 
         try:
             while open_heap:
@@ -672,37 +886,73 @@ class Pathfinding:
                 if len(closed) >= PATHFINDING_MAX_EXPANSIONS:
                     self.astar_capped += 1
                     perf_stats.increment("astar_capped")
-                    self.astar_expanded_cells += len(closed)
-                    perf_stats.increment("astar_expanded_cells", len(closed))
-                    return "too_expensive"
-                if len(closed) and len(closed) % 256 == 0 and time.perf_counter() >= deadline:
-                    self.astar_capped += 1
-                    perf_stats.increment("astar_capped")
-                    self.astar_expanded_cells += len(closed)
-                    perf_stats.increment("astar_expanded_cells", len(closed))
+                    finish_counters()
                     return "too_expensive"
                 if current == goal:
-                    self.astar_expanded_cells += len(closed)
-                    perf_stats.increment("astar_expanded_cells", len(closed))
+                    finish_counters()
                     return self._reconstruct_cells(current, parent)
                 closed.add(current)
 
-                for neighbor, move_cost in self._neighbors(current, unit_radius):
-                    if neighbor in closed:
+                x, y = current
+                parent_cell = parent.get(current)
+                if parent_cell is None:
+                    direction = None
+                else:
+                    px, py = parent_cell
+                    direction = (
+                        (x > px) - (x < px),
+                        (y > py) - (y < py),
+                    )
+
+                current_g = g_score[current]
+                for dx, dy in successor_directions(x, y, direction):
+                    if dx != 0 and dy != 0:
+                        jump_point = jump_diagonal(x + dx, y + dy, dx, dy)
+                    else:
+                        jump_point = jump_straight(x + dx, y + dy, dx, dy)
+                    if jump_point is None or jump_point in closed:
                         continue
-                    tentative = g_score[current] + move_cost
-                    if tentative >= g_score.get(neighbor, float("inf")):
+                    tentative = current_g + self._heuristic(current, jump_point)
+                    if tentative >= g_score.get(jump_point, float("inf")):
                         continue
-                    parent[neighbor] = current
-                    g_score[neighbor] = tentative
+                    parent[jump_point] = current
+                    g_score[jump_point] = tentative
                     counter += 1
-                    priority = tentative + self._heuristic(neighbor, goal)
-                    heapq.heappush(open_heap, (priority, counter, neighbor))
-            self.astar_expanded_cells += len(closed)
-            perf_stats.increment("astar_expanded_cells", len(closed))
+                    priority = tentative + self._heuristic(jump_point, goal)
+                    heapq.heappush(open_heap, (priority, counter, jump_point))
+            finish_counters()
             return None
+        except _Expensive:
+            self.astar_capped += 1
+            perf_stats.increment("astar_capped")
+            finish_counters()
+            return "too_expensive"
         finally:
             self._add_astar_frame_spent((time.perf_counter() - started) * 1000.0)
+
+    GOAL_POCKET_SCAN_CAP = 2048
+
+    def _goal_pocket_reachable(self, start_cell: Cell, goal_cell: Cell, unit_radius: float):
+        """Bounded reverse reachability check from the goal.
+
+        Returns False if the goal's enclosing free region provably excludes the
+        start (exact — no-corner-cut connectivity equals 4-connectivity), True
+        if the start was reached, None if inconclusive (region larger than the
+        cap; let the real search decide)."""
+        cell_walkable = self.grid.cell_walkable
+        seen = {goal_cell}
+        stack = [goal_cell]
+        while stack:
+            if len(seen) > self.GOAL_POCKET_SCAN_CAP:
+                return None
+            x, y = stack.pop()
+            if (x, y) == start_cell:
+                return True
+            for neighbor in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if neighbor not in seen and neighbor[0] >= 0 and neighbor[1] >= 0 and cell_walkable(neighbor, unit_radius):
+                    seen.add(neighbor)
+                    stack.append(neighbor)
+        return False
 
     def _remaining_astar_frame_budget(self) -> float:
         frame = getattr(self.game, "frame_counter", 0)
@@ -736,7 +986,8 @@ class Pathfinding:
         self._path_cache[cache_key] = result
         self._path_cache.move_to_end(cache_key)
         while len(self._path_cache) > PATH_CACHE_MAX_ENTRIES:
-            self._path_cache.popitem(last=False)
+            evicted_key, _ = self._path_cache.popitem(last=False)
+            self._negative_path_keys.discard(evicted_key)
             perf_stats.increment("path_cache_evictions")
 
     def _neighbors(self, cell: Cell, unit_radius: float) -> Iterable[Tuple[Cell, float]]:
