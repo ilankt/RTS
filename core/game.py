@@ -109,6 +109,8 @@ class Game:
         self.pathfinder = Pathfinding(self.game_map, self)
         from systems.dynamic_events import DynamicEventSystem
         self.dynamic_events = DynamicEventSystem(self)  # §7.5 random_events mutator
+        from systems.combat_rules import set_terrain_provider
+        set_terrain_provider(self.game_map)  # §8.4 flagged forest cover
         
         # Initialize new systems
         self.movement_system = MovementSystem(self)

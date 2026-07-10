@@ -162,6 +162,12 @@ WORKER_SATURATION_CAP = 3
 COMBAT_BONUS_VS_TAGS_ENABLED = True
 COMBAT_BONUS_VS_TAG_MULTIPLIER = 1.5
 
+# §8.4 "position matters", prototyped behind a flag (default OFF until a
+# balance-sim A/B validates it): units standing in forest take reduced
+# damage — cover makes wooded ground a defensive lever.
+COMBAT_TERRAIN_COVER_ENABLED = False
+COMBAT_FOREST_COVER_MULTIPLIER = 0.85  # damage taken by a unit in forest
+
 # Debug Configuration
 DEBUG_PATHFINDING = False  # Enable/disable pathfinding debug output
 DEBUG_MOVEMENT = False     # Enable/disable movement debug output

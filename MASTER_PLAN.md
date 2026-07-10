@@ -760,8 +760,13 @@ collapse.
   vs** (green/red) from the unit's tags; and type-disadvantaged hits (armor
   class resists the attack type, or attacker's weak_against covers the
   target — `combat_rules.is_resisted_by`) float a gray "N resisted" cue.
-- [ ] **Position matters** *(med)* — high-ground / forest-cover / flank bonuses so
-  terrain and positioning are combat levers, not just unit type (imperfect RPS).
+- [~] **Position matters** *(med)* — forest-cover prototyped 2026-07-10 behind
+  `COMBAT_TERRAIN_COVER_ENABLED` (**default OFF**, per this section's
+  prototype-behind-a-flag rule): units standing in forest take ×0.85 damage
+  (buildings never get cover); terrain read via a module-level provider so
+  the shared damage math stays entity-agnostic. Flip the flag + run the §8.8
+  sim to evaluate. High-ground needs elevation data the map doesn't have;
+  flanking needs facing — both stay open.
 - **✅ Verify:** *prototype behind a flag first.* Spearman-vs-cavalry does distinctly
   more damage than archer-vs-cavalry (read the numbers); the unit panel shows counters
   and combat pops "Effective/Resisted"; the §8.8 balance sim shows no single dominant
