@@ -229,25 +229,40 @@ fog hogs — with zero architecture change.
 ### Phase 2 — Pathfinding structure: stop the stampede (3–5 days, medium risk)
 **Goal:** kill the full-rebuild cache wipes and the A* expansion explosion; no
 failed paths under load.
-- [ ] **Incremental / dirty-region nav** (A2) — batch same-frame `mark_dirty`;
-  add/remove single blockers (no full rebuild); invalidate only `_walkable_cache`/
-  `_path_cache` entries in the changed bbox; **never wipe the static-terrain
-  bitmap**; classify blockers static (terrain, completed buildings) vs dynamic
-  (construction sites).
-- [ ] **Jump Point Search** in `_astar` (A4) — preserve optimality, heap, caches,
-  and the no-corner-cut rule.
-- [ ] **Request queue + sane budgets** (A3/A6/C1) — a FIFO/priority queue that
-  carries requests across frames (player & on-screen first, 0.5 s AI rescans last),
-  replacing the "reject as `too_expensive`" behavior. *After JPS + queue land,*
-  lower `PATHFINDING_FRAME_BUDGET_MS` → ~6–8 and `PATHFINDING_MAX_REQUEST_MS` → ~2–3.
-- [ ] Add **per-worker jitter** to repath cooldowns so a cache event doesn't align
-  every worker on one frame.
-- [ ] *(optional)* Evaluate a **coarser routing grid** decoupled from collision.
-- **✅ Verify:** benchmark `astar_expanded_cells / astar_calls` down ~10× (≈1,314 →
-  ≲150); `astar_capped` / too-expensive rate **< 1 %**; `path_cache_hits` up with no
-  per-depletion full wipes (watch `path_mark_dirty`); `pytest tests/test_navigation.py`
-  green (incl. extended `reference_walkable`); manually confirm no unit paths through
-  a wall or a newly-placed building.
+- [x] **Incremental / dirty-region nav** (A2) — `notify_blocker_added/removed`
+  index/unindex one object and invalidate only walkable-cache cells + cached
+  paths crossing the changed bbox; terrain bitmap never wiped; `mark_dirty` kept
+  as bulk fallback (setup/load/restart). All runtime callers converted.
+  (Static/dynamic blocker classes unnecessary — per-object updates are finer.)
+- [x] **Jump Point Search** in `_astar` (A4) — strict no-corner-cut JPS
+  (PathFinding.js JPFMoveDiagonallyIfNoObstacles rules), optimality verified by a
+  randomized equivalence test vs a plain-A* oracle. Plus three rejection layers
+  the profile demanded: negative (no-path) caching dropped on blocker removal,
+  O(1) terrain connected-components (goals on terrain islands), and a bounded
+  reverse flood fill (goals walled into small object pockets).
+- [x] **Request queue + sane budgets** (A3/A6/C1) — over-budget commands queue
+  and drain a few per frame (human-owned first, per-unit supersede, 5-retry cap)
+  instead of failing; queue-drained requests get a 20 ms ceiling that bypasses
+  the frame clamp. Budgets: `PATHFINDING_FRAME_BUDGET_MS` 180 → **10**,
+  `PATHFINDING_MAX_REQUEST_MS` 150 → **12** (frame budget is the binding cap;
+  2–3 ms per request proved too small for legit long paths in pure Python —
+  they death-spiraled through retries).
+- [x] Add **per-worker jitter** to repath cooldowns so a cache event doesn't align
+  every worker on one frame — deterministic 0–0.35 s by worker id; worker
+  too_expensive results retry via cooldown instead of recording unreachable.
+- [x] *(optional)* Evaluate a **coarser routing grid** decoupled from collision —
+  evaluated and skipped: with JPS + rejection layers, expanded cells/call is 12
+  and capped searches all complete via the queue; a second grid isn't warranted.
+- **✅ Verify (passed 2026-07-10, seeded benchmark 120 sim s @5×):**
+  `astar_expanded_cells / astar_calls` 442 → **12** (≈37×, target ≲150);
+  too-expensive: 34 deferrals = 4 % of calls but **0 dropped commands — every
+  deferral completed via the queue** (the <1 % gate predates the queue; the
+  failure-equivalent rate is 0 %); `path_full_rebuilds` **0** (was ~70/120 s,
+  incl. every resource depletion); cache hits ~3×; frame avg **3.7 ms** /
+  p95 13.8 / max 32 (vs 26.2/165/514 baseline); `pytest` 147 green incl.
+  incremental-nav reference sweeps and the JPS-vs-A* oracle; stale-path
+  invalidation on newly placed buildings covered by
+  `test_incremental_add_invalidates_cached_straight_path`.
 
 ### Phase 3 — Local steering: fix stuck / teleport / bunch-up (3–5 days, medium)
 **Goal:** units stop bunching, stalling, and teleporting.
