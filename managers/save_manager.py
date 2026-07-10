@@ -20,7 +20,7 @@ class SaveManager:
         
         # Build serializable state
         state = {
-            "version": 1,
+            "version": 2,
             "timestamp": datetime.now().isoformat(),
             "players": [],
             "buildings": [],
@@ -33,6 +33,15 @@ class SaveManager:
                 "zoom": game.camera.zoom,
             },
             "game_speed": game.game_speed,
+            # v2 (§9 save/load completeness)
+            "sim_time_elapsed": getattr(game, "sim_time_elapsed", 0.0),
+            "victory_condition": getattr(game, "victory_condition", "annihilation"),
+            "tree_regrowth": list(getattr(game, "_tree_regrowth", [])),
+            "stats_units_trained": {f"{k[0]}|{k[1]}": v for k, v in game.stats_units_trained.items()},
+            "stats_buildings_built": {f"{k[0]}|{k[1]}": v for k, v in game.stats_buildings_built.items()},
+            "stats_tower_damage": dict(getattr(game, "stats_tower_damage", {})),
+            "stats_resources_gathered": dict(getattr(game, "stats_resources_gathered", {})),
+            "fog_explored": cls._serialize_fog(game),
         }
         
         # Save players
@@ -59,6 +68,14 @@ class SaveManager:
                     "progress": building.current_research["progress"],
                 } if getattr(building, "current_research", None) else None,
                 "research_queue": list(getattr(building, "research_queue", [])),
+                # v2: production, rally, gate state
+                "current_production": {
+                    "unit_type": building.current_production["unit_type"],
+                    "progress": building.current_production["progress"],
+                } if getattr(building, "current_production", None) else None,
+                "production_queue": list(getattr(building, "production_queue", [])),
+                "rally_point": list(building.rally_point) if getattr(building, "rally_point", None) else None,
+                "passable": bool(getattr(building, "passable", False)),
             })
         
         # Save units
@@ -70,6 +87,7 @@ class SaveManager:
                 "hp": unit.hp,
                 "player_index": game.players.index(unit.player) if unit.player in game.players else -1,
                 "stance": getattr(unit, "stance", "aggressive"),
+                "stance_home_position": list(unit.stance_home_position) if getattr(unit, "stance_home_position", None) else None,
                 "resource_type": getattr(unit, "resource_type", None),
                 "resource_amount": getattr(unit, "resource_amount", 0),
             }
@@ -103,6 +121,40 @@ class SaveManager:
         return filepath
     
     @classmethod
+    def _serialize_fog(cls, game):
+        """Explored tiles per player index, one '01' string per row."""
+        fog = getattr(game, "fog_of_war", None)
+        if not fog:
+            return {}
+        out = {}
+        for index, player in enumerate(game.players):
+            grid = fog.visibility_grid.get(player)
+            if grid is None:
+                continue
+            out[str(index)] = ["".join("1" if cell >= fog.EXPLORED else "0" for cell in row) for row in grid]
+        return out
+
+    @classmethod
+    def _restore_fog(cls, game, fog_state):
+        fog = getattr(game, "fog_of_war", None)
+        if not fog or not fog_state:
+            return
+        for index_str, rows in fog_state.items():
+            index = int(index_str)
+            if index >= len(game.players):
+                continue
+            player = game.players[index]
+            fog._init_player_grid(player)
+            grid = fog.visibility_grid[player]
+            explored = 0
+            for r, row in enumerate(rows[: fog.map_height]):
+                for c, flag in enumerate(row[: fog.map_width]):
+                    if flag == "1":
+                        grid[r][c] = fog.EXPLORED
+                        explored += 1
+            fog._explored_count[player] = explored
+
+    @classmethod
     def load_game(cls, game, slot=0):
         """Load game state from a JSON file into the existing game object"""
         filepath = os.path.join(cls.SAVE_DIR, f"save_{slot}.json")
@@ -112,8 +164,8 @@ class SaveManager:
         with open(filepath, "r") as f:
             state = json.load(f)
         
-        # Validate version
-        if state.get("version") != 1:
+        # Validate version (v1 saves load with v2 fields defaulting)
+        if state.get("version") not in (1, 2):
             return False, "Unsupported save version"
         
         # Clear existing state (mark old objects dead so stale references fail
@@ -200,6 +252,23 @@ class SaveManager:
                 tech_id for tech_id in bdata.get("research_queue", [])
                 if tech_id in game.game_data.get("techs", {})
             ]
+            # v2: production, rally, gate state
+            units_data = game.production_manager.units_data
+            current_production = bdata.get("current_production")
+            if current_production and current_production.get("unit_type") in units_data:
+                unit_data = units_data[current_production["unit_type"]]
+                building.current_production = {
+                    "unit_type": current_production["unit_type"],
+                    "progress": current_production.get("progress", 0.0),
+                    "total_time": unit_data.get("build_time", 10),
+                    "unit_data": unit_data,
+                }
+            building.production_queue = [
+                unit_type for unit_type in bdata.get("production_queue", []) if unit_type in units_data
+            ]
+            rally = bdata.get("rally_point")
+            building.rally_point = tuple(rally) if rally else None
+            building.passable = bool(bdata.get("passable", False))
             game.buildings.append(building)
         
         # Restore units
@@ -244,6 +313,8 @@ class SaveManager:
             unit.x = udata["x"]
             unit.y = udata["y"]
             unit.stance = udata.get("stance", "aggressive")
+            home = udata.get("stance_home_position")
+            unit.stance_home_position = tuple(home) if home else None
             unit.resource_type = udata.get("resource_type")
             unit.resource_amount = udata.get("resource_amount", 0)
             
@@ -327,10 +398,30 @@ class SaveManager:
         game.camera.y = camera_data.get("y", game.camera.y)
         game.camera.zoom = camera_data.get("zoom", game.camera.zoom)
         game.game_speed = state.get("game_speed", 1.0)
-        
-        # Rebuild pathfinding spatial grid
+
+        # v2 (§9 save/load completeness): clock, victory mode, stats,
+        # tree regrowth, fog exploration
+        game.sim_time_elapsed = state.get("sim_time_elapsed", 0.0)
+        game.victory_condition = state.get("victory_condition", "annihilation")
+        game._tree_regrowth = [tuple(entry) for entry in state.get("tree_regrowth", [])]
+
+        def _unflatten(flat):
+            out = {}
+            for key, value in flat.items():
+                name, _, kind = key.partition("|")
+                out[(name, kind)] = value
+            return out
+
+        game.stats_units_trained = _unflatten(state.get("stats_units_trained", {}))
+        game.stats_buildings_built = _unflatten(state.get("stats_buildings_built", {}))
+        game.stats_tower_damage = dict(state.get("stats_tower_damage", {}))
+        game.stats_resources_gathered = dict(state.get("stats_resources_gathered", {}))
+        cls._restore_fog(game, state.get("fog_explored", {}))
+
+        # Rebuild pathfinding spatial grid (open gates stay passable — the
+        # rebuild respects the restored `passable` flags)
         game.pathfinder.mark_dirty()
-        
+
         return True, "Game loaded successfully"
     
     @classmethod
