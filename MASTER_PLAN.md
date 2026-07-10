@@ -477,12 +477,14 @@ and should override "obvious" instincts.
 - [x] ⚡ **Idle-worker management** *(low)* — F1 selects/cycles idle workers and
   centers the camera; amber "Idle: N (F1)" badge on the top bar when nonzero.
   (2026-07-10)
-- [ ] ⚡ **Control-group centering** *(low)* — double-tap a group number to center the
-  camera (Ctrl+0–9 already standard).
+- [x] ⚡ **Control-group centering** *(low)* — double-tap a group number (<450 ms)
+  to center the camera on the group centroid. (2026-07-10)
 - [ ] ⚡ **Shift-queued commands** *(low)* — hold Shift to queue
   move/attack/gather/build waypoints.
-- [ ] ⚡ **Rally points** *(low)* — set a gather/attack rally on production buildings;
-  new units path there on spawn.
+- [x] ⚡ **Rally points** *(low)* — right-click with an own production building
+  selected sets its rally (yellow flag drawn while selected); new units path
+  there on spawn, and workers rallied onto a resource start gathering it.
+  (2026-07-10)
 - [ ] ⚡ **Alerts & minimap pings** *(low–med)* — "under attack / building complete /
   unit idle / low on X" flash on the HUD and ping the minimap. **Wire the 6 dead
   sound hooks (§8.5) here.**
@@ -690,8 +692,10 @@ unsequenced — pull them in where they fit.
   (spearman / cavalry / ram / healer) and builds every building type
   (stable / blacksmith / siege_workshop / watchtower / wall) — the old plan flagged
   training/building gaps.
-- [ ] **Defensive-stance freeze**: units chasing past `stance_chase_distance` stop in
-  the field instead of returning to `stance_home_position`.
+- [x] **Defensive-stance freeze**: fixed 2026-07-10 — a DEFENSIVE unit beyond its
+  leash drops the chase and paths back to `stance_home_position` (re-acquisition
+  suppressed for 1 s so the walk home wins); regression tests in
+  `tests/test_stances.py`.
 - [ ] **Healer doesn't heal**: trainable, walks, no healing logic anywhere. (→ §7/§8.)
 - [ ] **Wall is a 1×1 building**: no gate, thin profile, or special placement. (→ §8.)
 - [ ] **Save/Load is a thin slice**: misses terrain seed, AI state, fog grids, scout

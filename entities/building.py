@@ -48,6 +48,11 @@ class Building(GameObject):
         # Tech research system
         self.research_queue = []  # Queue of techs to research
         self.current_research = None  # Currently researching tech: {"tech_name": str, "progress": float, "total_time": float}
+
+        # Rally point (§7.4): newly produced units path here; if the rally was
+        # set on a resource, rallied workers start gathering it.
+        self.rally_point = None
+        self.rally_resource = None
     
     def _get_production_capabilities(self):
         """Get list of units this building can produce"""

@@ -290,8 +290,31 @@ class SelectionManager:
         pathfinder = self.game.pathfinder
         
         # Filter only human player units that can move
-        movable_units = [obj for obj in self.selected_objects 
+        movable_units = [obj for obj in self.selected_objects
                         if hasattr(obj, 'destination') and obj.player and obj.player.human]
+
+        # Rally points (§7.4): right-click with own production building(s)
+        # selected (and no movable units) sets where new units go on spawn.
+        if not movable_units:
+            rally_buildings = [
+                obj
+                for obj in self.selected_objects
+                if getattr(obj, "can_produce", None)
+                and getattr(obj, "in_world", True)
+                and obj.player
+                and obj.player.human
+            ]
+            if rally_buildings:
+                rally_resource = clicked_object if clicked_object in self.game.resources else None
+                for building in rally_buildings:
+                    if rally_resource is not None:
+                        building.rally_point = (rally_resource.x, rally_resource.y)
+                        building.rally_resource = rally_resource
+                    else:
+                        building.rally_point = world_pos
+                        building.rally_resource = None
+                self._play_human_sound("move")
+                return
 
         # If multiple units moving to empty space, use hexagonal ring formation
         if len(movable_units) > 1 and not clicked_object:
@@ -674,6 +697,7 @@ class SelectionManager:
     
     def draw_selection_circles(self, surface, camera):
         """Draw selection circles around selected objects"""
+        self._draw_rally_flags(surface, camera)
         all_objects = [
             obj for obj in self.game.units + self.game.buildings + self.game.resources
             if self._is_object_visible_to_human(obj)
@@ -774,6 +798,34 @@ class SelectionManager:
         else:
             self.control_groups[group_number] = selected_units[:]
     
+    def _draw_rally_flags(self, surface, camera):
+        """Line + flag from selected own production buildings to their rally point."""
+        for obj in self.selected_objects:
+            rally = getattr(obj, "rally_point", None)
+            if rally is None or not getattr(obj, "player", None) or not obj.player.human:
+                continue
+            start = ((obj.x * camera.zoom) + camera.x, (obj.y * camera.zoom) + camera.y)
+            end = ((rally[0] * camera.zoom) + camera.x, (rally[1] * camera.zoom) + camera.y)
+            pygame.draw.line(surface, (240, 220, 90), start, end, 1)
+            pole_top = (end[0], end[1] - 14)
+            pygame.draw.line(surface, (240, 220, 90), end, pole_top, 2)
+            pygame.draw.polygon(
+                surface,
+                (240, 220, 90),
+                [pole_top, (pole_top[0] + 10, pole_top[1] + 3), (pole_top[0], pole_top[1] + 7)],
+            )
+
+    def center_camera_on_selection(self):
+        """Center the camera on the centroid of the current selection."""
+        if not self.selected_objects:
+            return False
+        centroid_x = sum(obj.x for obj in self.selected_objects) / len(self.selected_objects)
+        centroid_y = sum(obj.y for obj in self.selected_objects) / len(self.selected_objects)
+        camera = self.game.camera
+        camera.x = -centroid_x * camera.zoom + MAP_VIEW_WIDTH / 2
+        camera.y = -centroid_y * camera.zoom + MAP_VIEW_HEIGHT / 2
+        return True
+
     def get_idle_workers(self):
         """Human player's idle workers (§7.4 idle-worker management)."""
         players = self.game.players

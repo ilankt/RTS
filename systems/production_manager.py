@@ -127,9 +127,12 @@ class ProductionManager:
         
         # Set up animations using sprite manager
         self._setup_unit_animations(new_unit, unit_data)
-        
+
         # Add to game
         self.game.units.append(new_unit)
+
+        # Rally point (§7.4): send the fresh unit on its way
+        self._apply_rally(building, new_unit)
         
         # Invalidate AI memory cache for immediate detection of new unit
         if hasattr(self.game, 'ai_system') and self.game.ai_system:
@@ -148,6 +151,23 @@ class ProductionManager:
                 if self._can_afford(building.player, costs):
                     self._start_immediate_production(building, next_unit_type, next_unit_data, costs)
     
+    def _apply_rally(self, building, unit):
+        """Path a newly produced unit to its building's rally point, if any.
+
+        Workers rallied onto a resource start gathering it directly."""
+        resource = getattr(building, "rally_resource", None)
+        if resource is not None and (
+            not getattr(resource, "in_world", True) or getattr(resource, "amount_remaining", 0) <= 0
+        ):
+            building.rally_resource = resource = None  # depleted since it was set
+        if resource is not None and unit.name == "worker":
+            worker_tasks = getattr(self.game, "worker_task_system", None)
+            if worker_tasks and worker_tasks.assign_gather(unit, resource):
+                return
+        point = getattr(building, "rally_point", None)
+        if point:
+            self.game.pathfinder.issue_move(unit, point)
+
     def _find_spawn_position(self, building):
         """Find a valid spawn position near the building"""
         # Try positions in a circle around the building

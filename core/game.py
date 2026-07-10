@@ -289,9 +289,17 @@ class Game:
                     self.selection_manager.set_control_group(key_num, add=shift_held)
                     debug_log.log(f"Control group {key_num} set", "GENERAL")
                 else:
-                    # Recall control group
+                    # Recall control group; double-tap centers the camera (§7.4)
                     recalled = self.selection_manager.recall_control_group(key_num)
                     if recalled:
+                        now = pygame.time.get_ticks()
+                        if (
+                            getattr(self, "_last_group_recall", None) == key_num
+                            and now - getattr(self, "_last_group_recall_time", -10**9) < 450
+                        ):
+                            self.selection_manager.center_camera_on_selection()
+                        self._last_group_recall = key_num
+                        self._last_group_recall_time = now
                         debug_log.log(f"Control group {key_num} recalled", "GENERAL")
     
     def _handle_mouse_wheel(self, event):

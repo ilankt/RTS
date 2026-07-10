@@ -1,5 +1,6 @@
 import math
 from core.config import DEBUG_MOVEMENT
+from entities.unit import STANCE_DEFENSIVE, STANCE_NO_ATTACK, STANCE_STAND_GROUND
 from systems.combat_rules import (
     calculate_damage as calculate_combat_damage,
     effective_attack_range,
@@ -187,8 +188,6 @@ class CombatSystem:
                 # Auto-engage nearby enemies if idle. Acquisition scans are
                 # throttled per unit (~0.25-0.5s, jittered) — C2.
                 if unit.status == "idle" and not unit.current_target:
-                    from entities.unit import STANCE_NO_ATTACK, STANCE_STAND_GROUND, STANCE_DEFENSIVE
-
                     if unit.stance == STANCE_NO_ATTACK:
                         pass  # Never auto-attack
                     elif self.game.frame_counter < getattr(unit, "_next_target_scan_frame", 0):
@@ -221,6 +220,22 @@ class CombatSystem:
                                     # Auto-engaging target
                                     pass
                 
+                # Defensive leash (§9 backlog fix): a DEFENSIVE unit that chased
+                # its target beyond stance_chase_distance drops the chase and
+                # walks back to its home position instead of freezing in the
+                # field wherever the pursuit ended.
+                if (
+                    unit.stance == STANCE_DEFENSIVE
+                    and unit.stance_home_position
+                    and (unit.is_engaging or unit.in_combat)
+                ):
+                    home_x, home_y = unit.stance_home_position
+                    leash = unit.stance_chase_distance
+                    if (unit.x - home_x) ** 2 + (unit.y - home_y) ** 2 > leash * leash:
+                        self.game.pathfinder.issue_move(unit, unit.stance_home_position)
+                        # Suppress instant re-acquisition so the walk home wins.
+                        unit._next_target_scan_frame = self.game.frame_counter + 60
+
                 # Handle ongoing engagements
                 if unit.is_engaging and unit.current_target:
                     self.handle_combat_engagement(unit, unit.current_target)
