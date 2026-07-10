@@ -2,6 +2,7 @@
 import pygame
 import math
 from utils.debug_logger import debug_log
+from utils.perf_stats import perf_stats
 
 
 class UnitWatchdog:
@@ -10,12 +11,14 @@ class UnitWatchdog:
     CHECK_INTERVAL = 1000       # Check every 1 second (ms)
     STUCK_THRESHOLD = 3.0       # Seconds without meaningful movement
     MOVE_EPSILON = 3.0          # Pixels - must move at least this much to count
+    MAX_RECOVERIES_PER_CHECK = 2  # Cap so a stuck burst can't hitch one frame
 
     def __init__(self, game):
         self.game = game
         self.last_check = pygame.time.get_ticks()
         # Per-unit tracking: {unit: {"x": float, "y": float, "timer": float}}
         self.tracking = {}
+        self._recoveries_this_check = 0
 
     def update(self):
         now = pygame.time.get_ticks()
@@ -23,10 +26,12 @@ class UnitWatchdog:
             return
         elapsed = (now - self.last_check) / 1000.0
         self.last_check = now
+        self._recoveries_this_check = 0
 
         # Clean up tracking for dead units
-        alive = set(self.game.units)
-        self.tracking = {u: v for u, v in self.tracking.items() if u in alive}
+        self.tracking = {
+            u: v for u, v in self.tracking.items() if getattr(u, "in_world", True) and u.hp > 0
+        }
 
         for unit in self.game.units:
             self._check_unit(unit, elapsed)
@@ -59,6 +64,12 @@ class UnitWatchdog:
             return
 
         if info["timer"] >= self.STUCK_THRESHOLD:
+            # Cap recoveries per check so a stuck burst (e.g. after a nav
+            # change) can't pile teleports into one frame; the rest keep their
+            # timers and recover on the next checks.
+            if self._recoveries_this_check >= self.MAX_RECOVERIES_PER_CHECK:
+                return
+            self._recoveries_this_check += 1
             self._recover_unit(unit)
             self.tracking.pop(unit, None)
 
@@ -96,11 +107,13 @@ class UnitWatchdog:
         if worker_tasks and worker_tasks.active_task(unit):
             worker_tasks.cancel(unit)
         unit.clear_all_movement_state()
+        perf_stats.increment("watchdog_recoveries")
 
         # Nudge to nearest safe position if overlapping something
         safe = self._find_nearby_safe_position(unit)
         if safe and math.hypot(safe[0] - unit.x, safe[1] - unit.y) > 1:
             unit.x, unit.y = safe
+            perf_stats.increment("watchdog_teleports")
             debug_log.log(f"  Nudged to ({unit.x:.0f}, {unit.y:.0f})", "WATCHDOG")
 
     def _find_nearby_safe_position(self, unit):

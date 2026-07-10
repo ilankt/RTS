@@ -481,10 +481,22 @@ class Game:
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             self.camera.move(dy=-CAMERA_SPEED)
     
+    # Longest distance (world px) a unit may cover in one movement step before
+    # substepping kicks in; keeps high game speeds from tunneling units
+    # through obstacles (B6). Slow units stay single-step even at 5x.
+    MAX_MOVEMENT_STEP_PX = 10.0
+
     def _update_units(self, delta_time):
-        """Update all units using the movement system"""
+        """Update all units using the movement system (substepped per unit)"""
         for unit in self.units:
-            self.movement_system.update_unit_movement(unit, delta_time)
+            step_px = unit.movement_speed * delta_time
+            steps = 1 if step_px <= self.MAX_MOVEMENT_STEP_PX else math.ceil(step_px / self.MAX_MOVEMENT_STEP_PX)
+            if steps == 1:
+                self.movement_system.update_unit_movement(unit, delta_time)
+            else:
+                sub_dt = delta_time / steps
+                for _ in range(steps):
+                    self.movement_system.update_unit_movement(unit, sub_dt)
     
     def _cleanup_destroyed_objects(self):
         """Remove destroyed units and buildings"""

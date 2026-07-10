@@ -48,6 +48,8 @@ class PerfStats:
             "collision_checks": 0,
             "debug_log_writes": 0,
             "ai_ticks": 0,
+            "watchdog_recoveries": 0,
+            "watchdog_teleports": 0,
         }
 
     def begin_frame(self):
