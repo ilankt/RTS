@@ -21,100 +21,101 @@ class CombatSystem:
         """Find optimal attack position for unit when multiple units are attacking the same target"""
         target_x, target_y = target.x, target.y
         attack_range = unit.get_effective_attack_range("positioning")  # Use standardized positioning range
-        
+
+        terrain_probe = getattr(self.game_map, "nav_terrain_walkable", None)
+        # One spatial query around the target covers every candidate position.
+        nearby_buildings = self.game.collision_system.query_nearby_static(
+            target_x,
+            target_y,
+            attack_range + unit.radius + 8,
+            include_construction_sites=False,
+            include_resources=False,
+        )
+
         # Generate potential attack positions in a circle around the target
         num_positions = 8  # Check 8 positions around the target
         best_position = None
         best_score = float('-inf')
-        
+
         for i in range(num_positions):
             angle = (i / num_positions) * 2 * math.pi
             pos_x = target_x + math.cos(angle) * attack_range
             pos_y = target_y + math.sin(angle) * attack_range
-            
+
             # Check if position is valid (not in water/lava, not blocked by buildings)
-            hex_coord = self.game_map.world_to_grid(pos_x, pos_y)
-            if not hex_coord:
-                continue
-            col, row = hex_coord
-            if row < 0 or row >= self.game_map.height or col < 0 or col >= self.game_map.width:
-                continue
-            tile_type = self.game_map.grid[row][col]
-            if tile_type in {"water", "lava"}:
-                continue
-            
+            if terrain_probe is not None:
+                if not terrain_probe(pos_x, pos_y):
+                    continue
+            else:
+                hex_coord = self.game_map.world_to_grid(pos_x, pos_y)
+                if not hex_coord:
+                    continue
+                col, row = hex_coord
+                if row < 0 or row >= self.game_map.height or col < 0 or col >= self.game_map.width:
+                    continue
+                if self.game_map.grid[row][col] in {"water", "lava"}:
+                    continue
+
             # Check for collision with buildings
             blocked_by_building = False
-            for building in self.game.buildings:
-                dist_to_building = math.sqrt((building.x - pos_x)**2 + (building.y - pos_y)**2)
-                if dist_to_building < (building.radius + unit.radius):
+            for building in nearby_buildings:
+                min_dist = building.radius + unit.radius
+                if (building.x - pos_x) ** 2 + (building.y - pos_y) ** 2 < min_dist * min_dist:
                     blocked_by_building = True
                     break
             if blocked_by_building:
                 continue
-            
+
             # Score this position based on:
             # 1. Distance to other attacking units (farther is better)
             # 2. Distance to current unit position (closer is better)
-            # 3. Line of sight to target
-            
+
             score = 0
-            
+
             # Distance to other attackers (farther is better)
             min_dist_to_attacker = float('inf')
             for other in other_attackers:
                 dist = math.sqrt((other.x - pos_x)**2 + (other.y - pos_y)**2)
                 min_dist_to_attacker = min(min_dist_to_attacker, dist)
-            
+
             if min_dist_to_attacker < unit.radius * 3:  # Too close to other units
                 score -= 100
             else:
                 score += min(min_dist_to_attacker, unit.radius * 6)  # Cap the benefit
-            
+
             # Distance to current position (closer is better)
             dist_to_current = math.sqrt((unit.x - pos_x)**2 + (unit.y - pos_y)**2)
             score += max(0, 200 - dist_to_current)  # Prefer closer positions
-            
-            # Check line of sight to target
-            obstacles = (self.game.buildings + 
-                        [u for u in self.game.units if u != unit and u != target] + 
-                        self.game.resources)
-            
-            # Create temporary unit at this position to check LOS
-            temp_unit = type('TempUnit', (), {
-                'x': pos_x, 'y': pos_y, 'radius': unit.radius,
-                'has_line_of_sight': unit.has_line_of_sight
-            })()
-            
-            if temp_unit.has_line_of_sight(target, self.game_map, obstacles):
-                score += 50  # Bonus for clear LOS
-            
+
             if score > best_score:
                 best_score = score
                 best_position = (pos_x, pos_y)
-        
+
         return best_position
     
     def evaluate_combat_targets(self, unit):
-        """Evaluate potential combat targets for a unit"""
-        # Find all enemy units and buildings in range
+        """Evaluate potential combat targets for a unit (spatial-index query)"""
         potential_targets = []
-        
-        for other_unit in self.game.units:
-            if other_unit.player != unit.player:
+        search_range = unit.get_effective_attack_range("search")
+        collision = self.game.collision_system
+
+        for other_unit in collision.query_nearby_units(unit.x, unit.y, search_range, exclude=unit):
+            if other_unit.player != unit.player and other_unit.hp > 0:
                 distance = unit.get_distance_to(other_unit)
-                if is_valid_attack_target(unit, other_unit) and distance <= unit.get_effective_attack_range("search"):
+                if distance <= search_range and is_valid_attack_target(unit, other_unit):
                     potential_targets.append((other_unit, distance))
-        
-        for building in self.game.buildings:
-            if building.player != unit.player:
+
+        for building in collision.query_nearby_static(
+            unit.x, unit.y, search_range, include_construction_sites=False, include_resources=False
+        ):
+            if building.player != unit.player and building.hp > 0:
                 distance = unit.get_distance_to(building)
-                if is_valid_attack_target(unit, building) and distance <= unit.get_effective_attack_range("search"):
+                if distance <= search_range and is_valid_attack_target(unit, building):
                     potential_targets.append((building, distance))
-        
+
         # Sort by distance
         potential_targets.sort(key=lambda x: x[1])
-        
+
         return potential_targets
     
     def handle_combat_engagement(self, unit, target):
@@ -183,13 +184,17 @@ class CombatSystem:
                     damage_dealt = old_target_hp - new_target_hp
                     damage_events.append((unit.current_target, damage_dealt))
                 
-                # Auto-engage nearby enemies if idle
+                # Auto-engage nearby enemies if idle. Acquisition scans are
+                # throttled per unit (~0.25-0.5s, jittered) — C2.
                 if unit.status == "idle" and not unit.current_target:
                     from entities.unit import STANCE_NO_ATTACK, STANCE_STAND_GROUND, STANCE_DEFENSIVE
-                    
+
                     if unit.stance == STANCE_NO_ATTACK:
                         pass  # Never auto-attack
+                    elif self.game.frame_counter < getattr(unit, "_next_target_scan_frame", 0):
+                        pass  # Recently scanned and found nothing
                     else:
+                        unit._next_target_scan_frame = self.game.frame_counter + 15 + (id(unit) % 16)
                         targets = self.evaluate_combat_targets(unit)
                         if targets and getattr(unit.player, 'auto_attack', True):
                             target, distance = targets[0]
@@ -232,30 +237,43 @@ class CombatSystem:
                         damage_dealt = old_target_hp - new_target_hp
                         damage_events.append((building.current_target, damage_dealt))
                 
-                # Auto-target enemies if not already attacking
+                # Auto-target enemies if not already attacking. Re-scan is
+                # throttled per building (~0.25-0.5s, jittered) — C2.
                 if not building.current_target or building.current_target.hp <= 0:
-                    # Find enemies in range
-                    potential_targets = []
-                    
-                    # Check enemy units
-                    for unit in self.game.units:
-                        if unit.player != building.player:
-                            distance = ((building.x - unit.x) ** 2 + (building.y - unit.y) ** 2) ** 0.5
-                            if distance <= effective_attack_range(building):
-                                potential_targets.append((unit, distance))
-                    
-                    # Check enemy buildings
-                    for other_building in self.game.buildings:
-                        if other_building.player != building.player:
-                            distance = ((building.x - other_building.x) ** 2 + (building.y - other_building.y) ** 2) ** 0.5
-                            if distance <= effective_attack_range(building):
-                                potential_targets.append((other_building, distance))
-                    
-                    # Sort by distance and engage closest
-                    if potential_targets:
-                        potential_targets.sort(key=lambda x: x[1])
-                        target, _ = potential_targets[0]
-                        building.start_attack(target)
+                    frame = self.game.frame_counter
+                    next_scan = getattr(building, "_next_target_scan_frame", 0)
+                    if frame >= next_scan:
+                        building._next_target_scan_frame = frame + 15 + (id(building) % 16)
+                        attack_range = effective_attack_range(building)
+                        range_sq = attack_range * attack_range
+                        potential_targets = []
+                        collision = self.game.collision_system
+
+                        # Check enemy units
+                        for unit in collision.query_nearby_units(building.x, building.y, attack_range):
+                            if unit.player != building.player and unit.hp > 0:
+                                dist_sq = (building.x - unit.x) ** 2 + (building.y - unit.y) ** 2
+                                if dist_sq <= range_sq:
+                                    potential_targets.append((unit, dist_sq))
+
+                        # Check enemy buildings
+                        for other_building in collision.query_nearby_static(
+                            building.x,
+                            building.y,
+                            attack_range,
+                            include_construction_sites=False,
+                            include_resources=False,
+                        ):
+                            if other_building.player != building.player and other_building.hp > 0:
+                                dist_sq = (building.x - other_building.x) ** 2 + (building.y - other_building.y) ** 2
+                                if dist_sq <= range_sq:
+                                    potential_targets.append((other_building, dist_sq))
+
+                        # Sort by distance and engage closest
+                        if potential_targets:
+                            potential_targets.sort(key=lambda x: x[1])
+                            target, _ = potential_targets[0]
+                            building.start_attack(target)
         
         # Spawn damage notifications and particles
         if hasattr(self.game, 'floating_ui') and self.game.floating_ui:

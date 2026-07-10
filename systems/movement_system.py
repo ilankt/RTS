@@ -161,10 +161,10 @@ class MovementSystem:
     
     def _reevaluate_movement_strategy(self, unit, force_strategy_change):
         """Re-evaluate and update movement strategy"""
-        # Check line of sight
-        obstacles = (self.game.buildings + 
-                    [u for u in self.game.units if u != unit and u != unit.current_target] +
-                    self.game.resources)
+        # Check line of sight (obstacles from the shared spatial index)
+        obstacles = self.game.collision_system.query_obstacles_along(
+            (unit.x, unit.y), (unit.current_target.x, unit.current_target.y)
+        )
         has_los = unit.has_line_of_sight(unit.current_target, self.game_map, obstacles)
         
         # Debug output
@@ -205,9 +205,9 @@ class MovementSystem:
             unit._stuck_detector['stuck_timer'] >= 60):  # 1 second of being stuck
             
             # Re-check LOS to see if it's still valid
-            obstacles = (self.game.buildings + 
-                        [u for u in self.game.units if u != unit and u != unit.current_target] +
-                        self.game.resources)
+            obstacles = self.game.collision_system.query_obstacles_along(
+                (unit.x, unit.y), (unit.current_target.x, unit.current_target.y)
+            )
             current_los = unit.has_line_of_sight(unit.current_target, self.game_map, obstacles)
             
             if not current_los:
@@ -215,9 +215,14 @@ class MovementSystem:
                 self._use_pathfinding_strategy(unit, True, debug_this_eval)
                 return
         
-        # Check for multiple units attacking same target
-        attacking_same_target = [u for u in self.game.units 
-                               if u != unit and u.current_target == unit.current_target and u.is_engaging]
+        # Check for multiple units attacking same target (only nearby attackers
+        # matter for positioning; query the shared index instead of all units)
+        target = unit.current_target
+        attacking_same_target = [
+            u
+            for u in self.game.collision_system.query_nearby_units(target.x, target.y, 300, exclude=unit)
+            if u.current_target == target and u.is_engaging
+        ]
         
         if len(attacking_same_target) >= 2:
             # Multi-unit attack positioning
@@ -641,9 +646,9 @@ class MovementSystem:
         """Re-pathfind to a target that has moved"""
         # Check LOS for combat units
         if unit.is_engaging and unit.current_target:
-            obstacles = (self.game.buildings + 
-                        [u for u in self.game.units if u != unit and u != target_object] +
-                        self.game.resources)
+            obstacles = self.game.collision_system.query_obstacles_along(
+                (unit.x, unit.y), (target_object.x, target_object.y)
+            )
             has_los = unit.has_line_of_sight(target_object, self.game_map, obstacles)
             
             if has_los:

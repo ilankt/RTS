@@ -15,8 +15,10 @@ class CollisionSystem:
         self.game_map = game.game_map
         self.bucket_size = SPATIAL_BUCKET_SIZE
         self._static_buckets = {}
+        self._static_kinds = {}
         self._unit_buckets = {}
         self._static_signature = None
+        self._static_signature_frame = None
         self._unit_bucket_frame = None
 
     def begin_frame(self):
@@ -50,24 +52,37 @@ class CollisionSystem:
         )
 
     def _ensure_static_index(self):
+        # The signature itself is O(objects); compute it at most once per frame.
+        frame = getattr(self.game, "frame_counter", 0)
+        if self._static_signature_frame == frame and self._static_signature is not None:
+            return
+        self._static_signature_frame = frame
         signature = self._make_static_signature()
         if signature == self._static_signature:
             return
         self._static_buckets = {}
+        self._static_kinds = {}
         for obj in self.game.buildings:
             self._index_object(self._static_buckets, obj)
+            self._static_kinds[id(obj)] = "building"
         for obj in self.game.construction_sites:
             self._index_object(self._static_buckets, obj)
+            self._static_kinds[id(obj)] = "site"
         for obj in self.game.resources:
             self._index_object(self._static_buckets, obj)
+            self._static_kinds[id(obj)] = "resource"
         self._static_signature = signature
+
+    def invalidate_static_index(self):
+        """Force a signature re-check on the next query (world just changed)."""
+        self._static_signature_frame = None
 
     def _rebuild_unit_index(self):
         self._unit_buckets = {}
         for unit in self.game.units:
             self._index_object(self._unit_buckets, unit)
 
-    def _query_ids(self, buckets, x, y, radius):
+    def _iter_bucket_objects(self, buckets, x, y, radius):
         seen = set()
         for cell in self._cells_for_bounds(x, y, radius):
             for obj in buckets.get(cell, ()):
@@ -75,7 +90,7 @@ class CollisionSystem:
                 if obj_id in seen:
                     continue
                 seen.add(obj_id)
-        return seen
+                yield obj
 
     def _nearby_static(
         self,
@@ -88,28 +103,66 @@ class CollisionSystem:
         include_resources=True,
     ):
         self._ensure_static_index()
-        nearby = self._query_ids(self._static_buckets, x, y, radius + 2)
-        if include_buildings:
-            for obj in self.game.buildings:
-                if id(obj) in nearby:
+        kinds = self._static_kinds
+        for obj in self._iter_bucket_objects(self._static_buckets, x, y, radius + 2):
+            kind = kinds.get(id(obj))
+            if kind == "building":
+                if include_buildings:
                     yield obj
-        if include_construction_sites:
-            for obj in self.game.construction_sites:
-                if id(obj) in nearby:
+            elif kind == "site":
+                if include_construction_sites:
                     yield obj
-        if include_resources:
-            for obj in self.game.resources:
-                if id(obj) in nearby:
-                    yield obj
+            elif include_resources:
+                yield obj
 
     def _nearby_units(self, x, y, radius, exclude=None):
         self.begin_frame()
-        nearby = self._query_ids(self._unit_buckets, x, y, radius + 2)
-        for unit in self.game.units:
-            if unit is exclude:
-                continue
-            if id(unit) in nearby:
+        for unit in self._iter_bucket_objects(self._unit_buckets, x, y, radius + 2):
+            if unit is not exclude:
                 yield unit
+
+    # ------------------------------------------------------------------
+    # Shared spatial queries (Phase 1): the single index other systems use
+    # instead of rescanning game.units / game.buildings.
+    # ------------------------------------------------------------------
+    def query_nearby_units(self, x, y, radius, exclude=None):
+        """Units whose padded bounds may overlap the circle at (x, y)."""
+        return list(self._nearby_units(x, y, radius, exclude=exclude))
+
+    def query_nearby_static(
+        self,
+        x,
+        y,
+        radius,
+        *,
+        include_buildings=True,
+        include_construction_sites=True,
+        include_resources=True,
+    ):
+        """Static objects whose padded bounds may overlap the circle at (x, y)."""
+        return list(
+            self._nearby_static(
+                x,
+                y,
+                radius,
+                include_buildings=include_buildings,
+                include_construction_sites=include_construction_sites,
+                include_resources=include_resources,
+            )
+        )
+
+    def query_obstacles_along(self, start, end, *, include_construction_sites=False, pad=80):
+        """Obstacles (units + buildings + resources) near the segment start-end.
+
+        Used to feed has_line_of_sight instead of rebuilding full world lists."""
+        mid_x = (start[0] + end[0]) * 0.5
+        mid_y = (start[1] + end[1]) * 0.5
+        radius = math.hypot(end[0] - start[0], end[1] - start[1]) * 0.5 + pad
+        obstacles = self.query_nearby_static(
+            mid_x, mid_y, radius, include_construction_sites=include_construction_sites
+        )
+        obstacles.extend(self._nearby_units(mid_x, mid_y, radius))
+        return obstacles
 
     def _record_collision_check(self):
         perf_stats.increment("collision_checks")

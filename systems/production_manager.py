@@ -168,22 +168,28 @@ class ProductionManager:
     def _is_valid_spawn_position(self, x, y):
         """Check if a spawn position is valid (no collisions)"""
         spawn_radius = 16  # Radius for unit being spawned
-        
+
         # Check terrain
-        hex_coord = self.game.game_map.world_to_grid(x, y)
-        if hex_coord:
-            tile_type = self.game.game_map.grid[hex_coord[1]][hex_coord[0]]
-            if tile_type in {"water", "lava"}:
+        terrain_probe = getattr(self.game.game_map, "nav_terrain_walkable", None)
+        if terrain_probe is not None:
+            if not terrain_probe(x, y):
                 return False
-        
-        # Check collision with existing objects
-        all_objects = self.game.buildings + self.game.units + self.game.resources + self.game.construction_sites
-        for obj in all_objects:
-            distance = math.sqrt((x - obj.x)**2 + (y - obj.y)**2)
+        else:
+            hex_coord = self.game.game_map.world_to_grid(x, y)
+            if hex_coord:
+                tile_type = self.game.game_map.grid[hex_coord[1]][hex_coord[0]]
+                if tile_type in {"water", "lava"}:
+                    return False
+
+        # Check collision with existing objects via the shared spatial index
+        collision = self.game.collision_system
+        nearby = collision.query_nearby_static(x, y, spawn_radius)
+        nearby.extend(collision.query_nearby_units(x, y, spawn_radius))
+        for obj in nearby:
             min_distance = spawn_radius + obj.radius
-            if distance < min_distance:
+            if (x - obj.x) ** 2 + (y - obj.y) ** 2 < min_distance * min_distance:
                 return False
-        
+
         return True
     
     def _setup_unit_animations(self, unit, unit_data):
