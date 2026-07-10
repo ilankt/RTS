@@ -445,9 +445,15 @@ and should override "obvious" instincts.
     faster (skip early farm/dropoff goals, barracks-first), not an earlier
     trigger on the same economy. Validation data:
     `tools/balance_20_thresholds.json`.
-- [ ] **Personalities that actually differ** *(med)* — the 4 personalities currently
-  only reweight goal categories; give each a signature build order + army composition
-  (AoE3-style) so opponents *feel* different game to game.
+- [x] **Personalities that actually differ** *(med)* — signature build orders
+  landed 2026-07-10: per-personality worker targets (rusher 4, boomer 9) +
+  army-composition fractions (rusher warrior-heavy, turtle/boomer
+  archer-leaning) + tower doctrine (§8.10). **Same-seed validation: rusher
+  31 %→46 % win rate (head-to-head vs boomer 1–4 → 2–3), boomer's dominance
+  56 %, turtle 4/5.** Watch-item: `balanced` fell to 4/13 now that every
+  specialist got sharper — needs its own identity pass or acceptance as the
+  "teaching" opponent. Data: `tools/balance_20_signature.json` (authoritative
+  run).
 - [ ] **Telegraph attacks** *(low–med)* — before an AI push, surface a cue (army
   massing near the border, a "hostile force detected" alert, scout-visible staging).
   Needs the alert system (§7.4).
@@ -710,15 +716,18 @@ game speed is fixed — see §9). What's missing is *strategy*: the AI builds at
 low 45) and places it at the **first free ring slot around the castle starting
 due-east** — placement ignores where the enemy actually is.
 
-- [ ] **Strategic tower placement** *(med)* — place toward the threat: bias the
-  ring search by the Phase 4 threat map / known enemy-castle direction, and
-  cover resource clusters workers actually use. Rides on `ctx.threat_at`.
-- [ ] **Scale tower count with threat & personality** *(low–med)* — replace the
-  hard 1-tower cap with a cap by personality (turtle 3–4, others 1–2) and let
-  the score grow with recent-attack pressure instead of sitting at 45.
-- [ ] **Tower value metric in the balance sim** *(low)* — track damage dealt /
-  kills per tower so "are they even doing something?" is a number, not a
-  feeling.
+- [x] **Strategic tower placement** *(med)* — angle-major ring search biased
+  toward the nearest enemy castle (extended radius past the base's own
+  resource clutter); verified within 3° of the threat bearing on both sides
+  of the seeded map. (2026-07-10)
+- [x] **Scale tower count with threat & personality** *(low–med)* — per-
+  personality caps (turtle 3, balanced/boomer 2, rusher 1); extra towers
+  require measured pressure via `ctx.threat_at`; goal recategorized
+  military→support so turtle prioritizes and rusher skips. (2026-07-10)
+- [x] **Tower value metric in the balance sim** *(low)* — per-personality tower
+  damage tracked end-to-end. Validation run: 46 towers dealt ~29.5k damage
+  (balanced 12.1k, boomer 9.1k, turtle 5.0k, rusher 3.3k) — towers demonstrably
+  matter now. (2026-07-10)
 - [ ] **Wooden walls** *(med)* — make `wall` buildable as a cheap wood-cost
   segment; drag-placement UI for wall lines; pathfinding already handles
   incremental blockers, flow fields invalidate on placement (Phase 2/5 ✓).
