@@ -177,6 +177,9 @@ class Game:
         self.game_map.scale_tiles(self.camera.zoom)
         self.pathfinder.mark_dirty()
 
+        # Onboarding tips for new players (§8.7) — needs players to exist
+        self._init_onboarding()
+
         # Everything alive at this point (map, sprites, systems, initial world)
         # is effectively permanent; freezing it keeps it out of GC scans.
         import gc
@@ -531,6 +534,9 @@ class Game:
             # Low-resource alerts for the human player (§7.4)
             self._check_low_resources(self.delta_time)
 
+            # Onboarding tips for new players (§8.7)
+            self._update_onboarding()
+
             # Update camera bounds
             self._update_camera_bounds()
         finally:
@@ -565,6 +571,36 @@ class Game:
         fresh = [e for e in events if e[0] >= cutoff]
         self.income_events[resource_type] = fresh
         return sum(amount for _t, amount in fresh) / self.INCOME_WINDOW_SECS
+
+    # §8.7 onboarding: timed tips during a new player's first matches
+    ONBOARDING_MAX_MATCHES = 3  # stop tipping once the profile shows experience
+    ONBOARDING_HINTS = (
+        (15, "Right-click a resource to send workers gathering"),
+        (45, "Use the right panel's build menu to place buildings"),
+        (80, "F1 selects idle workers; Ctrl+1 saves a control group"),
+        (120, "Select a production building and right-click to set its rally"),
+        (160, "Press L for the event log, B/N for camera bookmarks"),
+        (200, "S cycles unit stances; [ and ] change game speed"),
+    )
+
+    def _init_onboarding(self):
+        """Queue timed tips if the profile says this player is still new."""
+        self._onboarding_queue = []
+        if not any(getattr(p, "human", False) for p in self.players):
+            return
+        try:
+            from core.profile import Profile
+
+            if Profile().stats["matches_played"] < self.ONBOARDING_MAX_MATCHES:
+                self._onboarding_queue = list(self.ONBOARDING_HINTS)
+        except Exception as e:
+            debug_log.log(f"Onboarding init failed: {e}", "GENERAL")
+
+    def _update_onboarding(self):
+        queue = getattr(self, "_onboarding_queue", None)
+        if queue and self.sim_time_elapsed >= queue[0][0]:
+            _due, hint = queue.pop(0)
+            self.ui_manager.add_alert(f"Tip: {hint}")
 
     LOW_RESOURCE_THRESHOLD = 25   # below the cheapest common purchase
     LOW_RESOURCE_ALERT_SECS = 30  # per-resource re-alert throttle

@@ -674,7 +674,12 @@ The UI works but is ad-hoc (delegated panels in `ui/components/*`) and hardcoded
 - [x] **Event/notification feed** *(low–med)* — 2026-07-10: every alert also
   lands in a 50-entry history stamped with game time; **L** (rebindable)
   toggles a bottom-left log panel showing the last 10 as `mm:ss — text`.
-- [ ] **Menu polish** *(low–med)* — main/pause/victory screens scale and share the
+- [x] **Menu polish** *(low–med)* — audited 2026-07-10: main menu, match
+  setup, settings, pause, and victory/summary overlays all lay out from
+  `SCREEN_WIDTH/HEIGHT` (no hardcoded resolutions anywhere outside config),
+  so they scale with the §8.2 settings-menu resolution, and they share the
+  same dark-panel style (bg 20/20/30, gold titles, highlight rows).
+  Original scope: main/pause/victory screens scale and share the
   visual language.
 - **✅ Verify:** resize the window to a non-720p size and confirm the HUD lays out
   correctly with no clipping; the command card issues actions; tooltips appear on
@@ -786,8 +791,13 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
   win) unlock once and toast via the alert feed. Tests in
   `tests/test_profile.py`. (No profile *screen* yet — stats are in the JSON;
   surface them in the menu when the §8.2 menu polish pass happens.)
-- [ ] **Onboarding** *(med)* — tooltips + a practice/first-match flow so new players
-  aren't lost.
+- [x] **Onboarding** *(med)* — 2026-07-10: universal tooltips (§8.2) cover the
+  "what is this" half; the flow half is timed **first-match tips** — six
+  contextual hints (gathering, build menu, idle workers/control groups,
+  rally, event log/bookmarks, stances/speed) toast during the opening
+  minutes of a human match, only while the profile shows fewer than 3
+  matches played. Tests in `tests/test_onboarding.py`. (A guided practice
+  *scenario* remains future content work.)
 - [ ] **Accessibility** *(med)* — colorblind palette (shared with §8.1), UI scale
   (§8.2), remappable keys (§8.6).
 - **✅ Verify:** finish a match and the summary shows real numbers; stats persist across
