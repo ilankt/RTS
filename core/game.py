@@ -280,6 +280,9 @@ class Game:
         elif event.key == pygame.K_s:
             # Cycle stance for selected combat units
             self._cycle_selected_unit_stances()
+        elif event.key == pygame.K_g:
+            # Toggle selected own gates open/closed (§8.10)
+            self._toggle_selected_gates()
         elif event.key == pygame.K_f:
             # Cycle formation type
             formation = self.selection_manager.cycle_formation()
@@ -704,6 +707,20 @@ class Game:
                 debug_log.log("Game Over: Human player victorious!", "GENERAL")
                 return
     
+    def _toggle_selected_gates(self):
+        """Open/close selected own gates; open gates stop blocking nav+collision."""
+        for obj in self.selection_manager.selected_objects:
+            if not getattr(obj, "is_gate", False):
+                continue
+            if not (obj.player and obj.player.human):
+                continue
+            now_open = obj.toggle_gate()
+            if now_open:
+                self.pathfinder.notify_blocker_removed(obj)
+            else:
+                self.pathfinder.notify_blocker_added(obj)
+            debug_log.log(f"Gate {'opened' if now_open else 'closed'}", "GENERAL")
+
     def _cycle_selected_unit_stances(self):
         """Cycle stance for selected human combat units"""
         from entities.unit import (STANCE_AGGRESSIVE, STANCE_DEFENSIVE, 

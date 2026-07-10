@@ -1,255 +1,380 @@
 [
-    {
-        "name": "barracks",
-        "display_name": "Barracks",
-        "role": "Trains infantry and ranged core units",
-        "requires": [],
-        "buildable": true,
-        "strong_against": [],
-        "weak_against": ["ram"],
-        "sprite": "assets/sprites/Buildings/Barracks.png",
-        "size": [1.5,1.5],
-        "hp": 1000,
-        "build_duration": 10,
-        "armor_type": "fortified",
-        "armor_value": 5,
-        "costs": {
-            "gold": 150,
-            "wood": 100,
-            "stone": 50
-        }
-    },
-    {
-        "name": "castle",
-        "display_name": "Castle",
-        "role": "Town center and victory objective",
-        "requires": [],
-        "buildable": false,
-        "strong_against": [],
-        "weak_against": ["ram"],
-        "sprite": "assets/sprites/Buildings/Castle.png",
-        "size": [2.5,2.5],
-        "hp": 5000,
-        "build_duration": 50,
-        "armor_type": "fortified",
-        "armor_value": 10,
-        "costs": {
-            "gold": 500,
-            "wood": 200,
-            "stone": 300
-        }
-    },
-    {
-        "name": "farm",
-        "display_name": "Farm",
-        "role": "Generates food over time",
-        "requires": [],
-        "buildable": true,
-        "strong_against": [],
-        "weak_against": ["raiders"],
-        "sprite": "assets/sprites/Buildings/Farm.png",
-        "size": [1,1],
-        "hp": 250,
-        "build_duration": 5,
-        "armor_type": "fortified",
-        "armor_value": 1,
-        "costs": {
-            "wood": 75
-        }
-    },
-    {
-        "name": "house",
-        "display_name": "House",
-        "role": "Increases population capacity",
-        "requires": [],
-        "buildable": true,
-        "strong_against": [],
-        "weak_against": ["raiders"],
-        "sprite": "assets/sprites/Buildings/House.png",
-        "size": [1,1],
-        "hp": 500,
-        "build_duration": 5,
-        "armor_type": "fortified",
-        "armor_value": 2,
-        "costs": {
-            "wood": 50
-        }
-    },
-    {
-        "name": "lumbermill",
-        "display_name": "Lumbermill",
-        "role": "Wood drop-off near forests",
-        "requires": [],
-        "buildable": true,
-        "strong_against": [],
-        "weak_against": ["raiders"],
-        "sprite": "assets/sprites/Buildings/Lumbermill.png",
-        "size": [1.5,1.5],
-        "hp": 750,
-        "build_duration": 8,
-        "armor_type": "fortified",
-        "armor_value": 4,
-        "costs": {
-            "wood": 75
-        }
-    },
-    {
-        "name": "mine",
-        "display_name": "Mine",
-        "role": "Gold drop-off near deposits",
-        "requires": [],
-        "buildable": true,
-        "strong_against": [],
-        "weak_against": ["raiders"],
-        "sprite": "assets/sprites/Buildings/Mine.png",
-        "size": [1.5,1.5],
-        "hp": 750,
-        "build_duration": 8,
-        "armor_type": "fortified",
-        "armor_value": 4,
-        "costs": {
-            "wood": 75,
-            "stone": 25
-        }
-    },
-    {
-        "name": "quarry",
-        "display_name": "Quarry",
-        "role": "Stone drop-off near deposits",
-        "requires": [],
-        "buildable": true,
-        "strong_against": [],
-        "weak_against": ["raiders"],
-        "sprite": "assets/sprites/Buildings/quarry.png",
-        "size": [1.5,1.5],
-        "hp": 750,
-        "build_duration": 8,
-        "armor_type": "fortified",
-        "armor_value": 4,
-        "costs": {
-            "wood": 50,
-            "stone": 50
-        }
-    },
-    {
-        "name": "watchtower",
-        "display_name": "Watchtower",
-        "role": "Static defense that controls territory",
-        "requires": [],
-        "buildable": true,
-        "strong_against": ["archer", "worker"],
-        "weak_against": ["ram"],
-        "sprite": "assets/sprites/Buildings/Watchtower.png",
-        "size": [2,2],
-        "hp": 1500,
-        "build_duration": 15,
-        "armor_type": "fortified",
-        "armor_value": 6,
-        "can_attack": true,
-        "min_damage": 14,
-        "max_damage": 18,
-        "attack_type": "pierce",
-        "attack_speed": 1.5,
-        "attack_range": 175,
-        "costs": {
-            "wood": 150,
-            "stone": 100
-        }
-    },
-    {
-        "name": "stable",
-        "display_name": "Stable",
-        "role": "Trains cavalry for raids and archer pressure",
-        "requires": ["barracks"],
-        "buildable": true,
-        "strong_against": [],
-        "weak_against": ["ram"],
-        "sprite": "assets/sprites/Buildings/Stable.png",
-        "size": [1.5,1.5],
-        "hp": 900,
-        "build_duration": 10,
-        "armor_type": "fortified",
-        "armor_value": 4,
-        "costs": {
-            "gold": 150,
-            "wood": 100,
-            "stone": 50
-        }
-    },
-    {
-        "name": "temple",
-        "display_name": "Temple",
-        "role": "Deferred support building",
-        "requires": ["barracks"],
-        "buildable": false,
-        "strong_against": [],
-        "weak_against": ["ram"],
-        "sprite": "assets/sprites/Buildings/House.png",
-        "size": [1.5,1.5],
-        "hp": 800,
-        "build_duration": 10,
-        "armor_type": "fortified",
-        "armor_value": 3,
-        "costs": {
-            "gold": 150,
-            "stone": 100
-        }
-    },
-    {
-        "name": "blacksmith",
-        "display_name": "Blacksmith",
-        "role": "Researches economy and military upgrades",
-        "requires": ["barracks"],
-        "buildable": true,
-        "strong_against": [],
-        "weak_against": ["ram"],
-        "sprite": "assets/sprites/Buildings/Blacksmith.png",
-        "size": [1.5,1.5],
-        "hp": 800,
-        "build_duration": 10,
-        "armor_type": "fortified",
-        "armor_value": 4,
-        "costs": {
-            "gold": 50,
-            "wood": 75
-        }
-    },
-    {
-        "name": "siege_workshop",
-        "display_name": "Siege Workshop",
-        "role": "Builds rams to break towers and castles",
-        "requires": ["blacksmith"],
-        "buildable": true,
-        "strong_against": [],
-        "weak_against": ["ram"],
-        "sprite": "assets/sprites/Buildings/SiegeWorkshop.png",
-        "size": [1.5,1.5],
-        "hp": 900,
-        "build_duration": 12,
-        "armor_type": "fortified",
-        "armor_value": 4,
-        "costs": {
-            "gold": 60,
-            "wood": 160,
-            "stone": 60
-        }
-    },
-    {
-        "name": "wall",
-        "display_name": "Wall",
-        "role": "Deferred defensive structure",
-        "requires": ["barracks"],
-        "buildable": false,
-        "strong_against": [],
-        "weak_against": ["ram"],
-        "sprite": "assets/sprites/Buildings/Watchtower.png",
-        "size": [1,1],
-        "hp": 2000,
-        "build_duration": 8,
-        "armor_type": "fortified",
-        "armor_value": 10,
-        "costs": {
-            "stone": 50
-        }
+  {
+    "name": "barracks",
+    "display_name": "Barracks",
+    "role": "Trains infantry and ranged core units",
+    "requires": [],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/Barracks.png",
+    "size": [
+      1.5,
+      1.5
+    ],
+    "hp": 1000,
+    "build_duration": 10,
+    "armor_type": "fortified",
+    "armor_value": 5,
+    "costs": {
+      "gold": 150,
+      "wood": 100,
+      "stone": 50
     }
+  },
+  {
+    "name": "castle",
+    "display_name": "Castle",
+    "role": "Town center and victory objective",
+    "requires": [],
+    "buildable": false,
+    "strong_against": [],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/Castle.png",
+    "size": [
+      2.5,
+      2.5
+    ],
+    "hp": 5000,
+    "build_duration": 50,
+    "armor_type": "fortified",
+    "armor_value": 10,
+    "costs": {
+      "gold": 500,
+      "wood": 200,
+      "stone": 300
+    }
+  },
+  {
+    "name": "farm",
+    "display_name": "Farm",
+    "role": "Generates food over time",
+    "requires": [],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "raiders"
+    ],
+    "sprite": "assets/sprites/Buildings/Farm.png",
+    "size": [
+      1,
+      1
+    ],
+    "hp": 250,
+    "build_duration": 5,
+    "armor_type": "fortified",
+    "armor_value": 1,
+    "costs": {
+      "wood": 75
+    }
+  },
+  {
+    "name": "house",
+    "display_name": "House",
+    "role": "Increases population capacity",
+    "requires": [],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "raiders"
+    ],
+    "sprite": "assets/sprites/Buildings/House.png",
+    "size": [
+      1,
+      1
+    ],
+    "hp": 500,
+    "build_duration": 5,
+    "armor_type": "fortified",
+    "armor_value": 2,
+    "costs": {
+      "wood": 50
+    }
+  },
+  {
+    "name": "lumbermill",
+    "display_name": "Lumbermill",
+    "role": "Wood drop-off near forests",
+    "requires": [],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "raiders"
+    ],
+    "sprite": "assets/sprites/Buildings/Lumbermill.png",
+    "size": [
+      1.5,
+      1.5
+    ],
+    "hp": 750,
+    "build_duration": 8,
+    "armor_type": "fortified",
+    "armor_value": 4,
+    "costs": {
+      "wood": 75
+    }
+  },
+  {
+    "name": "mine",
+    "display_name": "Mine",
+    "role": "Gold drop-off near deposits",
+    "requires": [],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "raiders"
+    ],
+    "sprite": "assets/sprites/Buildings/Mine.png",
+    "size": [
+      1.5,
+      1.5
+    ],
+    "hp": 750,
+    "build_duration": 8,
+    "armor_type": "fortified",
+    "armor_value": 4,
+    "costs": {
+      "wood": 75,
+      "stone": 25
+    }
+  },
+  {
+    "name": "quarry",
+    "display_name": "Quarry",
+    "role": "Stone drop-off near deposits",
+    "requires": [],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "raiders"
+    ],
+    "sprite": "assets/sprites/Buildings/quarry.png",
+    "size": [
+      1.5,
+      1.5
+    ],
+    "hp": 750,
+    "build_duration": 8,
+    "armor_type": "fortified",
+    "armor_value": 4,
+    "costs": {
+      "wood": 50,
+      "stone": 50
+    }
+  },
+  {
+    "name": "watchtower",
+    "display_name": "Watchtower",
+    "role": "Static defense that controls territory",
+    "requires": [],
+    "buildable": true,
+    "strong_against": [
+      "archer",
+      "worker"
+    ],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/Watchtower.png",
+    "size": [
+      2,
+      2
+    ],
+    "hp": 1500,
+    "build_duration": 15,
+    "armor_type": "fortified",
+    "armor_value": 6,
+    "can_attack": true,
+    "min_damage": 14,
+    "max_damage": 18,
+    "attack_type": "pierce",
+    "attack_speed": 1.5,
+    "attack_range": 175,
+    "costs": {
+      "wood": 150,
+      "stone": 100
+    }
+  },
+  {
+    "name": "stable",
+    "display_name": "Stable",
+    "role": "Trains cavalry for raids and archer pressure",
+    "requires": [
+      "barracks"
+    ],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/Stable.png",
+    "size": [
+      1.5,
+      1.5
+    ],
+    "hp": 900,
+    "build_duration": 10,
+    "armor_type": "fortified",
+    "armor_value": 4,
+    "costs": {
+      "gold": 150,
+      "wood": 100,
+      "stone": 50
+    }
+  },
+  {
+    "name": "temple",
+    "display_name": "Temple",
+    "role": "Deferred support building",
+    "requires": [
+      "barracks"
+    ],
+    "buildable": false,
+    "strong_against": [],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/House.png",
+    "size": [
+      1.5,
+      1.5
+    ],
+    "hp": 800,
+    "build_duration": 10,
+    "armor_type": "fortified",
+    "armor_value": 3,
+    "costs": {
+      "gold": 150,
+      "stone": 100
+    }
+  },
+  {
+    "name": "blacksmith",
+    "display_name": "Blacksmith",
+    "role": "Researches economy and military upgrades",
+    "requires": [
+      "barracks"
+    ],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/Blacksmith.png",
+    "size": [
+      1.5,
+      1.5
+    ],
+    "hp": 800,
+    "build_duration": 10,
+    "armor_type": "fortified",
+    "armor_value": 4,
+    "costs": {
+      "gold": 50,
+      "wood": 75
+    }
+  },
+  {
+    "name": "siege_workshop",
+    "display_name": "Siege Workshop",
+    "role": "Builds rams to break towers and castles",
+    "requires": [
+      "blacksmith"
+    ],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/SiegeWorkshop.png",
+    "size": [
+      1.5,
+      1.5
+    ],
+    "hp": 900,
+    "build_duration": 12,
+    "armor_type": "fortified",
+    "armor_value": 4,
+    "costs": {
+      "gold": 60,
+      "wood": 160,
+      "stone": 60
+    }
+  },
+  {
+    "name": "wall",
+    "display_name": "Stone Wall",
+    "role": "Heavy defensive wall segment",
+    "requires": [
+      "barracks"
+    ],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/Watchtower.png",
+    "size": [
+      1,
+      1
+    ],
+    "hp": 2000,
+    "build_duration": 8,
+    "armor_type": "fortified",
+    "armor_value": 10,
+    "costs": {
+      "stone": 50
+    }
+  },
+  {
+    "name": "wooden_wall",
+    "display_name": "Wooden Wall",
+    "role": "Cheap early wall segment",
+    "requires": [],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/Watchtower.png",
+    "size": [
+      1,
+      1
+    ],
+    "hp": 800,
+    "build_duration": 5,
+    "armor_type": "fortified",
+    "armor_value": 4,
+    "costs": {
+      "wood": 40
+    }
+  },
+  {
+    "name": "gate",
+    "display_name": "Gate",
+    "role": "Wall segment your units can pass when open (G toggles)",
+    "requires": [],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/Watchtower.png",
+    "size": [
+      1,
+      1
+    ],
+    "hp": 1200,
+    "build_duration": 6,
+    "armor_type": "fortified",
+    "armor_value": 6,
+    "costs": {
+      "wood": 60,
+      "stone": 25
+    }
+  }
 ]

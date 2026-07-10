@@ -183,6 +183,9 @@ class CollisionSystem:
             unit.radius,
             include_resources=False,
         ):
+            # Open gates are passable (§8.10)
+            if getattr(building, "passable", False):
+                continue
             # Skip drop-off targets when unit is dropping off
             if (hasattr(unit, 'drop_off_target') and unit.drop_off_target == building and
                 hasattr(unit, 'resource_amount') and unit.resource_amount > 0):
@@ -466,6 +469,8 @@ class CollisionSystem:
             include_construction_sites=False,
             include_resources=False,
         ):
+            if getattr(building, "passable", False):
+                continue  # open gate (§8.10)
             self._record_collision_check()
             dist = math.sqrt((test_pos.x - building.x)**2 + (test_pos.y - building.y)**2)
             if dist < building.radius + unit.radius + 2:

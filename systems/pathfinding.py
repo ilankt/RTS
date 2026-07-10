@@ -297,6 +297,8 @@ class NavigationGrid:
         return self.game_map.width * TILE_WIDTH, self.game_map.height * TILE_HEIGHT
 
     def _blocks_navigation(self, obj) -> bool:
+        if getattr(obj, "passable", False):
+            return False  # open gates (§8.10)
         if getattr(obj, "amount_remaining", None) is not None:
             return obj.amount_remaining > 0
         if getattr(obj, "hp", 1) <= 0:

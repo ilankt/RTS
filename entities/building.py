@@ -54,6 +54,17 @@ class Building(GameObject):
         # set on a resource, rallied workers start gathering it.
         self.rally_point = None
         self.rally_resource = None
+
+        # Gates (§8.10): open gates are passable (ignored by nav + collision)
+        self.is_gate = name == "gate"
+        self.passable = False  # gates start closed
+
+    def toggle_gate(self):
+        """Open/close a gate. Returns the new passable state (None if not a gate)."""
+        if not self.is_gate:
+            return None
+        self.passable = not self.passable
+        return self.passable
     
     def _get_production_capabilities(self):
         """Get list of units this building can produce"""

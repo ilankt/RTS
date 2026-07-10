@@ -38,7 +38,11 @@ def test_strategy_data_loads_ram_siege_and_tech_costs():
     assert "improved_tools" in data["techs"]
     assert data["costs"]["siege_engineering"]["stone"] == 80
     assert data["units"]["healer"].buildable is False
-    assert data["buildings"]["wall"].buildable is False
+    # Walls became buildable 2026-07-10 (§8.10): stone + wooden walls + gate
+    assert data["buildings"]["wall"].buildable is True
+    assert data["buildings"]["wooden_wall"].buildable is True
+    assert data["buildings"]["gate"].buildable is True
+    assert data["buildings"]["temple"].buildable is False  # still content-gated
 
 
 def test_default_game_mode_is_human_1v1_and_spectator_is_preserved():
