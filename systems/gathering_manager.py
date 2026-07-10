@@ -43,6 +43,8 @@ class GatheringManager:
                     food_amount = FARM_FOOD_AMOUNT
                     if building.player:
                         building.player.resources["food"] += int(food_amount)
+                        if hasattr(self.game, "record_income"):
+                            self.game.record_income(building.player, "food", int(food_amount))
                         
                     # Add floating notification
                     if hasattr(self.game, 'floating_ui') and self.game.floating_ui:
@@ -324,6 +326,8 @@ class GatheringManager:
                 stats = getattr(self.game, "stats_resources_gathered", None)
                 if stats is not None:
                     stats[worker.player.name] = stats.get(worker.player.name, 0) + int(worker.resource_amount)
+                if hasattr(self.game, "record_income"):
+                    self.game.record_income(worker.player, worker.resource_type, int(worker.resource_amount))
 
             # Add floating notification
             if hasattr(self.game, 'floating_ui') and self.game.floating_ui:

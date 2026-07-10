@@ -646,7 +646,10 @@ from farms (3/s) — four resources with fuzzy identities.
   income-vs-worker-count charting remains for the tuning pass.
 - [ ] **Gathering range/flow tuning** *(low)* — `GATHERING_DISTANCE_MULTIPLIER = 0.5`
   makes workers hug nodes; tune gather + drop-off distances so it feels smooth.
-- [ ] **Income-rate HUD** *(low)* — show per-second deltas, not just stockpiles.
+- [x] **Income-rate HUD** *(low)* — 2026-07-10: green `+X/s` under each
+  stockpile in the top bar, from a 15 s rolling window of the human player's
+  worker drop-offs and farm ticks (`game.record_income`/`income_rate`).
+  Hidden when ~zero. Tests in `tests/test_income_rate.py`.
 - **✅ Verify:** *prototype behind a flag first.* With saturation on, a second base
   measurably raises income (chart income vs worker count); the income HUD matches
   actual gains; the §8.8 balance sim shows the AI expanding rather than one-basing.

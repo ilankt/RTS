@@ -59,11 +59,18 @@ class ResourceBar:
                     amount = int(human_player.resources.get(item, 0))
                     text = f"{amount}"
                     text_surface = self.resource_font.render(text, True, (255, 255, 255))
-                
+
                 # Position text next to icon
                 text_x = x_pos + icon_rect.width + 5  # Small gap between icon and text
                 text_y = row_y + (icon_rect.height - text_surface.get_height()) // 2  # Center with icon
                 resource_bar.blit(text_surface, (text_x, text_y))
+
+                # Income rate readout (§8.3): +X/s under the stockpile
+                if item != "house" and hasattr(self.game, "income_rate"):
+                    rate = self.game.income_rate(item)
+                    if rate > 0.05:
+                        rate_surface = self.info_font.render(f"+{rate:.1f}/s", True, (120, 220, 120))
+                        resource_bar.blit(rate_surface, (text_x, text_y + text_surface.get_height()))
         
         # Idle-worker badge (§7.4): amber count + F1 hint, only when nonzero
         idle_count = len(self.game.selection_manager.get_idle_workers())

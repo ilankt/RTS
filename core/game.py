@@ -152,6 +152,9 @@ class Game:
         self.stats_tower_damage = {}  # {player_name: damage dealt by watchtowers}
         self.stats_resources_gathered = {}  # {player_name: cumulative gathered}
         self.sim_time_elapsed = 0.0   # game-time seconds since match start
+        # Income-rate HUD (§8.3): human player's recent income events,
+        # {resource: [(sim_time, amount), ...]} pruned as it's read
+        self.income_events = {}
 
         # Victory condition (§7.5): "annihilation" (default), "economic"
         # (first to gather ECONOMIC_VICTORY_TARGET total), or "timed"
@@ -518,6 +521,26 @@ class Game:
         finally:
             perf_stats.end_frame()
     
+    INCOME_WINDOW_SECS = 15.0  # rolling window for the +X/s HUD readout
+
+    def record_income(self, player, resource_type, amount):
+        """Log an income event for the +X/s HUD (§8.3). Human player only."""
+        if not getattr(player, "human", False) or amount <= 0:
+            return
+        self.income_events.setdefault(resource_type, []).append(
+            (self.sim_time_elapsed, float(amount))
+        )
+
+    def income_rate(self, resource_type):
+        """Average income per second over the rolling window."""
+        events = self.income_events.get(resource_type)
+        if not events:
+            return 0.0
+        cutoff = self.sim_time_elapsed - self.INCOME_WINDOW_SECS
+        fresh = [e for e in events if e[0] >= cutoff]
+        self.income_events[resource_type] = fresh
+        return sum(amount for _t, amount in fresh) / self.INCOME_WINDOW_SECS
+
     LOW_RESOURCE_THRESHOLD = 25   # below the cheapest common purchase
     LOW_RESOURCE_ALERT_SECS = 30  # per-resource re-alert throttle
 
