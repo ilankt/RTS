@@ -868,9 +868,15 @@ unsequenced — pull them in where they fit.
   game + 60 post-load frames; gate-open survival).
 - [x] **Sound coverage**: audited 2026-07-10 — five of the six were already
   called; `alert` now fires on under-attack. (Realized in §8.5.)
-- [ ] **Test coverage**: existing tests assert constants/attributes, not behavior. Add
-  integration tests that run the AI for N ticks and assert observable outcomes,
-  plus the Phase 0 perf-regression gate.
+- [x] **Test coverage**: closed 2026-07-10 — the suite is now 192 tests and
+  behavior-heavy: `tests/test_ai_integration.py` runs a real boomer-vs-rusher
+  sim for two game-minutes and asserts observable outcomes (economy grows,
+  base expands, army fielded, sim healthy); live-game roundtrips exist for
+  save/load, walls/gates (nav queries), wall drag placement, AI walling,
+  telegraph cues, alerts, income, mutators, stances, healer, counters,
+  and a JPS-vs-A* navigation oracle. The Phase 0 perf gate is the headless
+  benchmark (`tools/benchmark_ai_spectator.py`), run at phase gates rather
+  than per-commit (a 5-minute sim doesn't belong in the unit suite).
 - [x] **Projectile flies to infinity** (user-reported 2026-07-10): fast
   projectiles / high game speed stepped past the 5 px arrival check and never
   died. Fixed: arrival is checked against the step length *before* moving, and
