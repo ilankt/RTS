@@ -26,6 +26,7 @@ class SettingsMenu:
             ("Sound", "sound_enabled"),
             ("Default game speed", "default_game_speed"),
             ("Colorblind team colors", "colorblind_palette"),
+            ("Adaptive difficulty", "adaptive_difficulty"),
             ("Back (saves)", None),
         ]
         self.selected_index = 0
@@ -46,7 +47,7 @@ class SettingsMenu:
         elif key == "volume":
             volume = round(self.settings.get("volume") + direction * 0.1, 1)
             self.settings.set("volume", min(1.0, max(0.0, volume)))
-        elif key in ("sound_enabled", "colorblind_palette"):
+        elif key in ("sound_enabled", "colorblind_palette", "adaptive_difficulty"):
             self.settings.set(key, not self.settings.get(key))
         elif key == "default_game_speed":
             speed = self.settings.get("default_game_speed") + direction
@@ -62,6 +63,8 @@ class SettingsMenu:
             return "On" if self.settings.get("sound_enabled") else "Off"
         if key == "colorblind_palette":
             return ("On" if self.settings.get("colorblind_palette") else "Off") + " (restart)"
+        if key == "adaptive_difficulty":
+            return "On" if self.settings.get("adaptive_difficulty") else "Off"
         if key == "default_game_speed":
             return f"{self.settings.get('default_game_speed'):.0f}x"
         return ""

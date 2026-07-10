@@ -61,6 +61,7 @@ class UtilityAISystem:
             self.tick_timer[player] += delta_time
             # Difficulty scales reaction time (§7.2): easy AIs think slower.
             interval = difficulty_mods(getattr(player, "ai_difficulty", "normal"))["tick_interval"]
+            interval *= self._dda_multiplier(player)
             if self.tick_timer[player] < interval:
                 continue
             self.tick_timer[player] = 0.0
@@ -73,6 +74,31 @@ class UtilityAISystem:
                         self._tick(player)
                 else:
                     self._tick(player)
+
+    # §7.2 covert DDA (opt-in via the adaptive_difficulty setting): nudge AI
+    # *reaction time* — never stats or resources — within the chosen tier.
+    # A struggling human faces a slower-thinking AI; a dominant one, sharper.
+    DDA_BEHIND_RATIO = 0.5   # human below half the AI's score → AI thinks slower
+    DDA_AHEAD_RATIO = 2.0    # human above double → AI thinks faster
+    DDA_SLOW = 1.5           # tick-interval multipliers (higher = slower AI)
+    DDA_FAST = 0.75
+
+    def _dda_multiplier(self, player):
+        if not getattr(self.game, "adaptive_difficulty", False):
+            return 1.0
+        human = next((p for p in self.game.players if getattr(p, "human", False)), None)
+        if human is None:
+            return 1.0
+        score = getattr(self.game, "_score", None)
+        if score is None:
+            return 1.0
+        ai_score = max(1, score(player))
+        ratio = score(human) / ai_score
+        if ratio < self.DDA_BEHIND_RATIO:
+            return self.DDA_SLOW
+        if ratio > self.DDA_AHEAD_RATIO:
+            return self.DDA_FAST
+        return 1.0
 
     def invalidate_memory_cache(self, player=None):
         """Compatibility shim — the snapshot is rebuilt from scratch each tick,

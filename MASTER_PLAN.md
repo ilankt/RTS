@@ -466,22 +466,29 @@ and should override "obvious" instincts.
   reference (army
   massing near the border, a "hostile force detected" alert, scout-visible staging).
   Needs the alert system (§7.4).
-- [~] **Reactive counters** *(med)* — mechanism landed 2026-07-10: barracks
-  production targets blend the signature composition with a boost for units
-  whose strong-vs tags cover the enemy's fielded army (≥4 enemy military to
-  react; `tests/test_reactive_counters.py`). **A/B log** (same-seed 20-match,
-  `tools/balance_20_reactive.json` vs `balance_20_counters.json`, run also
-  includes §8.10 AI walling): win spread tightened (boomer 67→33 %, turtle
-  40→60 % — walls work: 47 wooden walls + 5 gates built; balanced/rusher
-  unchanged) **but** matches ran 49 % longer (559→835 s, timeouts 1→3) and
-  the warrior↔archer mutual-counter loop concentrated the mix (warrior
-  26→33 %, archer 17→25 %, cavalry 15→7.5 %). Weight softened 0.5→0.25 (cap
-  0.8→0.6); validation of the softened setting: `balance_20_reactive_soft.json`.
+- [x] **Reactive counters** *(med)* — landed 2026-07-10 after a two-cycle
+  same-seed A/B: barracks production targets blend the signature composition
+  with a boost for units whose strong-vs tags cover the enemy's fielded army
+  (≥4 enemy military to react; `tests/test_reactive_counters.py`).
+  **Cycle 1 (weight 0.5, `balance_20_reactive.json`)**: boomer dethroned
+  67→33 %, turtle 40→60 % (walls work: 47 built) — but matches +49 % longer
+  (timeouts 1→3) and the warrior↔archer mutual-counter loop concentrated the
+  mix (cavalry 15→7.5 %). **Cycle 2 (softened to 0.25/cap 0.6,
+  `balance_20_reactive_soft.json`) — KEEP**: tightest win spread of any run
+  (balanced 46 / boomer 56 / rusher 46 / turtle 40 %), timeouts back to 1,
+  avg match 671 s (walls legitimately lengthen sieges vs 559 baseline), mix
+  restored to 26/21/18/11/24 % (warrior/archer/spear/cav/ram — no dominant
+  unit). This is the new authoritative §8.8 dataset.
   Original scope: AI scouts the player's composition and shifts
   production toward counters instead of a fixed comp. Rides on Phase 4.
 - [ ] **Fair perception** *(med)* — AI acts on *scouted* info, not omniscience.
   Pairs with the fog work.
-- [ ] **Optional covert DDA** *(med)* — within the chosen tier, nudge AI
+- [x] **Optional covert DDA** *(med)* — 2026-07-10: **off by default**, opt-in
+  via the settings menu ("Adaptive difficulty"). Within the chosen tier it
+  nudges only AI *reaction time* (the §7.1 guardrail — never stats or
+  resources): human below half the AI's score → AI tick interval ×1.5;
+  above double → ×0.75; close games untouched. Score = the §7.5 timed-victory
+  metric. Tests in `tests/test_dda.py`. Original scope: nudge AI
   aggression/expansion (never stats) toward even matches; hidden, coherent, never
   throwing.
 - **✅ Verify:** play a match against each personality at ≥2 tiers — openings differ,
