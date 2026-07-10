@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import random
 
+from core.config import COMBAT_BONUS_VS_TAGS_ENABLED, COMBAT_BONUS_VS_TAG_MULTIPLIER
 from systems.upgrade_effects import effective_building_stat, effective_unit_stat
 
 
@@ -54,6 +55,18 @@ def type_effectiveness(attack_type: str, armor_type: str) -> float:
     return EFFECTIVENESS_TABLE.get((attack_type, armor_type), 1.0)
 
 
+def has_bonus_against(attacker, target) -> bool:
+    """Does the attacker's strong_against tag list cover this target? (§8.4)
+
+    Tags contain unit/building names plus the generic 'building' token."""
+    tags = getattr(attacker, "strong_against", None)
+    if not tags:
+        return False
+    if getattr(target, "name", None) in tags:
+        return True
+    return "building" in tags and is_building_target(target)
+
+
 def calculate_damage(attacker, target) -> int:
     min_damage = int(effective_stat(attacker, "min_damage"))
     max_damage = int(effective_stat(attacker, "max_damage"))
@@ -63,5 +76,9 @@ def calculate_damage(attacker, target) -> int:
     attack_type = getattr(attacker, "attack_type", "slash")
     armor_type = getattr(target, "armor_type", "light")
     damage = base_damage * type_effectiveness(attack_type, armor_type)
+    # §8.4 counter model: strong_against tags now change real damage instead
+    # of being UI/AI-only lore, so e.g. spearman counters cavalry distinctly.
+    if COMBAT_BONUS_VS_TAGS_ENABLED and has_bonus_against(attacker, target):
+        damage *= COMBAT_BONUS_VS_TAG_MULTIPLIER
     damage -= effective_armor_value(target)
     return max(1, int(damage))

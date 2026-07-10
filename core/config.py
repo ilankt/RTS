@@ -126,6 +126,12 @@ AI_STARTING_RESOURCES = {
     "wood": 10000       # Starting wood for AI players
 }
 
+# Combat counter model (§8.4, prototyped behind a flag): attackers deal bonus
+# damage to targets listed in their strong_against tags, making e.g.
+# spearman-vs-cavalry distinctly stronger than archer-vs-cavalry.
+COMBAT_BONUS_VS_TAGS_ENABLED = True
+COMBAT_BONUS_VS_TAG_MULTIPLIER = 1.5
+
 # Debug Configuration
 DEBUG_PATHFINDING = False  # Enable/disable pathfinding debug output
 DEBUG_MOVEMENT = False     # Enable/disable movement debug output
