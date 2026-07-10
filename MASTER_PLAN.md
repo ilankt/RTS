@@ -1,9 +1,22 @@
-# RTS Master Plan — Pathfinding & AI Performance Overhaul
+# RTS Master Plan — Performance Foundation & Single-Player Depth
 
-> Single source of truth for the game's technical direction. Focus: make the sim
-> fast and smooth at scale (hundreds of units), and make the AI both cheaper and
-> better. Supersedes and replaces the old `IMPROVEMENT_PLAN.md` and
-> `AI_UTILITY_DESIGN.md` (deleted). Status: **planning**, written 2026-07-09.
+> Single source of truth for the game's direction. Two tracks:
+> **Track A (§1–6)** — make the sim fast and smooth at scale (hundreds of units)
+> with a cheaper, better AI. This is the foundation and comes first.
+> **Track B (§7)** — deepen the single-player-vs-AI skirmish into something
+> genuinely fun, addictive, and replayable, once the foundation holds.
+> **Track C (§8)** — UI/UX polish and game-systems depth: minimap, GUI rework,
+> the resource model, combat/RPS, and audio & juice.
+> Supersedes and replaces the old `IMPROVEMENT_PLAN.md` and `AI_UTILITY_DESIGN.md`
+> (deleted). Status: **planning**, written 2026-07-09.
+
+> **How to use this plan — it's a working checklist.** Every action is a `- [ ]`
+> checkbox; tick it (`- [x]`) as you land it. Each phase/sub-phase ends with a
+> **✅ Verify** gate — the concrete check that proves it works *and didn't regress*.
+> **Do not start the next phase until its gate passes.** Track A gates are measured
+> (`tools/benchmark_ai_spectator.py`, `cProfile`/`py-spy`, `pytest`); Track B/C gates
+> are mostly play-and-observe plus the balance sim (§8.8). The baseline to beat is
+> §6. §1–4 are the "why" (diagnosis + architecture) — reference, not checklist.
 
 ---
 
@@ -155,110 +168,140 @@ of these.
 ## 5. Execution plan (ordered by ROI ÷ risk)
 
 Each phase is independently shippable and leaves the game working. Land them in
-order; re-run the benchmark after each to confirm the win.
+order; **re-run the benchmark after each and clear the ✅ Verify gate before moving
+on.** Tags like (A1)/(D2) map each action back to the root-cause inventory in §3.
 
 ### Phase 0 — Make it measurable & safe (0.5 day, prerequisite)
-- Add a dev toggle for `PERF_STATS_ENABLED`; wire `py-spy` into the workflow for
-  flamegraphs on a real late-game state.
-- Extend `tools/benchmark_ai_spectator.py` into a **perf regression gate**: assert
-  `frame_max_ms` and `frame_p95_ms` stay under thresholds; run it in CI with
-  `--fail-on-stall`.
-- Extend the `reference_walkable()` cross-check in `tests/test_navigation.py` — it
-  is the safety net for every incremental-nav change in Phase 2.
+**Goal:** be able to prove any later change helped and didn't regress.
+- [ ] Add a dev toggle for `PERF_STATS_ENABLED` (env var / CLI flag).
+- [ ] Wire `py-spy` into the workflow for flamegraphs on a real late-game state.
+- [ ] Extend `tools/benchmark_ai_spectator.py` into a **perf regression gate** —
+  assert `frame_max_ms` / `frame_p95_ms` under thresholds; support `--fail-on-stall`.
+- [ ] Extend the `reference_walkable()` cross-check in `tests/test_navigation.py`
+  (the safety net for every incremental-nav change in Phase 2).
+- **✅ Verify:** `python tools/benchmark_ai_spectator.py --seconds 120 --speed 5
+  --fail-on-stall` runs green and records a baseline JSON; `pytest
+  tests/test_navigation.py` passes; a py-spy flamegraph of a late-game state is
+  captured as the reference.
 
 ### Phase 1 — Cheap, high-ROI wins (2–4 days, low risk, no new architecture)
-Kills the biggest constant and quadratic costs with local edits.
-
-1. **Static walkable bitmap** (A1). Precompute a boolean walkable array per nav
-   revision; `cell_walkable`/terrain probe becomes an array lookup. Drop the
-   9-neighbor refinement in `world_to_grid` for pathfinding probes. *Expected:
-   removes most of the 28 % coordinate-conversion cost.*
-2. **Fog rework** (D1/D2). Throttle fog to ~5 Hz; precompute per-sight-radius
-   offset masks; track a per-player set of currently-visible tiles (clear only
-   those, not the whole grid); cache two fog surfaces (α=150/255) and blit a
-   single cached overlay. *Expected: −13 %+ CPU, big draw win.*
-3. **One shared spatial index** (B1/B2/C2/C5). Expose `collision` buckets as
-   `query_nearby(x, y, r)` and route through it: `evaluate_combat_targets`,
-   building auto-target, `find_optimal_attack_position`, `has_line_of_sight`
-   candidate obstacles, `production._is_valid_spawn_position`, watchdog
-   safe-position. *Expected: O(n²) → ~O(n) for target/LOS scans.*
-4. **Cache effective stats** (E1). Memoize per unit keyed by a
-   `player.upgrades_version`; fast-path zero upgrades to return the base value.
-5. **Throttle re-acquisition** (C2). Combat units keep their target; re-scan only
-   every ~0.25–0.5 s or when the target dies/leaves range.
-6. **O(1) worker-task validity** (E2). Replace `x in self.game.<list>` with cheap
-   per-object flags (`removed`, `hp <= 0`, `amount_remaining`).
-7. **Rendering hygiene** (D3/D4/D5). Frustum-cull to camera bounds before
-   sort/draw (use existing `get_visible_objects`); cache scaled sprites keyed by
-   `(sprite, zoom)`; throttle minimap dot layer to a few Hz.
-8. **Micro-hygiene** (E3/E4/E5/E6). Gate debug f-strings behind the category
-   check; single-pass projectile filter; `__slots__` on `Unit`/`Building`/
-   `Resource`; squared-distance comparisons in hot loops; `gc.freeze()` after
-   `setup_game_objects`; purge `attack_trackers` on death.
+**Goal:** roughly halve average frame time and evict the coordinate-conversion +
+fog hogs — with zero architecture change.
+- [ ] **Static walkable bitmap** (A1) — precompute a boolean walkable array per nav
+  revision; `cell_walkable`/terrain probe → array lookup; drop the 9-neighbor
+  refinement in `world_to_grid` for path probes.
+- [ ] **Fog rework** (D1/D2) — throttle to ~5 Hz; per-sight-radius offset masks;
+  per-player visible-tile set (clear only those); cache two fog surfaces (α=150/255)
+  + one overlay.
+- [ ] **Shared spatial index** (B1/B2/C2/C5) — expose collision buckets as
+  `query_nearby(x,y,r)`; route `evaluate_combat_targets`, building auto-target,
+  `find_optimal_attack_position`, `has_line_of_sight` obstacles,
+  `production._is_valid_spawn_position`, and watchdog safe-position through it.
+- [ ] **Cache effective stats** (E1) — memoize per unit keyed by
+  `player.upgrades_version`; fast-path the zero-upgrade case.
+- [ ] **Throttle target re-acquisition** (C2) — keep the target; re-scan every
+  ~0.25–0.5 s or on target death / out-of-range.
+- [ ] **O(1) worker-task validity** (E2) — replace `x in self.game.<list>` with
+  per-object flags.
+- [ ] **Rendering hygiene** (D3/D4/D5) — frustum-cull before sort/draw (existing
+  `get_visible_objects`); cache scaled sprites by `(sprite, zoom)`; throttle minimap
+  dots.
+- [ ] **Micro-hygiene** (E3/E4/E5/E6) — gate debug f-strings; single-pass projectile
+  filter; `__slots__` on Unit/Building/Resource; squared-distance in hot loops;
+  `gc.freeze()` after `setup_game_objects`; purge `attack_trackers` on death.
+- **✅ Verify:** re-run the benchmark — `frame_avg_ms` roughly halved (≈43 → ≤22),
+  no stall regression; a fresh `cProfile` shows `world_to_grid`/`grid_to_world` and
+  `fog_of_war` **out of the top-5 self-time**; `pytest` green; launch the game and
+  confirm it still plays (gather / fight / fog reveal all correct).
 
 ### Phase 2 — Pathfinding structure: stop the stampede (3–5 days, medium risk)
-1. **Incremental / dirty-region nav** (A2). Batch same-frame `mark_dirty` into one
-   pass; add/remove single blockers instead of full rebuild; invalidate only
-   `_walkable_cache` entries and `_path_cache` paths whose cells fall in the
-   changed blocker's bbox; **never wipe the static-terrain bitmap**. Classify
-   blockers static (terrain, completed buildings) vs dynamic (construction sites).
-2. **Jump Point Search** in `_astar` (A4). Near-drop-in on the uniform grid;
-   preserves optimality; keeps the heap, caches, and no-corner-cut rule. ~10×
-   fewer expansions.
-3. **Request queue + sane budgets** (A3/A6/C1). Replace "reject as
-   `too_expensive`" with a FIFO/priority queue that carries requests across frames
-   (player & on-screen first; 0.5 s AI sub-brain rescans last). Lower
-   `PATHFINDING_FRAME_BUDGET_MS` to ~6–8 and `PATHFINDING_MAX_REQUEST_MS` to ~2–3
-   *once JPS + the queue exist*. Add per-worker jitter to repath cooldowns so a
-   cache event doesn't align every worker on one frame.
-4. *(Optional multiplier)* Evaluate a **coarser routing grid** decoupled from the
-   fine collision layer.
+**Goal:** kill the full-rebuild cache wipes and the A* expansion explosion; no
+failed paths under load.
+- [ ] **Incremental / dirty-region nav** (A2) — batch same-frame `mark_dirty`;
+  add/remove single blockers (no full rebuild); invalidate only `_walkable_cache`/
+  `_path_cache` entries in the changed bbox; **never wipe the static-terrain
+  bitmap**; classify blockers static (terrain, completed buildings) vs dynamic
+  (construction sites).
+- [ ] **Jump Point Search** in `_astar` (A4) — preserve optimality, heap, caches,
+  and the no-corner-cut rule.
+- [ ] **Request queue + sane budgets** (A3/A6/C1) — a FIFO/priority queue that
+  carries requests across frames (player & on-screen first, 0.5 s AI rescans last),
+  replacing the "reject as `too_expensive`" behavior. *After JPS + queue land,*
+  lower `PATHFINDING_FRAME_BUDGET_MS` → ~6–8 and `PATHFINDING_MAX_REQUEST_MS` → ~2–3.
+- [ ] Add **per-worker jitter** to repath cooldowns so a cache event doesn't align
+  every worker on one frame.
+- [ ] *(optional)* Evaluate a **coarser routing grid** decoupled from collision.
+- **✅ Verify:** benchmark `astar_expanded_cells / astar_calls` down ~10× (≈1,314 →
+  ≲150); `astar_capped` / too-expensive rate **< 1 %**; `path_cache_hits` up with no
+  per-depletion full wipes (watch `path_mark_dirty`); `pytest tests/test_navigation.py`
+  green (incl. extended `reference_walkable`); manually confirm no unit paths through
+  a wall or a newly-placed building.
 
 ### Phase 3 — Local steering: fix stuck / teleport / bunch-up (3–5 days, medium)
-1. **Arrival + stop-on-arrival** (B3). Deceleration slowing radius; arrived units
-   stop and become low-priority obstacles. Removes destination pile-ups and the
-   push-out oscillation hacks.
-2. **Context steering** (B1/B4). 8–16 slot interest/danger map per moving unit;
-   danger from the shared spatial hash. Replaces `_calculate_slide_position` /
-   `_find_escape_direction` / the `_stuck_detector` machinery. This is the
-   specific cure for the force-cancellation local-minimum stall.
-3. **Priority / right-of-way** (B4/B5). Generalize the drop-off right-of-way into
-   a global `carrier > mover > idle` ordering (id tie-break); the lower-priority
-   unit yields. Demote the watchdog teleport to genuine geometry-wedge cases only,
-   with a **per-frame recovery cap** and the static list built once.
-4. **Substep at high speed** (B6). Cap effective movement dt (substep the movement
-   integration) so 5× speed doesn't tunnel.
+**Goal:** units stop bunching, stalling, and teleporting.
+- [ ] **Arrival + stop-on-arrival** (B3) — slowing radius; arrived units stop and
+  become low-priority obstacles (removes the push-out oscillation hacks).
+- [ ] **Context steering** (B1/B4) — 8–16 slot interest/danger map per moving unit
+  (danger from the shared hash); retire `_calculate_slide_position` /
+  `_find_escape_direction` / `_stuck_detector`.
+- [ ] **Priority / right-of-way** (B4/B5) — global `carrier > mover > idle` (id
+  tie-break); lower-priority yields; demote the watchdog teleport to a last resort
+  with a **per-frame recovery cap** and the static list built once.
+- [ ] **Substep at high speed** (B6) — cap effective movement dt so 5× doesn't tunnel.
+- [ ] Add a **watchdog-teleport counter** to `perf_stats` (makes the gate below
+  measurable).
+- **✅ Verify:** watchdog teleports/min **≈ 0** (new counter); order 100+ units
+  across the map and observe no permanent stalls or destination oscillation; at 5×
+  speed no tunneling through buildings; benchmark `frame_p95_ms` under the §6 target
+  for the current unit count.
 
 ### Phase 4 — AI: shared perception, LOD, squads (4–6 days, medium)
-1. **Blackboard** (C1/C3/C4). Promote `GoalContext` into the single per-tick world
-   scan: publish the spatial hash, enemies-near-base + threat, idle-worker list,
-   per-resource assignment counts, squad rosters. Make every goal/brain read it —
-   enforce that none touch `game.units`/`game.buildings` directly.
-2. **LOD / time-sliced ticks**. Round-robin K units/frame; combat units reassess
-   fast, idle/gathering workers slowly; dirty-flag urgent re-eval to the front.
-   Spread sub-brain work across the frames between 0.5 s ticks.
-3. **Squad command layer** (C1). Reason about ~5–15 squads, not hundreds of units;
-   `military_brain` issues a posture + target-region per squad, which fans out
-   orders. Kills the "command every unit in one tick" spike.
-4. **Influence / threat maps**. Coarse per-player grid (~10×10), rebuilt a few
-   Hz; drives squad target selection and retreat gradients.
+**Goal:** the 478 ms AI-tick spike is gone and AI cost stays flat as the army grows.
+- [ ] **Blackboard** (C1/C3/C4) — promote `GoalContext` to the single per-tick world
+  scan (spatial hash, enemies-near-base + threat, idle workers, per-resource counts,
+  squad rosters); forbid goals/brains from touching `game.units`/`game.buildings`
+  directly.
+- [ ] **LOD / time-sliced ticks** — round-robin K units/frame; combat units fast,
+  idle/gathering workers slow; dirty-flag urgent re-eval to the front; spread
+  sub-brain work across the frames between 0.5 s ticks.
+- [ ] **Squad command layer** (C1) — reason about ~5–15 squads; `military_brain`
+  issues a posture + target-region per squad that fans out orders (kills the
+  "command every unit in one tick" spike).
+- [ ] **Influence / threat maps** — coarse per-player grid (~10×10), few-Hz rebuild;
+  drives squad target selection and retreat gradients.
+- **✅ Verify:** benchmark `ai_max_ms` **< ~8 ms** (no single-tick spike) and
+  `ai_avg_ms` roughly flat when the army is 2× larger; F4 panel still shows sensible
+  decisions; a full AI-vs-AI match runs to completion without stalls.
 
 ### Phase 5 — Scale play: flow fields + formations (5–8 days, high)
-1. **Flow fields** (A7). On a group move/attack order, build **one** BFS/Dijkstra
-   integration field over the square nav grid, cached by `(goal_cell, revision)`,
-   and fan it to all squad members; keep per-unit JPS for singletons and workers
-   with individual resource targets. Rides on Phase 2's dirty-region invalidation.
-2. **Minimal formations**. SmartCenter anchor + distinct per-unit slot offsets so a
-   group aims at *distinct* points instead of one identical spot (kills
-   destination bunching). Enforce slots only when cohesive.
+**Goal:** a 200-unit group move costs one field, not 200 searches; §6 targets hold
+at 200 units.
+- [ ] **Flow fields** (A7) — one BFS/Dijkstra integration field per group order over
+  the square nav grid, cached by `(goal_cell, revision)`, fanned to squad members;
+  keep per-unit JPS for singletons and workers with individual resource targets.
+  Rides on Phase 2's dirty-region invalidation.
+- [ ] **Minimal formations** — SmartCenter anchor + distinct per-unit slot offsets so
+  a group aims at *distinct* points, not one identical spot; enforce slots only when
+  cohesive.
+- **✅ Verify:** issue a 100+ unit group move and confirm **one** field build in the
+  logs (not N A* calls); run the benchmark at **200 units** and hit the §6 targets;
+  formations don't wedge at chokepoints.
 
-### Phase 6 — Heavy artillery (only if still bottlenecked after 1–5)
-HPA* for long cross-map routes · D*-Lite incremental replanning · numpy
-structure-of-arrays + Numba `@njit` on the confirmed movement/A* kernel · native
-`pyrvo2`/ORCA for guaranteed non-interpenetration. **Not** multiprocessing: the
-GIL makes threads useless for pure-Python A*, and shipping the constantly-changing
-grid to worker processes fights the whole design. Flow fields deliver the same
-relief in-process.
+### Phase 6 — Heavy artillery (only if §6 targets still unmet after 1–5)
+**Goal:** close any residual gap — each item gated behind a profile that proves it's
+*still* the bottleneck.
+- [ ] **HPA*** for long cross-map routes — only if long queries still dominate a
+  flamegraph.
+- [ ] **D*-Lite** incremental replanning — only if per-change replans still spike.
+- [ ] **numpy SoA + Numba `@njit`** on the confirmed movement/A* kernel — only if that
+  kernel is still hot.
+- [ ] **native `pyrvo2`/ORCA** — only if non-interpenetration at very high counts is
+  still needed.
+- **Not** multiprocessing (GIL makes threads useless for pure-Python A*, and shipping
+  the constantly-changing grid to workers fights the design; flow fields give the same
+  relief in-process).
+- **✅ Verify:** a py-spy flamegraph shows the targeted cost was top before and gone
+  after; §6 targets met at the intended scale.
 
 ---
 
@@ -279,36 +322,332 @@ hold these at **200 units**.
 Phases 1–3 alone should clear the avg/p95/hitch targets; Phases 4–5 are what let
 "200 units" behave like "45 units".
 
+- [ ] **Track A acceptance gate** — all six targets above hold at **200 units** in
+  the benchmark. This is the definition of "performance done"; Track A is only
+  complete when this is ticked.
+
 ---
 
-## 7. Preserved backlog (non-perf, carried over from the deleted plans)
+## 7. Track B — gameplay & fun (single-player vs AI)
 
-Do **not** lose these; they are unrelated to the perf work.
+Deepens the skirmish-vs-AI experience. **Sequencing** (deliberate): the
+performance work (§5) lands **first** — at 45 units the sim is already ~5 FPS at
+p95, so heavy new AI/gameplay systems feel bad until Phases 1–4 hold, and the
+AI-depth items here explicitly build on the Phase 4 blackboard / squad /
+influence-map work. **Exception:** items tagged **⚡** are input/UI/setup level,
+independent of the perf refactor, and can ship **in parallel, starting now**.
+This track also absorbs the gameplay items from the preserved backlog (§9):
+healer healing and wall-as-gate.
 
-- **AI completeness**: verify the utility AI actually trains *every* unit type
+> **Research provenance.** The AI difficulty/fairness principles in §7.1 were
+> adversarially verified against primary sources (Hagelbäck & Johansson, IEEE CIG
+> 2009; Zohaib DDA review 2018; Khajah et al. CHI 2016). The economy/combat, QoL,
+> and replayability items draw on cited design writing (Wayward Strategy, Game
+> Developer, Blizzard, Liquipedia) and the named games — the deep-research run was
+> cut short by a session limit before its final synthesis, so treat those as
+> well-sourced design guidance rather than lab-verified fact. Sources in §10.
+
+### 7.1 North-star principles (what actually makes it fun)
+
+These are the load-bearing, evidence-backed rules. Several are **counter-intuitive**
+and should override "obvious" instincts.
+
+- **Aim for the flow channel, not for winning.** Too-easy is boring, too-hard is
+  frustrating; both kill fun. An opponent that produces *even, contested* matches
+  is measurably more enjoyable than a statically strong or weak one. *[verified]*
+- **Never throw the game.** An AI that deliberately drops its play to let the
+  player win was rated the **least** enjoyable of all opponents tested — worse than
+  a dumb static bot. Catch-up must never look like mercy. *[verified]*
+- **If you adapt difficulty, hide it.** Covert adjustment helps engagement; overt/
+  visible adjustment does little and gets **exploited** (players tank on purpose to
+  trigger easy mode). Keep any adaptation subtle and coherent with recent state.
+  *[verified]*
+- **Don't scale difficulty by resource-cheating alone.** Multiplying the AI's
+  gather rate is the cheap lever (AoE4's hardest tiers = 1.2×–2× resources) and it
+  reads as **unfair** — the classic feel-bad. Scale *decision quality, reaction
+  speed, aggression, build sophistication* first; reserve economic handicap for an
+  explicit, player-chosen slider. *[verified]*
+- **No rubber-banding.** Speeding the AI up when behind / slowing when ahead is a
+  known feel-bad; avoid it. *[verified]*
+- **The AI is load-bearing for everything else.** A skirmish game is only as
+  replayable as its AI is fun to beat — §7.4/§7.5 rest on §7.2.
+
+### 7.2 AI opponent depth — *builds on Phase 4 (blackboard / squads / influence maps)*
+
+- [ ] **Honest difficulty tiers** *(med)* — Easy→Hard scale *reaction time, scout
+  frequency, build-order tightness, micro, attack-trigger army size* — **not** stats.
+  A separate, transparent "handicap" slider exposes any economic advantage for players
+  who want it.
+- [ ] **Personalities that actually differ** *(med)* — the 4 personalities currently
+  only reweight goal categories; give each a signature build order + army composition
+  (AoE3-style) so opponents *feel* different game to game.
+- [ ] **Telegraph attacks** *(low–med)* — before an AI push, surface a cue (army
+  massing near the border, a "hostile force detected" alert, scout-visible staging).
+  Needs the alert system (§7.4).
+- [ ] **Reactive counters** *(med)* — AI scouts the player's composition and shifts
+  production toward counters instead of a fixed comp. Rides on Phase 4.
+- [ ] **Fair perception** *(med)* — AI acts on *scouted* info, not omniscience.
+  Pairs with the fog work.
+- [ ] **Optional covert DDA** *(med)* — within the chosen tier, nudge AI
+  aggression/expansion (never stats) toward even matches; hidden, coherent, never
+  throwing.
+- **✅ Verify:** play a match against each personality at ≥2 tiers — openings differ,
+  the higher tier is harder *without feeling like it cheated* (§7.1 guardrails hold),
+  and the §8.8 balance sim shows no single personality/tier dominating win-rate.
+
+### 7.3 Economy & combat decision depth
+
+- [ ] **Power spikes / timing** *(low)* — make tech/upgrade completion a visible,
+  meaningful army-strength jump so "attack right after Forged Blades finishes" is a
+  real decision. Mostly surfacing existing upgrades + feedback.
+- [ ] **Legible, imperfect counters** *(low–med)* — show strong/weak-against in the UI
+  and tune so range/speed/size matter; keep it *imperfect* RPS where
+  position/terrain/upgrades still decide. (Mechanic lives in §8.4.)
+- [ ] **Risk/reward economy** *(med)* — expanding/booming opens a real, scoutable
+  vulnerability window, so greed vs safety is a live choice. (Enabled by §8.3 worker
+  saturation.)
+- [ ] **Anti-snowball / comeback** *(med)* — diminishing returns so a small early lead
+  isn't an auto-win; the biggest fun-killer is a foregone 20-minute loss.
+- [ ] **Scouting payoff** *(med)* — a scout that reveals enemy tech/army so the player
+  makes informed build decisions. Ties to fog.
+- **✅ Verify:** in a playtest, an upgrade produces a *felt* power spike; counters are
+  readable and change fight outcomes; an early lead is not an auto-win (play out a
+  comeback); the §8.8 balance sim shows varied unit usage (no single dominant unit).
+
+### 7.4 Game feel & QoL — *the modern bar; many **⚡** parallelizable now*
+
+- [ ] ⚡ **Idle-worker management** *(low)* — a key (e.g. F1) to select/cycle idle
+  workers + a HUD count badge. Biggest economy-QoL win.
+- [ ] ⚡ **Control-group centering** *(low)* — double-tap a group number to center the
+  camera (Ctrl+0–9 already standard).
+- [ ] ⚡ **Shift-queued commands** *(low)* — hold Shift to queue
+  move/attack/gather/build waypoints.
+- [ ] ⚡ **Rally points** *(low)* — set a gather/attack rally on production buildings;
+  new units path there on spawn.
+- [ ] ⚡ **Alerts & minimap pings** *(low–med)* — "under attack / building complete /
+  unit idle / low on X" flash on the HUD and ping the minimap. **Wire the 6 dead
+  sound hooks (§8.5) here.**
+- [ ] ⚡ **Smart context commands** *(low)* — right-click a resource = gather; a built
+  drop-off auto-converts a move-onto into gather.
+- [ ] ⚡ **Instant command feedback** *(low)* — click/confirm cue + brief flash so
+  every order feels registered (single-player isn't lockstep — instant feedback is free).
+- [ ] **Production/queue UI** *(med)* — queue multiple units, see progress + rally.
+- [ ] **Readability pass** *(med)* — HP bars, team-color clarity, hover/selection
+  highlights, damage/heal floats.
+- **✅ Verify:** each item is observable in-game — idle-worker key selects/cycles and
+  the badge counts; double-tap centers; Shift queues; rally points path new units;
+  alerts fire *and* ping *and* play sound; right-click gathers; every order gives a
+  visible/audible cue.
+
+### 7.5 Replayability — *cheap match-to-match variety; mostly **⚡***
+
+- [ ] ⚡ **Match-setup screen** *(low)* — pick map size, #opponents, each AI's
+  personality + difficulty, resource richness. Turns one fixed skirmish into many.
+- [ ] ⚡ **Map/start randomization** *(low–med)* — seed-based terrain + randomized start
+  locations & resource layouts (terrain is already procedural).
+- [ ] **Victory conditions beyond annihilation** *(med)* — annihilation feels bad
+  (losing = you can't play anymore). Add economic / landmark / king-of-the-hill /
+  timed-score / relic-hold.
+- [ ] **Match modifiers ("mutators")** *(low–med)* — optional togglable rules (double
+  resources, no towers, sudden death, harsh-winter attrition à la Northgard).
+- [ ] **Dynamic map elements / random events** *(med)* — periodic neutral events
+  (resource booms, wandering hostiles, weather) that force adaptation.
+- **✅ Verify:** start 3 matches with different setup/seed and confirm they genuinely
+  differ (map, start positions, opponents); each non-annihilation victory condition
+  can be triggered to a win/loss; a mutator visibly changes the rules.
+
+### 7.6 Start-now cluster (parallel to Phases 1–3)
+
+All **⚡**, low-effort, independent of the pathfinding/AI refactor — pure
+playability that can land while the perf work is in flight:
+idle-worker key · control-group centering · shift-queue · rally points · alerts +
+minimap pings (wiring the dead sound hooks) · smart context commands · match-setup
+screen · map/start randomization. Ship these first for immediate feel wins; save
+§7.2's AI depth for after Phase 4.
+
+---
+
+## 8. Track C — UI/UX & game systems
+
+Polish, playability, and systems depth. A mix of **cheap fixes** (tagged **⚡** —
+safe to do anytime, independent of the perf refactor) and **deliberate systems
+work**. Two items — the resource model (§8.3) and the combat/RPS rework (§8.4) —
+change core game feel and are **balance-sensitive**: prototype, playtest, and
+validate with the balance sim (§8.8) before committing; the direction below is a
+recommended starting point, not a locked spec. **Suggested order:** the §8.1
+minimap fix and §8.5 audio hooks first (cheap, visible), then the §8.2 GUI rework
+as the visual backbone, with §8.3/§8.4 prototyped against §8.8 in parallel.
+
+### 8.1 Minimap & readability — *⚡ mostly quick fixes*
+
+Current state: [`ui/minimap.py`](ui/minimap.py) draws **every** unit, building, and
+resource as the same hardcoded green rect (line 54) — no owner color, no resource
+color, no fog respect, redrawn every frame. This is both a bug and a colorblind
+hazard.
+
+- [ ] ⚡ **Color by owner** *(low)* — own units/buildings in player color, enemies in a
+  distinct hostile color; buildings larger/brighter than units.
+- [ ] ⚡ **Resource colors** *(low)* — gold=amber, wood=green, stone=grey — by type,
+  not all-green.
+- [ ] ⚡ **Respect fog** *(low)* — don't reveal enemies/resources the player can't
+  currently see.
+- [ ] ⚡ **Colorblind-safe palette** *(low)* — choose player + resource colors for
+  contrast; shared with the HUD.
+- [ ] **Throttle + pings** *(low–med)* — redraw the dot layer at a few Hz (see §5
+  Phase 1 render pass) and add alert pings (shared with §7.4).
+- **✅ Verify:** in a live match the minimap shows your stuff, enemies, and each
+  resource type as visually distinct colors; fogged enemies do **not** appear; the
+  colors are distinguishable in a colorblind check.
+
+### 8.2 HUD & GUI rework — *structural*
+
+The UI works but is ad-hoc (delegated panels in `ui/components/*`) and hardcoded to
+1280×720 (`core/config.py`). Rework toward a cohesive, scalable system.
+
+- [ ] **Resolution independence + UI scaling** *(med–high)* — layout from
+  anchors/relative units, not fixed pixels; support arbitrary window sizes. Foundation
+  for everything visual.
+- [ ] **Command card / action grid** *(med)* — SC/AoE-style action grid for the
+  selection with grid hotkeys, replacing bespoke panels.
+- [ ] **Multi-select panel** *(med)* — grouped unit icons + counts + health for mixed
+  selections.
+- [ ] ⚡ **Settings menu** *(low–med)* — resolution, volume, default game speed,
+  hotkeys — long-deferred.
+- [ ] **Universal tooltips** *(low–med)* — cost, counters, description on hover for
+  every unit/building/tech.
+- [ ] **Event/notification feed** *(low–med)* — scrolling log of alerts. Pairs with §7.4.
+- [ ] **Menu polish** *(low–med)* — main/pause/victory screens scale and share the
+  visual language.
+- **✅ Verify:** resize the window to a non-720p size and confirm the HUD lays out
+  correctly with no clipping; the command card issues actions; tooltips appear on
+  hover; settings changes persist across a restart.
+
+### 8.3 Resource model rethink — *balance-sensitive*
+
+Today: gold/stone (1/s, carry 10, 1000-node), wood (2/s, carry 20, 600-node), food
+from farms (3/s) — four resources with fuzzy identities.
+
+- [ ] **Sharpen resource identity** *(med)* — give each a distinct strategic role
+  (e.g. gold = scarce/contested → map control; wood = renewable bulk; stone =
+  rare/strategic → defense & key buildings; food = land+labor). Or cut to 2–3 if roles
+  can't be made distinct.
+- [ ] **Worker saturation** *(med)* — per-node gatherer cap with diminishing returns
+  (SC-style) so income growth *requires* expansion — the cheapest way to create the
+  greed-vs-safety tension in §7.3.
+- [ ] **Gathering range/flow tuning** *(low)* — `GATHERING_DISTANCE_MULTIPLIER = 0.5`
+  makes workers hug nodes; tune gather + drop-off distances so it feels smooth.
+- [ ] **Income-rate HUD** *(low)* — show per-second deltas, not just stockpiles.
+- **✅ Verify:** *prototype behind a flag first.* With saturation on, a second base
+  measurably raises income (chart income vs worker count); the income HUD matches
+  actual gains; the §8.8 balance sim shows the AI expanding rather than one-basing.
+
+### 8.4 Unit combat / RPS rework — *balance-sensitive*
+
+Two counter systems currently disagree: `strong_against`/`weak_against` tags are used
+only by UI/AI ([combat_rules.py](systems/combat_rules.py) never reads them), while
+real damage is `attack_type × armor_type` (`EFFECTIVENESS_TABLE`). Worse, **spearman
+and archer are both `pierce`/`light`** — mechanically near-identical, so their roles
+collapse.
+
+- [ ] **One coherent counter model** *(med)* — keep armor classes, add explicit
+  **bonus-vs-tag** damage (AoE-style) and wire `strong_against` into `calculate_damage`
+  so spearman counters cavalry distinctly from archer. Every unit gets a clear job +
+  clear counter; no dominant pick.
+- [ ] **Legible counters** *(low–med)* — show strong/weak-vs in the unit panel; pop
+  "Effective!/Resisted!" combat feedback. Realizes §7.3's legible-counters item.
+- [ ] **Position matters** *(med)* — high-ground / forest-cover / flank bonuses so
+  terrain and positioning are combat levers, not just unit type (imperfect RPS).
+- **✅ Verify:** *prototype behind a flag first.* Spearman-vs-cavalry does distinctly
+  more damage than archer-vs-cavalry (read the numbers); the unit panel shows counters
+  and combat pops "Effective/Resisted"; the §8.8 balance sim shows no single dominant
+  unit and every unit sees use.
+
+### 8.5 Audio & juice — *⚡ highest feel-per-hour*
+
+Cheap, huge payoff. Six `play_*` sound methods already exist but are **never called**
+(§9 backlog).
+
+- [ ] ⚡ **Wire existing SFX** *(low)* — hook up
+  `attack`/`select`/`move_order`/`gather`/`build_complete`/`alert` (they exist but are
+  never called) — instant feedback everywhere.
+- [ ] ⚡ **Unit response barks** *(low–med)* — selection/order acknowledgements per unit
+  type. Big personality gain.
+- [ ] **Combat & impact SFX** *(low–med)* — layered hit/death/siege sounds; ties to VFX.
+- [ ] **Music & ambient** *(low–med)* — menu/game tracks + ambient bed; duck under alerts.
+- [ ] **VFX / juice** *(med)* — hit sparks, death fades, movement dust, muzzle/impact
+  flashes, staged construction visuals, screen shake on big events (build on existing
+  particles + castle-destruction shake).
+- **✅ Verify:** play a match and confirm every listed SFX fires at the right moment
+  (select, move, gather, build-complete, attack, alert), music/ambient is audible, and
+  combat shows the new VFX.
+
+### 8.6 Camera, hotkeys & control — *⚡*
+
+- [ ] ⚡ **Camera nav** *(low–med)* — edge-scroll, jump-to-base / cycle-army /
+  jump-to-idle, camera bookmarks.
+- [ ] ⚡ **Rebindable hotkeys** *(med)* — full remap layer + grid hotkeys for production
+  (pairs with §8.2 command card).
+- **✅ Verify:** edge-scroll and each jump hotkey move the camera as intended; a rebound
+  key works and the binding survives a restart.
+
+### 8.7 Meta, onboarding & accessibility
+
+- [ ] ⚡ **Post-match summary** *(low–med)* — resources gathered, units lost, peak army,
+  APM, match length. Disproportionately sticky for the effort.
+- [ ] **Profile & achievements** *(med)* — persistent stats + simple achievements for a
+  light progression loop.
+- [ ] **Onboarding** *(med)* — tooltips + a practice/first-match flow so new players
+  aren't lost.
+- [ ] **Accessibility** *(med)* — colorblind palette (shared with §8.1), UI scale
+  (§8.2), remappable keys (§8.6).
+- **✅ Verify:** finish a match and the summary shows real numbers; stats persist across
+  runs; a new player can identify what to do from tooltips alone; colorblind mode
+  visibly changes the palette.
+
+### 8.8 Balance tooling
+
+- [ ] **Balance sim** *(low–med)* — extend `tools/benchmark_ai_spectator.py` to batch
+  AI-vs-AI matches and report win rates per personality + unit usage, so §8.3/§8.4 are
+  tuned empirically, not by feel.
+- **✅ Verify:** running the sim over N matches prints per-personality win-rates and a
+  unit-usage histogram; the numbers are stable enough across seeds to guide balance.
+
+### 8.9 Bigger swings (later; likely past "polish" scope)
+
+Hero units + abilities/spells · garrison & transport · day-night / weather · neutral
+map objectives. Listed for completeness; revisit only after Tracks A–C land.
+
+---
+
+## 9. Preserved backlog (non-perf, carried over from the deleted plans)
+
+Do **not** lose these; they are unrelated to the perf work. Trackable, but
+unsequenced — pull them in where they fit.
+
+- [ ] **AI completeness**: verify the utility AI actually trains *every* unit type
   (spearman / cavalry / ram / healer) and builds every building type
   (stable / blacksmith / siege_workshop / watchtower / wall) — the old plan flagged
   training/building gaps.
-- **Defensive-stance freeze**: units chasing past `stance_chase_distance` stop in
+- [ ] **Defensive-stance freeze**: units chasing past `stance_chase_distance` stop in
   the field instead of returning to `stance_home_position`.
-- **Healer doesn't heal**: trainable, walks, no healing logic anywhere.
-- **Wall is a 1×1 building**: no gate, thin profile, or special placement.
-- **Save/Load is a thin slice**: misses terrain seed, AI state, fog grids, scout
+- [ ] **Healer doesn't heal**: trainable, walks, no healing logic anywhere. (→ §7/§8.)
+- [ ] **Wall is a 1×1 building**: no gate, thin profile, or special placement. (→ §8.)
+- [ ] **Save/Load is a thin slice**: misses terrain seed, AI state, fog grids, scout
   explored tiles, paths, gathering/building/combat targets, production/research
   queues, formation, control groups, stance homes, tree-regrowth tracker. Revisit
   after the AI/movement state shape settles (Phases 3–4).
-- **Sound coverage**: `attack`, `select`, `move_order`, `gather`, `build_complete`,
-  `alert` are defined but never called.
-- **Test coverage**: existing tests assert constants/attributes, not behavior. Add
+- [ ] **Sound coverage**: `attack`, `select`, `move_order`, `gather`, `build_complete`,
+  `alert` are defined but never called. (Realized in §8.5.)
+- [ ] **Test coverage**: existing tests assert constants/attributes, not behavior. Add
   integration tests that run the AI for N ticks and assert observable outcomes,
   plus the Phase 0 perf-regression gate.
-- **Docs housekeeping**: `CLAUDE.md` / `AGENTS.md` still describe the old 4-phase
-  state-machine AI and an 8 px grid (it's a 20 px grid + utility AI now). Refresh
-  once this plan lands.
+- [ ] **Docs housekeeping**: `CLAUDE.md` was corrected (2026-07-09) to match the 20 px
+  grid + utility AI and point here. `AGENTS.md` still describes the old 4-phase
+  state-machine AI and 8 px grid — refresh it too.
 
 ---
 
-## 8. References
+## 10. References
 
 **Global pathfinding** — Flow fields: Emerson, "Crowd Pathfinding and Steering
 Using Flow Field Tiles," *Game AI Pro* ch. 23
@@ -341,3 +680,29 @@ tonogameconsultants.com/ai-blackboard.
 (making.close.com/posts/taming-the-python-gc); Numba
 (numba.pydata.org/numba-doc/dev/user/performance-tips.html); GIL
 (realpython.com/python-gil).
+
+**Game design & fun (single-player RTS, Track B)** — *Difficulty & fairness
+(adversarially verified):* Hagelbäck & Johansson, "Measuring player experience on
+runtime dynamic difficulty scaling in an RTS game," IEEE CIG 2009 (the 60-player
+ORTS study — adaptive > static, and the game-throwing bot was least fun); Zohaib,
+"Dynamic Difficulty Adjustment in Computer Games: A Review," Adv. HCI 2018
+(onlinelibrary.wiley.com/doi/10.1155/2018/5681652); Khajah et al., CHI 2016 (covert
+> overt); en.wikipedia.org/wiki/Dynamic_game_difficulty_balancing; "Game AI: Our
+Cheatin' Hearts" (gamedeveloper.com); AoE4 Anniversary difficulty tiers
+(player.one). *Economy/combat depth:* Wayward Strategy — anti-snowball, timing
+attacks, dynamic map elements (waywardstrategy.com); Liquipedia StarCraft II Timing
+Attack; Game Developer — early-game phase, balance-of-power, victory conditions.
+*QoL/UX:* Blizzard SC2 control guide (news.blizzard.com/.../game-guide-special-control)
++ 5.0.16 patch notes; Pottinger RTS-UI interview (waywardstrategy.com); Game
+Developer UI dos-and-don'ts. *Replayability:* StarCraft II Co-op mutators
+(starcraft2coop.com/resources/mutators); AoE AI personalities
+(ageofempires.fandom.com/wiki/AI_personality).
+
+**UI/UX & systems (Track C)** — RTS UI/readability & minimap: Pottinger interview
+(waywardstrategy.com) and Game Developer UI dos-and-don'ts (both above); command
+card / grid hotkeys and idle-worker/control-group patterns: Blizzard SC2 control
+guide (above). Bonus-vs-class counter model & worker (mineral) saturation as
+expansion pressure: Age of Empires II / StarCraft design (widely documented, e.g.
+ageofempires.fandom.com, liquipedia.net). Colorblind-safe palettes: standard
+accessibility practice. Much of Track C is conventional RTS practice rather than a
+single citable source.
