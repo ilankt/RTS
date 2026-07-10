@@ -70,6 +70,7 @@ class RenderingSystem:
         self.game.ui_manager.draw_ui_panel(screen)
         self.game.ui_manager.draw_top_bar(screen)
         self.game.ui_manager.draw_alerts(screen)
+        self.game.ui_manager.draw_event_log(screen)
         self.game.ai_debug_panel.draw(screen)
     
     ORDER_FLASH_MS = 450

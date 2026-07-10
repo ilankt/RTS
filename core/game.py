@@ -309,6 +309,8 @@ class Game:
             self._set_camera_bookmark()
         elif self.keybindings.matches("camera_bookmark_jump", event.key):
             self._jump_camera_bookmark()
+        elif self.keybindings.matches("toggle_event_log", event.key):
+            self.ui_manager.toggle_event_log()
         else:
             # Control groups: 1-9
             key_num = None

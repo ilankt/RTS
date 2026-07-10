@@ -36,12 +36,17 @@ class UIManager:
         # Cancel construction button
         self.cancel_construction_rect = None
 
-        # Alert feed (§7.4): fading toasts under the top bar
+        # Alert feed (§7.4): fading toasts under the top bar, plus a
+        # persistent scrolling log behind them (§8.2, toggled with L)
         self.alerts = []  # [(text, start_ticks)]
+        self.alert_history = []  # [(text, sim_time)] — newest last
+        self.show_event_log = False
         self._alert_last = {}  # throttle_key -> last ticks
 
     ALERT_DURATION_MS = 4000
     ALERT_MAX_VISIBLE = 5
+    HISTORY_MAX = 50
+    LOG_VISIBLE_LINES = 10
 
     def add_alert(self, text, world_pos=None, throttle_key=None, throttle_ms=0):
         """HUD toast + optional minimap ping. Returns False when throttled."""
@@ -53,9 +58,35 @@ class UIManager:
             self._alert_last[throttle_key] = now
         self.alerts.append((text, now))
         self.alerts = self.alerts[-self.ALERT_MAX_VISIBLE:]
+        self.alert_history.append((text, getattr(self.game, "sim_time_elapsed", 0.0)))
+        self.alert_history = self.alert_history[-self.HISTORY_MAX:]
         if world_pos is not None and getattr(self.game, "minimap", None):
             self.game.minimap.add_ping(world_pos[0], world_pos[1])
         return True
+
+    def toggle_event_log(self):
+        self.show_event_log = not self.show_event_log
+
+    def draw_event_log(self, screen):
+        """Scrolling log of past alerts, stamped with game time (§8.2)."""
+        if not self.show_event_log:
+            return
+        from core.config import TOP_BAR_HEIGHT, SCREEN_HEIGHT
+
+        entries = self.alert_history[-self.LOG_VISIBLE_LINES:]
+        line_height = 20
+        panel_height = max(1, len(entries)) * line_height + 30
+        panel = pygame.Surface((340, panel_height), pygame.SRCALPHA)
+        panel.fill((0, 0, 0, 170))
+        title = self.small_font.render("Event log (L)", True, (200, 180, 100))
+        panel.blit(title, (8, 5))
+        y = 26
+        for text, sim_time in entries:
+            minutes, seconds = divmod(int(sim_time), 60)
+            line = self.small_font.render(f"{minutes:02d}:{seconds:02d}  {text}"[:44], True, (220, 220, 220))
+            panel.blit(line, (8, y))
+            y += line_height
+        screen.blit(panel, (10, SCREEN_HEIGHT - panel_height - 40))
 
     def draw_alerts(self, screen):
         """Stacked fading alert toasts below the top bar."""

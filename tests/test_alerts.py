@@ -66,3 +66,30 @@ def test_draw_alerts_prunes_expired(game):
     ui.alerts = [("fresh", now), ("stale", now - ui.ALERT_DURATION_MS - 1)]
     ui.draw_alerts(surface)
     assert [text for text, _ in ui.alerts] == ["fresh"]
+
+
+def test_event_log_keeps_history_beyond_toasts(game):
+    """§8.2 event feed: history outlives the 5-toast window, stamped with sim time."""
+    ui = game.ui_manager
+    ui.alerts.clear()
+    ui.alert_history.clear()
+    ui._alert_last.clear()
+
+    game.sim_time_elapsed = 90.0
+    for i in range(12):
+        ui.add_alert(f"event {i}")
+    assert len(ui.alerts) == ui.ALERT_MAX_VISIBLE  # toasts capped
+    assert len(ui.alert_history) == 12             # log keeps them all
+    assert ui.alert_history[0] == ("event 0", 90.0)
+
+    for i in range(ui.HISTORY_MAX + 10):
+        ui.add_alert(f"flood {i}")
+    assert len(ui.alert_history) == ui.HISTORY_MAX  # bounded
+
+    # Toggle + draw smoke test
+    import pygame
+    assert not ui.show_event_log
+    ui.toggle_event_log()
+    assert ui.show_event_log
+    ui.draw_event_log(pygame.Surface((1280, 720)))
+    ui.toggle_event_log()

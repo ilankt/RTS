@@ -652,7 +652,9 @@ The UI works but is ad-hoc (delegated panels in `ui/components/*`) and hardcoded
   availability reason. Buildings (build menu): role, cost, availability
   reason, strong/weak-vs. Selected units additionally show counters in the
   unit panel (§8.4).
-- [ ] **Event/notification feed** *(low–med)* — scrolling log of alerts. Pairs with §7.4.
+- [x] **Event/notification feed** *(low–med)* — 2026-07-10: every alert also
+  lands in a 50-entry history stamped with game time; **L** (rebindable)
+  toggles a bottom-left log panel showing the last 10 as `mm:ss — text`.
 - [ ] **Menu polish** *(low–med)* — main/pause/victory screens scale and share the
   visual language.
 - **✅ Verify:** resize the window to a non-720p size and confirm the HUD lays out

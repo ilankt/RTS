@@ -29,6 +29,7 @@ DEFAULT_BINDINGS = {
     "cycle_formation": "f",
     "camera_bookmark_set": "b",   # save current camera view (4 rotating slots)
     "camera_bookmark_jump": "n",  # cycle through saved views
+    "toggle_event_log": "l",      # scrolling log of past alerts (§8.2)
 }
 
 
