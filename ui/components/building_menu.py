@@ -404,13 +404,15 @@ class BuildingMenu:
         )
 
     def _draw_building_tooltip(self, surface, building, reason, ui_width, ui_height):
-        tooltip_h = 78
+        tooltip_h = 95
         tooltip_rect = pygame.Rect(6, ui_height - BUILDING_BUTTON_HEIGHT - tooltip_h - 12, ui_width - 12, tooltip_h)
         pygame.draw.rect(surface, (12, 12, 12), tooltip_rect)
         pygame.draw.rect(surface, (120, 120, 120), tooltip_rect, 1)
 
+        costs = self._format_costs(building)
         lines = [
             building.get('role', ''),
+            f"Cost: {costs}" if costs else "",
             reason,
         ]
         if building.get('strong_against'):
@@ -419,7 +421,7 @@ class BuildingMenu:
             lines.append("Weak: " + ", ".join(x.title() for x in building['weak_against'][:2]))
 
         y = tooltip_rect.y + 6
-        for line in [line for line in lines if line][:4]:
+        for line in [line for line in lines if line][:5]:
             rendered = self.small_font.render(line[:28], True, (230, 230, 230))
             surface.blit(rendered, (tooltip_rect.x + 6, y))
             y += 17

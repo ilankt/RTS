@@ -272,10 +272,13 @@ class ProductionPanel:
 
         lines = []
         if hovered.get('kind') == 'unit':
-            unit = self.game.game_data.get("units", {}).get(hovered["unit_type"])
+            unit_type = hovered["unit_type"]
+            unit = self.game.game_data.get("units", {}).get(unit_type)
+            costs = self.game.game_data.get("costs", {}).get(unit_type, {})
             lines = [
-                getattr(unit, "display_name", hovered["unit_type"].title()),
+                getattr(unit, "display_name", unit_type.title()),
                 getattr(unit, "role", ""),
+                self._cost_line(costs, getattr(unit, "build_time", None)),
             ]
             if getattr(unit, "strong_against", None):
                 lines.append("Strong: " + ", ".join(x.title() for x in unit.strong_against[:2]))
@@ -286,14 +289,24 @@ class ProductionPanel:
             lines = [
                 tech.get("display_name", hovered.get("tech_id", "")),
                 tech.get("tooltip", ""),
+                self._cost_line(tech.get("costs", {}), tech.get("research_time")),
                 hovered.get("reason", ""),
             ]
 
         y = tooltip_rect.y + 6
-        for line in [line for line in lines if line][:4]:
-            text = self.cost_font.render(line[:30], True, (230, 230, 230))
+        for line in [line for line in lines if line][:5]:
+            text = self.cost_font.render(line[:32], True, (230, 230, 230))
             screen.blit(text, (tooltip_rect.x + 6, y))
-            y += 18
+            y += 16
+
+    @staticmethod
+    def _cost_line(costs, seconds):
+        """"Cost: 50 Food, 20 Gold - 12s" (§8.2 universal tooltips)."""
+        parts = [f"{amount} {resource.title()}" for resource, amount in costs.items() if amount > 0]
+        line = "Cost: " + ", ".join(parts) if parts else ""
+        if seconds:
+            line = (line + f" - {seconds:.0f}s") if line else f"Time: {seconds:.0f}s"
+        return line
     
     def _draw_icon_with_radial_progress(self, screen, icon, icon_rect, progress):
         """Draw icon with radial clockwise progress effect"""

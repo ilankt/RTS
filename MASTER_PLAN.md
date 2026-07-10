@@ -645,8 +645,13 @@ The UI works but is ad-hoc (delegated panels in `ui/components/*`) and hardcoded
   git-ignored); hotkey *rebinds* live in §8.6's `keybindings.json` — an
   in-game remap UI is the remaining piece of both items. Tests in
   `tests/test_settings.py`.
-- [ ] **Universal tooltips** *(low–med)* — cost, counters, description on hover for
-  every unit/building/tech.
+- [x] **Universal tooltips** *(low–med)* — completed 2026-07-10: every hover
+  tooltip now carries name/role/description, **cost + build/research time**,
+  and counters. Units (production panel): display name, role, cost line,
+  strong/weak-vs. Techs: display name, effect tooltip, cost + research time,
+  availability reason. Buildings (build menu): role, cost, availability
+  reason, strong/weak-vs. Selected units additionally show counters in the
+  unit panel (§8.4).
 - [ ] **Event/notification feed** *(low–med)* — scrolling log of alerts. Pairs with §7.4.
 - [ ] **Menu polish** *(low–med)* — main/pause/victory screens scale and share the
   visual language.
