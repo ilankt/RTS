@@ -372,7 +372,7 @@ class GatheringManager:
                     tree.x = x
                     tree.y = y
                     self.game.resources.append(tree)
-                    self.game.pathfinder.mark_dirty()
+                    self.game.pathfinder.notify_blocker_added(tree)
         
         return False  # Still dropping off
     

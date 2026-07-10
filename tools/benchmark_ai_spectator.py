@@ -35,10 +35,15 @@ def parse_args():
     parser.add_argument("--max-ai-max-ms", type=float, default=None, help="Fail if ai_max_ms exceeds this.")
     parser.add_argument("--output", type=str, default=None, help="Write the summary JSON to this path.")
     parser.add_argument("--profile", type=str, default=None, help="Run under cProfile and dump stats to this path.")
+    parser.add_argument("--seed", type=int, default=12345, help="RNG seed for map/personalities (0 = unseeded).")
     return parser.parse_args()
 
 
 def run_benchmark(args):
+    if args.seed:
+        import random
+
+        random.seed(args.seed)
     perf_stats.enabled = True
     game = Game(mode="ai_spectator", player_count=4)
     game.game_speed = args.speed

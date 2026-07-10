@@ -42,6 +42,8 @@ class PerfStats:
             "path_cache_misses": 0,
             "path_cache_evictions": 0,
             "path_mark_dirty": 0,
+            "path_full_rebuilds": 0,
+            "path_incremental_updates": 0,
             "path_rebuild_ms": 0.0,
             "collision_checks": 0,
             "debug_log_writes": 0,

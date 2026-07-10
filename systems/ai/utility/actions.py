@@ -85,7 +85,7 @@ def start_construction(ctx, building_name: str, building_placer) -> bool:
         return False
 
     ctx.game.construction_sites.append(site)
-    ctx.game.pathfinder.mark_dirty()
+    ctx.game.pathfinder.notify_blocker_added(site)
     worker_tasks = getattr(ctx.game, "worker_task_system", None)
     if worker_tasks:
         success = worker_tasks.assign_build(worker, site)

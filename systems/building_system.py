@@ -188,7 +188,7 @@ class BuildingSystem:
         )
         
         self.game.construction_sites.append(construction_site)
-        self.game.pathfinder.mark_dirty()
+        self.game.pathfinder.notify_blocker_added(construction_site)
         
         # Debug logging
         debug_log.log(f"Building placement: Assigned worker {id(self.selected_builder)} to construction site", "BUILDING")
@@ -209,6 +209,7 @@ class BuildingSystem:
     def update_construction(self, delta_time):
         """Update construction progress for all construction sites"""
         completed_sites = []
+        completed_buildings = []
         
         for site in self.game.construction_sites:
             # Log construction site status
@@ -259,6 +260,7 @@ class BuildingSystem:
                     
                     self.game.buildings.append(building_class)
                     completed_sites.append(site)
+                    completed_buildings.append(building_class)
                     
                     # Free the builder with complete state cleanup before nudging
                     if site.builder:
@@ -331,13 +333,16 @@ class BuildingSystem:
                     if hasattr(self.game, 'ai_system') and self.game.ai_system and site.player:
                         self.game.ai_system.invalidate_memory_cache(site.player)
         
-        # Remove completed construction sites
+        # Remove completed construction sites; the finished buildings replace
+        # them as blockers at the same spot
         if completed_sites:
             for site in completed_sites:
                 if site in self.game.construction_sites:
                     site.in_world = False
                     self.game.construction_sites.remove(site)
-            self.game.pathfinder.mark_dirty()
+                    self.game.pathfinder.notify_blocker_removed(site)
+            for building in completed_buildings:
+                self.game.pathfinder.notify_blocker_added(building)
     
     def cancel_construction(self, construction_site):
         """Cancel a construction site and refund half the resources"""
@@ -368,7 +373,7 @@ class BuildingSystem:
             # Remove the construction site
             construction_site.in_world = False
             self.game.construction_sites.remove(construction_site)
-            self.game.pathfinder.mark_dirty()
+            self.game.pathfinder.notify_blocker_removed(construction_site)
 
             # Cancelled construction, refunded half resources
     

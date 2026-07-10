@@ -35,6 +35,33 @@ NAV_CELL_SIZE = GRID_SIZE
 CLEARANCE_BUFFER = 2.0
 CONTACT_BUFFER = 4.0
 MAX_NEAREST_CELLS = 24
+# Upper bound on unit radii that can appear in walkable-cache queries; used to
+# size the invalidation region around a changed blocker.
+MAX_CACHED_UNIT_RADIUS = 32.0
+
+
+def _segment_intersects_rect(a: Point, b: Point, rect) -> bool:
+    """Liang-Barsky style test: does segment a-b touch the (x0,y0,x1,y1) rect?"""
+    x0, y0, x1, y1 = rect
+    ax, ay = a
+    bx, by = b
+    dx = bx - ax
+    dy = by - ay
+    t_min, t_max = 0.0, 1.0
+    for delta, low, high in ((dx, x0 - ax, x1 - ax), (dy, y0 - ay, y1 - ay)):
+        if delta == 0.0:
+            if low > 0.0 or high < 0.0:
+                return False
+            continue
+        t_low = low / delta
+        t_high = high / delta
+        if t_low > t_high:
+            t_low, t_high = t_high, t_low
+        t_min = max(t_min, t_low)
+        t_max = min(t_max, t_high)
+        if t_min > t_max:
+            return False
+    return True
 
 
 @dataclass
@@ -67,7 +94,9 @@ class NavigationGrid:
         self.revision = 0
         self.blockers: List[object] = []
         self._blocker_buckets: Dict[Cell, List[object]] = {}
-        self._walkable_cache: Dict[Tuple, bool] = {}
+        # cell -> {unit_radius: walkable}; invalidated per-region on blocker
+        # changes, fully cleared only by rebuild()
+        self._walkable_cache: Dict[Cell, Dict[float, bool]] = {}
         self.world_width, self.world_height = self._calculate_world_bounds()
         self._terrain_cols = int(self.world_width // cell_size) + 2
         self._terrain_rows = int(self.world_height // cell_size) + 2
@@ -93,9 +122,61 @@ class NavigationGrid:
         perf_stats.add_time("path_rebuild_ms", (time.perf_counter() - start_time) * 1000.0)
 
     def mark_dirty(self):
+        """Full rebuild — bulk fallback (setup, load, restart, tests)."""
         self.revision += 1
         perf_stats.increment("path_mark_dirty")
+        perf_stats.increment("path_full_rebuilds")
         self.rebuild()
+
+    def add_blocker(self, obj):
+        """Incrementally index a newly added blocker.
+
+        Returns the invalidated world bbox, or None if the object doesn't
+        block navigation (caller then needs no path invalidation)."""
+        if not self._blocks_navigation(obj):
+            return None
+        if obj in self.blockers:
+            return None
+        self.blockers.append(obj)
+        self._index_blocker(obj)
+        self.revision += 1
+        return self._invalidate_region(obj)
+
+    def remove_blocker(self, obj):
+        """Incrementally un-index a removed blocker (bbox or None)."""
+        try:
+            self.blockers.remove(obj)
+        except ValueError:
+            return None
+        self._unindex_blocker(obj)
+        self.revision += 1
+        return self._invalidate_region(obj)
+
+    def _unindex_blocker(self, obj):
+        padding = getattr(obj, "radius", 0) + CLEARANCE_BUFFER
+        min_cell = self.world_to_cell((obj.x - padding, obj.y - padding))
+        max_cell = self.world_to_cell((obj.x + padding, obj.y + padding))
+        for cell_x in range(min_cell[0], max_cell[0] + 1):
+            for cell_y in range(min_cell[1], max_cell[1] + 1):
+                bucket = self._blocker_buckets.get((cell_x, cell_y))
+                if bucket and obj in bucket:
+                    bucket.remove(obj)
+                    if not bucket:
+                        del self._blocker_buckets[(cell_x, cell_y)]
+
+    def _invalidate_region(self, obj):
+        """Drop walkable-cache entries around a changed blocker; return the
+        world bbox that path caches must invalidate against."""
+        pad = getattr(obj, "radius", 0) + CLEARANCE_BUFFER + MAX_CACHED_UNIT_RADIUS + self.cell_size
+        min_x, min_y = obj.x - pad, obj.y - pad
+        max_x, max_y = obj.x + pad, obj.y + pad
+        min_cell = self.world_to_cell((min_x, min_y))
+        max_cell = self.world_to_cell((max_x, max_y))
+        cache = self._walkable_cache
+        for cell_x in range(min_cell[0], max_cell[0] + 1):
+            for cell_y in range(min_cell[1], max_cell[1] + 1):
+                cache.pop((cell_x, cell_y), None)
+        return (min_x, min_y, max_x, max_y)
 
     def world_to_cell(self, point: Point) -> Cell:
         return (int(point[0] // self.cell_size), int(point[1] // self.cell_size))
@@ -124,13 +205,18 @@ class NavigationGrid:
         if cell[0] < 0 or cell[1] < 0:
             return False
         if not ignore:
-            cache_key = (self.revision, cell, round(unit_radius, 2))
-            if cache_key in self._walkable_cache:
-                return self._walkable_cache[cache_key]
+            per_cell = self._walkable_cache.get(cell)
+            if per_cell is not None:
+                cached = per_cell.get(unit_radius)
+                if cached is not None:
+                    return cached
         point = self.cell_to_world(cell)
         walkable = self.point_walkable(point, unit_radius, ignore)
         if not ignore:
-            self._walkable_cache[cache_key] = walkable
+            per_cell = self._walkable_cache.get(cell)
+            if per_cell is None:
+                per_cell = self._walkable_cache[cell] = {}
+            per_cell[unit_radius] = walkable
         return walkable
 
     def segment_clear(
@@ -320,8 +406,39 @@ class Pathfinding:
         self._path_frame_spent_ms = 0.0
 
     def mark_dirty(self):
+        """Full nav + path-cache rebuild. Bulk fallback only — runtime world
+        changes should go through notify_blocker_added/removed instead."""
         self.grid.mark_dirty()
         self._path_cache.clear()
+
+    def notify_blocker_added(self, obj):
+        """Incrementally register a new static blocker (building/site/resource)."""
+        bbox = self.grid.add_blocker(obj)
+        if bbox is not None:
+            perf_stats.increment("path_incremental_updates")
+            self._invalidate_paths_in_bbox(bbox)
+
+    def notify_blocker_removed(self, obj):
+        """Incrementally unregister a removed/destroyed/depleted blocker."""
+        bbox = self.grid.remove_blocker(obj)
+        if bbox is not None:
+            perf_stats.increment("path_incremental_updates")
+            self._invalidate_paths_in_bbox(bbox)
+
+    def _invalidate_paths_in_bbox(self, bbox):
+        """Drop cached paths whose polyline crosses the changed region."""
+        stale_keys = []
+        cell_to_world = self.grid.cell_to_world
+        for key, result in self._path_cache.items():
+            start_point = cell_to_world(key[0])
+            previous = start_point
+            for waypoint in result.waypoints:
+                if _segment_intersects_rect(previous, waypoint, bbox):
+                    stale_keys.append(key)
+                    break
+                previous = waypoint
+        for key in stale_keys:
+            del self._path_cache[key]
 
     def find_path(
         self,
@@ -499,7 +616,7 @@ class Pathfinding:
         mode: str,
         target,
     ) -> NavigationResult:
-        cache_key = (self.grid.revision, start_cell, goal_cell, round(unit_radius, 2), mode, id(target))
+        cache_key = (start_cell, goal_cell, round(unit_radius, 2), mode, id(target))
         cached = self._path_cache.get(cache_key)
         if cached and cached.ok and self.grid.segment_clear(start, cached.waypoints[0], unit_radius):
             self.cache_hits += 1

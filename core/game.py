@@ -484,8 +484,6 @@ class Game:
     
     def _cleanup_destroyed_objects(self):
         """Remove destroyed units and buildings"""
-        world_changed = False
-
         # Remove destroyed units
         destroyed_units = [unit for unit in self.units if unit.hp <= 0]
         for unit in destroyed_units:
@@ -493,24 +491,20 @@ class Game:
 
         # Remove destroyed buildings
         destroyed_buildings = [building for building in self.buildings if building.hp <= 0]
-        if destroyed_buildings:
-            world_changed = True
         for building in destroyed_buildings:
             self.combat_system.handle_building_destruction(building)
+            self.pathfinder.notify_blocker_removed(building)
 
         # Remove destroyed construction sites
-        old_site_count = len(self.construction_sites)
-        for site in self.construction_sites:
-            if site.hp <= 0:
-                site.in_world = False
-        self.construction_sites = [site for site in self.construction_sites if site.hp > 0]
-        if len(self.construction_sites) != old_site_count:
-            world_changed = True
-        
+        destroyed_sites = [site for site in self.construction_sites if site.hp <= 0]
+        for site in destroyed_sites:
+            site.in_world = False
+            self.pathfinder.notify_blocker_removed(site)
+        if destroyed_sites:
+            self.construction_sites = [site for site in self.construction_sites if site.hp > 0]
+
         # Remove depleted resources
         depleted_resources = [resource for resource in self.resources if resource.amount_remaining <= 0]
-        if depleted_resources:
-            world_changed = True
         for resource in depleted_resources:
             debug_log.log(f"Removing depleted {resource.name} resource at ({resource.x:.0f}, {resource.y:.0f})", "GENERAL")
             
@@ -572,13 +566,11 @@ class Game:
             # Remove from resources list
             resource.in_world = False
             self.resources.remove(resource)
-            
+            self.pathfinder.notify_blocker_removed(resource)
+
             # Invalidate AI memory cache since resources changed
             if hasattr(self, 'ai_system') and self.ai_system:
                 self.ai_system.invalidate_memory_cache()
-
-        if world_changed:
-            self.pathfinder.mark_dirty()
 
     def _check_victory_defeat(self):
         """Check if victory or defeat conditions are met"""

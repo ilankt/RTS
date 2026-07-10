@@ -297,6 +297,88 @@ def test_navigation_index_matches_reference_walkability_dense_sweep():
     sweep()
 
 
+def test_incremental_blocker_updates_match_reference():
+    """The incremental add/remove path must produce exactly the same walkability
+    as a full rebuild, including cache invalidation in the changed region."""
+    game_map = FakeMap(width=10, height=10)
+    for row in range(2, 5):
+        game_map.grid[row][6] = "water"
+    pathfinder, game = make_pathfinder(game_map)
+
+    def sweep():
+        for radius in (4, 8, 12):
+            for y in range(16, game_map.height * 64, 48):
+                for x in range(16, game_map.width * 64, 48):
+                    point = (x, y)
+                    assert pathfinder.grid.point_walkable(point, radius) == reference_walkable(
+                        game, point, radius
+                    ), f"mismatch at {point} radius {radius}"
+
+    def sweep_cells():
+        # cell_walkable goes through the per-cell cache — exercise it too
+        for radius in (8,):
+            for cell_y in range(0, 30):
+                for cell_x in range(0, 30):
+                    cell = (cell_x, cell_y)
+                    expected = reference_walkable(game, pathfinder.grid.cell_to_world(cell), radius)
+                    assert pathfinder.grid.cell_walkable(cell, radius) == expected, f"cell {cell}"
+
+    # Warm caches on the empty map
+    sweep_cells()
+
+    # Incrementally add blockers of each type (no mark_dirty)
+    house = FakeObject("house", x=160, y=96, radius=28)
+    tree = FakeResource("wood", x=288, y=352, radius=20)
+    site = FakeObject("farm_construction", x=224, y=480, radius=32)
+    game.buildings.append(house)
+    pathfinder.notify_blocker_added(house)
+    game.resources.append(tree)
+    pathfinder.notify_blocker_added(tree)
+    game.construction_sites.append(site)
+    pathfinder.notify_blocker_added(site)
+
+    sweep()
+    sweep_cells()
+
+    # Cache a path that crosses the house, then remove the house incrementally
+    result = pathfinder.find_result((40, 96), (360, 96), unit_radius=8)
+    assert result.ok and result.waypoints != [(360, 96)]
+
+    game.buildings.remove(house)
+    house.hp = 0
+    pathfinder.notify_blocker_removed(house)
+    tree.amount_remaining = 0
+    game.resources.remove(tree)
+    pathfinder.notify_blocker_removed(tree)
+
+    sweep()
+    sweep_cells()
+
+    # The stale detour path must have been invalidated: a fresh request now
+    # goes straight through where the house used to be.
+    result = pathfinder.find_result((40, 96), (360, 96), unit_radius=8)
+    assert result.ok
+    assert result.waypoints == [(360, 96)]
+
+
+def test_incremental_add_invalidates_cached_straight_path():
+    pathfinder, game = make_pathfinder()
+    start, goal = (40, 96), (360, 96)
+
+    direct = pathfinder.find_result(start, goal, unit_radius=8)
+    assert direct.ok and direct.waypoints == [goal]
+
+    blocker = FakeObject("house", x=192, y=96, radius=32)
+    game.buildings.append(blocker)
+    pathfinder.notify_blocker_added(blocker)
+
+    detour = pathfinder.find_result(start, goal, unit_radius=8)
+    assert detour.ok
+    assert detour.waypoints != [goal]
+    for point in detour.waypoints:
+        assert math.hypot(point[0] - blocker.x, point[1] - blocker.y) >= blocker.radius + 8 + CLEARANCE_BUFFER
+
+
 def reference_terrain_walkable(game_map, x, y, cell_size=20):
     """Independent implementation of the conservative per-nav-cell terrain rule:
     a probe point is walkable iff every terrain sample (center + 4 inset corners)
