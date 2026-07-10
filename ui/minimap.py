@@ -21,6 +21,9 @@ class Minimap:
         # Object dots are redrawn at ~4 Hz onto a cached layer (D5)
         self._dots_surface = pygame.Surface((width, height), pygame.SRCALPHA)
         self._next_dots_frame = -1
+        # Fog mask over the terrain texture (user-reported: the minimap
+        # revealed the whole map layout). Rebuilt with the dot layer at ~4 Hz.
+        self._fog_surface = pygame.Surface((width, height), pygame.SRCALPHA)
         # Active alert pings: [(mini_x, mini_y, start_ticks)]
         self._pings = []
 
@@ -99,6 +102,31 @@ class Minimap:
             color = getattr(unit.player, "color", (220, 220, 220))
             pygame.draw.rect(self._dots_surface, color, (mini_x, mini_y, 2, 2))
 
+    def _render_fog_mask(self):
+        """Black out unexplored terrain and dim explored-but-unseen terrain,
+        matching the main view's fog (human player only)."""
+        self._fog_surface.fill((0, 0, 0, 0))
+        game = self.game
+        fog = getattr(game, "fog_of_war", None)
+        human = game.players[0] if game.players and game.players[0].human else None
+        if not (fog and fog.enabled and human) or human not in fog.visibility_grid:
+            return
+        grid = fog.visibility_grid[human]
+        rows = len(grid)
+        cols = len(grid[0]) if rows else 0
+        if not cols:
+            return
+        tile_mask = pygame.Surface((cols, rows), pygame.SRCALPHA)
+        for r in range(rows):
+            row = grid[r]
+            for c in range(cols):
+                state = row[c]
+                if state == fog.UNEXPLORED:
+                    tile_mask.set_at((c, r), (0, 0, 0, 255))
+                elif state == fog.EXPLORED:
+                    tile_mask.set_at((c, r), (0, 0, 0, 140))
+        self._fog_surface = pygame.transform.scale(tile_mask, (self.width, self.height))
+
     def _draw_pings(self):
         """Expanding alert rings, drawn live over the cached dot layer."""
         if not self._pings:
@@ -118,11 +146,13 @@ class Minimap:
     def draw(self, screen):
         self.surface.blit(self.map_texture, (0, 0))
 
-        # Redraw the object-dot layer at a few Hz, not every frame
+        # Redraw the object-dot + fog layers at a few Hz, not every frame
         frame = getattr(self.game, "frame_counter", 0)
         if frame >= self._next_dots_frame or self._next_dots_frame < 0:
             self._next_dots_frame = frame + 15
             self._render_dots()
+            self._render_fog_mask()
+        self.surface.blit(self._fog_surface, (0, 0))
         self.surface.blit(self._dots_surface, (0, 0))
         self._draw_pings()
 

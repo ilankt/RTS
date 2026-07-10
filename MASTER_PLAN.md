@@ -985,13 +985,14 @@ unsequenced — pull them in where they fit.
   projectiles / high game speed stepped past the 5 px arrival check and never
   died. Fixed: arrival is checked against the step length *before* moving, and
   the projectile snaps to the target. Verified at 5× with cannonballs.
-- [ ] **HP bars read as empty at max zoom** (user-reported 2026-07-10):
-  couldn't reproduce the empty fill headlessly (pixel tests show correct green
-  fill through the full draw pipeline at zoom 2.5), but the geometry was
-  hardened anyway: bar width/height/offset now clamp instead of scaling
-  unbounded (bars no longer float 100 px above units at max zoom), and any
-  living object shows ≥1 px of fill. **Needs a windowed re-check by the user;
-  if it persists, grab a screenshot + zoom level.**
+- [x] **HP bars read as empty at max zoom** (user-reported 2026-07-10, closed
+  same day after a screenshot): unit HP bars verified green through the real
+  frame pipeline at zoom 2.5 (pixel-sampled). The black bar in the screenshot
+  was a **fresh construction site's progress bar at 0 % fill** — an all-dark
+  bar that reads as "0 HP". Fixed: construction bars floor at a 4 % blue
+  sliver, and all floating bars now draw **above the fog overlay** so a
+  fog-tile edge can never dim them. (The same screenshot's foundation was the
+  §9 orphaned-site bug, also fixed below.)
 - [x] **Docs housekeeping**: `CLAUDE.md` corrected 2026-07-09 and refreshed
   2026-07-10 for the post-Track-A architecture. `AGENTS.md` replaced 2026-07-10
   with a pointer to CLAUDE.md/MASTER_PLAN plus a quick-facts card (the 298-line

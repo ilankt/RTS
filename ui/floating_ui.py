@@ -117,10 +117,12 @@ class FloatingUI:
             screen_y < -50 or screen_y > surface.get_height() + 50):
             return
         
-        # Calculate construction percentage
+        # Calculate construction percentage. Floor at 4% so a fresh/abandoned
+        # foundation shows a blue sliver instead of an all-black bar that
+        # reads as "0 HP" (user-reported at max zoom).
         construction_percentage = construction_site.construction_progress / construction_site.construction_duration
-        construction_percentage = min(1.0, construction_percentage)  # Cap at 100%
-        
+        construction_percentage = max(0.04, min(1.0, construction_percentage))
+
         self._draw_bar(surface, screen_x, screen_y, construction_percentage,
                       self.health_colors['construction'], camera.zoom)
     

@@ -49,11 +49,12 @@ class RenderingSystem:
         if self.building_system.building_placement_mode:
             self.building_system.draw_building_preview(map_surface, camera)
         
-        # Draw floating UI elements
-        self.floating_ui.draw_all_floating_ui(map_surface, camera, delta_time)
-        
         # Draw fog of war overlay
         self._draw_fog_overlay(map_surface, camera)
+
+        # HP/construction bars + floats go ABOVE the fog overlay so they are
+        # never dimmed by a fog-tile edge (user-reported dark bars at max zoom)
+        self.floating_ui.draw_all_floating_ui(map_surface, camera, delta_time)
 
         # Instant command feedback rings (§7.4)
         self._draw_order_flashes(map_surface, camera)

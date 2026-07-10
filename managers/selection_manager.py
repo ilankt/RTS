@@ -52,9 +52,11 @@ class SelectionManager:
     
     def _handle_single_click(self, mouse_pos):
         """Handle single click selection with proper ownership filtering"""
-        # Check all objects for selection
+        # Check all objects for selection (construction sites included, so an
+        # abandoned foundation can be selected to cancel or resume it)
         all_objects = [
-            obj for obj in self.game.units + self.game.buildings + self.game.resources
+            obj for obj in (self.game.units + self.game.buildings +
+                            self.game.resources + self.game.construction_sites)
             if self._is_object_visible_to_human(obj)
         ]
         clicked_object = None
@@ -342,7 +344,7 @@ class SelectionManager:
             flash_kind = "move"
             for obj in movable_units:
                 spec = self._command_spec_for(obj, clicked_object, world_pos)
-                if spec[0] in ("gather", "dropoff", "garrison"):
+                if spec[0] in ("gather", "dropoff", "garrison", "build"):
                     flash_kind = "gather"
                 elif spec[0] == "attack":
                     flash_kind = "attack"
@@ -377,6 +379,12 @@ class SelectionManager:
                 and unit.resource_amount > 0
             ):
                 return ("dropoff", clicked_object)
+            if (
+                clicked_object in self.game.construction_sites
+                and unit.name == "worker"
+                and clicked_object.player is unit.player
+            ):
+                return ("build", clicked_object)  # resume an abandoned foundation
             if (
                 clicked_object in self.game.buildings
                 and unit.name == "worker"
@@ -457,6 +465,13 @@ class SelectionManager:
         elif kind == "garrison":
             if getattr(payload, "in_world", True):
                 self._garrison_worker(unit, payload, pathfinder)
+        elif kind == "build":
+            if getattr(payload, "in_world", True) and payload in self.game.construction_sites:
+                worker_tasks = getattr(self.game, "worker_task_system", None)
+                if worker_tasks:
+                    worker_tasks.assign_build(unit, payload)
+                else:
+                    pathfinder.issue_interact(unit, payload, "build")
 
     def _garrison_worker(self, unit, farm, pathfinder):
         """Send a worker to garrison into a farm."""
@@ -760,7 +775,8 @@ class SelectionManager:
     def _get_object_at_position(self, world_pos):
         """Get the topmost object at a world position"""
         all_objects = [
-            obj for obj in self.game.units + self.game.buildings + self.game.resources
+            obj for obj in (self.game.units + self.game.buildings +
+                            self.game.resources + self.game.construction_sites)
             if self._is_object_visible_to_human(obj)
         ]
         
@@ -802,44 +818,32 @@ class SelectionManager:
         """Draw selection circles around selected objects"""
         self._draw_rally_flags(surface, camera)
         all_objects = [
-            obj for obj in self.game.units + self.game.buildings + self.game.resources
+            obj for obj in (self.game.units + self.game.buildings +
+                            self.game.resources + self.game.construction_sites)
             if self._is_object_visible_to_human(obj)
         ]
-        
+
         for obj in all_objects:
             if not obj.selected:
                 continue
-            
+
             # Convert world position to screen position
             screen_x = (obj.x * camera.zoom) + camera.x
             screen_y = (obj.y * camera.zoom) + camera.y
-            
-            # Draw selection circle
-            radius = int(obj.radius * camera.zoom * 1.2)
-            
-            # Choose color based on ownership
+
+            # Selection marker: a subtle ground ellipse at the feet instead of
+            # the old debug-green circle + tick marks (user feedback)
             if hasattr(obj, 'player') and obj.player:
-                if obj.player.human:
-                    # Human player - bright green
-                    color = (0, 255, 0)
-                else:
-                    # AI player - yellow
-                    color = (255, 255, 0)
+                color = (235, 235, 235) if obj.player.human else (230, 175, 80)
             else:
-                # No player (resources) - white
-                color = (255, 255, 255)
-            
-            # Draw circle
-            pygame.draw.circle(surface, color, (int(screen_x), int(screen_y)), radius, 2)
-            
-            # Draw small tick marks
-            for angle in range(0, 360, 45):
-                rad = math.radians(angle)
-                inner_x = screen_x + (radius - 5) * math.cos(rad)
-                inner_y = screen_y + (radius - 5) * math.sin(rad)
-                outer_x = screen_x + radius * math.cos(rad)
-                outer_y = screen_y + radius * math.sin(rad)
-                pygame.draw.line(surface, color, (int(inner_x), int(inner_y)), (int(outer_x), int(outer_y)), 2)
+                color = (200, 200, 200)  # resources / neutral
+
+            ellipse_w = max(12, int(obj.radius * 2.2 * camera.zoom))
+            ellipse_h = max(5, int(ellipse_w * 0.38))
+            feet_y = screen_y + obj.radius * camera.zoom * 0.55
+            marker = pygame.Rect(int(screen_x - ellipse_w / 2),
+                                 int(feet_y - ellipse_h / 2), ellipse_w, ellipse_h)
+            pygame.draw.ellipse(surface, color, marker, 2)
             
             # Draw attack range for buildings that can attack (like watchtowers)
             if hasattr(obj, 'can_attack') and obj.can_attack and hasattr(obj, 'attack_range'):
