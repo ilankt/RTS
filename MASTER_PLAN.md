@@ -457,7 +457,13 @@ and should override "obvious" instincts.
   specialist got sharper — needs its own identity pass or acceptance as the
   "teaching" opponent. Data: `tools/balance_20_signature.json` (authoritative
   run).
-- [ ] **Telegraph attacks** *(low–med)* — before an AI push, surface a cue (army
+- [x] **Telegraph attacks** *(low–med)* — 2026-07-10: when an AI squad is
+  dispatched against the human, an "Enemy attack incoming!" alert + minimap
+  ping fires at a marching unit's position — but **only if the human can
+  currently see part of the squad** (fair perception: no free intel from
+  unexplored fog; with fog disabled the march is plainly visible). 45 s
+  per-AI throttle. Tests in `tests/test_telegraph.py`. Original scope for
+  reference (army
   massing near the border, a "hostile force detected" alert, scout-visible staging).
   Needs the alert system (§7.4).
 - [ ] **Reactive counters** *(med)* — AI scouts the player's composition and shifts

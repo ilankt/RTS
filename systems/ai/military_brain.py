@@ -60,6 +60,7 @@ class MilitaryBrain:
                 if focus_target:
                     target = focus_target
                 squad = self._next_squad(ctx.player, military)
+                sent = []
                 for unit in squad:
                     if self._is_idle_military(unit):
                         if self._should_retreat(unit, max_hp_cache.get(unit, unit.hp)):
@@ -69,6 +70,36 @@ class MilitaryBrain:
                             "AI",
                         )
                         self._command_attack(unit, target, ctx)
+                        sent.append(unit)
+                if sent:
+                    self._telegraph_attack(ctx, target, sent)
+
+    def _telegraph_attack(self, ctx, target, squad):
+        """§7.2 telegraph: a push at the human gets a scoutable cue — but only
+        if the human can actually SEE part of the marching squad (fair
+        perception; no free intel about armies massing in unexplored fog)."""
+        target_player = getattr(target, "player", None)
+        if target_player is None or not getattr(target_player, "human", False):
+            return
+        ui = getattr(self.game, "ui_manager", None)
+        fog = getattr(self.game, "fog_of_war", None)
+        if ui is None:
+            return
+        visible = None
+        if fog is not None and fog.enabled:
+            visible = next(
+                (u for u in squad if fog.is_visible(target_player, u.x, u.y)), None
+            )
+        else:
+            visible = squad[0]  # no fog: the march is plainly visible
+        if visible is None:
+            return
+        ui.add_alert(
+            "Enemy attack incoming!",
+            (visible.x, visible.y),
+            throttle_key=f"telegraph_{ctx.player.name}",
+            throttle_ms=45000,
+        )
 
     def _manage_gates(self, ctx):
         """Keep own gates open so workers path through, closed when enemy
