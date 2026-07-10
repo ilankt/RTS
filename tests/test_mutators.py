@@ -80,3 +80,26 @@ def test_setup_wiring_applies_mutator(monkeypatch):
     game = main_module.create_game_from_setup(setup)
     assert game.mutators == {"revealed_map"}
     assert game.fog_of_war.enabled is False
+
+
+def test_comeback_mutator_boosts_trailing_player(game):
+    gm = game.gathering_manager
+    human, ai = game.players[0], game.players[1]
+
+    # AI leads massively on score
+    game.stats_resources_gathered[human.name] = 100
+    game.stats_resources_gathered[ai.name] = 10000
+
+    game.mutators = set()
+    assert gm._comeback_multiplier(human) == 1.0  # mutator off: no bonus
+
+    game.mutators = {"comeback"}
+    gm._comeback_cache = None  # force recompute
+    assert gm._comeback_multiplier(human) == gm.COMEBACK_BONUS
+    assert gm._comeback_multiplier(ai) == 1.0     # the leader gets nothing
+
+    # Close game: nobody qualifies
+    game.stats_resources_gathered[human.name] = 9000
+    gm._comeback_cache = None
+    assert gm._comeback_multiplier(human) == 1.0
+    game.mutators = set()

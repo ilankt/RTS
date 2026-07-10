@@ -522,8 +522,12 @@ and should override "obvious" instincts.
 - [ ] **Risk/reward economy** *(med)* — expanding/booming opens a real, scoutable
   vulnerability window, so greed vs safety is a live choice. (Enabled by §8.3 worker
   saturation.)
-- [ ] **Anti-snowball / comeback** *(med)* — diminishing returns so a small early lead
-  isn't an auto-win; the biggest fun-killer is a foregone 20-minute loss.
+- [x] **Anti-snowball / comeback** *(med)* — 2026-07-10 as the **comeback
+  mutator** (opt-in, keeping default balance untouched): any player —
+  human or AI, symmetric — below 60 % of the score leader gathers 15 %
+  faster (recomputed once per second). Softens foregone losses without
+  punishing the leader directly. Whether it should become a default rule
+  is a playtest call — flip it on in match setup to try.
 - [x] **Scouting payoff** *(med)* — 2026-07-10: first-sighting **intel
   alerts**, strictly fog-gated (earned by scouting; none when fog is off):
   the first time the human sees each enemy military unit type → "Enemy

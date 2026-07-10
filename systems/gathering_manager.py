@@ -58,6 +58,30 @@ class GatheringManager:
         if getattr(self.game, "tree_regrowth_enabled", True):
             self._update_tree_regrowth(delta_time)
         
+    # §7.2 anti-snowball ("comeback" mutator): players far behind the score
+    # leader gather faster. Symmetric — applies to humans and AI alike — and
+    # recomputed at most once per second so it can't thrash.
+    COMEBACK_THRESHOLD = 0.6   # behind 60% of the leader's score qualifies
+    COMEBACK_BONUS = 1.15      # 15% faster gathering while behind
+
+    def _comeback_multiplier(self, player):
+        if player is None or "comeback" not in getattr(self.game, "mutators", ()):
+            return 1.0
+        cache = getattr(self, "_comeback_cache", None)
+        now = getattr(self.game, "sim_time_elapsed", 0.0)
+        if cache is None or now - cache[0] >= 1.0:
+            score = getattr(self.game, "_score", None)
+            if score is None:
+                return 1.0
+            scores = {p: score(p) for p in self.game.players}
+            leader = max(scores.values()) if scores else 0
+            behind = {
+                p for p, s in scores.items()
+                if leader > 0 and s < leader * self.COMEBACK_THRESHOLD
+            }
+            cache = self._comeback_cache = (now, behind)
+        return self.COMEBACK_BONUS if player in cache[1] else 1.0
+
     def gather_resource_tick(self, worker, resource, delta_time):
         """Apply one deterministic gathering tick.
 
@@ -75,6 +99,7 @@ class GatheringManager:
         gather_rate = base_rate * player_multiplier
         if "double_resources" in getattr(self.game, "mutators", ()):
             gather_rate *= 2.0
+        gather_rate *= self._comeback_multiplier(worker.player)
 
         # §8.3 worker saturation: past the cap, the node's total output stays
         # flat, so each stacked gatherer works at cap/n rate - expanding to a
