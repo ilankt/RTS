@@ -1074,6 +1074,7 @@ class Pathfinding:
             self._add_astar_frame_spent((time.perf_counter() - started) * 1000.0)
 
     GOAL_POCKET_SCAN_CAP = 2048
+    POCKET_MEMO_MAX = 512
 
     def _goal_pocket_reachable(self, start_cell: Cell, goal_cell: Cell, unit_radius: float):
         """Bounded reverse reachability check from the goal.
@@ -1081,12 +1082,27 @@ class Pathfinding:
         Returns False if the goal's enclosing free region provably excludes the
         start (exact — no-corner-cut connectivity equals 4-connectivity), True
         if the start was reached, None if inconclusive (region larger than the
-        cap; let the real search decide)."""
+        cap; let the real search decide).
+
+        Open-region verdicts (None) are memoized per (goal, radius, revision) —
+        during wars the same enemy-base goals are probed constantly and each
+        inconclusive flood costs ~2k cell probes."""
+        memo = getattr(self, "_pocket_memo", None)
+        if memo is None:
+            memo = self._pocket_memo = {}
+        memo_key = (goal_cell, unit_radius, self.grid.revision)
+        cached = memo.get(memo_key)
+        if cached is not None:
+            # Only 'inconclusive/open' verdicts are start-independent.
+            return None
         cell_walkable = self.grid.cell_walkable
         seen = {goal_cell}
         stack = [goal_cell]
         while stack:
             if len(seen) > self.GOAL_POCKET_SCAN_CAP:
+                if len(memo) > self.POCKET_MEMO_MAX:
+                    memo.clear()
+                memo[memo_key] = True  # open region - remember and skip next time
                 return None
             x, y = stack.pop()
             if (x, y) == start_cell:

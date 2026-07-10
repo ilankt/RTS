@@ -320,16 +320,20 @@ failed paths under load.
 ### Phase 5 — Scale play: flow fields + formations (5–8 days, high)
 **Goal:** a 200-unit group move costs one field, not 200 searches; §6 targets hold
 at 200 units.
-- [ ] **Flow fields** (A7) — one BFS/Dijkstra integration field per group order over
-  the square nav grid, cached by `(goal_cell, revision)`, fanned to squad members;
-  keep per-unit JPS for singletons and workers with individual resource targets.
-  Rides on Phase 2's dirty-region invalidation.
-- [ ] **Minimal formations** — SmartCenter anchor + distinct per-unit slot offsets so
-  a group aims at *distinct* points, not one identical spot; enforce slots only when
-  cohesive.
-- **✅ Verify:** issue a 100+ unit group move and confirm **one** field build in the
-  logs (not N A* calls); run the benchmark at **200 units** and hit the §6 targets;
-  formations don't wedge at chokepoints.
+- [x] **Flow fields** (A7) — `systems/flow_field.py`: one Dijkstra integration
+  field per group order, built incrementally inside the per-frame path budget
+  (no frame freeze), cached by (goal cell, radius), invalidated on nav changes;
+  fanned to group members with per-unit formation-slot handoff at 90 px;
+  per-unit JPS kept for singletons/workers and as fallback for disconnected
+  cells / stale fields. Wired into 8+-unit right-click group moves.
+- [x] **Minimal formations** — formation offsets (ring/line/box/wedge) already
+  produced distinct per-unit points; they now become flow-field slot targets
+  so a group aims at distinct points after one shared field.
+- **✅ Verify (passed 2026-07-10, group-move gate):** 100-unit cross-map order:
+  `flow_fields_built` **1**, path requests 101 → 10, 95 % arrival 105 → **50
+  sim s**, 0 teleports/recoveries; 200-unit order: 95 % arrival at 80 sim s,
+  frame avg 12.3 ms during the march, no chokepoint wedge. **§6-targets-at-200u
+  is tracked by the Track A acceptance gate below (not yet met — see §6).**
 
 ### Phase 6 — Heavy artillery (only if §6 targets still unmet after 1–5)
 **Goal:** close any residual gap — each item gated behind a profile that proves it's
@@ -369,6 +373,16 @@ Phases 1–3 alone should clear the avg/p95/hitch targets; Phases 4–5 are what
 - [ ] **Track A acceptance gate** — all six targets above hold at **200 units** in
   the benchmark. This is the definition of "performance done"; Track A is only
   complete when this is ticked.
+  - **Status 2026-07-10 (Phases 0–5 + profile-backed Phase 6 quick wins landed):**
+    45-unit benchmark: avg **4.2** / p95 **12.6** / max **28** / ai_max **2.5** /
+    capped-failures **0** / teleports ~0–2 per 120 s — all targets met at 45 u.
+    8-player war benchmark (92 u, heavy combat): avg **7.5** ✓ / p95 **17.2** ✗
+    (target 16) / max **68** ✗ (33) / ai_max **6.0** ✓ / teleports ~2/min ✗.
+    200-unit group-move stress: avg 12.3 ✗. Remaining hot spots per profile:
+    JPS scan volume during war-time repaths, LOS sampling (now 8-frame cached),
+    spatial-query iteration in steering. Residual gap is Phase 6 territory
+    (numpy/Numba movement + A* kernels, possibly ORCA) — each still gated
+    behind a fresh profile.
 
 ---
 

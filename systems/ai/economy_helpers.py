@@ -6,7 +6,7 @@ rescans). The game-level `find_nearest_dropoff` remains for non-AI callers
 """
 
 import math
-from typing import Iterable, Optional, Tuple
+from typing import Optional, Tuple
 
 from core.config import DROP_OFF_BUILDINGS
 
@@ -120,13 +120,32 @@ def count_dropoffs_ctx(ctx, building_type: str, include_pending: bool = True) ->
     return count
 
 
-def _nearby_resource_count(resources: Iterable, resource) -> int:
-    radius_sq = RESOURCE_CLUSTER_RADIUS * RESOURCE_CLUSTER_RADIUS
-    return sum(
-        1
-        for other in resources
-        if other is not resource and (other.x - resource.x) ** 2 + (other.y - resource.y) ** 2 <= radius_sq
-    )
+def _cluster_counts(ctx, resource_type: str, resources) -> dict:
+    """Approximate per-resource cluster sizes via one bucketing pass (O(n))
+    instead of an O(n^2) pairwise sweep per candidate. Memoized per tick."""
+    cache = getattr(ctx, "_cluster_count_cache", None)
+    if cache is None:
+        cache = ctx._cluster_count_cache = {}
+    counts = cache.get(resource_type)
+    if counts is not None:
+        return counts
+
+    cell = RESOURCE_CLUSTER_RADIUS
+    buckets = {}
+    for resource in resources:
+        key = (int(resource.x // cell), int(resource.y // cell))
+        buckets[key] = buckets.get(key, 0) + 1
+    counts = {}
+    for resource in resources:
+        key_x = int(resource.x // cell)
+        key_y = int(resource.y // cell)
+        total = 0
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                total += buckets.get((key_x + dx, key_y + dy), 0)
+        counts[id(resource)] = total - 1  # exclude the resource itself
+    cache[resource_type] = counts
+    return counts
 
 
 def best_resource_for_dropoff(ctx, building_type: str):
@@ -138,18 +157,19 @@ def best_resource_for_dropoff(ctx, building_type: str):
     if not resources:
         return None
 
+    cluster_counts = _cluster_counts(ctx, resource_type, resources)
     best = None
     best_score = float("-inf")
     for resource in resources:
-        if is_resource_serviced_ctx(ctx, resource, include_pending=True):
-            continue
         _, nearest_dist = find_nearest_dropoff_ctx(
             ctx, resource_type, (resource.x, resource.y), include_pending=True
         )
+        if nearest_dist <= RESOURCE_SERVICE_RADIUS:
+            continue  # already serviced
         if nearest_dist == float("inf"):
             nearest_dist = RESOURCE_SERVICE_RADIUS * 2
 
-        cluster_count = _nearby_resource_count(resources, resource)
+        cluster_count = cluster_counts.get(id(resource), 0)
         remaining = getattr(resource, "amount_remaining", 0)
         score = (nearest_dist - RESOURCE_SERVICE_RADIUS) + cluster_count * 90 + remaining * 0.05
         if score > best_score:
@@ -179,7 +199,7 @@ def score_dropoff_building_need(ctx, building_type: str) -> float:
         nearest_dist = RESOURCE_SERVICE_RADIUS * 2
 
     resources = ctx.known_resources(resource_type)
-    cluster_count = _nearby_resource_count(resources, target_resource)
+    cluster_count = _cluster_counts(ctx, resource_type, resources).get(id(target_resource), 0)
     shortage = max(0, CRITICAL_STOCKPILE.get(resource_type, 0) * 2 - ctx.resources.get(resource_type, 0))
     travel_savings = max(0, nearest_dist - RESOURCE_SERVICE_RADIUS)
 

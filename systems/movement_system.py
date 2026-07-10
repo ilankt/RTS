@@ -180,13 +180,28 @@ class MovementSystem:
         
         return False
     
+    LOS_CACHE_FRAMES = 8  # combat LOS re-checked at most every N frames per unit
+
+    def _cached_los(self, unit, target):
+        """has_line_of_sight with a short-lived per-unit cache (profiler: LOS
+        sampling dominates war-scale frames when re-checked every frame)."""
+        frame = self.game.frame_counter
+        cached = getattr(unit, "_los_cache", None)
+        if cached is not None:
+            cached_frame, cached_target_id, cached_result = cached
+            if cached_target_id == id(target) and frame - cached_frame < self.LOS_CACHE_FRAMES:
+                return cached_result
+        obstacles = self.game.collision_system.query_obstacles_along(
+            (unit.x, unit.y), (target.x, target.y)
+        )
+        result = unit.has_line_of_sight(target, self.game_map, obstacles)
+        unit._los_cache = (frame, id(target), result)
+        return result
+
     def _reevaluate_movement_strategy(self, unit, force_strategy_change):
         """Re-evaluate and update movement strategy"""
         # Check line of sight (obstacles from the shared spatial index)
-        obstacles = self.game.collision_system.query_obstacles_along(
-            (unit.x, unit.y), (unit.current_target.x, unit.current_target.y)
-        )
-        has_los = unit.has_line_of_sight(unit.current_target, self.game_map, obstacles)
+        has_los = self._cached_los(unit, unit.current_target)
         
         # Debug output
         if not hasattr(unit, '_last_strategy_state'):
@@ -226,10 +241,7 @@ class MovementSystem:
             unit._stuck_detector['stuck_timer'] >= 60):  # 1 second of being stuck
             
             # Re-check LOS to see if it's still valid
-            obstacles = self.game.collision_system.query_obstacles_along(
-                (unit.x, unit.y), (unit.current_target.x, unit.current_target.y)
-            )
-            current_los = unit.has_line_of_sight(unit.current_target, self.game_map, obstacles)
+            current_los = self._cached_los(unit, unit.current_target)
             
             if not current_los:
                 # Force pathfinding strategy
@@ -667,10 +679,7 @@ class MovementSystem:
         """Re-pathfind to a target that has moved"""
         # Check LOS for combat units
         if unit.is_engaging and unit.current_target:
-            obstacles = self.game.collision_system.query_obstacles_along(
-                (unit.x, unit.y), (target_object.x, target_object.y)
-            )
-            has_los = unit.has_line_of_sight(target_object, self.game_map, obstacles)
+            has_los = self._cached_los(unit, target_object)
             
             if has_los:
                 unit.path = None
