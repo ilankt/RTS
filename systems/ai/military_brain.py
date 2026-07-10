@@ -163,34 +163,32 @@ class MilitaryBrain:
             return True
         return False
 
+    # How strongly the influence map repels target selection: one point of
+    # threat costs this many px of extra "distance".
+    THREAT_DISTANCE_WEIGHT = 0.8
+
     def _find_attack_target(self, ctx):
-        """Best enemy target: castle, then nearest building, then nearest unit."""
+        """Best enemy target: castles first, then buildings, then units —
+        each scored by distance + local threat from the influence map."""
         ref_x = ctx.castle.x if ctx.castle else 0
         ref_y = ctx.castle.y if ctx.castle else 0
 
-        # Prefer enemy castle
-        for building in ctx.enemy_buildings:
-            if building.name == "castle":
-                return building
+        def score(obj):
+            return math.hypot(obj.x - ref_x, obj.y - ref_y) + ctx.threat_at(obj.x, obj.y) * self.THREAT_DISTANCE_WEIGHT
 
-        # Then nearest enemy building
-        best = None
-        best_dist = float("inf")
-        for building in ctx.enemy_buildings:
-            dist = math.hypot(building.x - ref_x, building.y - ref_y)
-            if dist < best_dist:
-                best_dist = dist
-                best = building
-        if best:
-            return best
+        # Prefer the least-defended enemy castle
+        castles = [b for b in ctx.enemy_buildings if b.name == "castle"]
+        if castles:
+            return min(castles, key=score)
+
+        # Then the least-defended / nearest enemy building
+        if ctx.enemy_buildings:
+            return min(ctx.enemy_buildings, key=score)
 
         # Then nearest enemy unit
-        for unit in ctx.enemy_units:
-            dist = math.hypot(unit.x - ref_x, unit.y - ref_y)
-            if dist < best_dist:
-                best_dist = dist
-                best = unit
-        return best
+        if ctx.enemy_units:
+            return min(ctx.enemy_units, key=score)
+        return None
 
     def _command_attack(self, unit, target, ctx):
         """Send a military unit to attack a target."""

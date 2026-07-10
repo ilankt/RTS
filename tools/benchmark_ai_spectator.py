@@ -36,6 +36,7 @@ def parse_args():
     parser.add_argument("--output", type=str, default=None, help="Write the summary JSON to this path.")
     parser.add_argument("--profile", type=str, default=None, help="Run under cProfile and dump stats to this path.")
     parser.add_argument("--seed", type=int, default=12345, help="RNG seed for map/personalities (0 = unseeded).")
+    parser.add_argument("--players", type=int, default=4, help="Number of AI players.")
     return parser.parse_args()
 
 
@@ -45,7 +46,7 @@ def run_benchmark(args):
 
         random.seed(args.seed)
     perf_stats.enabled = True
-    game = Game(mode="ai_spectator", player_count=4)
+    game = Game(mode="ai_spectator", player_count=args.players)
     game.game_speed = args.speed
 
     for _ in range(max(0, args.warmup_frames)):

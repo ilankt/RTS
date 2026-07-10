@@ -45,6 +45,10 @@ class GoalContext:
     research_in_progress: set = field(default_factory=set)
     _dropoff_need_cache: Dict[str, float] = field(default_factory=dict)
 
+    # Coarse influence map: enemy combat strength summed per cell
+    threat_cells: Dict[tuple, float] = field(default_factory=dict)
+    threat_cell_size: float = 400.0
+
     @classmethod
     def build(cls, game, player) -> "GoalContext":
         ctx = cls(game=game, player=player)
@@ -119,7 +123,31 @@ class GoalContext:
                 continue
             ctx.known_resources_by_type.setdefault(resource.name, []).append(resource)
 
+        # Coarse enemy-strength influence map (Phase 4): combat units weigh
+        # their hp, defensive buildings weigh double.
+        cell = ctx.threat_cell_size
+        threat = ctx.threat_cells
+        for enemy in ctx.enemy_units:
+            if enemy.name in MILITARY_NAMES:
+                key = (int(enemy.x // cell), int(enemy.y // cell))
+                threat[key] = threat.get(key, 0.0) + enemy.hp
+        for enemy in ctx.enemy_buildings:
+            if getattr(enemy, "can_attack", False):
+                key = (int(enemy.x // cell), int(enemy.y // cell))
+                threat[key] = threat.get(key, 0.0) + enemy.hp * 2.0
+
         return ctx
+
+    def threat_at(self, x: float, y: float) -> float:
+        """Enemy strength in the 3x3 coarse cells around a point."""
+        cell = self.threat_cell_size
+        cell_x = int(x // cell)
+        cell_y = int(y // cell)
+        total = 0.0
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                total += self.threat_cells.get((cell_x + dx, cell_y + dy), 0.0)
+        return total
 
     def known_resources(self, resource_type: Optional[str] = None) -> list:
         if resource_type is not None:

@@ -294,21 +294,28 @@ failed paths under load.
 
 ### Phase 4 — AI: shared perception, LOD, squads (4–6 days, medium)
 **Goal:** the 478 ms AI-tick spike is gone and AI cost stays flat as the army grows.
-- [ ] **Blackboard** (C1/C3/C4) — promote `GoalContext` to the single per-tick world
-  scan (spatial hash, enemies-near-base + threat, idle workers, per-resource counts,
-  squad rosters); forbid goals/brains from touching `game.units`/`game.buildings`
-  directly.
-- [ ] **LOD / time-sliced ticks** — round-robin K units/frame; combat units fast,
-  idle/gathering workers slow; dirty-flag urgent re-eval to the front; spread
-  sub-brain work across the frames between 0.5 s ticks.
-- [ ] **Squad command layer** (C1) — reason about ~5–15 squads; `military_brain`
-  issues a posture + target-region per squad that fans out orders (kills the
-  "command every unit in one tick" spike).
-- [ ] **Influence / threat maps** — coarse per-player grid (~10×10), few-Hz rebuild;
-  drives squad target selection and retreat gradients.
-- **✅ Verify:** benchmark `ai_max_ms` **< ~8 ms** (no single-tick spike) and
-  `ai_avg_ms` roughly flat when the army is 2× larger; F4 panel still shows sensible
-  decisions; a full AI-vs-AI match runs to completion without stalls.
+- [x] **Blackboard** (C1/C3/C4) — `GoalContext` is the single per-tick world scan:
+  enemy units/buildings, enemies-near-base, known resources by type (fog-checked),
+  per-resource gatherer counts, research-in-progress, memoized dropoff scores,
+  threat map. Every goal and sub-brain reads the snapshot — enforced by
+  `tests/test_ai_contract.py` (greps for `game.units`/`game.buildings` in
+  goals/brains and fails on violation).
+- [x] **LOD / time-sliced ticks** — AI ticks run in `pathfinder.deferred_paths()`
+  mode: all path requests fast-fail into the cross-frame queue, so a tick spends
+  µs enqueueing instead of ms searching (this, not per-unit round-robin, was the
+  actual spike); scout brain runs every 2nd tick; unit-level target acquisition
+  was already throttled+jittered in Phase 1 (C2).
+- [x] **Squad command layer** (C1) — military ordered as rotating ~10-unit
+  squads, one squad commanded per tick; defense still mobilizes everyone.
+- [x] **Influence / threat maps** — coarse per-player threat cells (400 px)
+  built per tick from enemy combat strength (defensive buildings ×2);
+  `ctx.threat_at` steers attack-target selection toward least-defended targets.
+- **✅ Verify (passed 2026-07-10):** `ai_max_ms` **4.0** (4 players, 45 u) and
+  **4.9** at 8 players / 109 units (target < 8, no spike at 2.4× army);
+  `ai_avg_ms` 1.02 → 1.59 (sub-linear); F4 debug info shows chosen goal +
+  top-5 scores + worker/military breakdowns; 2-player AI-vs-AI match runs to
+  `simulation_complete` (castle kill) with techs researched on both sides;
+  148 tests green.
 
 ### Phase 5 — Scale play: flow fields + formations (5–8 days, high)
 **Goal:** a 200-unit group move costs one field, not 200 searches; §6 targets hold
