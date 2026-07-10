@@ -11,16 +11,14 @@ PERSONALITY_WEIGHTS = {
 }
 
 # Army size at which AttackGoal starts firing (§7.2 "attack-trigger army size").
-# Tuned from the corrected 20-match balance run (2026-07-10): with a shared
-# threshold of 6, rusher went 1-4 against boomer — its "rush" arrived after
-# the boom economy had already compounded. Rushers now commit earlier; turtles
-# and boomers deliberately later.
-ATTACK_ARMY_THRESHOLDS = {
-    "rusher": 4,
-    "balanced": 6,
-    "boomer": 8,
-    "turtle": 8,
-}
+# EXPERIMENT LOG (2026-07-10): {rusher 4, boomer/turtle 8} was tried after
+# rusher went 1-4 vs boomer in the corrected 20-match run — and FAILED
+# validation on the same seeds (rusher 4/13 -> 3/13, head-to-head 0-5):
+# attacking earlier with a smaller army into full-DPS defenses compounds the
+# deficit. Rusher's real gap is fielding an army *faster* (signature build
+# orders, §7.2), not attacking sooner with less. Thresholds stay flat until
+# that lands; the per-personality mechanism remains for difficulty tiers.
+ATTACK_ARMY_THRESHOLDS = {}
 
 
 def get_weight(personality: str, category: str) -> float:

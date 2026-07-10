@@ -436,10 +436,15 @@ and should override "obvious" instincts.
   frequency, build-order tightness, micro, attack-trigger army size* — **not** stats.
   A separate, transparent "handicap" slider exposes any economic advantage for players
   who want it.
-  - *(started 2026-07-10)* attack-trigger army size is now per-personality
-    (`ATTACK_ARMY_THRESHOLDS`: rusher 4, balanced 6, boomer/turtle 8), tuned
-    from the corrected §8.8 run where rusher went 1–4 vs boomer at the shared
-    threshold of 6. Sim validation run pending.
+  - *(2026-07-10)* per-personality attack-threshold **mechanism** added
+    (`ATTACK_ARMY_THRESHOLDS` / `attack_army_threshold()`), but the first
+    tuning (rusher 4, boomer/turtle 8) **failed same-seed validation**:
+    rusher 4/13 → 3/13, 0–5 vs boomer — smaller armies attacking sooner into
+    full-DPS defenses lose harder. Values reverted to flat 6. Conclusion for
+    the real fix: rusher needs a *signature build order* that fields an army
+    faster (skip early farm/dropoff goals, barracks-first), not an earlier
+    trigger on the same economy. Validation data:
+    `tools/balance_20_thresholds.json`.
 - [ ] **Personalities that actually differ** *(med)* — the 4 personalities currently
   only reweight goal categories; give each a signature build order + army composition
   (AoE3-style) so opponents *feel* different game to game.
