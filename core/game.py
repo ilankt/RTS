@@ -149,6 +149,12 @@ class Game:
         self.game_state.setup_game_objects()
         self.game_map.scale_tiles(self.camera.zoom)
         self.pathfinder.mark_dirty()
+
+        # Everything alive at this point (map, sprites, systems, initial world)
+        # is effectively permanent; freezing it keeps it out of GC scans.
+        import gc
+        gc.collect()
+        gc.freeze()
     
     def _load_resource_icons(self):
         """Load and scale resource icons"""
@@ -494,6 +500,9 @@ class Game:
 
         # Remove destroyed construction sites
         old_site_count = len(self.construction_sites)
+        for site in self.construction_sites:
+            if site.hp <= 0:
+                site.in_world = False
         self.construction_sites = [site for site in self.construction_sites if site.hp > 0]
         if len(self.construction_sites) != old_site_count:
             world_changed = True
@@ -561,6 +570,7 @@ class Game:
                 self._tree_regrowth.append((resource.x, resource.y, 60.0))  # 60 seconds regrow
             
             # Remove from resources list
+            resource.in_world = False
             self.resources.remove(resource)
             
             # Invalidate AI memory cache since resources changed
@@ -650,6 +660,8 @@ class Game:
         self.game_over_state = None
         self.winning_player = None
         self.worker_task_system = WorkerTaskSystem(self)
+        for obj in self.buildings + self.units + self.resources + self.construction_sites:
+            obj.in_world = False
         self.buildings.clear()
         self.units.clear()
         self.resources.clear()

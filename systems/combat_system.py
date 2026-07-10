@@ -315,9 +315,12 @@ class CombatSystem:
                     other_unit.in_combat = False
         
         # Remove from game lists
+        unit.in_world = False
         if unit in self.game.units:
             self.game.units.remove(unit)
-        
+        # Drop the attack tracker so id() reuse can't suppress a new unit's first shot
+        self.attack_trackers.pop(id(unit), None)
+
         # Award experience to killer if applicable
         if hasattr(unit, 'last_attacker') and unit.last_attacker:
             if hasattr(unit.last_attacker, 'gain_experience'):
@@ -348,9 +351,11 @@ class CombatSystem:
                     unit.in_combat = False
         
         # Remove from game lists
+        building.in_world = False
         if building in self.game.buildings:
             self.game.buildings.remove(building)
-        
+        self.attack_trackers.pop(id(building), None)
+
         # Cancel any production queues
         if hasattr(building, 'production_queue'):
             building.production_queue.clear()

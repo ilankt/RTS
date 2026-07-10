@@ -251,14 +251,14 @@ class ProjectileSystem:
             self.projectiles.append(projectile)
             
     def update(self, delta_time: float) -> None:
-        """Update all projectiles"""
-        # Update projectiles
-        for projectile in self.projectiles[:]:
+        """Update all projectiles, then drop dead ones in a single pass"""
+        any_dead = False
+        for projectile in self.projectiles:
             projectile.update(delta_time)
-            
-            # Remove dead projectiles
             if not projectile.alive:
-                self.projectiles.remove(projectile)
+                any_dead = True
+        if any_dead:
+            self.projectiles = [p for p in self.projectiles if p.alive]
                 
     def draw(self, surface: pygame.Surface, camera) -> None:
         """Draw all projectiles"""

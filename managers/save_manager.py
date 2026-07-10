@@ -116,7 +116,10 @@ class SaveManager:
         if state.get("version") != 1:
             return False, "Unsupported save version"
         
-        # Clear existing state
+        # Clear existing state (mark old objects dead so stale references fail
+        # liveness checks instead of pointing at ghosts)
+        for obj in game.buildings + game.units + game.resources + game.construction_sites:
+            obj.in_world = False
         game.buildings.clear()
         game.units.clear()
         game.resources.clear()

@@ -10,3 +10,6 @@ class GameObject:
         self.radius = radius
         self.selected = False
         self.player = player
+        # False once removed from the game's lists; O(1) liveness check that
+        # replaces `obj in game.<list>` membership scans in hot paths.
+        self.in_world = True

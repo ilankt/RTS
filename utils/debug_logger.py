@@ -21,6 +21,11 @@ class DebugLogger:
                     cls._instance._file_handle = None
         return cls._instance
     
+    def enabled(self, category="GENERAL"):
+        """Cheap pre-check so hot paths can skip building f-strings for
+        categories that are filtered out anyway."""
+        return category in DEBUG_ENABLED_CATEGORIES
+
     def log(self, message, category="GENERAL"):
         """Log a debug message with timestamp and category"""
         if not self._should_log(message, category):

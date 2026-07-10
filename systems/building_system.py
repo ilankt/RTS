@@ -335,6 +335,7 @@ class BuildingSystem:
         if completed_sites:
             for site in completed_sites:
                 if site in self.game.construction_sites:
+                    site.in_world = False
                     self.game.construction_sites.remove(site)
             self.game.pathfinder.mark_dirty()
     
@@ -365,6 +366,7 @@ class BuildingSystem:
                     debug_log.log(f"AI: Invalidated memory cache for {construction_site.player.name} after construction cancellation", "BUILDING")
             
             # Remove the construction site
+            construction_site.in_world = False
             self.game.construction_sites.remove(construction_site)
             self.game.pathfinder.mark_dirty()
 

@@ -275,7 +275,8 @@ class CollisionSystem:
                                 break
                         if not found_safe:
                             pass  # Stay put rather than push into water
-                    debug_log.log(f"GATHERING: Pushed overlapping worker away from resource to distance {min_distance}", "COLLISION")
+                    if debug_log.enabled("COLLISION"):
+                        debug_log.log(f"GATHERING: Pushed overlapping worker away from resource to distance {min_distance}", "COLLISION")
                 else:
                     # Try sliding along the obstacle
                     final_pos = self._calculate_slide_position(original_pos, final_pos,

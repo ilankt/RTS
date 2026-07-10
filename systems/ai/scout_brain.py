@@ -76,7 +76,7 @@ class ScoutBrain:
         scout = self.scout_units.get(player)
         
         # Validate existing scout
-        if scout and (scout.hp <= 0 or scout not in self.game.units):
+        if scout and (scout.hp <= 0 or not getattr(scout, "in_world", True)):
             scout = None
             self.scout_units[player] = None
         

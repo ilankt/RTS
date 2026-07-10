@@ -552,13 +552,17 @@ class WorkerTaskSystem:
         return worker is not None and getattr(worker, "name", None) == "worker" and getattr(worker, "hp", 1) > 0
 
     def _valid_resource(self, resource) -> bool:
-        return resource is not None and resource in self.game.resources and getattr(resource, "amount_remaining", 0) > 0
+        return (
+            resource is not None
+            and getattr(resource, "in_world", True)
+            and getattr(resource, "amount_remaining", 0) > 0
+        )
 
     def _valid_site(self, site) -> bool:
-        return site is not None and site in self.game.construction_sites and getattr(site, "hp", 1) > 0
+        return site is not None and getattr(site, "in_world", True) and getattr(site, "hp", 1) > 0
 
     def _valid_dropoff(self, worker, building) -> bool:
-        if building is None or building not in self.game.buildings or getattr(building, "hp", 1) <= 0:
+        if building is None or not getattr(building, "in_world", True) or getattr(building, "hp", 1) <= 0:
             return False
         valid_names = DROP_OFF_BUILDINGS.get(getattr(worker, "resource_type", None), [])
         return building.player == worker.player and building.name in valid_names
@@ -686,9 +690,8 @@ class WorkerTaskSystem:
         return False
 
     def _remove_dead_worker_tasks(self) -> None:
-        alive = set(self.game.units)
         for worker in list(self.tasks.keys()):
-            if worker not in alive or getattr(worker, "hp", 1) <= 0:
+            if not getattr(worker, "in_world", True) or getattr(worker, "hp", 1) <= 0:
                 self.cancel(worker)
 
     def _point_distance(self, a: Point, b: Point) -> float:

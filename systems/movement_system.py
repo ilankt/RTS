@@ -518,10 +518,11 @@ class MovementSystem:
             
             # Debug and recover stuck workers with gathering targets
             elif not unit.path and not unit.destination and unit.status == "idle":
-                debug_log.log(f"DEBUG: Worker at ({unit.x:.0f}, {unit.y:.0f}) has gathering_target but no movement!", "MOVEMENT")
-                debug_log.log(f"  - Target: {unit.gathering_target.name} at ({unit.gathering_target.x:.0f}, {unit.gathering_target.y:.0f})", "MOVEMENT")
-                debug_log.log(f"  - Distance: {target_distance:.1f}, Required: {gathering_distance:.1f}", "MOVEMENT")
-                debug_log.log(f"  - Resource remaining: {getattr(unit.gathering_target, 'amount_remaining', 'N/A')}", "MOVEMENT")
+                if debug_log.enabled("MOVEMENT"):
+                    debug_log.log(f"DEBUG: Worker at ({unit.x:.0f}, {unit.y:.0f}) has gathering_target but no movement!", "MOVEMENT")
+                    debug_log.log(f"  - Target: {unit.gathering_target.name} at ({unit.gathering_target.x:.0f}, {unit.gathering_target.y:.0f})", "MOVEMENT")
+                    debug_log.log(f"  - Distance: {target_distance:.1f}, Required: {gathering_distance:.1f}", "MOVEMENT")
+                    debug_log.log(f"  - Resource remaining: {getattr(unit.gathering_target, 'amount_remaining', 'N/A')}", "MOVEMENT")
                 
                 # Recovery: If too far from target, clear the stuck state and re-path
                 if target_distance > gathering_distance + 5:  # Small tolerance
@@ -536,7 +537,8 @@ class MovementSystem:
             
             interaction_tolerance = max(24, unit.radius * 6)
             if target_distance <= gathering_distance + interaction_tolerance:
-                debug_log.log(f"Worker at distance {target_distance:.1f} from {unit.gathering_target.name} (required: {gathering_distance:.1f})", "MOVEMENT")
+                if debug_log.enabled("MOVEMENT"):
+                    debug_log.log(f"Worker at distance {target_distance:.1f} from {unit.gathering_target.name} (required: {gathering_distance:.1f})", "MOVEMENT")
                 # Attempt to start gathering. If successful, the gathering manager will handle state changes.
                 if self.game.gathering_manager.start_gathering(unit, unit.gathering_target):
                     debug_log.log("  Started gathering successfully", "MOVEMENT")
