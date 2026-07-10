@@ -11,7 +11,7 @@ import pygame
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MIN_GAME_SPEED, MAX_GAME_SPEED
 
 PERSONALITY_CHOICES = ["random", "balanced", "rusher", "boomer", "turtle"]
-MUTATOR_CHOICES = ["none", "double_resources", "no_towers", "revealed_map"]
+MUTATOR_CHOICES = ["none", "double_resources", "no_towers", "revealed_map", "random_events"]
 
 
 class MatchSetupScreen:

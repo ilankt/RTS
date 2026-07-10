@@ -566,8 +566,15 @@ and should override "obvious" instincts.
   Applied via `game.mutators`; survives save/load (with fog-enabled state).
   Tests in `tests/test_mutators.py`. Sudden death is effectively the base
   rule already (castle loss eliminates); attrition/weather stay future.
-- [ ] **Dynamic map elements / random events** *(med)* — periodic neutral events
-  (resource booms, wandering hostiles, weather) that force adaptation.
+- [x] **Dynamic map elements / random events** *(med)* — v1 landed 2026-07-10
+  behind the **random_events** mutator (`systems/dynamic_events.py`): every
+  ~3 sim-minutes (±60 s jitter) either a **resource boom** (3-node 2×-rich
+  gold/wood/stone cluster on open ground ≥400 px from every castle, alert +
+  ping; AI picks it up through normal fog-gated resource discovery) or a
+  **bumper harvest** (every farm's food tick fires immediately). Mutator-
+  gated on purpose so default matches and the §8.8 balance baseline stay
+  event-free. Wandering hostiles/weather need neutral-unit AI — still future.
+  Tests in `tests/test_dynamic_events.py`.
 - **✅ Verify:** start 3 matches with different setup/seed and confirm they genuinely
   differ (map, start positions, opponents); each non-annihilation victory condition
   can be triggered to a win/loss; a mutator visibly changes the rules.

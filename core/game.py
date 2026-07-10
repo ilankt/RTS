@@ -107,6 +107,8 @@ class Game:
         self.game_state = GameState(self)
         self.gathering_manager = GatheringManager(self)
         self.pathfinder = Pathfinding(self.game_map, self)
+        from systems.dynamic_events import DynamicEventSystem
+        self.dynamic_events = DynamicEventSystem(self)  # §7.5 random_events mutator
         
         # Initialize new systems
         self.movement_system = MovementSystem(self)
@@ -500,6 +502,7 @@ class Game:
 
             # Update core systems with speed-adjusted delta time
             self.gathering_manager.update(self.delta_time)
+            self.dynamic_events.update(self.delta_time)
             self.building_system.update_construction(self.delta_time)
             self.production_manager.update(self.delta_time)
             self.research_manager.update(self.delta_time)
