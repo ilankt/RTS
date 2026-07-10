@@ -69,20 +69,39 @@ class RenderingSystem:
         self.game.ai_debug_panel.draw(screen)
     
     def _draw_all_objects(self, map_surface, camera):
-        """Draw all game objects (buildings, units, resources, construction sites)"""
-        # Gather all objects and sort by Y position for proper depth ordering
-        all_objects = (self.game.resources + 
-                      self.game.buildings + 
-                      self.game.units + 
-                      self.game.construction_sites)
-        all_objects.sort(key=lambda obj: obj.y)
-        
-        # Apply fog of war filtering
+        """Draw visible game objects (frustum-culled, fog-filtered, y-sorted)"""
+        zoom = camera.zoom
+        left = -camera.x / zoom
+        right = (-camera.x + map_surface.get_width()) / zoom
+        top = -camera.y / zoom
+        bottom = (-camera.y + map_surface.get_height()) / zoom
+
         fog = getattr(self.game, 'fog_of_war', None)
-        
-        for obj in all_objects:
-            if fog and not fog.is_object_visible(obj):
-                continue
+
+        visible = []
+        for group in (
+            self.game.resources,
+            self.game.buildings,
+            self.game.units,
+            self.game.construction_sites,
+        ):
+            for obj in group:
+                # Sprites are centered on (x, y) with world extents from size
+                # (in tiles); pad generously so we never cull a drawn sprite.
+                margin = max(obj.radius, obj.size[0] * 32, obj.size[1] * 28) + 8
+                if (
+                    obj.x + margin < left
+                    or obj.x - margin > right
+                    or obj.y + margin < top
+                    or obj.y - margin > bottom
+                ):
+                    continue
+                if fog and not fog.is_object_visible(obj):
+                    continue
+                visible.append(obj)
+
+        visible.sort(key=lambda obj: obj.y)
+        for obj in visible:
             self._draw_object(obj, map_surface, camera)
     
     def _draw_object(self, obj, map_surface, camera):
@@ -114,21 +133,27 @@ class RenderingSystem:
         return sprite_to_draw
     
     def _render_sprite(self, sprite, obj, draw_x, draw_y, camera, map_surface):
-        """Render a sprite at the specified position"""
+        """Render a sprite at the specified position (scaled copies cached)"""
         sprite_w, sprite_h = sprite.get_size()
         scale = (obj.size[0] * TILE_WIDTH) / sprite_w
         scaled_width = int(sprite_w * scale * camera.zoom)
         scaled_height = int(sprite_h * scale * camera.zoom)
-        
+
         # Only scale if necessary to avoid performance issues
         if (scaled_width, scaled_height) != (sprite_w, sprite_h):
-            scaled_sprite = pygame.transform.scale(sprite, (scaled_width, scaled_height))
+            key = (sprite, scaled_width, scaled_height)
+            scaled_sprite = self._scaled_sprite_cache.get(key)
+            if scaled_sprite is None:
+                if len(self._scaled_sprite_cache) > 2048:
+                    self._scaled_sprite_cache.clear()
+                scaled_sprite = pygame.transform.scale(sprite, (scaled_width, scaled_height))
+                self._scaled_sprite_cache[key] = scaled_sprite
         else:
             scaled_sprite = sprite
-        
+
         blit_x = draw_x - (scaled_width / 2)
         blit_y = draw_y - (scaled_height / 2)
-        
+
         map_surface.blit(scaled_sprite, (blit_x, blit_y))
     
     def _draw_ui_overlays(self, map_surface, camera):

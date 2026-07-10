@@ -9,6 +9,9 @@ class Minimap:
         self.surface = pygame.Surface((width, height))
         self.map_texture = self.create_map_texture()
         self.dragging = False
+        # Object dots are redrawn at ~4 Hz onto a cached layer (D5)
+        self._dots_surface = pygame.Surface((width, height), pygame.SRCALPHA)
+        self._next_dots_frame = -1
 
     def create_map_texture(self):
         map_texture = pygame.Surface((self.game.game_map.width, self.game.game_map.height))
@@ -39,19 +42,30 @@ class Minimap:
     def handle_release(self):
         self.dragging = False
 
-    def draw(self, screen):
-        self.surface.blit(self.map_texture, (0, 0))
-
-        # Draw objects
+    def _render_dots(self):
+        """Redraw the object-dot layer onto the cached surface."""
+        self._dots_surface.fill((0, 0, 0, 0))
+        world_width = self.game.game_map.width * TILE_WIDTH * 0.75
+        world_height = self.game.game_map.height * TILE_HEIGHT
         for obj in self.game.units + self.game.buildings + self.game.resources:
-            mini_x = int((obj.x / (self.game.game_map.width * TILE_WIDTH * 0.75)) * self.width)
-            mini_y = int((obj.y / (self.game.game_map.height * TILE_HEIGHT)) * self.height)
-            
+            mini_x = int((obj.x / world_width) * self.width)
+            mini_y = int((obj.y / world_height) * self.height)
+
             # Scale object size for minimap
             size_x = max(2, int(obj.size[0] * (self.width / self.game.game_map.width)))
             size_y = max(2, int(obj.size[1] * (self.height / self.game.game_map.height)))
 
-            pygame.draw.rect(self.surface, (0, 255, 0), (mini_x, mini_y, size_x, size_y))
+            pygame.draw.rect(self._dots_surface, (0, 255, 0), (mini_x, mini_y, size_x, size_y))
+
+    def draw(self, screen):
+        self.surface.blit(self.map_texture, (0, 0))
+
+        # Redraw the object-dot layer at a few Hz, not every frame
+        frame = getattr(self.game, "frame_counter", 0)
+        if frame >= self._next_dots_frame or self._next_dots_frame < 0:
+            self._next_dots_frame = frame + 15
+            self._render_dots()
+        self.surface.blit(self._dots_surface, (0, 0))
 
         # Draw camera view
         cam_rect = pygame.Rect(
