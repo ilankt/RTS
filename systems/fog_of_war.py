@@ -18,6 +18,8 @@ class FogOfWar:
     SIGHT_RADIUS_BUILDINGS = 250  # Larger sight for buildings
     SIGHT_RADIUS_CASTLE = 400  # Castle has largest sight range
 
+    UPDATE_INTERVAL = 0.2  # Game-time seconds between visibility rebuilds (~5 Hz)
+
     def __init__(self, game):
         self.game = game
         self.map_width = game.game_map.width
@@ -25,6 +27,14 @@ class FogOfWar:
 
         # visibility_grid[player] = 2D list of states
         self.visibility_grid = {}
+        # Tiles currently marked VISIBLE per player (so fading is O(visible))
+        self._visible_tiles = {}
+        # Count of ever-explored tiles per player (incremental, for percent)
+        self._explored_count = {}
+        # Circular tile-offset masks keyed by (radius, center-column parity)
+        self._mask_cache = {}
+        self._time_accum = 0.0
+        self._has_updated = False
 
         for player in game.players:
             self._init_player_grid(player)
@@ -40,23 +50,30 @@ class FogOfWar:
             [self.UNEXPLORED for _ in range(self.map_width)]
             for _ in range(self.map_height)
         ]
+        self._visible_tiles[player] = set()
+        self._explored_count[player] = 0
 
-    def update(self):
-        """Update visibility for all players each frame."""
+    def update(self, delta_time=None):
+        """Rebuild visibility for all players (throttled to ~UPDATE_INTERVAL)."""
+        if not self.enabled:
+            return
+        if delta_time is not None:
+            self._time_accum += delta_time
+            if self._has_updated and self._time_accum < self.UPDATE_INTERVAL:
+                return
+            self._time_accum = 0.0
+        self._has_updated = True
+
         for player in self.game.players:
             grid = self.visibility_grid[player]
-
-            # Fade all VISIBLE tiles to EXPLORED
-            for r in range(self.map_height):
-                for c in range(self.map_width):
-                    if grid[r][c] == self.VISIBLE:
-                        grid[r][c] = self.EXPLORED
+            previous_visible = self._visible_tiles.get(player, set())
+            new_visible = set()
 
             # Mark tiles around this player's units and buildings as VISIBLE
             for unit in self.game.units:
                 if unit.player != player or unit.hp <= 0:
                     continue
-                self._mark_visible_around(player, unit.x, unit.y, self.SIGHT_RADIUS_UNITS)
+                self._mark_visible_around(player, grid, new_visible, unit.x, unit.y, self.SIGHT_RADIUS_UNITS)
 
             for building in self.game.buildings:
                 if building.player != player or building.hp <= 0:
@@ -64,31 +81,70 @@ class FogOfWar:
                 radius = self.SIGHT_RADIUS_BUILDINGS
                 if building.name == "castle":
                     radius = self.SIGHT_RADIUS_CASTLE
-                self._mark_visible_around(player, building.x, building.y, radius)
+                self._mark_visible_around(player, grid, new_visible, building.x, building.y, radius)
 
-    def _mark_visible_around(self, player, wx: float, wy: float, radius: float):
-        """Mark all tiles within radius of (wx, wy) as VISIBLE."""
-        grid = self.visibility_grid[player]
+            # Fade only the tiles that dropped out of sight
+            for r, c in previous_visible - new_visible:
+                if grid[r][c] == self.VISIBLE:
+                    grid[r][c] = self.EXPLORED
+            self._visible_tiles[player] = new_visible
 
-        # Convert world center to grid
-        center = self.game.game_map.world_to_grid(wx, wy)
+    def _mark_visible_around(self, player, grid, new_visible, wx: float, wy: float, radius: float):
+        """Mark all tiles within radius of (wx, wy) as VISIBLE via offset mask."""
+        game_map = self.game.game_map
+        world_to_grid = getattr(game_map, "world_to_grid_fast", game_map.world_to_grid)
+        center = world_to_grid(wx, wy)
         if not center:
             return
         col_center, row_center = center
 
-        # Mark tiles in a circular area
+        map_height = self.map_height
+        map_width = self.map_width
+        unexplored = self.UNEXPLORED
+        visible = self.VISIBLE
+        explored_bump = 0
+        for dr, dc in self._offset_mask(radius, col_center & 1):
+            r = row_center + dr
+            c = col_center + dc
+            if 0 <= r < map_height and 0 <= c < map_width:
+                tile = (r, c)
+                if tile in new_visible:
+                    continue
+                new_visible.add(tile)
+                if grid[r][c] != visible:
+                    if grid[r][c] == unexplored:
+                        explored_bump += 1
+                    grid[r][c] = visible
+        if explored_bump:
+            self._explored_count[player] = self._explored_count.get(player, 0) + explored_bump
+
+    def _offset_mask(self, radius: float, parity: int):
+        """Tile offsets (dr, dc) within radius of a tile whose column parity is
+        `parity`. Uses the map's own grid geometry; computed once per key."""
+        key = (radius, parity)
+        mask = self._mask_cache.get(key)
+        if mask is not None:
+            return mask
+
+        grid_to_world = self.game.game_map.grid_to_world
+        center_x, center_y = grid_to_world(parity, 0)
         radius_tiles = int(radius / 40) + 1
+        radius_sq = radius * radius
+        mask = []
         for dr in range(-radius_tiles, radius_tiles + 1):
             for dc in range(-radius_tiles, radius_tiles + 1):
-                r = row_center + dr
-                c = col_center + dc
-                if 0 <= r < self.map_height and 0 <= c < self.map_width:
-                    # Check if within actual circular radius
-                    # Convert tile to world to check distance
-                    wx_tile, wy_tile = self.game.game_map.grid_to_world(c, r)
-                    dist = math.sqrt((wx - wx_tile) ** 2 + (wy - wy_tile) ** 2)
-                    if dist <= radius:
-                        grid[r][c] = self.VISIBLE
+                tile_x, tile_y = grid_to_world(parity + dc, dr)
+                dx = tile_x - center_x
+                dy = tile_y - center_y
+                if dx * dx + dy * dy <= radius_sq:
+                    mask.append((dr, dc))
+        self._mask_cache[key] = mask
+        return mask
+
+    def _world_to_tile(self, wx: float, wy: float):
+        game_map = self.game.game_map
+        world_to_grid = getattr(game_map, "world_to_grid_fast", game_map.world_to_grid)
+        return world_to_grid(wx, wy)
 
     def is_visible(self, player, wx: float, wy: float) -> bool:
         """Check if a world position is currently visible to player."""
@@ -96,7 +152,7 @@ class FogOfWar:
             return True
         if player not in self.visibility_grid:
             return True  # No fog for unregistered players
-        hex_coord = self.game.game_map.world_to_grid(wx, wy)
+        hex_coord = self._world_to_tile(wx, wy)
         if not hex_coord:
             return False
         c, r = hex_coord
@@ -110,7 +166,7 @@ class FogOfWar:
             return True
         if player not in self.visibility_grid:
             return True
-        hex_coord = self.game.game_map.world_to_grid(wx, wy)
+        hex_coord = self._world_to_tile(wx, wy)
         if not hex_coord:
             return False
         c, r = hex_coord
@@ -144,15 +200,10 @@ class FogOfWar:
         return self.is_visible(human, obj.x, obj.y)
 
     def get_exploration_percent(self, player):
-        """Return percentage of map tiles explored."""
+        """Return percentage of map tiles explored (incrementally tracked)."""
         if not self.enabled:
             return 100.0
         if player not in self.visibility_grid:
             return 100.0
-        grid = self.visibility_grid[player]
         total = self.map_width * self.map_height
-        explored = sum(
-            1 for r in range(self.map_height) for c in range(self.map_width)
-            if grid[r][c] >= self.EXPLORED
-        )
-        return explored / total * 100 if total > 0 else 0.0
+        return self._explored_count.get(player, 0) / total * 100 if total > 0 else 0.0

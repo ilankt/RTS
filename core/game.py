@@ -443,7 +443,7 @@ class Game:
             self.projectile_system.update(self.delta_time)
             
             # Update fog of war
-            self.fog_of_war.update()
+            self.fog_of_war.update(self.delta_time)
             
             # Update particles
             self.particles.update(self.delta_time)

@@ -17,6 +17,11 @@ class RenderingSystem:
         # Colors
         self.DARK_GRAY = (40, 40, 40)
         self.MAP_GRAY = (60, 60, 60)
+
+        # Cached fog tile surfaces keyed by (width, height, alpha)
+        self._fog_tile_cache = {}
+        # Cached scaled object sprites keyed by (id(sprite), width, height)
+        self._scaled_sprite_cache = {}
     
     def draw_frame(self, screen, map_surface, camera, delta_time=1/60.0):
         """Draw a complete frame"""
@@ -290,13 +295,15 @@ class RenderingSystem:
                 
                 screen_x = x + camera.x
                 screen_y = y + camera.y
-                
-                # Create a slightly larger rect to cover tile seams
-                fog_surface = pygame.Surface(
-                    (int(tile_width * 0.75) + 2, int(tile_height) + 2),
-                    pygame.SRCALPHA
-                )
-                fog_surface.fill((0, 0, 0, alpha))
+
+                # Slightly larger rect to cover tile seams; surface cached per
+                # (size, alpha) instead of allocated per tile per frame.
+                key = (int(tile_width * 0.75) + 2, int(tile_height) + 2, alpha)
+                fog_surface = self._fog_tile_cache.get(key)
+                if fog_surface is None:
+                    fog_surface = pygame.Surface((key[0], key[1]), pygame.SRCALPHA)
+                    fog_surface.fill((0, 0, 0, alpha))
+                    self._fog_tile_cache[key] = fog_surface
                 map_surface.blit(fog_surface, (int(screen_x) - 1, int(screen_y) - 1))
     
     def get_visible_objects(self, camera, map_surface):

@@ -355,6 +355,23 @@ class Map:
             world_y += TILE_HEIGHT / 2
         return world_x, world_y
     
+    def world_to_grid_fast(self, world_x, world_y):
+        """Approximate world->grid without the 9-neighbor refinement.
+
+        Bins by column stride/row height only; may be off by one tile right at
+        hex boundaries. Use for tile-granular consumers (fog, minimap), not for
+        exact terrain lookups."""
+        col = int(world_x / (TILE_WIDTH * 0.75))
+        if col < 0 or col >= self.width:
+            return None
+        if col % 2 == 0:
+            row = int(world_y / TILE_HEIGHT)
+        else:
+            row = int((world_y - TILE_HEIGHT / 2) / TILE_HEIGHT)
+        if row < 0 or row >= self.height:
+            return None
+        return (col, row)
+
     def world_to_grid(self, world_x, world_y):
         """Convert world coordinates to grid coordinates (inverse of grid_to_world)"""
         # First approximation for column
