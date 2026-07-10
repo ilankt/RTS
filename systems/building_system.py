@@ -261,6 +261,12 @@ class BuildingSystem:
                     self.game.buildings.append(building_class)
                     completed_sites.append(site)
                     completed_buildings.append(building_class)
+
+                    # Match statistics (§8.8)
+                    stats = getattr(self.game, "stats_buildings_built", None)
+                    if stats is not None and site.player:
+                        key = (site.player.name, site.building_name)
+                        stats[key] = stats.get(key, 0) + 1
                     
                     # Free the builder with complete state cleanup before nudging
                     if site.builder:

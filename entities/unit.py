@@ -89,6 +89,9 @@ class Unit(GameObject):
         self.flow_field = None
         self.flow_slot_target = None
 
+        # Shift-queued commands (§7.4): [(kind, payload), ...]
+        self.command_queue = []
+
     def set_animations(self, animations):
         self.animations = animations
 
@@ -133,6 +136,7 @@ class Unit(GameObject):
         self.path_target = None
         self.flow_field = None
         self.flow_slot_target = None
+        self.command_queue = []
         self._clear_navigation_metadata()
         self.status = "idle"
         self.is_gathering = False

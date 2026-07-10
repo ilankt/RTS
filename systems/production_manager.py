@@ -131,6 +131,12 @@ class ProductionManager:
         # Add to game
         self.game.units.append(new_unit)
 
+        # Match statistics (§8.8)
+        stats = getattr(self.game, "stats_units_trained", None)
+        if stats is not None:
+            key = (building.player.name, unit_type)
+            stats[key] = stats.get(key, 0) + 1
+
         # Rally point (§7.4): send the fresh unit on its way
         self._apply_rally(building, new_unit)
         

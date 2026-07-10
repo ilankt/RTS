@@ -144,6 +144,11 @@ class Game:
         self.game_over_state = None
         self.winning_player = None
         self.game_paused = False
+
+        # Match statistics (§8.8 balance sim / §8.7 post-match summary):
+        # {(player_name, unit_or_building_type): count}
+        self.stats_units_trained = {}
+        self.stats_buildings_built = {}
         
         # Set up initial game state
         self.game_state.setup_game_objects()
@@ -452,6 +457,8 @@ class Game:
             # spawns/pushes can still compress crowds into deep overlap).
             self.collision_system.separate_overlapping_units()
             self.worker_task_system.update_post_movement(self.delta_time)
+            # Shift-queued commands fire as units go idle (§7.4)
+            self.selection_manager.drain_command_queues()
 
             # Update core systems with speed-adjusted delta time
             self.gathering_manager.update(self.delta_time)

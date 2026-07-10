@@ -316,6 +316,10 @@ class SelectionManager:
                 self._play_human_sound("move")
                 return
 
+        # Shift held = queue the command instead of replacing the current one
+        keys = pygame.key.get_pressed()
+        shift_held = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+
         # If multiple units moving to empty space, use hexagonal ring formation
         if len(movable_units) > 1 and not clicked_object:
             positions = self._generate_formation_offsets(len(movable_units))
@@ -324,62 +328,116 @@ class SelectionManager:
                 for offset_x, offset_y in positions
             ]
             # Large groups ride ONE shared flow field (Phase 5) instead of
-            # issuing a path search per unit.
-            if len(movable_units) >= 8 and pathfinder.request_group_move(movable_units, world_pos, slots):
+            # issuing a path search per unit (immediate orders only; queued
+            # waypoints execute per unit later).
+            if not shift_held and len(movable_units) >= 8 and pathfinder.request_group_move(movable_units, world_pos, slots):
                 self._play_human_sound("move")
             else:
                 for obj, target_pos in zip(movable_units, slots):
-                    self._move_unit_to_position(obj, target_pos, pathfinder)
+                    self._issue_or_queue(obj, ("move", target_pos), shift_held)
         else:
             # Command units normally (single unit or clicking on object)
             for obj in movable_units:
-                # Handle different click targets
-                if clicked_object:
-                    # If clicking on a resource, gather it (workers only)
-                    if clicked_object in self.game.resources and obj.name == "worker":
-                        self._gather_from_target(obj, clicked_object, pathfinder)
-                    # If clicking on a farm, garrison worker (workers only)
-                    elif clicked_object in self.game.buildings and clicked_object.name == "farm" and obj.name == "worker":
-                        if hasattr(self.game, "worker_task_system"):
-                            self.game.worker_task_system.cancel(obj)
-                        # Clear any drop-off state
-                        obj.is_dropping_off = False
-                        obj.drop_off_timer = 0.0
-                        obj.drop_off_target = None
-                        
-                        # Move to closest reachable position near farm
-                        path = pathfinder.find_path((obj.x, obj.y), (clicked_object.x, clicked_object.y), obj.radius, obj)
-                        if path:
-                            obj.path = path
-                            obj.path_index = 0
-                            obj.path_target = path[-1]  # Use actual reachable position
-                            obj.destination = path[0] if path else None
-                            obj.garrison_target = clicked_object  # Mark for garrisoning
-                            obj.status = "run"
-                    # If clicking on a drop-off building and carrying resources
-                    elif (clicked_object in self.game.buildings and 
-                          obj.name == "worker" and 
-                          obj.resource_amount > 0):
-                        worker_tasks = getattr(self.game, "worker_task_system", None)
-                        if worker_tasks:
-                            worker_tasks.assign_dropoff(obj, clicked_object)
-                        else:
-                            pathfinder.issue_interact(obj, clicked_object, "dropoff")
-                    # If clicking on an enemy unit/building and this unit can attack
-                    elif (hasattr(clicked_object, 'player') and 
-                          clicked_object.player != obj.player):
-                        if obj.can_attack_flag:
-                            # Attack enemy target - this will automatically find best reachable attack position
-                            self._attack_target(obj, clicked_object, pathfinder)
-                        else:
-                            # Can't attack, just move to closest reachable position near target
-                            self._move_unit_to_position(obj, world_pos, pathfinder)
-                    else:
-                        # Regular move to location
-                        self._move_unit_to_position(obj, world_pos, pathfinder)
+                spec = self._command_spec_for(obj, clicked_object, world_pos)
+                self._issue_or_queue(obj, spec, shift_held)
+
+    def _command_spec_for(self, unit, clicked_object, world_pos):
+        """Resolve a right-click into a (kind, payload) command spec."""
+        if clicked_object:
+            if clicked_object in self.game.resources and unit.name == "worker":
+                return ("gather", clicked_object)
+            if clicked_object in self.game.buildings and clicked_object.name == "farm" and unit.name == "worker":
+                return ("garrison", clicked_object)
+            if (
+                clicked_object in self.game.buildings
+                and unit.name == "worker"
+                and unit.resource_amount > 0
+            ):
+                return ("dropoff", clicked_object)
+            if hasattr(clicked_object, 'player') and clicked_object.player != unit.player:
+                if unit.can_attack_flag:
+                    return ("attack", clicked_object)
+                return ("move", world_pos)
+            return ("move", world_pos)
+        return ("move", world_pos)
+
+    def _issue_or_queue(self, unit, spec, shift_held):
+        """Execute a command spec now, or queue it while the unit is busy (§7.4)."""
+        queue = getattr(unit, "command_queue", None)
+        if queue is None:
+            queue = unit.command_queue = []
+        if shift_held and self._unit_busy(unit):
+            if len(queue) < 8:
+                queue.append(spec)
+            return
+        if not shift_held:
+            queue.clear()
+        self._execute_command_spec(unit, spec)
+
+    def _unit_busy(self, unit):
+        """Does the unit have a command in flight (so new ones should queue)?"""
+        worker_tasks = getattr(self.game, "worker_task_system", None)
+        if worker_tasks and worker_tasks.owns(unit):
+            return True
+        return bool(
+            unit.path
+            or unit.destination
+            or getattr(unit, "flow_field", None) is not None
+            or getattr(unit, "_pending_path_seq", None) is not None
+            or unit.is_gathering
+            or unit.is_building
+            or unit.in_combat
+            or unit.is_engaging
+        )
+
+    def _execute_command_spec(self, unit, spec):
+        """Run one (kind, payload) command spec."""
+        kind, payload = spec
+        pathfinder = self.game.pathfinder
+        if kind == "move":
+            self._move_unit_to_position(unit, payload, pathfinder)
+        elif kind == "gather":
+            if getattr(payload, "in_world", True) and getattr(payload, "amount_remaining", 0) > 0:
+                self._gather_from_target(unit, payload, pathfinder)
+        elif kind == "attack":
+            if getattr(payload, "in_world", True) and getattr(payload, "hp", 0) > 0:
+                self._attack_target(unit, payload, pathfinder)
+        elif kind == "dropoff":
+            if getattr(payload, "in_world", True):
+                worker_tasks = getattr(self.game, "worker_task_system", None)
+                if worker_tasks:
+                    worker_tasks.assign_dropoff(unit, payload)
                 else:
-                    # No object clicked, regular move
-                    self._move_unit_to_position(obj, world_pos, pathfinder)
+                    pathfinder.issue_interact(unit, payload, "dropoff")
+        elif kind == "garrison":
+            if getattr(payload, "in_world", True):
+                self._garrison_worker(unit, payload, pathfinder)
+
+    def _garrison_worker(self, unit, farm, pathfinder):
+        """Send a worker to garrison into a farm."""
+        if hasattr(self.game, "worker_task_system"):
+            self.game.worker_task_system.cancel(unit)
+        unit.is_dropping_off = False
+        unit.drop_off_timer = 0.0
+        unit.drop_off_target = None
+
+        path = pathfinder.find_path((unit.x, unit.y), (farm.x, farm.y), unit.radius, unit)
+        if path:
+            unit.path = path
+            unit.path_index = 0
+            unit.path_target = path[-1]  # Use actual reachable position
+            unit.destination = path[0] if path else None
+            unit.garrison_target = farm  # Mark for garrisoning
+            unit.status = "run"
+
+    def drain_command_queues(self):
+        """Pop the next queued command for units that finished their current
+        one (called once per frame from the game loop)."""
+        for unit in self.game.units:
+            queue = getattr(unit, "command_queue", None)
+            if not queue or unit.hp <= 0 or self._unit_busy(unit):
+                continue
+            self._execute_command_spec(unit, queue.pop(0))
     
     def _attack_target(self, unit, target, pathfinder, new_destination=None):
         """Command unit to attack a target"""

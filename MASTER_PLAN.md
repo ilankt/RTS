@@ -479,8 +479,9 @@ and should override "obvious" instincts.
   (2026-07-10)
 - [x] ⚡ **Control-group centering** *(low)* — double-tap a group number (<450 ms)
   to center the camera on the group centroid. (2026-07-10)
-- [ ] ⚡ **Shift-queued commands** *(low)* — hold Shift to queue
-  move/attack/gather/build waypoints.
+- [x] ⚡ **Shift-queued commands** *(low)* — Shift+right-click queues
+  move/gather/attack/dropoff/garrison commands per unit (cap 8); the queue
+  drains as units go idle, a plain command or Stop wipes it. (2026-07-10)
 - [x] ⚡ **Rally points** *(low)* — right-click with an own production building
   selected sets its rally (yellow flag drawn while selected); new units path
   there on spawn, and workers rallied onto a resource start gathering it.
