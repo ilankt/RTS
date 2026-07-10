@@ -757,6 +757,17 @@ unsequenced — pull them in where they fit.
 - [ ] **Test coverage**: existing tests assert constants/attributes, not behavior. Add
   integration tests that run the AI for N ticks and assert observable outcomes,
   plus the Phase 0 perf-regression gate.
+- [x] **Projectile flies to infinity** (user-reported 2026-07-10): fast
+  projectiles / high game speed stepped past the 5 px arrival check and never
+  died. Fixed: arrival is checked against the step length *before* moving, and
+  the projectile snaps to the target. Verified at 5× with cannonballs.
+- [ ] **HP bars read as empty at max zoom** (user-reported 2026-07-10):
+  couldn't reproduce the empty fill headlessly (pixel tests show correct green
+  fill through the full draw pipeline at zoom 2.5), but the geometry was
+  hardened anyway: bar width/height/offset now clamp instead of scaling
+  unbounded (bars no longer float 100 px above units at max zoom), and any
+  living object shows ≥1 px of fill. **Needs a windowed re-check by the user;
+  if it persists, grab a screenshot + zoom level.**
 - [ ] **Docs housekeeping**: `CLAUDE.md` was corrected (2026-07-09) to match the 20 px
   grid + utility AI and point here. `AGENTS.md` still describes the old 4-phase
   state-machine AI and 8 px grid — refresh it too.

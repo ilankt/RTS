@@ -126,26 +126,23 @@ class FloatingUI:
     
     def _draw_bar(self, surface, screen_x, screen_y, percentage, color, zoom):
         """Draw a progress bar at the specified screen position"""
-        # Scale bar size with zoom
-        bar_width = int(self.health_bar_width * zoom)
-        bar_height = int(self.health_bar_height * zoom)
-        offset_y = int(self.health_bar_offset_y * zoom)
-        
-        # Minimum readable size
-        bar_width = max(16, bar_width)
-        bar_height = max(2, bar_height)
-        
+        # Scale bar size with zoom, clamped to a readable range at both ends
+        # (unclamped scaling made bars detach from their units at max zoom).
+        bar_width = max(16, min(int(self.health_bar_width * zoom), 48))
+        bar_height = max(2, min(int(self.health_bar_height * zoom), 6))
+        offset_y = max(int(self.health_bar_offset_y * zoom), -64)
+
         # Calculate bar position (centered above object)
         bar_x = int(screen_x - bar_width / 2)
         bar_y = int(screen_y + offset_y)
-        
+
         # Draw background bar
         background_rect = pygame.Rect(bar_x, bar_y, bar_width, bar_height)
         pygame.draw.rect(surface, self.health_colors['background'], background_rect)
-        
-        # Draw progress bar
+
+        # Draw progress bar - anything alive shows at least 1px of fill
         if percentage > 0:
-            progress_width = int(bar_width * percentage)
+            progress_width = max(1, round(bar_width * min(percentage, 1.0)))
             progress_rect = pygame.Rect(bar_x, bar_y, progress_width, bar_height)
             pygame.draw.rect(surface, color, progress_rect)
         
@@ -154,7 +151,12 @@ class FloatingUI:
     
     def _get_max_hp(self, obj):
         """Get maximum HP for an object from cached game data."""
-        templates = self.game.game_data["units"] if obj in self.game.units else self.game.game_data["buildings"]
+        # Units are the only objects with movement_speed; avoids an O(n)
+        # list-membership scan per bar per frame.
+        if getattr(obj, "movement_speed", None) is not None:
+            templates = self.game.game_data["units"]
+        else:
+            templates = self.game.game_data["buildings"]
         template = templates.get(obj.name)
         if template:
             return template.hp

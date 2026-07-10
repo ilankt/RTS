@@ -38,20 +38,27 @@ class Projectile:
         """Update projectile position"""
         if not self.alive:
             return
-            
+
         # Store position for trail
         self.trail.append((self.x, self.y))
         if len(self.trail) > self.max_trail_length:
             self.trail.pop(0)
-            
+
+        # Arrival check BEFORE moving: if this step reaches (or would overshoot)
+        # the target, snap to it and die. The old post-move "within 5px" check
+        # let fast projectiles / high game speeds step past the target and fly
+        # off to infinity.
+        remaining = math.sqrt((self.target_x - self.x) ** 2 + (self.target_y - self.y) ** 2)
+        step = self.speed * delta_time
+        if step >= remaining - 5:
+            self.x = self.target_x
+            self.y = self.target_y
+            self.alive = False
+            return
+
         # Move projectile
         self.x += self.velocity_x * delta_time
         self.y += self.velocity_y * delta_time
-        
-        # Check if reached target
-        distance_to_target = math.sqrt((self.x - self.target_x)**2 + (self.y - self.target_y)**2)
-        if distance_to_target < 5:  # Close enough to target
-            self.alive = False
             
     def draw(self, surface: pygame.Surface, camera) -> None:
         """Draw the projectile"""
