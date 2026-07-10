@@ -193,32 +193,38 @@ on.** Tags like (A1)/(D2) map each action back to the root-cause inventory in §
 ### Phase 1 — Cheap, high-ROI wins (2–4 days, low risk, no new architecture)
 **Goal:** roughly halve average frame time and evict the coordinate-conversion +
 fog hogs — with zero architecture change.
-- [ ] **Static walkable bitmap** (A1) — precompute a boolean walkable array per nav
-  revision; `cell_walkable`/terrain probe → array lookup; drop the 9-neighbor
-  refinement in `world_to_grid` for path probes.
-- [ ] **Fog rework** (D1/D2) — throttle to ~5 Hz; per-sight-radius offset masks;
-  per-player visible-tile set (clear only those); cache two fog surfaces (α=150/255)
-  + one overlay.
-- [ ] **Shared spatial index** (B1/B2/C2/C5) — expose collision buckets as
-  `query_nearby(x,y,r)`; route `evaluate_combat_targets`, building auto-target,
-  `find_optimal_attack_position`, `has_line_of_sight` obstacles,
-  `production._is_valid_spawn_position`, and watchdog safe-position through it.
-- [ ] **Cache effective stats** (E1) — memoize per unit keyed by
-  `player.upgrades_version`; fast-path the zero-upgrade case.
-- [ ] **Throttle target re-acquisition** (C2) — keep the target; re-scan every
-  ~0.25–0.5 s or on target death / out-of-range.
-- [ ] **O(1) worker-task validity** (E2) — replace `x in self.game.<list>` with
-  per-object flags.
-- [ ] **Rendering hygiene** (D3/D4/D5) — frustum-cull before sort/draw (existing
-  `get_visible_objects`); cache scaled sprites by `(sprite, zoom)`; throttle minimap
-  dots.
-- [ ] **Micro-hygiene** (E3/E4/E5/E6) — gate debug f-strings; single-pass projectile
-  filter; `__slots__` on Unit/Building/Resource; squared-distance in hot loops;
-  `gc.freeze()` after `setup_game_objects`; purge `attack_trackers` on death.
-- **✅ Verify:** re-run the benchmark — `frame_avg_ms` roughly halved (≈43 → ≤22),
-  no stall regression; a fresh `cProfile` shows `world_to_grid`/`grid_to_world` and
-  `fog_of_war` **out of the top-5 self-time**; `pytest` green; launch the game and
-  confirm it still plays (gather / fight / fog reveal all correct).
+- [x] **Static walkable bitmap** (A1) — conservative per-nav-cell terrain bitmap
+  built once at startup (terrain is static); all terrain probes (pathfinding,
+  collision, movement, LOS) are O(1) lookups via `game_map.nav_terrain_walkable`.
+- [x] **Fog rework** (D1/D2) — throttled to ~5 Hz game time; per-(radius, column
+  parity) offset masks; per-player visible-tile sets (fade is O(visible));
+  incremental explored counter; fog tile surfaces cached per (size, α); update
+  skipped entirely when fog disabled.
+- [x] **Shared spatial index** (B1/B2/C2/C5) — collision buckets exposed as
+  `query_nearby_units` / `query_nearby_static` / `query_obstacles_along`; routed
+  `evaluate_combat_targets`, building auto-target, `find_optimal_attack_position`,
+  movement LOS obstacle lists, `production._is_valid_spawn_position`, watchdog
+  safe-position. Bucket queries no longer O(all objects); static signature checked
+  once per frame.
+- [x] **Cache effective stats** (E1) — (multiplier, bonus) memoized per player
+  keyed by new `player.upgrades_version`; zero-upgrade fast path.
+- [x] **Throttle target re-acquisition** (C2) — idle units & defensive buildings
+  re-scan every ~0.25–0.5 s (jittered per object); target kept between scans.
+- [x] **O(1) worker-task validity** (E2) — `GameObject.in_world` flag set at every
+  removal site replaces list-membership scans.
+- [x] **Rendering hygiene** (D3/D4/D5) — frustum-cull before fog-check/sort/draw;
+  scaled-sprite cache keyed (sprite, w, h); minimap dot layer redrawn at ~4 Hz.
+- [x] **Micro-hygiene** (E3/E4/E5/E6) — `debug_log.enabled()` gates hot f-strings;
+  single-pass projectile filter; squared-distance in hot loops; `gc.freeze()` after
+  setup; `attack_trackers` purged on death. `__slots__` deliberately skipped:
+  entities lean on dynamic attrs (hasattr/delattr probes); revisit in Phase 3.
+- **✅ Verify (passed 2026-07-10):** benchmark (120 sim s @5×, 48→56 units):
+  `frame_avg_ms` 26.2 → **6.1** (target ≤22), p95 165 → **24**, max 514 → **189**,
+  ai_max 511 → **152**, A* capped 5.4 % → **0 %**; cProfile confirms
+  `world_to_grid`/`grid_to_world` + `fog_of_war` out of top-5 self-time (top cost
+  is now A* itself — Phase 2's target); `pytest` 144 green; headless human_1v1
+  smoke sim: AI gathers/builds 9 buildings/trains mixed army/researches 2 techs
+  with fog on. (Manual windowed play-check still recommended.)
 
 ### Phase 2 — Pathfinding structure: stop the stampede (3–5 days, medium risk)
 **Goal:** kill the full-rebuild cache wipes and the A* expansion explosion; no
