@@ -481,7 +481,15 @@ and should override "obvious" instincts.
   unit). This is the new authoritative §8.8 dataset.
   Original scope: AI scouts the player's composition and shifts
   production toward counters instead of a fixed comp. Rides on Phase 4.
-- [ ] **Fair perception** *(med)* — AI acts on *scouted* info, not omniscience.
+- [x] **Fair perception** *(med)* — 2026-07-10: with fog on, the AI blackboard
+  only contains enemy **buildings it has explored** (remembered once seen —
+  buildings don't move) and enemy **units it can currently see**; the threat
+  map, attack targeting, tower/wall bearings, and reactive counters all
+  inherit the scouted view, so the AI hunts with its scout before it can
+  hunt with its army. Spectator mode / balance sims run fog-off and stay
+  omniscient, so the §8.8 baseline is untouched. Verified live: a blind AI
+  in a human match still grows its economy, expands exploration, and builds
+  (`tests/test_fair_perception.py`, incl. a 3-game-minute integration run).
   Pairs with the fog work.
 - [x] **Optional covert DDA** *(med)* — 2026-07-10: **off by default**, opt-in
   via the settings menu ("Adaptive difficulty"). Within the chosen tier it

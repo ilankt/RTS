@@ -39,6 +39,22 @@ def split_frames(sheet: np.ndarray, frame_size: int) -> list[np.ndarray]:
             for i in range(w // frame_size)]
 
 
+def shrink_frame_content(frame: np.ndarray, factor: float) -> np.ndarray:
+    """Scale a frame's art by `factor` about its centre, keeping the same canvas.
+
+    Buys empty margin so wide poses can be fully centred, and (with a matching
+    game `size`) sets how large the unit renders. Only downscaling is supported.
+    """
+    if factor >= 0.999:
+        return frame
+    h, w = frame.shape[:2]
+    s = max(1, round(w * factor))
+    small = Image.fromarray(frame, "RGBA").resize((s, s), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    canvas.alpha_composite(small, ((w - s) // 2, (h - s) // 2))
+    return np.asarray(canvas)
+
+
 def translate(a: np.ndarray, dx: int, dy: int) -> np.ndarray:
     """Shift an array by (dx, dy) pixels, filling exposed area with zeros."""
     h, w = a.shape[:2]
@@ -112,8 +128,11 @@ def reanchor_sheet(
     target_cx: float,
     do_plant: bool,
     baseline: int | None,
+    shrink: float = 1.0,
 ) -> tuple[np.ndarray, dict]:
     frames = split_frames(sheet, frame_size)
+    if shrink < 0.999:
+        frames = [shrink_frame_content(f, shrink) for f in frames]
     masks = [mask_of(f) for f in frames]
     n = len(frames)
 
@@ -162,6 +181,7 @@ def process(path: Path, out_path: Path, args) -> None:
         target_cx=args.center_x,
         do_plant=not args.no_plant,
         baseline=args.baseline,
+        shrink=args.shrink,
     )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(baked, "RGBA").save(out_path)
@@ -187,6 +207,8 @@ def main() -> int:
                         help="Skip vertical feet-baseline alignment.")
     parser.add_argument("--baseline", type=int, default=None,
                         help="Force a specific feet baseline row (default: median).")
+    parser.add_argument("--shrink", type=float, default=1.0,
+                        help="Scale art by this factor first to buy margin / set render size.")
     args = parser.parse_args()
 
     out_dir = Path(args.out_dir) if args.out_dir else None

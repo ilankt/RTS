@@ -56,6 +56,13 @@ class GoalContext:
         ctx.cost_data = game.game_data.get("costs", {})
         ctx.tech_data = game.game_data.get("techs", {})
 
+        # Fair perception (§7.2): with fog on, the AI only knows enemy
+        # buildings it has EXPLORED (buildings are remembered once seen) and
+        # enemy units it can currently SEE. With fog off (spectator mode,
+        # balance sims) perception stays omniscient, as before.
+        fog = getattr(game, "fog_of_war", None)
+        fog_on = bool(fog and getattr(fog, "enabled", True))
+
         for building in game.buildings:
             if building.player is player:
                 if building.name == "castle":
@@ -66,7 +73,8 @@ class GoalContext:
                     ctx.research_in_progress.add(current.get("tech_id"))
                 ctx.research_in_progress.update(getattr(building, "research_queue", ()))
             elif building.hp > 0:
-                ctx.enemy_buildings.append(building)
+                if not fog_on or fog.is_explored(player, building.x, building.y):
+                    ctx.enemy_buildings.append(building)
 
         ctx.gathering_counts_by_type = {"gold": 0, "wood": 0, "stone": 0}
         pop = 0
@@ -91,7 +99,8 @@ class GoalContext:
                 elif unit.name in MILITARY_NAMES:
                     ctx.military.append(unit)
             elif unit.hp > 0:
-                ctx.enemy_units.append(unit)
+                if not fog_on or fog.is_visible(player, unit.x, unit.y):
+                    ctx.enemy_units.append(unit)
 
         for site in game.construction_sites:
             if site.player is player:
@@ -114,8 +123,6 @@ class GoalContext:
                 if (e.x - cx) ** 2 + (e.y - cy) ** 2 <= radius_sq
             ]
 
-        fog = getattr(game, "fog_of_war", None)
-        fog_on = bool(fog and getattr(fog, "enabled", True))
         for resource in getattr(game, "resources", []):
             if getattr(resource, "amount_remaining", 0) <= 0:
                 continue
