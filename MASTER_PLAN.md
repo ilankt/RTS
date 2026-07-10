@@ -632,12 +632,17 @@ real damage is `attack_type × armor_type` (`EFFECTIVENESS_TABLE`). Worse, **spe
 and archer are both `pierce`/`light`** — mechanically near-identical, so their roles
 collapse.
 
-- [ ] **One coherent counter model** *(med)* — keep armor classes, add explicit
-  **bonus-vs-tag** damage (AoE-style) and wire `strong_against` into `calculate_damage`
-  so spearman counters cavalry distinctly from archer. Every unit gets a clear job +
-  clear counter; no dominant pick.
-- [ ] **Legible counters** *(low–med)* — show strong/weak-vs in the unit panel; pop
-  "Effective!/Resisted!" combat feedback. Realizes §7.3's legible-counters item.
+- [x] **One coherent counter model** *(med)* — `strong_against` tags now grant
+  1.5× damage in `calculate_damage` (flag `COMBAT_BONUS_VS_TAGS_ENABLED`),
+  unifying the two systems. **Same-seed validation (2026-07-10,
+  `tools/balance_20_counters.json`): military mix flattened to
+  26/23/19/17/15 % (warrior/ram/spear/archer/cav — ram dethroned as top
+  unit), win spread tightened 31–80 % → 38–67 %, and the `balanced`
+  watch-item self-resolved (31 % → 46 %).** Unit test locks
+  spearman-vs-cavalry ≫ archer-vs-cavalry.
+- [ ] **Legible counters** *(low–med)* — counter hits already pop emphasized
+  "N!" damage numbers (done 2026-07-10); still open: strong/weak-vs display in
+  the unit panel + a "Resisted!" cue for type-disadvantaged hits.
 - [ ] **Position matters** *(med)* — high-ground / forest-cover / flank bonuses so
   terrain and positioning are combat levers, not just unit type (imperfect RPS).
 - **✅ Verify:** *prototype behind a flag first.* Spearman-vs-cavalry does distinctly
