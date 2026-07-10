@@ -30,6 +30,11 @@ def parse_args():
     parser.add_argument("--warmup-frames", type=int, default=30, help="Frames to ignore before collecting stats.")
     parser.add_argument("--stall-ms", type=float, default=500.0, help="Long-frame failure threshold.")
     parser.add_argument("--fail-on-stall", action="store_true", help="Return nonzero if max update exceeds stall threshold.")
+    parser.add_argument("--max-frame-avg-ms", type=float, default=None, help="Fail if frame_avg_ms exceeds this.")
+    parser.add_argument("--max-frame-p95-ms", type=float, default=None, help="Fail if frame_p95_ms exceeds this.")
+    parser.add_argument("--max-ai-max-ms", type=float, default=None, help="Fail if ai_max_ms exceeds this.")
+    parser.add_argument("--output", type=str, default=None, help="Write the summary JSON to this path.")
+    parser.add_argument("--profile", type=str, default=None, help="Run under cProfile and dump stats to this path.")
     return parser.parse_args()
 
 
@@ -76,17 +81,43 @@ def run_benchmark(args):
     return summary
 
 
+def check_thresholds(args, summary):
+    failures = []
+    if args.fail_on_stall and summary["frame_max_ms"] > args.stall_ms:
+        failures.append(f"frame_max_ms {summary['frame_max_ms']:.1f} > stall threshold {args.stall_ms:.1f}")
+    if args.max_frame_avg_ms is not None and summary["frame_avg_ms"] > args.max_frame_avg_ms:
+        failures.append(f"frame_avg_ms {summary['frame_avg_ms']:.1f} > {args.max_frame_avg_ms:.1f}")
+    if args.max_frame_p95_ms is not None and summary["frame_p95_ms"] > args.max_frame_p95_ms:
+        failures.append(f"frame_p95_ms {summary['frame_p95_ms']:.1f} > {args.max_frame_p95_ms:.1f}")
+    if args.max_ai_max_ms is not None and summary["ai_max_ms"] > args.max_ai_max_ms:
+        failures.append(f"ai_max_ms {summary['ai_max_ms']:.1f} > {args.max_ai_max_ms:.1f}")
+    return failures
+
+
 def main():
     args = parse_args()
+    profiler = None
+    if args.profile:
+        import cProfile
+
+        profiler = cProfile.Profile()
+        profiler.enable()
     try:
         summary = run_benchmark(args)
     finally:
+        if profiler is not None:
+            profiler.disable()
+            profiler.dump_stats(args.profile)
         debug_log.close()
 
     print(json.dumps(summary, indent=2, sort_keys=True))
-    if args.fail_on_stall and summary["frame_max_ms"] > args.stall_ms:
-        return 1
-    return 0
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as handle:
+            json.dump(summary, handle, indent=2, sort_keys=True)
+    failures = check_thresholds(args, summary)
+    for failure in failures:
+        print(f"THRESHOLD FAIL: {failure}", file=sys.stderr)
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":

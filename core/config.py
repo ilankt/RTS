@@ -137,7 +137,10 @@ DEBUG_ENABLED_CATEGORIES = {
 DEBUG_FLUSH_INTERVAL = 1.0
 
 # Performance instrumentation
-PERF_STATS_ENABLED = False
+# Toggle at runtime with the RTS_PERF_STATS env var (1/true/on) without editing this file.
+import os as _os
+
+PERF_STATS_ENABLED = _os.environ.get("RTS_PERF_STATS", "").strip().lower() in {"1", "true", "on", "yes"}
 PERF_BENCHMARK_SECONDS = 600
 
 # Cursor Configuration

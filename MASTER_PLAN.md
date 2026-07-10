@@ -173,12 +173,18 @@ on.** Tags like (A1)/(D2) map each action back to the root-cause inventory in §
 
 ### Phase 0 — Make it measurable & safe (0.5 day, prerequisite)
 **Goal:** be able to prove any later change helped and didn't regress.
-- [ ] Add a dev toggle for `PERF_STATS_ENABLED` (env var / CLI flag).
-- [ ] Wire `py-spy` into the workflow for flamegraphs on a real late-game state.
-- [ ] Extend `tools/benchmark_ai_spectator.py` into a **perf regression gate** —
-  assert `frame_max_ms` / `frame_p95_ms` under thresholds; support `--fail-on-stall`.
-- [ ] Extend the `reference_walkable()` cross-check in `tests/test_navigation.py`
-  (the safety net for every incremental-nav change in Phase 2).
+- [x] Add a dev toggle for `PERF_STATS_ENABLED` (env var / CLI flag) — `RTS_PERF_STATS=1`.
+- [x] Wire `py-spy` into the workflow for flamegraphs on a real late-game state —
+  `tools/profile_pyspy.py` (also: `--profile out.prof` on the benchmark for cProfile).
+- [x] Extend `tools/benchmark_ai_spectator.py` into a **perf regression gate** —
+  assert `frame_max_ms` / `frame_p95_ms` under thresholds; support `--fail-on-stall`
+  (`--max-frame-avg-ms/--max-frame-p95-ms/--max-ai-max-ms/--output/--profile`).
+- [x] Extend the `reference_walkable()` cross-check in `tests/test_navigation.py`
+  (the safety net for every incremental-nav change in Phase 2) — dense full-map sweep
+  incl. post-mutation re-check.
+- Baseline (2026-07-10, 120 sim s @5×, 48 units): `tools/perf_baseline.json` —
+  frame avg 26.2 ms / p95 165 ms / max 514 ms; ai_max 511 ms; astar 442 cells/call,
+  5.4 % capped; 70 mark_dirty.
 - **✅ Verify:** `python tools/benchmark_ai_spectator.py --seconds 120 --speed 5
   --fail-on-stall` runs green and records a baseline JSON; `pytest
   tests/test_navigation.py` passes; a py-spy flamegraph of a late-game state is

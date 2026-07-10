@@ -260,6 +260,43 @@ def test_issue_interact_gather_honors_reachable_preferred_slot():
     assert unit.path_target == preferred
 
 
+def test_navigation_index_matches_reference_walkability_dense_sweep():
+    """Safety net for nav-grid changes: sweep the whole map at several radii and
+    require exact agreement with the brute-force reference, including after
+    mutations (depleted resource, destroyed building) + mark_dirty."""
+    game_map = FakeMap(width=10, height=10)
+    for row in range(2, 5):
+        game_map.grid[row][6] = "water"
+    game_map.grid[7][2] = "lava"
+    pathfinder, game = make_pathfinder(game_map)
+
+    house = FakeObject("house", x=160, y=96, radius=28)
+    tree = FakeResource("wood", x=288, y=352, radius=20)
+    gold = FakeResource("gold", x=480, y=160, radius=24)
+    site = FakeObject("farm_construction", x=224, y=480, radius=32)
+    game.buildings.append(house)
+    game.resources.extend([tree, gold])
+    game.construction_sites.append(site)
+    pathfinder.mark_dirty()
+
+    def sweep():
+        for radius in (4, 8, 12):
+            for y in range(16, game_map.height * 64, 48):
+                for x in range(16, game_map.width * 64, 48):
+                    point = (x, y)
+                    assert pathfinder.grid.point_walkable(point, radius) == reference_walkable(
+                        game, point, radius
+                    ), f"mismatch at {point} radius {radius}"
+
+    sweep()
+
+    # Deplete a resource and destroy a building; the nav index must track it.
+    tree.amount_remaining = 0
+    house.hp = 0
+    pathfinder.mark_dirty()
+    sweep()
+
+
 def reference_walkable(game, point, unit_radius):
     x, y = point
     if x < 0 or y < 0 or x > game.game_map.width * 64 or y > game.game_map.height * 64:
