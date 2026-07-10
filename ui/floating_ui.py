@@ -178,15 +178,18 @@ class FloatingUI:
         
         self.notifications.append(notification)
     
-    def add_damage_notification(self, target, damage_amount, is_critical=False):
+    def add_damage_notification(self, target, damage_amount, is_critical=False, is_resisted=False):
         """Add a floating damage number above a target"""
         if damage_amount <= 0:
             return
-        
-        # Color based on damage type
+
+        # Color based on damage type (§8.4 legibility: counter beats resisted)
         if is_critical:
-            color = (255, 50, 50)  # Bright red for crits
+            color = (255, 50, 50)  # Bright red for counter hits
             text = f"{int(damage_amount)}!"
+        elif is_resisted:
+            color = (160, 160, 175)  # Gray for type-disadvantaged hits
+            text = f"{int(damage_amount)} resisted"
         else:
             color = (255, 200, 100)  # Orange-yellow for normal
             text = str(int(damage_amount))

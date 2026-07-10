@@ -681,9 +681,11 @@ collapse.
   unit), win spread tightened 31–80 % → 38–67 %, and the `balanced`
   watch-item self-resolved (31 % → 46 %).** Unit test locks
   spearman-vs-cavalry ≫ archer-vs-cavalry.
-- [ ] **Legible counters** *(low–med)* — counter hits already pop emphasized
-  "N!" damage numbers (done 2026-07-10); still open: strong/weak-vs display in
-  the unit panel + a "Resisted!" cue for type-disadvantaged hits.
+- [x] **Legible counters** *(low–med)* — completed 2026-07-10: counter hits
+  pop emphasized "N!" numbers; the unit panel now lists **Strong vs / Weak
+  vs** (green/red) from the unit's tags; and type-disadvantaged hits (armor
+  class resists the attack type, or attacker's weak_against covers the
+  target — `combat_rules.is_resisted_by`) float a gray "N resisted" cue.
 - [ ] **Position matters** *(med)* — high-ground / forest-cover / flank bonuses so
   terrain and positioning are combat levers, not just unit type (imperfect RPS).
 - **✅ Verify:** *prototype behind a flag first.* Spearman-vs-cavalry does distinctly

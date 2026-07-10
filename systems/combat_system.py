@@ -5,6 +5,7 @@ from systems.combat_rules import (
     calculate_damage as calculate_combat_damage,
     effective_attack_range,
     has_bonus_against,
+    is_resisted_by,
     is_valid_attack_target,
     type_effectiveness,
 )
@@ -184,9 +185,10 @@ class CombatSystem:
                 new_target_hp = getattr(unit.current_target, 'hp', 0) if unit.current_target else 0
                 if old_target_hp > new_target_hp and unit.current_target:
                     damage_dealt = old_target_hp - new_target_hp
-                    # Counter hits pop emphasized ("N!") - §8.4 legibility
+                    # Counter hits pop emphasized ("N!"), resisted hits gray - §8.4
                     is_counter = has_bonus_against(unit, unit.current_target)
-                    damage_events.append((unit.current_target, damage_dealt, is_counter))
+                    resisted = is_resisted_by(unit, unit.current_target)
+                    damage_events.append((unit.current_target, damage_dealt, is_counter, resisted))
                 
                 # Auto-engage nearby enemies if idle. Acquisition scans are
                 # throttled per unit (~0.25-0.5s, jittered) — C2.
@@ -257,9 +259,12 @@ class CombatSystem:
                     new_target_hp = getattr(building.current_target, 'hp', 0) if building.current_target else 0
                     if old_target_hp > new_target_hp and building.current_target:
                         damage_dealt = old_target_hp - new_target_hp
-                        damage_events.append(
-                            (building.current_target, damage_dealt, has_bonus_against(building, building.current_target))
-                        )
+                        damage_events.append((
+                            building.current_target,
+                            damage_dealt,
+                            has_bonus_against(building, building.current_target),
+                            is_resisted_by(building, building.current_target),
+                        ))
                         # §8.10 tower-value metric for the balance sim
                         if building.name == "watchtower" and building.player:
                             stats = getattr(self.game, "stats_tower_damage", None)
@@ -307,8 +312,10 @@ class CombatSystem:
         
         # Spawn damage notifications and particles
         if hasattr(self.game, 'floating_ui') and self.game.floating_ui:
-            for target, damage, is_counter in damage_events:
-                self.game.floating_ui.add_damage_notification(target, damage, is_critical=is_counter)
+            for target, damage, is_counter, is_resisted in damage_events:
+                self.game.floating_ui.add_damage_notification(
+                    target, damage, is_critical=is_counter, is_resisted=is_resisted
+                )
                 # Spawn attack particles at target position
                 if hasattr(self.game, 'particles') and self.game.particles:
                     self.game.particles.spawn_attack_particles(target.x, target.y, count=2)
@@ -318,7 +325,7 @@ class CombatSystem:
 
         # Under-attack alert for the human player (§7.4): sound + minimap ping,
         # rate-limited so a battle doesn't spam.
-        for target, _damage, _is_counter in damage_events:
+        for target, _damage, _is_counter, _is_resisted in damage_events:
             player = getattr(target, 'player', None)
             if player is None or not getattr(player, 'human', False):
                 continue

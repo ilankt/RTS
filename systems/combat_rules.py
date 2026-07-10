@@ -67,6 +67,18 @@ def has_bonus_against(attacker, target) -> bool:
     return "building" in tags and is_building_target(target)
 
 
+def is_resisted_by(attacker, target) -> bool:
+    """Is this a type-disadvantaged hit (§8.4 "Resisted!" cue)? True when the
+    target's armor class resists the attack type, or the attacker's
+    weak_against tags cover the target."""
+    attack_type = getattr(attacker, "attack_type", "slash")
+    armor_type = getattr(target, "armor_type", "light")
+    if type_effectiveness(attack_type, armor_type) < 1.0:
+        return True
+    weak = getattr(attacker, "weak_against", None)
+    return bool(weak) and getattr(target, "name", None) in weak
+
+
 def calculate_damage(attacker, target) -> int:
     min_damage = int(effective_stat(attacker, "min_damage"))
     max_damage = int(effective_stat(attacker, "max_damage"))

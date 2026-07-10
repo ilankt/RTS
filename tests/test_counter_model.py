@@ -59,3 +59,24 @@ def test_building_token_matches_buildings():
         x=0, y=0, radius=32, armor_type="fortified",
     )
     assert has_bonus_against(ram, barracks)
+
+
+def test_is_resisted_by_flags_type_disadvantage():
+    """§8.4 "Resisted!" cue: armor-class resistance or weak_against tags."""
+    from types import SimpleNamespace
+    from systems.combat_rules import is_resisted_by
+
+    # Pierce into siege armor: 0.45x -> resisted
+    archer = SimpleNamespace(attack_type="pierce", weak_against=[])
+    ram = SimpleNamespace(name="ram", armor_type="siege")
+    assert is_resisted_by(archer, ram)
+
+    # Slash into light armor: 1.35x, no weak tag -> not resisted
+    warrior = SimpleNamespace(attack_type="slash", weak_against=[])
+    worker = SimpleNamespace(name="worker", armor_type="light")
+    assert not is_resisted_by(warrior, worker)
+
+    # weak_against tag flags it even at neutral effectiveness
+    spearman = SimpleNamespace(attack_type="pierce", weak_against=["archer"])
+    enemy_archer = SimpleNamespace(name="archer", armor_type="light")
+    assert is_resisted_by(spearman, enemy_archer)

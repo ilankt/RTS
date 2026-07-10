@@ -205,6 +205,22 @@ class UnitPanel:
             )
             panel_surface.blit(armor_text, (10, y_offset))
             y_offset += 25
+
+            # §8.4 legible counters: what this unit is good/bad against
+            strong = [t for t in getattr(unit, 'strong_against', ()) or () if t]
+            weak = [t for t in getattr(unit, 'weak_against', ()) or () if t]
+            if strong:
+                labels = ", ".join(t.replace('_', ' ').title() for t in strong)
+                text = self.stat_font.render(f"Strong vs: {labels}", True, (120, 230, 120))
+                panel_surface.blit(text, (10, y_offset))
+                y_offset += 20
+            if weak:
+                labels = ", ".join(t.replace('_', ' ').title() for t in weak)
+                text = self.stat_font.render(f"Weak vs: {labels}", True, (235, 140, 110))
+                panel_surface.blit(text, (10, y_offset))
+                y_offset += 20
+            if strong or weak:
+                y_offset += 5
             
             # Stance info for combat units
             if hasattr(unit, 'stance') and hasattr(unit, 'can_attack_flag') and unit.can_attack_flag:
