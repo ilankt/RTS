@@ -65,6 +65,16 @@ class ResourceBar:
                 text_y = row_y + (icon_rect.height - text_surface.get_height()) // 2  # Center with icon
                 resource_bar.blit(text_surface, (text_x, text_y))
         
+        # Idle-worker badge (§7.4): amber count + F1 hint, only when nonzero
+        idle_count = len(self.game.selection_manager.get_idle_workers())
+        if idle_count:
+            badge_x = TOP_BAR_START_X + len(all_items) * spacing
+            badge_rect = pygame.Rect(badge_x, row_y + 8, 120, 32)
+            pygame.draw.rect(resource_bar, (70, 55, 20), badge_rect)
+            pygame.draw.rect(resource_bar, (230, 180, 60), badge_rect, 2)
+            badge_text = self.info_font.render(f"Idle: {idle_count} (F1)", True, (255, 210, 90))
+            resource_bar.blit(badge_text, badge_text.get_rect(center=badge_rect.center))
+
         # Blit the resource bar to the main screen at the very top
         screen.blit(resource_bar, (0, 0))
         

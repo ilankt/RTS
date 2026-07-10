@@ -474,8 +474,9 @@ and should override "obvious" instincts.
 
 ### 7.4 Game feel & QoL — *the modern bar; many **⚡** parallelizable now*
 
-- [ ] ⚡ **Idle-worker management** *(low)* — a key (e.g. F1) to select/cycle idle
-  workers + a HUD count badge. Biggest economy-QoL win.
+- [x] ⚡ **Idle-worker management** *(low)* — F1 selects/cycles idle workers and
+  centers the camera; amber "Idle: N (F1)" badge on the top bar when nonzero.
+  (2026-07-10)
 - [ ] ⚡ **Control-group centering** *(low)* — double-tap a group number to center the
   camera (Ctrl+0–9 already standard).
 - [ ] ⚡ **Shift-queued commands** *(low)* — hold Shift to queue

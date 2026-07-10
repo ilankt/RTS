@@ -1,6 +1,6 @@
 import pygame
 import math
-from core.config import MINIMAP_WIDTH, MINIMAP_HEIGHT, TOP_BAR_HEIGHT
+from core.config import MINIMAP_WIDTH, MINIMAP_HEIGHT, TOP_BAR_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
 
 
 class SelectionManager:
@@ -774,6 +774,38 @@ class SelectionManager:
         else:
             self.control_groups[group_number] = selected_units[:]
     
+    def get_idle_workers(self):
+        """Human player's idle workers (§7.4 idle-worker management)."""
+        players = self.game.players
+        human = players[0] if players and getattr(players[0], "human", False) else None
+        if human is None:
+            return []
+        is_idle = self.game.ai_system.worker_brain._is_idle
+        return [
+            u
+            for u in self.game.units
+            if u.player is human and u.name == "worker" and u.hp > 0 and is_idle(u)
+        ]
+
+    def select_next_idle_worker(self):
+        """Select and center on the next idle worker (F1). Returns True if any."""
+        idle = self.get_idle_workers()
+        if not idle:
+            return False
+        self._idle_cycle_index = (getattr(self, "_idle_cycle_index", -1) + 1) % len(idle)
+        worker = idle[self._idle_cycle_index]
+
+        self._clear_all_selections()
+        worker.selected = True
+        self.selected_objects.append(worker)
+        self._update_smart_cursor_for_selection()
+
+        camera = self.game.camera
+        camera.x = -worker.x * camera.zoom + MAP_VIEW_WIDTH / 2
+        camera.y = -worker.y * camera.zoom + MAP_VIEW_HEIGHT / 2
+        self._play_unit_sound(worker, "select")
+        return True
+
     def recall_control_group(self, group_number):
         """Select all units in a control group (1-9). Returns True if group had units."""
         if not 1 <= group_number <= 9:

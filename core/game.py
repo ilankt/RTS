@@ -228,6 +228,9 @@ class Game:
                 self.game_paused = not self.game_paused
                 if hasattr(self, 'sound_manager') and self.sound_manager:
                     self.sound_manager.play_ui_click()
+        elif event.key == pygame.K_F1:
+            # Select/cycle idle workers (§7.4)
+            self.selection_manager.select_next_idle_worker()
         elif event.key == pygame.K_F3:
             self.debug_overlay = not self.debug_overlay
         elif event.key == pygame.K_F4:
