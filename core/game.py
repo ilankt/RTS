@@ -797,6 +797,30 @@ class Game:
         else:
             self.game_over_state = "defeat"
         debug_log.log(f"Victory ({self.victory_condition}): {winner.name}", "GENERAL")
+        self._record_match_result()
+
+    def _record_match_result(self):
+        """Fold a finished human match into the persistent profile (§8.7).
+        Idempotent: the first game-over records, replays/re-checks don't."""
+        if getattr(self, "_profile_recorded", False):
+            return
+        if self.game_over_state not in ("victory", "defeat"):
+            return
+        humans = [p for p in self.players if p.human]
+        if not humans:
+            return
+        self._profile_recorded = True
+        try:
+            from core.profile import Profile
+
+            profile = Profile()
+            unlocked = profile.record_match(self, humans[0], self.game_over_state == "victory")
+            for _ach_id, title in unlocked:
+                if getattr(self, "ui_manager", None):
+                    self.ui_manager.add_alert(f"Achievement unlocked: {title}")
+                debug_log.log(f"Achievement unlocked: {title}", "GENERAL")
+        except Exception as e:
+            debug_log.log(f"Profile recording failed: {e}", "GENERAL")
 
     def _check_special_victory(self):
         """Economic / timed victory checks (§7.5); annihilation always applies."""
@@ -844,14 +868,16 @@ class Game:
         if human_player and castles_by_player.get(human_player, 0) == 0:
             self.game_over_state = "defeat"
             debug_log.log("Game Over: Human player defeated!", "GENERAL")
+            self._record_match_result()
             return
-        
+
         # Check human victory (all AI castles destroyed)
         if ai_players:
             all_ai_defeated = all(castles_by_player.get(p, 0) == 0 for p in ai_players)
             if all_ai_defeated:
                 self.game_over_state = "victory"
                 debug_log.log("Game Over: Human player victorious!", "GENERAL")
+                self._record_match_result()
                 return
     
     def _toggle_selected_gates(self):

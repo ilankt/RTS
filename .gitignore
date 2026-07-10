@@ -56,3 +56,4 @@ wheels/
 # User-local runtime files (settings + hotkey overrides)
 settings.json
 keybindings.json
+profile.json

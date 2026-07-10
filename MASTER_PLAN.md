@@ -744,8 +744,15 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
   length (game time) and a per-player table: units trained, buildings built,
   army remaining, watchtower damage. (2026-07-10; resources-gathered / units-lost
   / APM columns can extend the same stats hooks later.)
-- [ ] **Profile & achievements** *(med)* — persistent stats + simple achievements for a
-  light progression loop.
+- [x] **Profile & achievements** *(med)* — 2026-07-10: `core/profile.py`
+  accumulates lifetime stats (matches played/won/lost, units trained,
+  buildings built, resources gathered) in git-ignored `profile.json`, folded
+  in once per finished human match from both game-over paths (idempotent).
+  Six achievements (First Victory, Veteran ×10 matches, Economist 10k
+  resources, Warlord 100 units, Master Builder 50 buildings, Blitz sub-10-min
+  win) unlock once and toast via the alert feed. Tests in
+  `tests/test_profile.py`. (No profile *screen* yet — stats are in the JSON;
+  surface them in the menu when the §8.2 menu polish pass happens.)
 - [ ] **Onboarding** *(med)* — tooltips + a practice/first-match flow so new players
   aren't lost.
 - [ ] **Accessibility** *(med)* — colorblind palette (shared with §8.1), UI scale

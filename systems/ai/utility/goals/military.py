@@ -176,11 +176,34 @@ class _TrainBarracksUnitGoal(Goal):
     category = "military"
     unit_name = "<unset>"
 
+    # §7.2 reactive counters: how strongly the enemy's army mix pulls this
+    # personality off its signature composition, and how many enemy military
+    # units must exist before there's anything worth reacting to.
+    REACTIVE_WEIGHT = 0.5
+    REACTIVE_MIN_ENEMIES = 4
+    TARGET_FRACTION_CAP = 0.8
+
+    def _counter_boost(self, ctx):
+        """Extra target share when this unit counters what the enemy fields."""
+        from systems.ai.utility.context import MILITARY_NAMES
+
+        enemies = [e for e in ctx.enemy_units if e.name in MILITARY_NAMES]
+        if len(enemies) < self.REACTIVE_MIN_ENEMIES:
+            return 0.0
+        template = ctx.game.game_data["units"].get(self.unit_name)
+        tags = set(getattr(template, "strong_against", ()) or ())
+        if not tags:
+            return 0.0
+        countered = sum(1 for e in enemies if e.name in tags)
+        return self.REACTIVE_WEIGHT * countered / len(enemies)
+
     def _target_fraction(self, ctx):
-        # Signature army composition per personality (§7.2)
+        # Signature army composition per personality (§7.2), pulled toward
+        # whatever counters the enemy's current army (reactive counters).
         from systems.ai.utility.personality import composition_target
 
-        return composition_target(getattr(ctx.player, "ai_personality", "balanced"), self.unit_name)
+        base = composition_target(getattr(ctx.player, "ai_personality", "balanced"), self.unit_name)
+        return min(self.TARGET_FRACTION_CAP, base + self._counter_boost(ctx))
 
     def score(self, ctx):
         if not ctx.has_pop_space():
