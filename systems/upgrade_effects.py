@@ -28,40 +28,91 @@ def _named_value(table: dict, object_name: str, stat: str, default):
     return value
 
 
-def effective_unit_stat(unit, stat: str, base_value):
+def _mod_cache(player):
+    """Per-player memo of computed modifiers, invalidated by upgrades_version.
+
+    Returns None (compute uncached) for players without version tracking so a
+    mutated upgrades dict can never serve stale values."""
+    version = getattr(player, "upgrades_version", None)
+    if version is None:
+        return None
+    cache = getattr(player, "_stat_mod_cache", None)
+    if cache is None or getattr(player, "_stat_mod_cache_version", None) != version:
+        cache = {}
+        player._stat_mod_cache = cache
+        player._stat_mod_cache_version = version
+    return cache
+
+
+def _stat_mods(player, kind: str, name: str, stat: str):
+    """(multiplier, bonus) for a unit/building stat, memoized per player."""
+    upgrades = getattr(player, "upgrades", None)
+    if not upgrades:
+        return 1.0, 0
+    cache = _mod_cache(player)
+    key = (kind, name, stat)
+    if cache is not None:
+        mods = cache.get(key)
+        if mods is not None:
+            return mods
     multiplier = 1.0
     bonus = 0
-    name = getattr(unit, "name", "")
-    player = getattr(unit, "player", None)
     for effects in _completed_effects(player):
-        multiplier = _named_value(effects.get("unit_stat_multipliers", {}), name, stat, multiplier)
-        bonus = _named_value(effects.get("unit_stat_bonuses", {}), name, stat, bonus)
+        multiplier = _named_value(effects.get(f"{kind}_stat_multipliers", {}), name, stat, multiplier)
+        bonus = _named_value(effects.get(f"{kind}_stat_bonuses", {}), name, stat, bonus)
+    if cache is not None:
+        cache[key] = (multiplier, bonus)
+    return multiplier, bonus
+
+
+def effective_unit_stat(unit, stat: str, base_value):
+    multiplier, bonus = _stat_mods(getattr(unit, "player", None), "unit", getattr(unit, "name", ""), stat)
+    if multiplier == 1.0 and bonus == 0:
+        return base_value
     return base_value * multiplier + bonus
 
 
 def effective_building_stat(building, stat: str, base_value):
-    multiplier = 1.0
-    bonus = 0
-    name = getattr(building, "name", "")
-    player = getattr(building, "player", None)
-    for effects in _completed_effects(player):
-        multiplier = _named_value(effects.get("building_stat_multipliers", {}), name, stat, multiplier)
-        bonus = _named_value(effects.get("building_stat_bonuses", {}), name, stat, bonus)
+    multiplier, bonus = _stat_mods(getattr(building, "player", None), "building", getattr(building, "name", ""), stat)
+    if multiplier == 1.0 and bonus == 0:
+        return base_value
     return base_value * multiplier + bonus
 
 
 def effective_gather_rate_multiplier(player, resource_type: str) -> float:
+    upgrades = getattr(player, "upgrades", None)
+    if not upgrades:
+        return 1.0
+    cache = _mod_cache(player)
+    key = ("gather_rate", resource_type)
+    if cache is not None:
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
     multiplier = 1.0
     for effects in _completed_effects(player):
         resource_multipliers = effects.get("gather_rate_multipliers", {})
         multiplier *= resource_multipliers.get(resource_type, resource_multipliers.get("all", 1.0))
+    if cache is not None:
+        cache[key] = multiplier
     return multiplier
 
 
 def effective_build_speed_multiplier(player) -> float:
+    upgrades = getattr(player, "upgrades", None)
+    if not upgrades:
+        return 1.0
+    cache = _mod_cache(player)
+    key = ("build_speed",)
+    if cache is not None:
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
     multiplier = 1.0
     for effects in _completed_effects(player):
         multiplier *= effects.get("build_speed_multiplier", 1.0)
+    if cache is not None:
+        cache[key] = multiplier
     return multiplier
 
 

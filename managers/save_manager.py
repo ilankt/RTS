@@ -141,6 +141,7 @@ class SaveManager:
                     for tech_id in player_data.get("upgrades", [])
                     if tech_id in game.game_data.get("techs", {})
                 }
+                player.upgrades_version = getattr(player, "upgrades_version", 0) + 1
                 player_map[idx] = player
         
         # Restore buildings

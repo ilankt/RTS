@@ -25,6 +25,7 @@ class Player:
         # Technology and upgrade tracking (for future implementation)
         self.tech_level = 1
         self.upgrades = {}  # Track completed upgrades
+        self.upgrades_version = 0  # Bumped on every upgrades change (stat-cache key)
         
         # Unit limits and production rates
         self.population_limit = 20  # Base population limit (increased by houses)

@@ -101,6 +101,7 @@ class ResearchManager:
 
         tech = research["tech"]
         building.player.upgrades[tech["id"]] = tech
+        building.player.upgrades_version = getattr(building.player, "upgrades_version", 0) + 1
         debug_log.log(f"{building.player.name}: completed research {tech['id']}", "PRODUCTION")
         if hasattr(self.game, "sound_manager") and self.game.sound_manager:
             self.game.sound_manager.play_research_complete()
