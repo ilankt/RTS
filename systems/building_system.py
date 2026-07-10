@@ -449,6 +449,10 @@ class BuildingSystem:
                     debug_log.log(f"AI: Construction of {site.building_name} completed at ({site.x:.0f}, {site.y:.0f})", "BUILD_UPDATE")
                     if hasattr(self.game, "sound_manager") and self.game.sound_manager:
                         self.game.sound_manager.play_build_complete()
+                    if (site.player and getattr(site.player, "human", False)
+                            and getattr(self.game, "ui_manager", None)):
+                        display = site.building_name.replace("_", " ").title()
+                        self.game.ui_manager.add_alert(f"{display} complete", (site.x, site.y))
                     
                     # Force AI to immediately re-evaluate after construction completion
                     if hasattr(self.game, 'ai_system') and self.game.ai_system and site.player:

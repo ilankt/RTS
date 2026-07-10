@@ -330,8 +330,8 @@ class CombatSystem:
             self._last_under_attack_alert = now
             if getattr(self.game, 'sound_manager', None):
                 self.game.sound_manager.play_alert()
-            if getattr(self.game, 'minimap', None):
-                self.game.minimap.add_ping(target.x, target.y)
+            if getattr(self.game, 'ui_manager', None):
+                self.game.ui_manager.add_alert("Under attack!", (target.x, target.y))
             break
         
         # Check for new attacks and spawn projectiles

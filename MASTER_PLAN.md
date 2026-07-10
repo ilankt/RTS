@@ -504,9 +504,14 @@ and should override "obvious" instincts.
   selected sets its rally (yellow flag drawn while selected); new units path
   there on spawn, and workers rallied onto a resource start gathering it.
   (2026-07-10)
-- [ ] ⚡ **Alerts & minimap pings** *(low–med)* — "under attack / building complete /
-  unit idle / low on X" flash on the HUD and ping the minimap. **Wire the 6 dead
-  sound hooks (§8.5) here.**
+- [x] ⚡ **Alerts & minimap pings** *(low–med)* — completed 2026-07-10 with a HUD
+  alert feed (`ui_manager.add_alert`: fading toasts under the top bar, optional
+  minimap ping, per-key throttling). Wired: **under attack** (sound + ping +
+  toast, 10 s throttle), **building complete** (toast + ping, human only),
+  **research complete** (toast + ping, human only), **low on X** (dip below 25
+  triggers once, 30 s per-resource throttle). "Unit idle" is the amber F1
+  badge from idle-worker management. Sound hooks were wired in the §8.5 audit.
+  Tests in `tests/test_alerts.py`.
 - [ ] ⚡ **Smart context commands** *(low)* — right-click a resource = gather; a built
   drop-off auto-converts a move-onto into gather.
 - [ ] ⚡ **Instant command feedback** *(low)* — click/confirm cue + brief flash so
@@ -812,8 +817,11 @@ unsequenced — pull them in where they fit.
   clamped at max hp, cast animation + particles); unit tests in
   `tests/test_healer.py`. Note: healers stay effectively unreachable in play
   until `temple` becomes buildable — a content decision left open on purpose.
-- [ ] **Wall is a 1×1 building**: no gate, thin profile, or special placement.
-  (→ **§8.10** — expanded 2026-07-10 into wooden→stone walls + gates + AI walling.)
+- [x] **Wall is a 1×1 building**: no gate, thin profile, or special placement.
+  (→ **§8.10** — expanded 2026-07-10 into wooden→stone walls + gates + AI
+  walling, all landed; drag-placement lays sealed 56 px lines, gates toggle,
+  turtle AI walls the threat bearing. Thin/connected wall *sprites* remain a
+  missing-art item.)
 - [x] **Combat cadence was wall-clock, not game-time** (found 2026-07-10 during
   the §8.10 watchtower audit): unit/building attack cooldowns used
   `pygame.time.get_ticks()`, so at 5× speed all combat was effectively 5× slower

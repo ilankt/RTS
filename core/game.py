@@ -506,12 +506,40 @@ class Game:
             
             # Check victory/defeat conditions
             self._check_victory_defeat()
-            
+
+            # Low-resource alerts for the human player (§7.4)
+            self._check_low_resources(self.delta_time)
+
             # Update camera bounds
             self._update_camera_bounds()
         finally:
             perf_stats.end_frame()
     
+    LOW_RESOURCE_THRESHOLD = 25   # below the cheapest common purchase
+    LOW_RESOURCE_ALERT_SECS = 30  # per-resource re-alert throttle
+
+    def _check_low_resources(self, delta_time):
+        """Toast when a human resource stockpile dips low (§7.4). Checked
+        once per sim second; alerts only on a real dip (not while staying
+        low), throttled per resource."""
+        self._low_resource_timer = getattr(self, "_low_resource_timer", 0.0) + delta_time
+        if self._low_resource_timer < 1.0:
+            return
+        self._low_resource_timer = 0.0
+        player = self.players[0] if self.players else None
+        if player is None or not getattr(player, "human", False):
+            return
+        previous = getattr(self, "_last_resource_snapshot", {})
+        for resource, amount in player.resources.items():
+            was = previous.get(resource, amount)
+            if amount < self.LOW_RESOURCE_THRESHOLD <= was:
+                self.ui_manager.add_alert(
+                    f"Low on {resource}!",
+                    throttle_key=f"low_{resource}",
+                    throttle_ms=self.LOW_RESOURCE_ALERT_SECS * 1000,
+                )
+        self._last_resource_snapshot = dict(player.resources)
+
     EDGE_SCROLL_MARGIN = 14  # px from the window edge that trigger scrolling
 
     def _update_camera_movement(self):

@@ -66,6 +66,7 @@ class RenderingSystem:
         self.game.minimap.draw(screen)
         self.game.ui_manager.draw_ui_panel(screen)
         self.game.ui_manager.draw_top_bar(screen)
+        self.game.ui_manager.draw_alerts(screen)
         self.game.ai_debug_panel.draw(screen)
     
     def _draw_all_objects(self, map_surface, camera):

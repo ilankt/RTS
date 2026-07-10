@@ -108,6 +108,9 @@ class ResearchManager:
         debug_log.log(f"{building.player.name}: completed research {tech['id']}", "PRODUCTION")
         if hasattr(self.game, "sound_manager") and self.game.sound_manager:
             self.game.sound_manager.play_research_complete()
+        if getattr(building.player, "human", False) and getattr(self.game, "ui_manager", None):
+            name = tech.get("display_name", tech["id"])
+            self.game.ui_manager.add_alert(f"Research complete: {name}", (building.x, building.y))
         if hasattr(self.game, "ai_system") and self.game.ai_system:
             self.game.ai_system.invalidate_memory_cache(building.player)
 

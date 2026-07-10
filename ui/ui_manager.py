@@ -35,7 +35,49 @@ class UIManager:
         
         # Cancel construction button
         self.cancel_construction_rect = None
-        
+
+        # Alert feed (§7.4): fading toasts under the top bar
+        self.alerts = []  # [(text, start_ticks)]
+        self._alert_last = {}  # throttle_key -> last ticks
+
+    ALERT_DURATION_MS = 4000
+    ALERT_MAX_VISIBLE = 5
+
+    def add_alert(self, text, world_pos=None, throttle_key=None, throttle_ms=0):
+        """HUD toast + optional minimap ping. Returns False when throttled."""
+        now = pygame.time.get_ticks()
+        if throttle_key is not None:
+            last = self._alert_last.get(throttle_key)
+            if last is not None and now - last < throttle_ms:
+                return False
+            self._alert_last[throttle_key] = now
+        self.alerts.append((text, now))
+        self.alerts = self.alerts[-self.ALERT_MAX_VISIBLE:]
+        if world_pos is not None and getattr(self.game, "minimap", None):
+            self.game.minimap.add_ping(world_pos[0], world_pos[1])
+        return True
+
+    def draw_alerts(self, screen):
+        """Stacked fading alert toasts below the top bar."""
+        if not self.alerts:
+            return
+        from core.config import TOP_BAR_HEIGHT
+
+        now = pygame.time.get_ticks()
+        self.alerts = [a for a in self.alerts if now - a[1] <= self.ALERT_DURATION_MS]
+        y = TOP_BAR_HEIGHT + 8
+        for text, start in self.alerts:
+            age = now - start
+            fade_window = self.ALERT_DURATION_MS - 1000
+            alpha = 255 if age < fade_window else max(0, int(255 * (1 - (age - fade_window) / 1000)))
+            surface = self.font.render(text, True, (255, 230, 120))
+            surface.set_alpha(alpha)
+            backdrop = pygame.Surface((surface.get_width() + 16, surface.get_height() + 6), pygame.SRCALPHA)
+            backdrop.fill((0, 0, 0, min(150, alpha)))
+            screen.blit(backdrop, (10, y - 3))
+            screen.blit(surface, (18, y))
+            y += surface.get_height() + 10
+
     # Delegate cursor methods to cursor manager
     def set_command_mode(self, command_mode):
         self.cursor_manager.set_command_mode(command_mode)
