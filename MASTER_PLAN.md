@@ -671,11 +671,15 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
 
 ### 8.8 Balance tooling
 
-- [ ] **Balance sim** *(low–med)* — extend `tools/benchmark_ai_spectator.py` to batch
-  AI-vs-AI matches and report win rates per personality + unit usage, so §8.3/§8.4 are
-  tuned empirically, not by feel.
-- **✅ Verify:** running the sim over N matches prints per-personality win-rates and a
-  unit-usage histogram; the numbers are stable enough across seeds to guide balance.
+- [x] **Balance sim** *(low–med)* — `tools/balance_sim.py` batches seeded
+  AI-vs-AI matches and reports per-personality win rates, match lengths,
+  unit/building histograms (fed by new `game.stats_units_trained`/
+  `stats_buildings_built` counters), and a never-trained/never-built audit.
+- **✅ Verify (passed 2026-07-10):** 6-match × 2-player baseline
+  (`tools/balance_baseline.json`): 5 decisive (avg 837 sim s) + 1 timeout;
+  wins — balanced 2/4, turtle 2/3, rusher 1/3, boomer 0/2; unit usage spans
+  the whole roster. 6 matches is a smoke baseline — run 20+ matches before
+  making §8.3/§8.4 balance calls (boomer's 0/2 needs the larger sample).
 
 ### 8.9 Bigger swings (later; likely past "polish" scope)
 
@@ -689,10 +693,12 @@ map objectives. Listed for completeness; revisit only after Tracks A–C land.
 Do **not** lose these; they are unrelated to the perf work. Trackable, but
 unsequenced — pull them in where they fit.
 
-- [ ] **AI completeness**: verify the utility AI actually trains *every* unit type
-  (spearman / cavalry / ram / healer) and builds every building type
-  (stable / blacksmith / siege_workshop / watchtower / wall) — the old plan flagged
-  training/building gaps.
+- [x] **AI completeness**: verified empirically 2026-07-10 via the §8.8 balance
+  sim — across 6 matches the AI trained every trainable unit (worker 67,
+  warrior 35, ram 43, spearman 32, archer 28, cavalry 21) and built every
+  buildable building (incl. stable 8, blacksmith 11, siege_workshop 10,
+  watchtower 9). healer/temple/wall are excluded by design (`buildable: false`
+  / temple-gated — see Content notes).
 - [x] **Defensive-stance freeze**: fixed 2026-07-10 — a DEFENSIVE unit beyond its
   leash drops the chase and paths back to `stance_home_position` (re-acquisition
   suppressed for 1 s so the walk home wins); regression tests in
