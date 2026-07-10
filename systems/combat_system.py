@@ -285,6 +285,24 @@ class CombatSystem:
                 # Play hit sound
                 if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
                     self.game.sound_manager.play_hit()
+
+        # Under-attack alert for the human player (§7.4): sound + minimap ping,
+        # rate-limited so a battle doesn't spam.
+        for target, _damage in damage_events:
+            player = getattr(target, 'player', None)
+            if player is None or not getattr(player, 'human', False):
+                continue
+            import pygame as _pygame
+
+            now = _pygame.time.get_ticks()
+            if now - getattr(self, '_last_under_attack_alert', -99999) < 10000:
+                break
+            self._last_under_attack_alert = now
+            if getattr(self.game, 'sound_manager', None):
+                self.game.sound_manager.play_alert()
+            if getattr(self.game, 'minimap', None):
+                self.game.minimap.add_ping(target.x, target.y)
+            break
         
         # Check for new attacks and spawn projectiles
         self.check_for_attacks_and_spawn_projectiles()

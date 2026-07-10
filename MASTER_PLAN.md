@@ -543,16 +543,18 @@ resource as the same hardcoded green rect (line 54) — no owner color, no resou
 color, no fog respect, redrawn every frame. This is both a bug and a colorblind
 hazard.
 
-- [ ] ⚡ **Color by owner** *(low)* — own units/buildings in player color, enemies in a
-  distinct hostile color; buildings larger/brighter than units.
-- [ ] ⚡ **Resource colors** *(low)* — gold=amber, wood=green, stone=grey — by type,
-  not all-green.
-- [ ] ⚡ **Respect fog** *(low)* — don't reveal enemies/resources the player can't
-  currently see.
-- [ ] ⚡ **Colorblind-safe palette** *(low)* — choose player + resource colors for
-  contrast; shared with the HUD.
-- [ ] **Throttle + pings** *(low–med)* — redraw the dot layer at a few Hz (see §5
-  Phase 1 render pass) and add alert pings (shared with §7.4).
+- [x] ⚡ **Color by owner** *(low)* — units/buildings draw in their player color;
+  buildings 4×4 with a white outline vs 2×2 unit dots. (2026-07-10)
+- [x] ⚡ **Resource colors** *(low)* — gold=amber, wood=green, stone=grey via
+  `RESOURCE_COLORS`.
+- [x] ⚡ **Respect fog** *(low)* — enemy units only while currently visible;
+  enemy buildings/resources only once explored.
+- [x] ⚡ **Colorblind-safe palette** *(low)* — amber/green/grey resource palette
+  distinct in hue+lightness; player colors from config unchanged (verify with a
+  colorblind check when doing the §8.2 HUD pass).
+- [x] **Throttle + pings** *(low–med)* — dot layer cached at ~4 Hz (Phase 1 D5);
+  expanding red alert pings drawn live; `minimap.add_ping` wired to the
+  under-attack alert (§7.4).
 - **✅ Verify:** in a live match the minimap shows your stuff, enemies, and each
   resource type as visually distinct colors; fogged enemies do **not** appear; the
   colors are distinguishable in a colorblind check.
@@ -625,9 +627,10 @@ collapse.
 Cheap, huge payoff. Six `play_*` sound methods already exist but are **never called**
 (§9 backlog).
 
-- [ ] ⚡ **Wire existing SFX** *(low)* — hook up
-  `attack`/`select`/`move_order`/`gather`/`build_complete`/`alert` (they exist but are
-  never called) — instant feedback everywhere.
+- [x] ⚡ **Wire existing SFX** *(low)* — audit 2026-07-10: `select`/`move_order`/
+  `attack`/`gather` (selection manager) and `build_complete` (building system)
+  were already wired — the backlog entry was stale; `alert` is now wired to the
+  rate-limited under-attack alert (sound + minimap ping).
 - [ ] ⚡ **Unit response barks** *(low–med)* — selection/order acknowledgements per unit
   type. Big personality gain.
 - [ ] **Combat & impact SFX** *(low–med)* — layered hit/death/siege sounds; ties to VFX.
@@ -694,8 +697,8 @@ unsequenced — pull them in where they fit.
   explored tiles, paths, gathering/building/combat targets, production/research
   queues, formation, control groups, stance homes, tree-regrowth tracker. Revisit
   after the AI/movement state shape settles (Phases 3–4).
-- [ ] **Sound coverage**: `attack`, `select`, `move_order`, `gather`, `build_complete`,
-  `alert` are defined but never called. (Realized in §8.5.)
+- [x] **Sound coverage**: audited 2026-07-10 — five of the six were already
+  called; `alert` now fires on under-attack. (Realized in §8.5.)
 - [ ] **Test coverage**: existing tests assert constants/attributes, not behavior. Add
   integration tests that run the AI for N ticks and assert observable outcomes,
   plus the Phase 0 perf-regression gate.
