@@ -149,6 +149,7 @@ class Game:
         # {(player_name, unit_or_building_type): count}
         self.stats_units_trained = {}
         self.stats_buildings_built = {}
+        self.stats_tower_damage = {}  # {player_name: damage dealt by watchtowers}
         
         # Set up initial game state
         self.game_state.setup_game_objects()

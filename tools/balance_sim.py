@@ -66,6 +66,7 @@ def run_match(args, match_index):
         "sim_seconds": round(sim_time, 1),
         "units_trained": {f"{k[0]}|{k[1]}": v for k, v in game.stats_units_trained.items()},
         "buildings_built": {f"{k[0]}|{k[1]}": v for k, v in game.stats_buildings_built.items()},
+        "tower_damage": dict(getattr(game, "stats_tower_damage", {})),
     }
 
 
@@ -83,6 +84,7 @@ def main():
     building_usage_by_personality = {}
     unit_usage_total = {}
     building_usage_total = {}
+    tower_damage_by_personality = {}
     durations = []
     timeouts = 0
 
@@ -108,6 +110,9 @@ def main():
             building_usage_total[building_type] = building_usage_total.get(building_type, 0) + count
             bucket = building_usage_by_personality.setdefault(personality, {})
             bucket[building_type] = bucket.get(building_type, 0) + count
+        for player_name, damage in match.get("tower_damage", {}).items():
+            personality = name_to_personality.get(player_name, "?")
+            tower_damage_by_personality[personality] = tower_damage_by_personality.get(personality, 0) + damage
 
     # §9 completeness audit: what does the AI never produce?
     from entities import load_game_data
@@ -137,6 +142,7 @@ def main():
         "building_usage_by_personality": building_usage_by_personality,
         "never_trained": never_trained,
         "never_built": never_built,
+        "tower_damage_by_personality": {k: round(v, 1) for k, v in sorted(tower_damage_by_personality.items())},
         "matches_detail": [
             {k: match[k] for k in ("seed", "personalities", "winner_personality", "completed", "sim_seconds")}
             for match in matches

@@ -52,20 +52,53 @@ class BuildingPlacer:
         return None
 
     def _find_near_castle(self, building_type: str, ctx) -> Optional[Tuple[float, float]]:
-        """Ring search around the castle (100-300px, 30-degree increments)."""
+        """Ring search around the castle (100-300px, 30-degree increments).
+
+        Watchtowers bias the search toward the threat (§8.10): angles closest
+        to the bearing of the nearest enemy castle are tried first, so towers
+        stand between the base and the enemy instead of at the first free slot
+        due-east."""
         if not ctx.castle:
             return None
 
-        for distance in range(100, 320, 40):
-            for angle_deg in range(0, 360, 30):
-                angle = math.radians(angle_deg)
-                x = ctx.castle.x + distance * math.cos(angle)
-                y = ctx.castle.y + distance * math.sin(angle)
-                if self._is_valid_position(x, y, building_type, ctx):
-                    return (x, y)
+        angles = list(range(0, 360, 30))
+        distances = list(range(100, 320, 40))
+        angle_major = False
+        if building_type == "watchtower":
+            bearing = self._threat_bearing(ctx)
+            if bearing is not None:
+                angles.sort(key=lambda a: abs(((a - bearing + 180) % 360) - 180))
+                # Bearing outranks distance for towers: take the best-facing
+                # slot even if it sits on an outer ring - and search farther
+                # out, since the ground toward the enemy is usually cluttered
+                # with the base's own resource clusters.
+                angle_major = True
+                distances = list(range(100, 460, 40))
+
+        if angle_major:
+            candidates = ((a, d) for a in angles for d in distances)
+        else:
+            candidates = ((a, d) for d in distances for a in angles)
+
+        for angle_deg, distance in candidates:
+            angle = math.radians(angle_deg)
+            x = ctx.castle.x + distance * math.cos(angle)
+            y = ctx.castle.y + distance * math.sin(angle)
+            if self._is_valid_position(x, y, building_type, ctx):
+                return (x, y)
 
         debug_log.log(f"AI BuildingPlacer: No valid position found for {building_type} near castle", "AI")
         return None
+
+    def _threat_bearing(self, ctx) -> Optional[float]:
+        """Bearing (degrees) from own castle toward the most relevant threat."""
+        if not ctx.castle:
+            return None
+        targets = [b for b in ctx.enemy_buildings if b.name == "castle"] or ctx.enemy_buildings
+        if not targets:
+            return None
+        nearest = min(targets, key=lambda b: (b.x - ctx.castle.x) ** 2 + (b.y - ctx.castle.y) ** 2)
+        return math.degrees(math.atan2(nearest.y - ctx.castle.y, nearest.x - ctx.castle.x)) % 360
 
     def _is_valid_position(self, x: float, y: float, building_type: str, ctx) -> bool:
         """Check terrain, collisions, and enemy proximity."""

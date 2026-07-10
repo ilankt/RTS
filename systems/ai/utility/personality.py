@@ -33,3 +33,46 @@ def get_weight(personality: str, category: str) -> float:
 def attack_army_threshold(personality: str) -> int:
     """Minimum army size before this personality launches attacks."""
     return ATTACK_ARMY_THRESHOLDS.get(personality, 6)
+
+
+# Signature build orders (§7.2): personalities differ in *how they get to an
+# army*, not just in category weights. Worker target shapes the opening
+# (rusher cuts economy to field units sooner; boomer over-invests), and the
+# composition targets give each a recognizable army identity.
+WORKER_TARGETS = {
+    "rusher": 4,
+    "balanced": 6,
+    "turtle": 6,
+    "boomer": 9,
+}
+
+COMPOSITION_TARGETS = {
+    "rusher":   {"warrior": 0.50, "archer": 0.20, "spearman": 0.30},
+    "boomer":   {"warrior": 0.30, "archer": 0.40, "spearman": 0.30},
+    "turtle":   {"warrior": 0.25, "archer": 0.40, "spearman": 0.35},
+    "balanced": {"warrior": 0.40, "archer": 0.30, "spearman": 0.30},
+}
+
+
+def worker_target(personality: str) -> int:
+    """How many workers this personality's opening aims for."""
+    return WORKER_TARGETS.get(personality, 6)
+
+
+def composition_target(personality: str, unit_name: str) -> float:
+    """Target fraction of the army for a barracks unit type."""
+    table = COMPOSITION_TARGETS.get(personality, COMPOSITION_TARGETS["balanced"])
+    return table.get(unit_name, 0.33)
+
+
+# §8.10: how many watchtowers each personality is willing to maintain.
+TOWER_CAPS = {
+    "turtle": 3,
+    "balanced": 2,
+    "boomer": 2,
+    "rusher": 1,
+}
+
+
+def tower_cap(personality: str) -> int:
+    return TOWER_CAPS.get(personality, 1)

@@ -7,8 +7,6 @@ class TrainWorkerGoal(Goal):
     name = "train_worker"
     category = "economy"
 
-    TARGET = 6  # ramp falls off after this
-
     def score(self, ctx):
         if not ctx.castle:
             return 0
@@ -18,11 +16,16 @@ class TrainWorkerGoal(Goal):
             return 0
         if not ctx.can_afford("worker"):
             return 0
+        # Signature build orders (§7.2): rushers cut the worker line short to
+        # field an army sooner; boomers over-invest in economy.
+        from systems.ai.utility.personality import worker_target
+
+        target = worker_target(getattr(ctx.player, "ai_personality", "balanced"))
         in_play = ctx.count_units("worker")
-        if in_play >= self.TARGET:
+        if in_play >= target:
             return 0
-        # 30 base + 20 per missing worker → first worker scores 130, sixth scores 50
-        return 30 + (self.TARGET - in_play) * 20
+        # 30 base + 20 per missing worker → first worker scores high, last scores 50
+        return 30 + (target - in_play) * 20
 
     def execute(self, ctx):
         return queue_unit(ctx, ctx.castle, "worker")

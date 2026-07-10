@@ -85,12 +85,12 @@ class BuildSiegeWorkshopGoal(Goal):
 
 class BuildWatchtowerGoal(Goal):
     name = "build_watchtower"
-    category = "military"
+    # "support" so turtle (support 1.5x) prioritizes towers and rusher
+    # (support 0.5x) mostly skips them - fits the identities (§8.10).
+    category = "support"
 
     def score(self, ctx):
         if ctx.has_construction_in_progress("watchtower"):
-            return 0
-        if ctx.buildings.get("watchtower"):
             return 0
         if not ctx.castle:
             return 0
@@ -98,7 +98,21 @@ class BuildWatchtowerGoal(Goal):
             return 0
         if not ctx.can_afford("watchtower"):
             return 0
-        return 45
+        from systems.ai.utility.personality import tower_cap
+
+        towers = len(ctx.buildings.get("watchtower", []))
+        if towers >= tower_cap(getattr(ctx.player, "ai_personality", "balanced")):
+            return 0
+        if towers == 0:
+            base = 45
+        else:
+            # Additional towers only when there's actual pressure to answer
+            base = 20
+        threat = ctx.threat_at(ctx.castle.x, ctx.castle.y)
+        pressure = min(50, threat * 0.05)
+        if towers > 0 and pressure <= 0:
+            return 0
+        return base + pressure
 
     def execute(self, ctx):
         return start_construction(ctx, "watchtower", ctx.game.ai_system.building_placer)
@@ -114,7 +128,12 @@ class _TrainBarracksUnitGoal(Goal):
     """Shared base for warrior/archer/spearman."""
     category = "military"
     unit_name = "<unset>"
-    target_fraction = 0.33
+
+    def _target_fraction(self, ctx):
+        # Signature army composition per personality (§7.2)
+        from systems.ai.utility.personality import composition_target
+
+        return composition_target(getattr(ctx.player, "ai_personality", "balanced"), self.unit_name)
 
     def score(self, ctx):
         if not ctx.has_pop_space():
@@ -124,13 +143,14 @@ class _TrainBarracksUnitGoal(Goal):
         building = ctx.find_idle_production_building("barracks")
         if not building:
             return 0
+        target_fraction = self._target_fraction(ctx)
         # If no military yet, all three barracks-units score the same baseline
         # so personality / cost differences pick one. Once an army exists, push
         # whichever type is under-represented.
-        frac = _military_fraction(ctx, self.unit_name) if ctx.military else self.target_fraction
-        if frac >= self.target_fraction:
+        frac = _military_fraction(ctx, self.unit_name) if ctx.military else target_fraction
+        if frac >= target_fraction:
             return 25  # still produce sometimes for filler
-        return 50 + (self.target_fraction - frac) * 100
+        return 50 + (target_fraction - frac) * 100
 
     def execute(self, ctx):
         building = ctx.find_idle_production_building("barracks")
@@ -140,19 +160,19 @@ class _TrainBarracksUnitGoal(Goal):
 class TrainWarriorGoal(_TrainBarracksUnitGoal):
     name = "train_warrior"
     unit_name = "warrior"
-    target_fraction = 0.40
+
 
 
 class TrainArcherGoal(_TrainBarracksUnitGoal):
     name = "train_archer"
     unit_name = "archer"
-    target_fraction = 0.30
+
 
 
 class TrainSpearmanGoal(_TrainBarracksUnitGoal):
     name = "train_spearman"
     unit_name = "spearman"
-    target_fraction = 0.30
+
 
 
 class TrainCavalryGoal(Goal):

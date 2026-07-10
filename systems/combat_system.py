@@ -251,6 +251,12 @@ class CombatSystem:
                     if old_target_hp > new_target_hp and building.current_target:
                         damage_dealt = old_target_hp - new_target_hp
                         damage_events.append((building.current_target, damage_dealt))
+                        # §8.10 tower-value metric for the balance sim
+                        if building.name == "watchtower" and building.player:
+                            stats = getattr(self.game, "stats_tower_damage", None)
+                            if stats is not None:
+                                name = building.player.name
+                                stats[name] = stats.get(name, 0) + damage_dealt
                 
                 # Auto-target enemies if not already attacking. Re-scan is
                 # throttled per building (~0.25-0.5s, jittered) — C2.
