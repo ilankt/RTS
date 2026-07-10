@@ -194,10 +194,9 @@ class TrainRamGoal(Goal):
         if not building:
             return 0
         rams = sum(1 for u in ctx.military if u.name == "ram")
-        enemy_buildings = sum(1 for b in ctx.game.buildings if b.player is not ctx.player and b.hp > 0)
         if rams >= self.CAP:
             return 15
-        return 65 + min(enemy_buildings, 4) * 5
+        return 65 + min(len(ctx.enemy_buildings), 4) * 5
 
     def execute(self, ctx):
         building = ctx.find_idle_production_building("siege_workshop")

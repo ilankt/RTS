@@ -459,6 +459,9 @@ class Pathfinding:
         self._pending_low = deque()
         self._pending_seq = 0
         self._request_budget_override: Optional[float] = None
+        # When True (AI ticks), every search fast-fails as too_expensive so
+        # commands land in the queue instead of burning the tick's wall time.
+        self._defer_paths = False
 
     def mark_dirty(self):
         """Full nav + path-cache rebuild. Bulk fallback only — runtime world
@@ -545,6 +548,8 @@ class Pathfinding:
     ) -> NavigationResult:
         perf_stats.increment("path_requests")
         mode, target = self._resolve_mode_and_target(mode, target, gathering_target, building_target, drop_off_target)
+        if self._defer_paths:
+            return self._failed(mode, "too_expensive", target=target)
         if self._request_budget_override is not None:
             # Queue-drained request: gets its full ceiling regardless of how
             # much of this frame's budget is left (the queue paces itself).
@@ -569,6 +574,25 @@ class Pathfinding:
             self._enqueue_command(unit, "move", world_pos, None, None)
             return True
         return self._apply_result(unit, result, "move", None)
+
+    def deferred_paths(self):
+        """Context manager: fast-fail searches so commands queue instead.
+
+        Wrapped around AI ticks - a tick that hands out an army's worth of
+        orders spends microseconds enqueueing, and the per-frame queue drain
+        does the actual pathfinding on later frames."""
+        pathfinder = self
+
+        class _Deferred:
+            def __enter__(self):
+                self.previous = pathfinder._defer_paths
+                pathfinder._defer_paths = True
+
+            def __exit__(self, exc_type, exc, tb):
+                pathfinder._defer_paths = self.previous
+                return False
+
+        return _Deferred()
 
     def process_pending(self):
         """Drain queued path commands within a slice of this frame's budget.

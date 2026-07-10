@@ -1,12 +1,18 @@
-"""Per-tick snapshot of the game state, consumed by every goal.
+"""Per-tick snapshot of the game state, consumed by every goal and sub-brain.
 
-Built once at the top of each AI tick and passed to every Goal.score() and
-Goal.execute() call that tick. Goals never re-scan the world themselves — they
-read from this snapshot, which keeps cost predictable and makes goals trivially
-testable with a mock context.
+This is the AI blackboard (MASTER_PLAN Phase 4): built once at the top of each
+AI tick with a single pass over each world list, then passed to every
+Goal.score()/execute() call and every sub-brain that tick. Goals and brains
+never re-scan game.units/game.buildings themselves — they read this snapshot
+(enforced by tests/test_ai_contract.py), which keeps tick cost predictable and
+makes goals trivially testable with a mock context.
 """
+import math
 from dataclasses import dataclass, field
 from typing import Dict, Optional
+
+DEFENSE_RADIUS = 300  # enemies within this range of the castle are "at the gates"
+MILITARY_NAMES = ("warrior", "archer", "spearman", "cavalry", "ram", "healer")
 
 
 @dataclass
@@ -29,6 +35,16 @@ class GoalContext:
     pop_current: int = 0
     pop_max: int = 5
 
+    # --- Blackboard (single world scan per tick) ---
+    enemy_units: list = field(default_factory=list)
+    enemy_buildings: list = field(default_factory=list)
+    enemies_near_base: list = field(default_factory=list)
+    known_resources_by_type: Dict[str, list] = field(default_factory=dict)
+    gatherers_by_resource: Dict[int, int] = field(default_factory=dict)
+    gathering_counts_by_type: Dict[str, int] = field(default_factory=dict)
+    research_in_progress: set = field(default_factory=set)
+    _dropoff_need_cache: Dict[str, float] = field(default_factory=dict)
+
     @classmethod
     def build(cls, game, player) -> "GoalContext":
         ctx = cls(game=game, player=player)
@@ -37,30 +53,93 @@ class GoalContext:
         ctx.tech_data = game.game_data.get("techs", {})
 
         for building in game.buildings:
-            if building.player is not player:
-                continue
-            if building.name == "castle":
-                ctx.castle = building
-            ctx.buildings.setdefault(building.name, []).append(building)
+            if building.player is player:
+                if building.name == "castle":
+                    ctx.castle = building
+                ctx.buildings.setdefault(building.name, []).append(building)
+                current = getattr(building, "current_research", None)
+                if current:
+                    ctx.research_in_progress.add(current.get("tech_id"))
+                ctx.research_in_progress.update(getattr(building, "research_queue", ()))
+            elif building.hp > 0:
+                ctx.enemy_buildings.append(building)
 
-        military_names = ("warrior", "archer", "spearman", "cavalry", "ram", "healer")
+        ctx.gathering_counts_by_type = {"gold": 0, "wood": 0, "stone": 0}
+        pop = 0
         for unit in game.units:
-            if unit.player is not player:
-                continue
             if unit.name == "worker":
-                ctx.workers.append(unit)
-            elif unit.name in military_names:
-                ctx.military.append(unit)
+                # Crowding counts include every player's workers (matches the
+                # pre-blackboard behavior of _count_workers_at_resource).
+                target = getattr(unit, "gathering_target", None)
+                if target is not None:
+                    ctx.gatherers_by_resource[id(target)] = ctx.gatherers_by_resource.get(id(target), 0) + 1
+                previous = getattr(unit, "previous_gathering_target", None)
+                if previous is not None:
+                    ctx.gatherers_by_resource[id(previous)] = ctx.gatherers_by_resource.get(id(previous), 0) + 1
+            if unit.player is player:
+                pop += 1
+                if unit.name == "worker":
+                    ctx.workers.append(unit)
+                    target = getattr(unit, "gathering_target", None)
+                    name = getattr(target, "name", None)
+                    if name in ctx.gathering_counts_by_type:
+                        ctx.gathering_counts_by_type[name] += 1
+                elif unit.name in MILITARY_NAMES:
+                    ctx.military.append(unit)
+            elif unit.hp > 0:
+                ctx.enemy_units.append(unit)
 
         for site in game.construction_sites:
             if site.player is player:
                 ctx.construction_sites.append(site)
                 ctx.site_types.add(site.building_name)
 
-        ctx.pop_current = sum(1 for u in game.units if u.player is player)
+        ctx.pop_current = pop
         ctx.pop_max = 5 + 5 * len(ctx.buildings.get("house", []))
 
+        if ctx.castle:
+            cx, cy = ctx.castle.x, ctx.castle.y
+            radius_sq = DEFENSE_RADIUS * DEFENSE_RADIUS
+            ctx.enemies_near_base = [
+                e
+                for e in ctx.enemy_units
+                if (e.x - cx) ** 2 + (e.y - cy) ** 2 <= radius_sq
+            ] + [
+                e
+                for e in ctx.enemy_buildings
+                if (e.x - cx) ** 2 + (e.y - cy) ** 2 <= radius_sq
+            ]
+
+        fog = getattr(game, "fog_of_war", None)
+        fog_on = bool(fog and getattr(fog, "enabled", True))
+        for resource in getattr(game, "resources", []):
+            if getattr(resource, "amount_remaining", 0) <= 0:
+                continue
+            if fog_on and not fog.is_explored(player, resource.x, resource.y):
+                continue
+            ctx.known_resources_by_type.setdefault(resource.name, []).append(resource)
+
         return ctx
+
+    def known_resources(self, resource_type: Optional[str] = None) -> list:
+        if resource_type is not None:
+            return self.known_resources_by_type.get(resource_type, [])
+        merged = []
+        for resources in self.known_resources_by_type.values():
+            merged.extend(resources)
+        return merged
+
+    def count_workers_at_resource(self, resource) -> int:
+        return self.gatherers_by_resource.get(id(resource), 0)
+
+    def score_dropoff_need(self, building_type: str) -> float:
+        """Memoized per tick — three goals ask for the same numbers."""
+        cached = self._dropoff_need_cache.get(building_type)
+        if cached is None:
+            from systems.ai.economy_helpers import score_dropoff_building_need
+
+            cached = self._dropoff_need_cache[building_type] = score_dropoff_building_need(self, building_type)
+        return cached
 
     # --- Helpers used by goals ---
 
@@ -139,4 +218,7 @@ class GoalContext:
 
     def can_research(self, tech_id: str) -> bool:
         manager = getattr(self.game, "research_manager", None)
-        return bool(manager and manager.can_research(self.player, tech_id))
+        if not manager:
+            return False
+        ok, _ = manager.research_status(self.player, tech_id, in_progress=self.research_in_progress)
+        return ok

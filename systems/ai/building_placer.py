@@ -19,23 +19,22 @@ class BuildingPlacer:
     def __init__(self, game):
         self.game = game
 
-    def find_position(self, building_type: str, player) -> Optional[Tuple[float, float]]:
+    def find_position(self, building_type: str, ctx) -> Optional[Tuple[float, float]]:
         """Find a valid position for the given building type."""
         if building_type in self.RESOURCE_BUILDINGS:
-            return self._find_near_resource(building_type, player)
+            return self._find_near_resource(building_type, ctx)
         else:
-            return self._find_near_castle(building_type, player)
+            return self._find_near_castle(building_type, ctx)
 
-    def _find_near_resource(self, building_type: str, player) -> Optional[Tuple[float, float]]:
+    def _find_near_resource(self, building_type: str, ctx) -> Optional[Tuple[float, float]]:
         """Ring search around the closest matching resource."""
         resource_name = self.RESOURCE_BUILDINGS[building_type]
-        castle = self._get_castle(player)
-        if not castle:
+        if not ctx.castle:
             return None
 
         # Prefer the best known, unserved resource cluster over the closest
         # resource to the castle.
-        best_resource = best_resource_for_dropoff(self.game, player, building_type)
+        best_resource = best_resource_for_dropoff(ctx, building_type)
         if not best_resource:
             debug_log.log(f"AI BuildingPlacer: No unserved known {resource_name} resource found for {building_type}", "AI")
             return None
@@ -46,30 +45,29 @@ class BuildingPlacer:
                 angle = math.radians(angle_deg)
                 x = best_resource.x + distance * math.cos(angle)
                 y = best_resource.y + distance * math.sin(angle)
-                if self._is_valid_position(x, y, building_type, player):
+                if self._is_valid_position(x, y, building_type, ctx):
                     return (x, y)
 
         debug_log.log(f"AI BuildingPlacer: No valid position found for {building_type} near {resource_name}", "AI")
         return None
 
-    def _find_near_castle(self, building_type: str, player) -> Optional[Tuple[float, float]]:
+    def _find_near_castle(self, building_type: str, ctx) -> Optional[Tuple[float, float]]:
         """Ring search around the castle (100-300px, 30-degree increments)."""
-        castle = self._get_castle(player)
-        if not castle:
+        if not ctx.castle:
             return None
 
         for distance in range(100, 320, 40):
             for angle_deg in range(0, 360, 30):
                 angle = math.radians(angle_deg)
-                x = castle.x + distance * math.cos(angle)
-                y = castle.y + distance * math.sin(angle)
-                if self._is_valid_position(x, y, building_type, player):
+                x = ctx.castle.x + distance * math.cos(angle)
+                y = ctx.castle.y + distance * math.sin(angle)
+                if self._is_valid_position(x, y, building_type, ctx):
                     return (x, y)
 
         debug_log.log(f"AI BuildingPlacer: No valid position found for {building_type} near castle", "AI")
         return None
 
-    def _is_valid_position(self, x: float, y: float, building_type: str, player) -> bool:
+    def _is_valid_position(self, x: float, y: float, building_type: str, ctx) -> bool:
         """Check terrain, collisions, and enemy proximity."""
         # Map bounds
         map_w = self.game.game_map.width * TILE_WIDTH
@@ -95,32 +93,16 @@ class BuildingPlacer:
         building_radius = building_template.radius
         min_distance = building_radius + 30
 
-        # Collision with existing buildings
-        for building in self.game.buildings:
-            dist = math.hypot(x - building.x, y - building.y)
-            if dist < min_distance + building.radius:
-                return False
-            # Don't build near enemy castles
-            if building.player != player and building.name == "castle" and dist < 500:
-                return False
-
-        # Collision with construction sites
-        for site in self.game.construction_sites:
-            dist = math.hypot(x - site.x, y - site.y)
-            if dist < min_distance + site.radius:
-                return False
-
-        # Collision with resources
-        for resource in self.game.resources:
-            dist = math.hypot(x - resource.x, y - resource.y)
-            if dist < min_distance + resource.radius:
+        # Collision with existing statics via the shared spatial index
+        collision = getattr(self.game, "collision_system", None)
+        if collision is not None:
+            for obj in collision.query_nearby_static(x, y, min_distance + 8):
+                dist = math.hypot(x - obj.x, y - obj.y)
+                if dist < min_distance + obj.radius:
+                    return False
+        # Don't build near enemy castles (blackboard list, not a world scan)
+        for building in ctx.enemy_buildings:
+            if building.name == "castle" and math.hypot(x - building.x, y - building.y) < 500:
                 return False
 
         return True
-
-    def _get_castle(self, player):
-        """Find the player's castle."""
-        for building in self.game.buildings:
-            if building.player == player and building.name == "castle":
-                return building
-        return None

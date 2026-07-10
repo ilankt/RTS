@@ -5,36 +5,17 @@ that the sub-brains read on their next call. DefendBaseGoal takes priority
 over everything by design; AttackGoal flips the military_brain into attack
 mode for one tick.
 """
-import math
 from systems.ai.utility.goal import Goal
-
-
-def _enemies_within(ctx, point, radius):
-    out = []
-    px, py = point
-    for u in ctx.game.units:
-        if u.player is ctx.player or u.hp <= 0:
-            continue
-        if math.hypot(u.x - px, u.y - py) <= radius:
-            out.append(u)
-    for b in ctx.game.buildings:
-        if b.player is ctx.player or b.hp <= 0:
-            continue
-        if math.hypot(b.x - px, b.y - py) <= radius:
-            out.append(b)
-    return out
 
 
 class DefendBaseGoal(Goal):
     name = "defend_base"
     category = "tactical"
 
-    DEFENSE_RADIUS = 300
-
     def score(self, ctx):
         if not ctx.castle:
             return 0
-        threats = _enemies_within(ctx, (ctx.castle.x, ctx.castle.y), self.DEFENSE_RADIUS)
+        threats = ctx.enemies_near_base
         if not threats:
             return 0
         # Highest priority — overrides economy/military goals.
@@ -60,8 +41,7 @@ class AttackGoal(Goal):
         if n < self.MIN_ARMY:
             return 0
         # Need a target to attack, otherwise pointless
-        target_exists = any(b.player is not ctx.player and b.hp > 0 for b in ctx.game.buildings)
-        if not target_exists:
+        if not ctx.enemy_buildings:
             return 0
         return 70 + (n - self.MIN_ARMY) * self.SCALE
 

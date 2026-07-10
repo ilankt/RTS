@@ -1,11 +1,13 @@
-"""Worker assignment logic - finds idle workers and gives them jobs."""
+"""Worker assignment logic - finds idle workers and gives them jobs.
+
+Reads only the per-tick GoalContext blackboard; never rescans game lists.
+"""
 import math
 from core.config import DROP_OFF_BUILDINGS
 from systems.ai.economy_helpers import (
     CRITICAL_STOCKPILE,
     RESOURCE_SERVICE_RADIUS,
-    find_nearest_dropoff,
-    known_resources,
+    find_nearest_dropoff_ctx,
 )
 from utils.debug_logger import debug_log
 
@@ -19,15 +21,13 @@ class WorkerBrain:
     def __init__(self, game):
         self.game = game
 
-    def assign_idle_workers(self, player):
+    def assign_idle_workers(self, ctx):
         """Find all idle workers for this player and give them jobs."""
-        workers = [u for u in self.game.units if u.player == player and u.name == "worker"]
         assignments = 0
-
-        for worker in workers:
+        for worker in ctx.workers:
             if not self._is_idle(worker):
                 continue
-            self._assign_worker(worker, player)
+            self._assign_worker(worker, ctx)
             assignments += 1
             if assignments >= MAX_IDLE_WORKER_ASSIGNMENTS_PER_TICK:
                 break
@@ -68,14 +68,14 @@ class WorkerBrain:
 
         # Worker has a valid gathering target it will return to - let movement system handle it
         if worker.gathering_target:
-            if worker.gathering_target in self.game.resources and worker.gathering_target.amount_remaining > 0:
+            if getattr(worker.gathering_target, "in_world", True) and worker.gathering_target.amount_remaining > 0:
                 return False
             # Target is gone/depleted - clean up
             worker.gathering_target = None
 
         # Worker has a building target - check if still valid
         if worker.building_target:
-            if worker.building_target in self.game.construction_sites:
+            if getattr(worker.building_target, "in_world", True) and getattr(worker.building_target, "hp", 1) > 0:
                 return False
             # Site is gone - clean up
             worker.building_target = None
@@ -89,11 +89,12 @@ class WorkerBrain:
             worker.status = "idle"
         return True
 
-    def _assign_worker(self, worker, player):
+    def _assign_worker(self, worker, ctx):
         """Assign a single idle worker to a task, in priority order."""
+        player = ctx.player
         # 0. Carrying resources without a current route? Deposit first.
         if worker.resource_amount > 0:
-            dropoff = self._find_dropoff(worker, player)
+            dropoff, _ = find_nearest_dropoff_ctx(ctx, worker.resource_type, (worker.x, worker.y))
             if dropoff:
                 debug_log.log(f"AI {player.name}: Worker carrying {worker.resource_type}, returning to {dropoff.name}", "AI")
                 worker_tasks = getattr(self.game, "worker_task_system", None)
@@ -104,52 +105,39 @@ class WorkerBrain:
                 return
 
         # 1. Unattended construction site? -> Go build
-        site = self._find_unattended_construction_site(worker, player)
+        site = self._find_unattended_construction_site(worker, ctx)
         if site:
             debug_log.log(f"AI {player.name}: Worker assigned to build {site.building_name} at ({site.x:.0f}, {site.y:.0f})", "AI")
             self._command_build(worker, site)
             return
 
         # 3. Gather the best known resource for short gather/drop-off loops.
-        resource = self._find_best_resource_to_gather(worker, player)
+        resource = self._find_best_resource_to_gather(worker, ctx)
         if resource:
             debug_log.log(f"AI {player.name}: Worker assigned to gather {resource.name} at ({resource.x:.0f}, {resource.y:.0f})", "AI")
             self._command_gather(worker, resource)
             return
 
         # 4. Nothing to do -> idle near castle
-        castle = self._get_castle(player)
-        if castle:
+        if ctx.castle:
             debug_log.log(f"AI {player.name}: Worker idle, moving near castle", "AI")
             self.game.selection_manager._move_unit_to_position(
-                worker, (castle.x + 50, castle.y + 50), self.game.pathfinder
+                worker, (ctx.castle.x + 50, ctx.castle.y + 50), self.game.pathfinder
             )
 
-    def _find_dropoff(self, worker, player):
-        """Find nearest building that accepts resource drop-off."""
-        best = None
-        best_dist = float("inf")
-        for building in self.game.buildings:
-            if building.player != player:
-                continue
-            if building.name in DROP_OFF_BUILDINGS.get(worker.resource_type, []):
-                dist = math.hypot(worker.x - building.x, worker.y - building.y)
-                if dist < best_dist:
-                    best_dist = dist
-                    best = building
-        return best
-
-    def _find_unattended_construction_site(self, worker, player):
+    def _find_unattended_construction_site(self, worker, ctx):
         """Find a construction site that has no builder assigned."""
         best = None
         best_dist = float("inf")
-        for site in self.game.construction_sites:
-            if site.player != player:
-                continue
+        for site in ctx.construction_sites:
             # Check if no worker is assigned or the assigned worker is dead/gone
-            has_builder = False
-            if site.builder and site.builder in self.game.units and site.builder.building_target == site:
-                has_builder = True
+            builder = site.builder
+            has_builder = bool(
+                builder
+                and getattr(builder, "in_world", True)
+                and getattr(builder, "hp", 1) > 0
+                and builder.building_target == site
+            )
             if not has_builder:
                 dist = math.hypot(worker.x - site.x, worker.y - site.y)
                 if dist < best_dist:
@@ -157,48 +145,34 @@ class WorkerBrain:
                     best = site
         return best
 
-    def _find_best_resource_to_gather(self, worker, player):
+    def _find_best_resource_to_gather(self, worker, ctx):
         """Pick the best known resource, preferring serviced short loops."""
-        # Count how many workers are already gathering each type
-        gathering_counts = {"gold": 0, "wood": 0, "stone": 0}
-        for unit in self.game.units:
-            if unit.player == player and unit.name == "worker" and unit.gathering_target:
-                res_name = getattr(unit.gathering_target, "name", None)
-                if res_name in gathering_counts:
-                    gathering_counts[res_name] += 1
+        gathering_counts = ctx.gathering_counts_by_type
 
         candidates = [
             resource
-            for resource in known_resources(self.game, player)
+            for resource in ctx.known_resources()
             if resource.name in gathering_counts and resource.amount_remaining > 0
         ]
         if not candidates:
             return None
 
+        # Nearest drop-off per candidate, computed once each.
+        dropoff_distances = {}
         has_serviced_option = False
         for resource in candidates:
-            dropoff, dropoff_dist = find_nearest_dropoff(
-                self.game,
-                player,
-                resource.name,
-                (resource.x, resource.y),
-            )
+            dropoff, dropoff_dist = find_nearest_dropoff_ctx(ctx, resource.name, (resource.x, resource.y))
+            dropoff_distances[id(resource)] = (dropoff, dropoff_dist)
             if dropoff and dropoff_dist <= RESOURCE_SERVICE_RADIUS:
                 has_serviced_option = True
-                break
 
         best_resource = None
         best_score = float("inf")
         for resource in candidates:
-            stockpile = player.resources.get(resource.name, 0)
+            stockpile = ctx.resources.get(resource.name, 0)
             is_critical = stockpile <= CRITICAL_STOCKPILE.get(resource.name, 0)
 
-            dropoff, dropoff_dist = find_nearest_dropoff(
-                self.game,
-                player,
-                resource.name,
-                (resource.x, resource.y),
-            )
+            dropoff, dropoff_dist = dropoff_distances[id(resource)]
             if not dropoff:
                 continue
             serviced = dropoff_dist <= RESOURCE_SERVICE_RADIUS
@@ -206,7 +180,7 @@ class WorkerBrain:
                 continue
 
             worker_dist = math.hypot(worker.x - resource.x, worker.y - resource.y)
-            assigned = self._count_workers_at_resource(resource)
+            assigned = ctx.count_workers_at_resource(resource)
             score = (
                 stockpile
                 + gathering_counts[resource.name] * 120
@@ -222,18 +196,6 @@ class WorkerBrain:
                 best_resource = resource
 
         return best_resource
-
-    def _count_workers_at_resource(self, resource):
-        """Count how many workers are gathering or returning to a specific resource."""
-        count = 0
-        for unit in self.game.units:
-            if unit.name != "worker":
-                continue
-            if getattr(unit, 'gathering_target', None) == resource:
-                count += 1
-            elif getattr(unit, 'previous_gathering_target', None) == resource:
-                count += 1
-        return count
 
     def _command_gather(self, worker, resource):
         """Send a worker to gather a resource."""
@@ -256,21 +218,13 @@ class WorkerBrain:
         if not success:
             debug_log.log(f"AI: No path to construction site at ({construction_site.x:.0f}, {construction_site.y:.0f})", "AI")
 
-    def _get_castle(self, player):
-        """Find the player's castle."""
-        for building in self.game.buildings:
-            if building.player == player and building.name == "castle":
-                return building
-        return None
-
-    def get_worker_counts(self, player):
+    def get_worker_counts(self, ctx):
         """Return (idle, gathering, building) worker counts for debug display."""
-        workers = [u for u in self.game.units if u.player == player and u.name == "worker"]
         idle = 0
         gathering = 0
         building = 0
-        for w in workers:
-            if w.is_building or (w.building_target and w.building_target in self.game.construction_sites):
+        for w in ctx.workers:
+            if w.is_building or (w.building_target and getattr(w.building_target, "in_world", True)):
                 building += 1
             elif w.is_gathering or w.gathering_target:
                 gathering += 1

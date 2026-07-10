@@ -1,5 +1,4 @@
 """Economy goals: train workers, build resource buildings, expand pop cap."""
-from systems.ai.economy_helpers import score_dropoff_building_need
 from systems.ai.utility.goal import Goal
 from systems.ai.utility.actions import start_construction, queue_unit
 
@@ -80,7 +79,7 @@ class BuildLumbermillGoal(Goal):
             return 0
         if len(ctx.workers) < 2:
             return 0
-        return score_dropoff_building_need(ctx, "lumbermill")
+        return ctx.score_dropoff_need("lumbermill")
 
     def execute(self, ctx):
         return start_construction(ctx, "lumbermill", ctx.game.ai_system.building_placer)
@@ -97,7 +96,7 @@ class BuildMineGoal(Goal):
             return 0
         if len(ctx.workers) < 2:
             return 0
-        return score_dropoff_building_need(ctx, "mine")
+        return ctx.score_dropoff_need("mine")
 
     def execute(self, ctx):
         return start_construction(ctx, "mine", ctx.game.ai_system.building_placer)
@@ -114,7 +113,7 @@ class BuildQuarryGoal(Goal):
             return 0
         if len(ctx.workers) < 3:
             return 0
-        return score_dropoff_building_need(ctx, "quarry")
+        return ctx.score_dropoff_need("quarry")
 
     def execute(self, ctx):
         return start_construction(ctx, "quarry", ctx.game.ai_system.building_placer)

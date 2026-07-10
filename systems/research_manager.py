@@ -32,13 +32,16 @@ class ResearchManager:
         ok, _ = self.research_status(player, tech_id)
         return ok
 
-    def research_status(self, player, tech_id: str, building=None):
+    def research_status(self, player, tech_id: str, building=None, in_progress=None):
         tech = self.game.game_data.get("techs", {}).get(tech_id)
         if not tech:
             return False, "Unknown tech"
         if is_tech_completed(player, tech_id):
             return False, "Already researched"
-        if self._is_in_progress_or_queued(player, tech_id):
+        if in_progress is not None:
+            if tech_id in in_progress:
+                return False, "Already in progress"
+        elif self._is_in_progress_or_queued(player, tech_id):
             return False, "Already in progress"
         if building is not None and building.name != tech.get("building"):
             return False, f"Requires {tech.get('building', 'research building')}"

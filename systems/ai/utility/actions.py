@@ -25,7 +25,7 @@ def start_construction(ctx, building_name: str, building_placer) -> bool:
     if not worker:
         return False
 
-    position = building_placer.find_position(building_name, ctx.player)
+    position = building_placer.find_position(building_name, ctx)
     if not position:
         return False
 

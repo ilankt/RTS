@@ -50,6 +50,7 @@ class UtilityAISystem:
         }
         self.last_chosen = {p: None for p in self.ai_players}
         self.last_scores = {p: [] for p in self.ai_players}  # [(weighted, base, name), ...]
+        self._tick_counter = {p: 0 for p in self.ai_players}
 
     # --- Public interface (called by core/game.py and ui/ai_debug_panel.py) ---
 
@@ -60,7 +61,14 @@ class UtilityAISystem:
                 continue
             self.tick_timer[player] = 0.0
             with perf_stats.time_ai_tick():
-                self._tick(player)
+                pathfinder = getattr(self.game, "pathfinder", None)
+                if pathfinder is not None and hasattr(pathfinder, "deferred_paths"):
+                    # AI commands enqueue their paths; the per-frame queue
+                    # drain does the searches. Kills the AI-tick path spike.
+                    with pathfinder.deferred_paths():
+                        self._tick(player)
+                else:
+                    self._tick(player)
 
     def invalidate_memory_cache(self, player=None):
         """Compatibility shim — the snapshot is rebuilt from scratch each tick,
@@ -72,7 +80,7 @@ class UtilityAISystem:
             return None
 
         ctx = GoalContext.build(self.game, player)
-        idle, gathering, building = self.worker_brain.get_worker_counts(player)
+        idle, gathering, building = self.worker_brain.get_worker_counts(ctx)
 
         military_breakdown = {}
         for u in ctx.military:
@@ -156,18 +164,22 @@ class UtilityAISystem:
                 )
         self.last_chosen[player] = chosen
 
-        # 3) Sub-brains run regardless. Each in its own try so one failure
-        #    can't take the others down with it.
-        try:
-            self.scout_brain.update(player, self.tick_timer[player])
-        except Exception as e:
-            debug_log.log(
-                f"AI {player.name}: scout_brain.update raised: {e}\n{traceback.format_exc()}",
-                "AI",
-            )
+        # 3) Sub-brains run regardless, reading the same snapshot. Each in its
+        #    own try so one failure can't take the others down with it.
+        self._tick_counter[player] = self._tick_counter.get(player, 0) + 1
+
+        # LOD: scouting only needs to react every other strategic tick (1 s).
+        if self._tick_counter[player] % 2 == 0:
+            try:
+                self.scout_brain.update(player, self.tick_timer[player])
+            except Exception as e:
+                debug_log.log(
+                    f"AI {player.name}: scout_brain.update raised: {e}\n{traceback.format_exc()}",
+                    "AI",
+                )
 
         try:
-            self.worker_brain.assign_idle_workers(player)
+            self.worker_brain.assign_idle_workers(ctx)
         except Exception as e:
             debug_log.log(
                 f"AI {player.name}: worker_brain.assign_idle_workers raised: {e}\n{traceback.format_exc()}",
@@ -176,7 +188,7 @@ class UtilityAISystem:
 
         try:
             should_attack = isinstance(chosen, AttackGoal)
-            self.military_brain.update(player, should_attack=should_attack)
+            self.military_brain.update(ctx, should_attack=should_attack)
         except Exception as e:
             debug_log.log(
                 f"AI {player.name}: military_brain.update raised: {e}\n{traceback.format_exc()}",

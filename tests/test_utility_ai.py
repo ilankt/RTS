@@ -307,7 +307,7 @@ class TestWorkerResourceChoice:
         game.buildings.append(FakeBuilding("lumbermill", p, x=900, y=0))
         game.resources.extend([close_unserviced, farther_serviced])
 
-        chosen = WorkerBrain(game)._find_best_resource_to_gather(worker, p)
+        chosen = WorkerBrain(game)._find_best_resource_to_gather(worker, GoalContext.build(game, p))
 
         assert chosen is farther_serviced
 
