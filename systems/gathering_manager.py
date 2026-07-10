@@ -69,6 +69,17 @@ class GatheringManager:
             player_multiplier = worker.player.gathering_rates.get(resource_type, 1.0)
             player_multiplier *= effective_gather_rate_multiplier(worker.player, resource_type)
         gather_rate = base_rate * player_multiplier
+
+        # §8.3 worker saturation: past the cap, the node's total output stays
+        # flat, so each stacked gatherer works at cap/n rate - expanding to a
+        # fresh node beats piling onto one.
+        from core.config import WORKER_SATURATION_ENABLED, WORKER_SATURATION_CAP
+
+        if WORKER_SATURATION_ENABLED:
+            active_gatherers = len(getattr(resource, "gatherers", ()) or ())
+            if active_gatherers > WORKER_SATURATION_CAP:
+                gather_rate *= WORKER_SATURATION_CAP / active_gatherers
+
         amount_to_gather = gather_rate * delta_time
 
         capacity = worker.max_capacity.get(resource_type, 20)

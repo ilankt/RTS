@@ -617,9 +617,12 @@ from farms (3/s) — four resources with fuzzy identities.
   (e.g. gold = scarce/contested → map control; wood = renewable bulk; stone =
   rare/strategic → defense & key buildings; food = land+labor). Or cut to 2–3 if roles
   can't be made distinct.
-- [ ] **Worker saturation** *(med)* — per-node gatherer cap with diminishing returns
-  (SC-style) so income growth *requires* expansion — the cheapest way to create the
-  greed-vs-safety tension in §7.3.
+- [x] **Worker saturation** *(med)* — prototyped behind
+  `WORKER_SATURATION_ENABLED` (2026-07-10): past 3 gatherers a node's total
+  yield stays flat (each stacked worker gathers at cap/n rate). Verified:
+  per-worker rate exactly halves at 6 gatherers. The AI's existing crowding
+  penalties already push it to spread across nodes; the full §8.8
+  income-vs-worker-count charting remains for the tuning pass.
 - [ ] **Gathering range/flow tuning** *(low)* — `GATHERING_DISTANCE_MULTIPLIER = 0.5`
   makes workers hug nodes; tune gather + drop-off distances so it feels smooth.
 - [ ] **Income-rate HUD** *(low)* — show per-second deltas, not just stockpiles.
@@ -776,7 +779,11 @@ unsequenced — pull them in where they fit.
   leash drops the chase and paths back to `stance_home_position` (re-acquisition
   suppressed for 1 s so the walk home wins); regression tests in
   `tests/test_stances.py`.
-- [ ] **Healer doesn't heal**: trainable, walks, no healing logic anywhere. (→ §7/§8.)
+- [x] **Healer doesn't heal**: fixed 2026-07-10 — healers mend the most-wounded
+  friendly unit in range (6 hp/s cadence on game time, spatial-index query,
+  clamped at max hp, cast animation + particles); unit tests in
+  `tests/test_healer.py`. Note: healers stay effectively unreachable in play
+  until `temple` becomes buildable — a content decision left open on purpose.
 - [ ] **Wall is a 1×1 building**: no gate, thin profile, or special placement.
   (→ **§8.10** — expanded 2026-07-10 into wooden→stone walls + gates + AI walling.)
 - [x] **Combat cadence was wall-clock, not game-time** (found 2026-07-10 during

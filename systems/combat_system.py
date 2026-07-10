@@ -242,6 +242,10 @@ class CombatSystem:
                 # Handle ongoing engagements
                 if unit.is_engaging and unit.current_target:
                     self.handle_combat_engagement(unit, unit.current_target)
+
+                # Healers mend the most-wounded nearby ally (§9)
+                if unit.name == "healer":
+                    self._update_healer(unit, delta_time)
         
         # Update defensive buildings (watchtowers, etc.)
         for building in self.game.buildings:
@@ -342,6 +346,39 @@ class CombatSystem:
         """Get damage effectiveness multiplier based on attack and armor types"""
         return type_effectiveness(attack_type, armor_type)
     
+    def _unit_max_hp(self, unit):
+        template = self.game.game_data["units"].get(unit.name) if hasattr(self.game, "game_data") else None
+        return template.hp if template else unit.hp
+
+    def _update_healer(self, healer, delta_time):
+        """Heal the most-wounded friendly unit in range (game-time cadence)."""
+        from core.config import HEALER_HEAL_AMOUNT, HEALER_HEAL_INTERVAL, HEALER_HEAL_RANGE
+
+        healer._heal_cooldown = getattr(healer, "_heal_cooldown", 0.0) - delta_time
+        if healer._heal_cooldown > 0:
+            return
+
+        range_sq = HEALER_HEAL_RANGE * HEALER_HEAL_RANGE
+        best = None
+        best_missing = 0
+        for ally in self.game.collision_system.query_nearby_units(healer.x, healer.y, HEALER_HEAL_RANGE, exclude=healer):
+            if ally.player is not healer.player or ally.hp <= 0:
+                continue
+            if (ally.x - healer.x) ** 2 + (ally.y - healer.y) ** 2 > range_sq:
+                continue
+            missing = self._unit_max_hp(ally) - ally.hp
+            if missing > best_missing:
+                best_missing = missing
+                best = ally
+
+        if best is not None:
+            best.hp = min(self._unit_max_hp(best), best.hp + HEALER_HEAL_AMOUNT)
+            healer._heal_cooldown = HEALER_HEAL_INTERVAL
+            healer.status = "attack"  # plays the healer's cast animation
+            if getattr(self.game, "particles", None):
+                self.game.particles.spawn_attack_particles(best.x, best.y, count=1)
+        # (no target in range: cooldown stays expired so the next tick can heal)
+
     def handle_unit_death(self, unit):
         """Handle cleanup when a unit dies"""
         # Spawn death particles and sound

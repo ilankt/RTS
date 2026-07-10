@@ -126,6 +126,18 @@ AI_STARTING_RESOURCES = {
     "wood": 10000       # Starting wood for AI players
 }
 
+# Healer behavior (§9 backlog: "healer doesn't heal")
+HEALER_HEAL_AMOUNT = 6      # hp restored per heal tick
+HEALER_HEAL_INTERVAL = 1.0  # game-time seconds between heal ticks
+HEALER_HEAL_RANGE = 110.0   # world px
+
+# Worker saturation (§8.3, prototyped behind a flag): a resource node only
+# supports WORKER_SATURATION_CAP gatherers at full rate; beyond that the
+# node's total yield stays capped, so income growth requires expanding to
+# fresh nodes instead of stacking one.
+WORKER_SATURATION_ENABLED = True
+WORKER_SATURATION_CAP = 3
+
 # Combat counter model (§8.4, prototyped behind a flag): attackers deal bonus
 # damage to targets listed in their strong_against tags, making e.g.
 # spearman-vs-cavalry distinctly stronger than archer-vs-cavalry.
