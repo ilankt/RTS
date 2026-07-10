@@ -497,16 +497,26 @@ and should override "obvious" instincts.
   workers). Tests in `tests/test_power_spikes.py`. Original scope: tech/upgrade completion a visible,
   meaningful army-strength jump so "attack right after Forged Blades finishes" is a
   real decision. Mostly surfacing existing upgrades + feedback.
-- [ ] **Legible, imperfect counters** *(low–med)* — show strong/weak-against in the UI
-  and tune so range/speed/size matter; keep it *imperfect* RPS where
-  position/terrain/upgrades still decide. (Mechanic lives in §8.4.)
+- [x] **Legible, imperfect counters** *(low–med)* — realized via §8.4
+  (2026-07-10): strong/weak-vs in the unit panel and every tooltip;
+  emphasized "N!" counter pops and gray "N resisted" floats; the 1.5×
+  tag bonus stays *imperfect* — armor/type multipliers, upgrades, and
+  positioning still decide fights (validated: no dominant unit in the
+  same-seed mix). Terrain bonuses remain the separate §8.4 "position
+  matters" item.
 - [ ] **Risk/reward economy** *(med)* — expanding/booming opens a real, scoutable
   vulnerability window, so greed vs safety is a live choice. (Enabled by §8.3 worker
   saturation.)
 - [ ] **Anti-snowball / comeback** *(med)* — diminishing returns so a small early lead
   isn't an auto-win; the biggest fun-killer is a foregone 20-minute loss.
-- [ ] **Scouting payoff** *(med)* — a scout that reveals enemy tech/army so the player
-  makes informed build decisions. Ties to fog.
+- [x] **Scouting payoff** *(med)* — 2026-07-10: first-sighting **intel
+  alerts**, strictly fog-gated (earned by scouting; none when fog is off):
+  the first time the human sees each enemy military unit type → "Enemy
+  cavalry spotted!" (+ping), and per-opponent key buildings (castle,
+  barracks, stable, siege workshop, blacksmith, watchtower) → "Enemy siege
+  workshop located!" — production buildings ARE the tech reveal. Once per
+  type/building per match. With the §8.4 counters UI, sighting → informed
+  build response is closed. Tests in `tests/test_scouting_intel.py`.
 - **✅ Verify:** in a playtest, an upgrade produces a *felt* power spike; counters are
   readable and change fight outcomes; an early lead is not an auto-win (play out a
   comeback); the §8.8 balance sim shows varied unit usage (no single dominant unit).

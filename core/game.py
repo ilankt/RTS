@@ -537,6 +537,9 @@ class Game:
             # Onboarding tips for new players (§8.7)
             self._update_onboarding()
 
+            # Scouting intel: first sighting of enemy types (§7.2)
+            self._check_scouting_intel(self.delta_time)
+
             # Update camera bounds
             self._update_camera_bounds()
         finally:
@@ -601,6 +604,50 @@ class Game:
         if queue and self.sim_time_elapsed >= queue[0][0]:
             _due, hint = queue.pop(0)
             self.ui_manager.add_alert(f"Tip: {hint}")
+
+    # §7.2 scouting payoff: buildings whose first sighting is real intel
+    INTEL_BUILDINGS = ("castle", "barracks", "stable", "siege_workshop",
+                       "blacksmith", "watchtower")
+
+    def _check_scouting_intel(self, delta_time):
+        """First time the human SEES each enemy unit type / key building,
+        toast it (§7.2). Fog-gated: intel is earned by scouting, and with
+        fog disabled everything is visible so there's nothing to reveal."""
+        self._intel_timer = getattr(self, "_intel_timer", 0.0) + delta_time
+        if self._intel_timer < 1.0:
+            return
+        self._intel_timer = 0.0
+        human = self.players[0] if self.players else None
+        if human is None or not getattr(human, "human", False):
+            return
+        fog = getattr(self, "fog_of_war", None)
+        if fog is None or not fog.enabled:
+            return
+        spotted = getattr(self, "_spotted_enemy_types", None)
+        if spotted is None:
+            spotted = self._spotted_enemy_types = set()
+
+        from systems.ai.utility.context import MILITARY_NAMES
+
+        for unit in self.units:
+            if unit.player is human or unit.hp <= 0 or unit.name not in MILITARY_NAMES:
+                continue
+            if unit.name in spotted or not fog.is_visible(human, unit.x, unit.y):
+                continue
+            spotted.add(unit.name)
+            self.ui_manager.add_alert(f"Enemy {unit.name} spotted!", (unit.x, unit.y))
+
+        for building in self.buildings:
+            if building.player is human or building.player is None or building.hp <= 0:
+                continue
+            if building.name not in self.INTEL_BUILDINGS:
+                continue
+            key = (building.player.name, building.name)
+            if key in spotted or not fog.is_visible(human, building.x, building.y):
+                continue
+            spotted.add(key)
+            label = building.name.replace("_", " ")
+            self.ui_manager.add_alert(f"Enemy {label} located!", (building.x, building.y))
 
     LOW_RESOURCE_THRESHOLD = 25   # below the cheapest common purchase
     LOW_RESOURCE_ALERT_SECS = 30  # per-resource re-alert throttle
