@@ -253,7 +253,8 @@ class SaveManager:
                 if tech_id in game.game_data.get("techs", {})
             ]
             # v2: production, rally, gate state
-            units_data = game.production_manager.units_data
+            production_manager = getattr(game, "production_manager", None)
+            units_data = production_manager.units_data if production_manager else {}
             current_production = bdata.get("current_production")
             if current_production and current_production.get("unit_type") in units_data:
                 unit_data = units_data[current_production["unit_type"]]

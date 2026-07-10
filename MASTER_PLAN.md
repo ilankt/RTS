@@ -802,10 +802,17 @@ unsequenced — pull them in where they fit.
   Fixed: cooldowns accumulate game-time `delta_time`; the wall-clock stamp
   remains only for projectile-spawn detection. Balance sim re-run required
   (pre-fix numbers are biased toward long sieges / big ram counts).
-- [ ] **Save/Load is a thin slice**: misses terrain seed, AI state, fog grids, scout
-  explored tiles, paths, gathering/building/combat targets, production/research
-  queues, formation, control groups, stance homes, tree-regrowth tracker. Revisit
-  after the AI/movement state shape settles (Phases 3–4).
+- [x] **Save/Load is a thin slice**: closed 2026-07-10 with save format **v2**
+  (`managers/save_manager.py`, still loads v1). Now persisted: production queues
+  + in-progress unit (with progress), rally points, gate open/closed state (nav
+  rebuild respects restored `passable`), stance home positions, sim clock
+  (`sim_time_elapsed`), victory condition, match stats (units/buildings/tower
+  damage/resources gathered), tree-regrowth timers, and per-player fog
+  **explored** grids (row-packed bit strings). Intentionally not saved — each
+  self-heals within one AI tick of resuming: AI brain state, worker
+  task/gather targets, combat targets, in-flight paths (units re-idle on load).
+  Roundtrip covered by `tests/test_save_load.py` (full v2 field cycle on a live
+  game + 60 post-load frames; gate-open survival).
 - [x] **Sound coverage**: audited 2026-07-10 — five of the six were already
   called; `alert` now fires on under-attack. (Realized in §8.5.)
 - [ ] **Test coverage**: existing tests assert constants/attributes, not behavior. Add
