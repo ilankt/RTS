@@ -37,7 +37,8 @@ class Building(GameObject):
         
         # Combat state
         self.current_target = None
-        self.last_attack_time = 0
+        self.last_attack_time = 0  # wall-clock stamp, used only for projectile-spawn detection
+        self._attack_cooldown = 0.0  # game-time seconds until the next attack
         self.in_combat = False
         
         # Unit production system
@@ -115,15 +116,15 @@ class Building(GameObject):
             self.in_combat = False
             return
         
-        # Check if enough time has passed to attack again
-        current_time = pygame.time.get_ticks() / 1000.0
-        time_between_attacks = 1.0 / self.attack_speed
-        
-        if current_time - self.last_attack_time >= time_between_attacks:
+        # Attack cadence runs on GAME time (see Unit.update_combat) so tower
+        # DPS keeps pace with the rest of the sim at any game speed.
+        self._attack_cooldown = getattr(self, "_attack_cooldown", 0.0) - delta_time
+        if self._attack_cooldown <= 0:
             # Perform attack
             damage = self.calculate_damage(self.current_target)
             self.current_target.hp -= damage
-            self.last_attack_time = current_time
+            self.last_attack_time = pygame.time.get_ticks() / 1000.0
+            self._attack_cooldown = 1.0 / self.attack_speed
             
             # Check if target is destroyed
             if self.current_target.hp <= 0:

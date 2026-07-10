@@ -55,7 +55,8 @@ class Unit(GameObject):
         
         # Combat state
         self.current_target = None
-        self.last_attack_time = 0
+        self.last_attack_time = 0  # wall-clock stamp, used only for projectile-spawn detection
+        self._attack_cooldown = 0.0  # game-time seconds until the next attack
         self.in_combat = False
         self.is_engaging = False  # Moving to attack target
         self.has_los = False  # Line of sight to target
@@ -376,15 +377,17 @@ class Unit(GameObject):
                 debug_log.log(f"{self.name} target out of range, re-engaging {self.current_target.name}", "GENERAL")
             return
         
-        # Check if enough time has passed to attack again
-        current_time = pygame.time.get_ticks() / 1000.0
-        time_between_attacks = 1.0 / self.attack_speed
-        
-        if current_time - self.last_attack_time >= time_between_attacks:
+        # Attack cadence runs on GAME time (delta_time is already speed-scaled)
+        # so combat keeps pace with economy/movement at any game speed. The
+        # wall-clock last_attack_time stamp remains solely so the projectile
+        # system can detect "a new attack happened".
+        self._attack_cooldown = getattr(self, "_attack_cooldown", 0.0) - delta_time
+        if self._attack_cooldown <= 0:
             # Perform attack
             damage = self.calculate_damage(self.current_target)
             self.current_target.hp -= damage
-            self.last_attack_time = current_time
+            self.last_attack_time = pygame.time.get_ticks() / 1000.0
+            self._attack_cooldown = 1.0 / self.attack_speed
             
             if DEBUG_MOVEMENT:
                 debug_log.log(f"{self.name} attacks {self.current_target.name} for {damage} damage!", "GENERAL")

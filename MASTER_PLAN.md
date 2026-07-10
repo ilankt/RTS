@@ -686,6 +686,41 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
 Hero units + abilities/spells · garrison & transport · day-night / weather · neutral
 map objectives. Listed for completeness; revisit only after Tracks A–C land.
 
+### 8.10 Defensive play — watchtowers & walls *(added 2026-07-10 per playtest feedback)*
+
+**Watchtower state of the world (audited 2026-07-10):** towers DO auto-target and
+fire (live-fire verified; the wall-clock cadence bug that muted their DPS at high
+game speed is fixed — see §9). What's missing is *strategy*: the AI builds at most
+**one** tower ever (`BuildWatchtowerGoal` scores 0 once any exists, base score a
+low 45) and places it at the **first free ring slot around the castle starting
+due-east** — placement ignores where the enemy actually is.
+
+- [ ] **Strategic tower placement** *(med)* — place toward the threat: bias the
+  ring search by the Phase 4 threat map / known enemy-castle direction, and
+  cover resource clusters workers actually use. Rides on `ctx.threat_at`.
+- [ ] **Scale tower count with threat & personality** *(low–med)* — replace the
+  hard 1-tower cap with a cap by personality (turtle 3–4, others 1–2) and let
+  the score grow with recent-attack pressure instead of sitting at 45.
+- [ ] **Tower value metric in the balance sim** *(low)* — track damage dealt /
+  kills per tower so "are they even doing something?" is a number, not a
+  feeling.
+- [ ] **Wooden walls** *(med)* — make `wall` buildable as a cheap wood-cost
+  segment; drag-placement UI for wall lines; pathfinding already handles
+  incremental blockers, flow fields invalidate on placement (Phase 2/5 ✓).
+- [ ] **Stone walls** *(med)* — second tier: stone cost, much higher HP/armor,
+  either an upgrade of wooden segments in place or a separate piece.
+- [ ] **Gates** *(med)* — a wall piece owned units path through (toggleable
+  blocker per player on the nav grid); without gates, walls strangle the
+  owner's own economy.
+- [ ] **AI walling** *(med–high)* — turtle personality walls chokepoints between
+  its base and the threat direction; needs the wall pieces + threat map.
+  Counter-pressure: rams already deal 2.25× to fortified (§8.4 keeps this
+  legible).
+- **✅ Verify:** in a spectated match the AI places ≥2 towers on the threatened
+  side (not due-east by accident); the sim's tower-damage metric is nonzero and
+  meaningful; a walled turtle base forces attackers through a gate or a
+  ram-siege; the owner's workers still path freely via gates.
+
 ---
 
 ## 9. Preserved backlog (non-perf, carried over from the deleted plans)
@@ -704,7 +739,15 @@ unsequenced — pull them in where they fit.
   suppressed for 1 s so the walk home wins); regression tests in
   `tests/test_stances.py`.
 - [ ] **Healer doesn't heal**: trainable, walks, no healing logic anywhere. (→ §7/§8.)
-- [ ] **Wall is a 1×1 building**: no gate, thin profile, or special placement. (→ §8.)
+- [ ] **Wall is a 1×1 building**: no gate, thin profile, or special placement.
+  (→ **§8.10** — expanded 2026-07-10 into wooden→stone walls + gates + AI walling.)
+- [x] **Combat cadence was wall-clock, not game-time** (found 2026-07-10 during
+  the §8.10 watchtower audit): unit/building attack cooldowns used
+  `pygame.time.get_ticks()`, so at 5× speed all combat was effectively 5× slower
+  relative to economy/movement — muting towers and distorting the balance sim.
+  Fixed: cooldowns accumulate game-time `delta_time`; the wall-clock stamp
+  remains only for projectile-spawn detection. Balance sim re-run required
+  (pre-fix numbers are biased toward long sieges / big ram counts).
 - [ ] **Save/Load is a thin slice**: misses terrain seed, AI state, fog grids, scout
   explored tiles, paths, gathering/building/combat targets, production/research
   queues, formation, control groups, stance homes, tree-regrowth tracker. Revisit
