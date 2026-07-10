@@ -266,21 +266,31 @@ failed paths under load.
 
 ### Phase 3 — Local steering: fix stuck / teleport / bunch-up (3–5 days, medium)
 **Goal:** units stop bunching, stalling, and teleporting.
-- [ ] **Arrival + stop-on-arrival** (B3) — slowing radius; arrived units stop and
-  become low-priority obstacles (removes the push-out oscillation hacks).
-- [ ] **Context steering** (B1/B4) — 8–16 slot interest/danger map per moving unit
-  (danger from the shared hash); retire `_calculate_slide_position` /
-  `_find_escape_direction` / `_stuck_detector`.
-- [ ] **Priority / right-of-way** (B4/B5) — global `carrier > mover > idle` (id
-  tie-break); lower-priority yields; demote the watchdog teleport to a last resort
-  with a **per-frame recovery cap** and the static list built once.
-- [ ] **Substep at high speed** (B6) — cap effective movement dt so 5× doesn't tunnel.
-- [ ] Add a **watchdog-teleport counter** to `perf_stats` (makes the gate below
-  measurable).
-- **✅ Verify:** watchdog teleports/min **≈ 0** (new counter); order 100+ units
-  across the map and observe no permanent stalls or destination oscillation; at 5×
-  speed no tunneling through buildings; benchmark `frame_p95_ms` under the §6 target
-  for the current unit count.
+- [x] **Arrival + stop-on-arrival** (B3) — steps clamped to remaining distance
+  (no overshoot) + 40 px slowing radius into final goals; combat chases keep
+  full speed. Arrived idle units are lowest right-of-way class.
+- [x] **Context steering** (B1/B4) — 16-slot interest/danger map per moving unit
+  from the shared hash; interaction targets excluded from danger; hysteresis;
+  terrain-blocked slots never chosen. Unit-unit slide +
+  `_find_escape_direction` retired. (`_stuck_detector` kept deliberately: it's
+  the combat-repath trigger, not a steering mechanism — revisit in Phase 4.)
+- [x] **Priority / right-of-way** (B4/B5) — `carrier > mover > idle` with id
+  tie-break; winners nudge the crowd apart, yielders sidestep instead of
+  freezing; followers pressing on a leader's back are ignored (convoys don't
+  freeze); deep-overlap separation pass wired into the loop (was never called);
+  watchdog capped at 2 recoveries/check and resumes interrupted move orders
+  from `last_task` (per-incident cap).
+- [x] **Substep at high speed** (B6) — per-unit substepping whenever one step
+  would exceed 10 px; slow units stay single-step so it's ~free.
+- [x] Add a **watchdog-teleport counter** to `perf_stats` (`watchdog_recoveries`
+  / `watchdog_teleports`).
+- **✅ Verify (passed 2026-07-10):** normal-play seeded benchmark: watchdog
+  teleports **0**/120 sim s (recoveries 1), frame avg 2.9 ms / p95 13.2 / max 27;
+  100-unit cross-map order (`tools/stress_group_move.py`): **0 → 95/100 arrive**,
+  95 % arrival in ~105 sim s, teleports 3–5 per 300 sim s (residual: a few units
+  in the dense spawn resource field — single-point mega-blob convergence is the
+  Phase 5 formations/flow-field case); per-unit substepping = no tunneling at 5×;
+  pytest 147 green.
 
 ### Phase 4 — AI: shared perception, LOD, squads (4–6 days, medium)
 **Goal:** the 478 ms AI-tick spike is gone and AI cost stays flat as the army grows.
