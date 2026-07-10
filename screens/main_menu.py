@@ -16,6 +16,7 @@ class MainMenu:
         
         self.options = [
             ("Start Game", "start"),
+            ("Spectate AI Battle", "spectate"),
             ("Load Game", "load"),
             ("Exit", "exit")
         ]
