@@ -762,10 +762,22 @@ due-east** — placement ignores where the enemy actually is.
   reseals. (V1 is a manual toggle for any unit, not per-player auto-gates.)
 - [ ] **Wall drag-placement UI** *(med)* — click-drag to lay a line of
   segments instead of placing one at a time.
-- [ ] **AI walling** *(med–high)* — turtle personality walls chokepoints between
-  its base and the threat direction; needs the wall pieces + threat map.
-  Counter-pressure: rams already deal 2.25× to fortified (§8.4 keeps this
-  legible).
+- [x] **AI walling** *(med–high)* — landed 2026-07-10. `BuildWallGoal`
+  (support category, so only turtle's `WALL_SEGMENT_TARGETS = 11` triggers it)
+  lays a deterministic 11-slot picket with a middle gate across the threat
+  bearing at 420 px (outside the base-building ring), one segment per tick via
+  `BuildingPlacer.plan_wall_line/next_wall_piece`. Blocked slots become holes
+  (terrain/own statics usually plug them); if the *gate* slot is blocked —
+  the watchtower placer targets the same bearing — the gate role moves to the
+  nearest open slot. `MilitaryBrain._manage_gates` keeps AI gates open for
+  the economy and closes them when the coarse threat map registers enemies
+  near the gate. Score base 60 on purpose: AttackGoal succeeds every tick it
+  wins, so walls must outrank it (turtle-weighted 90 vs attack 49 + 5.6/unit)
+  until the line is done — measured live: 10/11 pieces + open gate by
+  sim-minute 3 of a seeded turtle-vs-rusher match. Tests in
+  `tests/test_ai_walling.py`. Still open: walls are a straight picket
+  (flankable funnel), not a terrain-anchored seal — real chokepoint detection
+  stays future work; balanced/boomer/rusher never wall by design.
 - **✅ Verify:** in a spectated match the AI places ≥2 towers on the threatened
   side (not due-east by accident); the sim's tower-damage metric is nonzero and
   meaningful; a walled turtle base forces attackers through a gate or a

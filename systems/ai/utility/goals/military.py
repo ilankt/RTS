@@ -118,6 +118,51 @@ class BuildWatchtowerGoal(Goal):
         return start_construction(ctx, "watchtower", ctx.game.ai_system.building_placer)
 
 
+class BuildWallGoal(Goal):
+    """§8.10 AI walling: lay a wall line (with a gate) across the threat bearing.
+
+    One segment per successful tick; the placer re-plans the same deterministic
+    line each time and returns the first unbuilt slot, so the line fills in
+    incrementally between other goals. Only personalities with a nonzero
+    WALL_SEGMENT_TARGETS entry (turtle) ever score it.
+    """
+    name = "build_wall_line"
+    category = "support"
+
+    def _segments(self, ctx):
+        from systems.ai.utility.personality import wall_segments
+
+        return wall_segments(getattr(ctx.player, "ai_personality", "balanced"))
+
+    def score(self, ctx):
+        segments = self._segments(ctx)
+        if segments <= 0 or not ctx.castle:
+            return 0
+        if len(ctx.workers) < 5:
+            return 0  # walls are a mid-game investment, not an opening
+        if ctx.has_construction_in_progress("wooden_wall") or ctx.has_construction_in_progress("gate"):
+            return 0  # one segment at a time
+        piece = ctx.game.ai_system.building_placer.next_wall_piece(ctx, segments)
+        if piece is None:
+            return 0  # line complete or unplannable
+        if not ctx.can_afford(piece[0]):
+            return 0
+        # High base on purpose: AttackGoal succeeds every tick it wins, so a
+        # lower score would never execute. Weighted 90 for turtle beats attack
+        # (weighted 49 + 5.6/unit past threshold) until the army is ~14 —
+        # the wall goes up before massing, which is the turtle identity.
+        threat = ctx.threat_at(ctx.castle.x, ctx.castle.y)
+        return 60 + min(30, threat * 0.03)
+
+    def execute(self, ctx):
+        placer = ctx.game.ai_system.building_placer
+        piece = placer.next_wall_piece(ctx, self._segments(ctx))
+        if piece is None:
+            return False
+        piece_name, position = piece
+        return start_construction(ctx, piece_name, placer, position=position)
+
+
 def _military_fraction(ctx, name):
     total = max(1, len(ctx.military))
     count = sum(1 for u in ctx.military if u.name == name)

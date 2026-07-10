@@ -11,10 +11,12 @@ from core.config import TILE_WIDTH
 from systems.upgrade_effects import has_required_buildings
 
 
-def start_construction(ctx, building_name: str, building_placer) -> bool:
+def start_construction(ctx, building_name: str, building_placer, position=None) -> bool:
     """Place a construction site, deduct resources, send a worker.
 
-    Returns True if construction actually started.
+    Pass `position` to build at an exact spot (wall segments, §8.10) instead
+    of letting the placer's ring search choose. Returns True if construction
+    actually started.
     """
     if ctx.has_construction_in_progress(building_name):
         return False
@@ -25,7 +27,8 @@ def start_construction(ctx, building_name: str, building_placer) -> bool:
     if not worker:
         return False
 
-    position = building_placer.find_position(building_name, ctx)
+    if position is None:
+        position = building_placer.find_position(building_name, ctx)
     if not position:
         return False
 

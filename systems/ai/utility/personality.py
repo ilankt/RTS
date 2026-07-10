@@ -78,6 +78,20 @@ def tower_cap(personality: str) -> int:
     return TOWER_CAPS.get(personality, 1)
 
 
+# §8.10 AI walling: how many wall-line slots (walls + one gate) each
+# personality maintains across the threat bearing. 0 = never walls.
+WALL_SEGMENT_TARGETS = {
+    "turtle": 11,
+    "balanced": 0,
+    "boomer": 0,
+    "rusher": 0,
+}
+
+
+def wall_segments(personality: str) -> int:
+    return WALL_SEGMENT_TARGETS.get(personality, 0)
+
+
 # §7.2 honest difficulty tiers: scale *decision quality* levers - reaction
 # time (strategic tick cadence), attack commitment, and worker micro - never
 # stats or resources (the §7.1 fairness guardrail).
