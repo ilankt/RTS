@@ -529,9 +529,13 @@ and should override "obvious" instincts.
   screen and `--seed` CLI; same seed reproduces terrain + starts + layouts
   (verified), fresh seed each screen visit. Terrain/starts/resources were
   already procedural.
-- [ ] **Victory conditions beyond annihilation** *(med)* — annihilation feels bad
-  (losing = you can't play anymore). Add economic / landmark / king-of-the-hill /
-  timed-score / relic-hold.
+- [x] **Victory conditions beyond annihilation** *(med)* — 2026-07-10: match
+  setup offers **Annihilation** (castle-kill, default), **Economic** (first to
+  5,000 cumulative resources gathered), and **Timed** (highest score —
+  economy + production + army — at 20 game-minutes). Castle loss still
+  eliminates in every mode. Verified headless: economic and timed both
+  trigger and declare the right winner. (Landmark / king-of-the-hill /
+  relic-hold remain future variants.)
 - [ ] **Match modifiers ("mutators")** *(low–med)* — optional togglable rules (double
   resources, no towers, sudden death, harsh-winter attrition à la Northgard).
 - [ ] **Dynamic map elements / random events** *(med)* — periodic neutral events

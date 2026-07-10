@@ -150,7 +150,14 @@ class Game:
         self.stats_units_trained = {}
         self.stats_buildings_built = {}
         self.stats_tower_damage = {}  # {player_name: damage dealt by watchtowers}
+        self.stats_resources_gathered = {}  # {player_name: cumulative gathered}
         self.sim_time_elapsed = 0.0   # game-time seconds since match start
+
+        # Victory condition (§7.5): "annihilation" (default), "economic"
+        # (first to gather ECONOMIC_VICTORY_TARGET total), or "timed"
+        # (highest score when TIMED_VICTORY_MINUTES elapse). Castle loss
+        # always eliminates regardless of mode.
+        self.victory_condition = "annihilation"
         
         # Set up initial game state
         self.game_state.setup_game_objects()
@@ -668,10 +675,47 @@ class Game:
             if hasattr(self, 'ai_system') and self.ai_system:
                 self.ai_system.invalidate_memory_cache()
 
+    def _score(self, player):
+        """Timed-victory score: economy + production achievements (§7.5)."""
+        gathered = self.stats_resources_gathered.get(player.name, 0)
+        trained = sum(v for (name, _t), v in self.stats_units_trained.items() if name == player.name)
+        built = sum(v for (name, _t), v in self.stats_buildings_built.items() if name == player.name)
+        army = sum(1 for u in self.units if u.player is player and u.name != "worker")
+        return gathered + trained * 20 + built * 50 + army * 30
+
+    def _declare_winner(self, winner):
+        """End the match with a winner under a non-annihilation condition."""
+        self.winning_player = winner
+        humans = [p for p in self.players if p.human]
+        if not humans:
+            self.game_over_state = "simulation_complete"
+        elif winner is humans[0]:
+            self.game_over_state = "victory"
+        else:
+            self.game_over_state = "defeat"
+        debug_log.log(f"Victory ({self.victory_condition}): {winner.name}", "GENERAL")
+
+    def _check_special_victory(self):
+        """Economic / timed victory checks (§7.5); annihilation always applies."""
+        from core.config import ECONOMIC_VICTORY_TARGET, TIMED_VICTORY_MINUTES
+
+        if self.victory_condition == "economic":
+            for player in self.players:
+                if self.stats_resources_gathered.get(player.name, 0) >= ECONOMIC_VICTORY_TARGET:
+                    self._declare_winner(player)
+                    return
+        elif self.victory_condition == "timed":
+            if self.sim_time_elapsed >= TIMED_VICTORY_MINUTES * 60:
+                self._declare_winner(max(self.players, key=self._score))
+
     def _check_victory_defeat(self):
         """Check if victory or defeat conditions are met"""
         if self.game_over_state:
             return
+        if self.victory_condition != "annihilation":
+            self._check_special_victory()
+            if self.game_over_state:
+                return
         
         # Count castles per player
         castles_by_player = {}

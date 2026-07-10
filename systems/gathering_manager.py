@@ -320,7 +320,11 @@ class GatheringManager:
             
             if worker.player:
                 worker.player.resources[worker.resource_type] += int(worker.resource_amount)
-                
+                # Cumulative gathered total (§7.5 economic victory / §8.7 stats)
+                stats = getattr(self.game, "stats_resources_gathered", None)
+                if stats is not None:
+                    stats[worker.player.name] = stats.get(worker.player.name, 0) + int(worker.resource_amount)
+
             # Add floating notification
             if hasattr(self.game, 'floating_ui') and self.game.floating_ui:
                 self.game.floating_ui.add_resource_notification(building, dropped_type, dropped_amount)

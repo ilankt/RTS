@@ -60,6 +60,7 @@ def create_game_from_setup(setup):
     for player in game.players:
         if not player.human:
             player.ai_difficulty = setup.get("difficulty", "normal")
+    game.victory_condition = setup.get("victory", "annihilation")
     game.game_speed = max(MIN_GAME_SPEED, min(MAX_GAME_SPEED, setup.get("speed", 1)))
     return game
 

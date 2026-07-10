@@ -126,6 +126,10 @@ AI_STARTING_RESOURCES = {
     "wood": 10000       # Starting wood for AI players
 }
 
+# Victory conditions (§7.5)
+ECONOMIC_VICTORY_TARGET = 5000   # cumulative resources gathered
+TIMED_VICTORY_MINUTES = 20       # game-time minutes for "timed" mode
+
 # Healer behavior (§9 backlog: "healer doesn't heal")
 HEALER_HEAL_AMOUNT = 6      # hp restored per heal tick
 HEALER_HEAL_INTERVAL = 1.0  # game-time seconds between heal ticks
