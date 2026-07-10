@@ -271,48 +271,54 @@ class Unit(GameObject):
         # Normalize direction
         dx_norm = dx / distance
         dy_norm = dy / distance
-        
+
         # More accurate sampling - every 16 pixels instead of 32
         sample_distance = 16
         samples = int(distance / sample_distance) + 1
-        
+
         # Consider unit width for path checking
         path_width = self.radius * 1.2  # Slightly wider than unit for comfortable movement
-        
+
+        terrain_probe = getattr(game_map, "nav_terrain_walkable", None)
+
         for i in range(1, samples):  # Skip start and end points
             sample_x = self.x + (dx_norm * sample_distance * i)
             sample_y = self.y + (dy_norm * sample_distance * i)
-            
+
             # Check terrain at center and edges of unit path
-            check_points = [
+            check_points = (
                 (sample_x, sample_y),  # Center
                 (sample_x + dy_norm * path_width * 0.5, sample_y - dx_norm * path_width * 0.5),  # Left edge
                 (sample_x - dy_norm * path_width * 0.5, sample_y + dx_norm * path_width * 0.5),  # Right edge
-            ]
-            
+            )
+
             for check_x, check_y in check_points:
                 # Check terrain
-                hex_coord = game_map.world_to_grid(check_x, check_y)
-                if hex_coord and 0 <= hex_coord[1] < len(game_map.grid) and 0 <= hex_coord[0] < len(game_map.grid[0]):
-                    tile_type = game_map.grid[hex_coord[1]][hex_coord[0]]
-                    if tile_type in {"water", "lava"}:
+                if terrain_probe is not None:
+                    if not terrain_probe(check_x, check_y):
                         return False
-                
+                else:
+                    hex_coord = game_map.world_to_grid(check_x, check_y)
+                    if hex_coord and 0 <= hex_coord[1] < len(game_map.grid) and 0 <= hex_coord[0] < len(game_map.grid[0]):
+                        tile_type = game_map.grid[hex_coord[1]][hex_coord[0]]
+                        if tile_type in {"water", "lava"}:
+                            return False
+
                 # Check obstacles with improved collision detection
                 if obstacles:
                     for obstacle in obstacles:
                         if obstacle == self or obstacle == target:
                             continue
-                        
+
                         # Check if any part of unit's path would collide with obstacle
-                        obs_distance = ((check_x - obstacle.x) ** 2 + (check_y - obstacle.y) ** 2) ** 0.5
-                        
+                        obs_dist_sq = (check_x - obstacle.x) ** 2 + (check_y - obstacle.y) ** 2
+
                         # Use same collision distance as movement system for consistency
                         collision_distance = obstacle.radius + self.radius + 2  # Same as collision system
-                        
-                        if obs_distance < collision_distance:
+
+                        if obs_dist_sq < collision_distance * collision_distance:
                             return False
-        
+
         return True
     
     def calculate_damage(self, target):

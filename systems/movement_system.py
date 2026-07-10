@@ -802,30 +802,13 @@ class MovementSystem:
     
     def _check_terrain_and_update(self, unit, adjusted_pos):
         """Check terrain and update unit position"""
-        # Check with full radius to ensure unit doesn't overlap water
-        check_points = [
-            (adjusted_pos.x, adjusted_pos.y),  # Center
-            (adjusted_pos.x + unit.radius, adjusted_pos.y),  # Right
-            (adjusted_pos.x - unit.radius, adjusted_pos.y),  # Left
-            (adjusted_pos.x, adjusted_pos.y + unit.radius),  # Bottom
-            (adjusted_pos.x, adjusted_pos.y - unit.radius),  # Top
-            (adjusted_pos.x + unit.radius * 0.7, adjusted_pos.y + unit.radius * 0.7),  # Bottom-right
-            (adjusted_pos.x - unit.radius * 0.7, adjusted_pos.y + unit.radius * 0.7),  # Bottom-left
-            (adjusted_pos.x + unit.radius * 0.7, adjusted_pos.y - unit.radius * 0.7),  # Top-right
-            (adjusted_pos.x - unit.radius * 0.7, adjusted_pos.y - unit.radius * 0.7),  # Top-left
-        ]
-        
-        can_move = True
-        for check_x, check_y in check_points:
-            hex_coord = self.game_map.world_to_grid(check_x, check_y)
-            if hex_coord:
-                col, row = hex_coord
-                if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
-                    tile_type = self.game_map.grid[row][col]
-                    if tile_type in {"water", "lava"}:
-                        can_move = False
-                        break
-        
+        # Check with full radius to ensure unit doesn't overlap water. If the
+        # unit is already on blocked terrain, let it move so it can escape.
+        collision = self.game.collision_system
+        can_move = not collision._is_on_unwalkable_terrain(
+            adjusted_pos.x, adjusted_pos.y, unit.radius
+        ) or collision._is_on_unwalkable_terrain(unit.x, unit.y, unit.radius)
+
         if can_move:
             self._update_unit_position(unit, adjusted_pos)
         else:

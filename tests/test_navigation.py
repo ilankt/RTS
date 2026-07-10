@@ -297,6 +297,31 @@ def test_navigation_index_matches_reference_walkability_dense_sweep():
     sweep()
 
 
+def reference_terrain_walkable(game_map, x, y, cell_size=20):
+    """Independent implementation of the conservative per-nav-cell terrain rule:
+    a probe point is walkable iff every terrain sample (center + 4 inset corners)
+    of its 20px nav cell is on walkable terrain."""
+    if x < 0 or y < 0:
+        return False
+    x0 = (x // cell_size) * cell_size
+    y0 = (y // cell_size) * cell_size
+    inset = 0.5
+    for sample_x, sample_y in (
+        (x0 + cell_size * 0.5, y0 + cell_size * 0.5),
+        (x0 + inset, y0 + inset),
+        (x0 + cell_size - inset, y0 + inset),
+        (x0 + inset, y0 + cell_size - inset),
+        (x0 + cell_size - inset, y0 + cell_size - inset),
+    ):
+        grid_pos = game_map.world_to_grid(sample_x, sample_y)
+        if grid_pos is None:
+            return False
+        col, row = grid_pos
+        if game_map.grid[row][col] in {"water", "lava"}:
+            return False
+    return True
+
+
 def reference_walkable(game, point, unit_radius):
     x, y = point
     if x < 0 or y < 0 or x > game.game_map.width * 64 or y > game.game_map.height * 64:
@@ -314,11 +339,7 @@ def reference_walkable(game, point, unit_radius):
         (x + diag, y - diag),
         (x - diag, y - diag),
     ):
-        grid_pos = game.game_map.world_to_grid(check_x, check_y)
-        if grid_pos is None:
-            return False
-        col, row = grid_pos
-        if game.game_map.grid[row][col] in {"water", "lava"}:
+        if not reference_terrain_walkable(game.game_map, check_x, check_y):
             return False
 
     blockers = game.buildings + game.resources + game.construction_sites

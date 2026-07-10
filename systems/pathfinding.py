@@ -68,14 +68,18 @@ class NavigationGrid:
         self.blockers: List[object] = []
         self._blocker_buckets: Dict[Cell, List[object]] = {}
         self._walkable_cache: Dict[Tuple, bool] = {}
-        self._terrain_probe_cache: Dict[Tuple[float, float], bool] = {}
         self.world_width, self.world_height = self._calculate_world_bounds()
+        self._terrain_cols = int(self.world_width // cell_size) + 2
+        self._terrain_rows = int(self.world_height // cell_size) + 2
+        self._terrain_bitmap = self._build_terrain_bitmap()
+        # Share the O(1) terrain probe with collision/movement/LOS code that only
+        # has a map reference.
+        setattr(self.game_map, "nav_terrain_walkable", self.terrain_walkable)
         self.rebuild()
 
     def rebuild(self):
         start_time = time.perf_counter()
         self._walkable_cache.clear()
-        self._terrain_probe_cache.clear()
         self.blockers = []
         self._blocker_buckets = {}
         for obj in (
@@ -228,42 +232,72 @@ class NavigationGrid:
                     seen.add(obj_id)
                     yield obj
 
+    def terrain_walkable(self, x: float, y: float) -> bool:
+        """O(1) static-terrain probe against the precomputed walkable bitmap."""
+        if x < 0 or y < 0:
+            return False
+        cell_x = int(x // self.cell_size)
+        cell_y = int(y // self.cell_size)
+        if cell_x >= self._terrain_cols or cell_y >= self._terrain_rows:
+            return False
+        return bool(self._terrain_bitmap[cell_y][cell_x])
+
     def _terrain_clear(self, point: Point, unit_radius: float) -> bool:
         x, y = point
         diag = unit_radius * 0.7
-        check_points = (
-            (x, y),
-            (x + unit_radius, y),
-            (x - unit_radius, y),
-            (x, y + unit_radius),
-            (x, y - unit_radius),
-            (x + diag, y + diag),
-            (x - diag, y + diag),
-            (x + diag, y - diag),
-            (x - diag, y - diag),
+        walkable = self.terrain_walkable
+        return (
+            walkable(x, y)
+            and walkable(x + unit_radius, y)
+            and walkable(x - unit_radius, y)
+            and walkable(x, y + unit_radius)
+            and walkable(x, y - unit_radius)
+            and walkable(x + diag, y + diag)
+            and walkable(x - diag, y + diag)
+            and walkable(x + diag, y - diag)
+            and walkable(x - diag, y - diag)
         )
-        for check_x, check_y in check_points:
-            if not self._terrain_probe_walkable(check_x, check_y):
-                return False
-        return True
 
-    def _terrain_probe_walkable(self, check_x: float, check_y: float) -> bool:
-        key = (check_x, check_y)
-        cached = self._terrain_probe_cache.get(key)
-        if cached is not None:
-            return cached
-        grid_pos = self.game_map.world_to_grid(check_x, check_y)
-        if grid_pos is None:
-            self._terrain_probe_cache[key] = False
-            return False
-        col, row = grid_pos
-        walkable = (
-            0 <= row < self.game_map.height
-            and 0 <= col < self.game_map.width
-            and self.game_map.grid[row][col] not in {"water", "lava"}
-        )
-        self._terrain_probe_cache[key] = walkable
-        return walkable
+    def _build_terrain_bitmap(self) -> List[bytearray]:
+        """Precompute per-nav-cell terrain walkability once (terrain is static).
+
+        A cell counts as walkable only if its center and four inset corners all
+        land on walkable terrain — conservative at water/lava boundaries so the
+        collision system never rejects a point the planner accepted.
+        """
+        cell = self.cell_size
+        game_map = self.game_map
+        grid = game_map.grid
+        map_height = game_map.height
+        map_width = game_map.width
+        world_to_grid = game_map.world_to_grid
+        blocked_terrain = {"water", "lava"}
+        inset = 0.5
+        bitmap: List[bytearray] = []
+        for cell_y in range(self._terrain_rows):
+            row = bytearray(self._terrain_cols)
+            y0 = cell_y * cell
+            for cell_x in range(self._terrain_cols):
+                x0 = cell_x * cell
+                walkable = True
+                for sample_x, sample_y in (
+                    (x0 + cell * 0.5, y0 + cell * 0.5),
+                    (x0 + inset, y0 + inset),
+                    (x0 + cell - inset, y0 + inset),
+                    (x0 + inset, y0 + cell - inset),
+                    (x0 + cell - inset, y0 + cell - inset),
+                ):
+                    grid_pos = world_to_grid(sample_x, sample_y)
+                    if grid_pos is None:
+                        walkable = False
+                        break
+                    col, row_index = grid_pos
+                    if not (0 <= row_index < map_height and 0 <= col < map_width) or grid[row_index][col] in blocked_terrain:
+                        walkable = False
+                        break
+                row[cell_x] = 1 if walkable else 0
+            bitmap.append(row)
+        return bitmap
 
 
 class Pathfinding:

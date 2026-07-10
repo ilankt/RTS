@@ -428,30 +428,11 @@ class CollisionSystem:
                 return True
         
         # Check terrain with full radius to ensure unit doesn't overlap water
-        check_points = [
-            (test_pos.x, test_pos.y),  # Center
-            (test_pos.x + unit.radius, test_pos.y),  # Right
-            (test_pos.x - unit.radius, test_pos.y),  # Left
-            (test_pos.x, test_pos.y + unit.radius),  # Bottom
-            (test_pos.x, test_pos.y - unit.radius),  # Top
-            (test_pos.x + unit.radius * 0.7, test_pos.y + unit.radius * 0.7),  # Bottom-right
-            (test_pos.x - unit.radius * 0.7, test_pos.y + unit.radius * 0.7),  # Bottom-left
-            (test_pos.x + unit.radius * 0.7, test_pos.y - unit.radius * 0.7),  # Top-right
-            (test_pos.x - unit.radius * 0.7, test_pos.y - unit.radius * 0.7),  # Top-left
-        ]
-        
-        for check_x, check_y in check_points:
-            hex_coord = self.game_map.world_to_grid(check_x, check_y)
-            if hex_coord:
-                col, row = hex_coord
-                if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
-                    if self.game_map.grid[row][col] in {"water", "lava"}:
-                        return True
-        
-        return False
+        return self._is_on_unwalkable_terrain(test_pos.x, test_pos.y, unit.radius)
 
     def _is_on_unwalkable_terrain(self, x, y, radius):
         """Lightweight 9-point terrain check. Returns True if any point is on water/lava."""
+        probe = getattr(self.game_map, "nav_terrain_walkable", None)
         diag = radius * 0.7
         check_points = (
             (x, y),
@@ -460,6 +441,8 @@ class CollisionSystem:
             (x + diag, y + diag), (x - diag, y + diag),
             (x + diag, y - diag), (x - diag, y - diag),
         )
+        if probe is not None:
+            return any(not probe(cx, cy) for cx, cy in check_points)
         for cx, cy in check_points:
             hex_coord = self.game_map.world_to_grid(cx, cy)
             if hex_coord:
