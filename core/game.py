@@ -160,6 +160,10 @@ class Game:
         # "double_resources" | "no_towers" | "revealed_map"
         self.mutators = set()
 
+        # Rebindable hotkeys (§8.6): defaults + keybindings.json overrides
+        from core.keybindings import KeyBindings
+        self.keybindings = KeyBindings()
+
         # Victory condition (§7.5): "annihilation" (default), "economic"
         # (first to gather ECONOMIC_VICTORY_TARGET total), or "timed"
         # (highest score when TIMED_VICTORY_MINUTES elapse). Castle loss
@@ -249,58 +253,60 @@ class Game:
                 self.game_paused = not self.game_paused
                 if hasattr(self, 'sound_manager') and self.sound_manager:
                     self.sound_manager.play_ui_click()
-        elif event.key == pygame.K_F1:
+        elif self.keybindings.matches("idle_worker", event.key):
             # Select/cycle idle workers (§7.4)
             self.selection_manager.select_next_idle_worker()
-        elif event.key == pygame.K_HOME:
+        elif self.keybindings.matches("jump_to_base", event.key):
             # Jump camera to own base (§8.6)
             self._jump_to_base()
-        elif event.key == pygame.K_TAB:
+        elif self.keybindings.matches("cycle_army", event.key):
             # Cycle through own military units (§8.6)
             self._cycle_army_unit()
-        elif event.key == pygame.K_F3:
+        elif self.keybindings.matches("path_overlay", event.key):
             self.debug_overlay = not self.debug_overlay
-        elif event.key == pygame.K_F4:
+        elif self.keybindings.matches("ai_debug_panel", event.key):
             try:
                 self.ai_debug_panel.toggle_visibility()
             except Exception as e:
                 debug_log.log(f"ERROR: F4 debug panel crashed: {e}", "GENERAL")
                 debug_log.log(traceback.format_exc(), "GENERAL")
-        elif event.key == pygame.K_F6:
+        elif self.keybindings.matches("toggle_fog", event.key):
             self.fog_of_war_enabled = not self.fog_of_war_enabled
             state = "enabled" if self.fog_of_war_enabled else "disabled"
             debug_log.log(f"Fog of war {state}", "GENERAL")
-        elif event.key == pygame.K_F5:
-            # Save game
+        elif self.keybindings.matches("quick_save", event.key):
             try:
                 path = SaveManager.save_game(self, slot=0)
                 debug_log.log(f"Game saved to {path}", "GENERAL")
             except Exception as e:
                 debug_log.log(f"Save failed: {e}", "GENERAL")
-        elif event.key == pygame.K_F9:
-            # Load game
+        elif self.keybindings.matches("quick_load", event.key):
             try:
                 success, msg = SaveManager.load_game(self, slot=0)
                 debug_log.log(f"Load: {msg}", "GENERAL")
             except Exception as e:
                 debug_log.log(f"Load failed: {e}", "GENERAL")
                 debug_log.log(traceback.format_exc(), "GENERAL")
-        elif event.key == pygame.K_LEFTBRACKET:  # [ key - decrease speed
+        elif self.keybindings.matches("speed_down", event.key):
             self.game_speed = max(MIN_GAME_SPEED, self.game_speed - GAME_SPEED_INCREMENT)
             debug_log.log(f"Game speed: {self.game_speed:.1f}x", "GENERAL")
-        elif event.key == pygame.K_RIGHTBRACKET:  # ] key - increase speed
+        elif self.keybindings.matches("speed_up", event.key):
             self.game_speed = min(MAX_GAME_SPEED, self.game_speed + GAME_SPEED_INCREMENT)
             debug_log.log(f"Game speed: {self.game_speed:.1f}x", "GENERAL")
-        elif event.key == pygame.K_s:
+        elif self.keybindings.matches("cycle_stance", event.key):
             # Cycle stance for selected combat units
             self._cycle_selected_unit_stances()
-        elif event.key == pygame.K_g:
+        elif self.keybindings.matches("toggle_gates", event.key):
             # Toggle selected own gates open/closed (§8.10)
             self._toggle_selected_gates()
-        elif event.key == pygame.K_f:
+        elif self.keybindings.matches("cycle_formation", event.key):
             # Cycle formation type
             formation = self.selection_manager.cycle_formation()
             debug_log.log(f"Formation changed to: {formation}", "GENERAL")
+        elif self.keybindings.matches("camera_bookmark_set", event.key):
+            self._set_camera_bookmark()
+        elif self.keybindings.matches("camera_bookmark_jump", event.key):
+            self._jump_camera_bookmark()
         else:
             # Control groups: 1-9
             key_num = None
@@ -610,6 +616,32 @@ class Game:
     def _center_camera_on(self, x, y):
         self.camera.x = -x * self.camera.zoom + MAP_VIEW_WIDTH / 2
         self.camera.y = -y * self.camera.zoom + MAP_VIEW_HEIGHT / 2
+
+    MAX_CAMERA_BOOKMARKS = 4
+
+    def _set_camera_bookmark(self):
+        """Save the current camera view into a rotating slot (§8.6)."""
+        bookmarks = getattr(self, "camera_bookmarks", None)
+        if bookmarks is None:
+            bookmarks = self.camera_bookmarks = []
+        view = (self.camera.x, self.camera.y, self.camera.zoom)
+        bookmarks.append(view)
+        if len(bookmarks) > self.MAX_CAMERA_BOOKMARKS:
+            bookmarks.pop(0)
+        self._camera_bookmark_cursor = len(bookmarks) - 1
+        if getattr(self, "ui_manager", None):
+            self.ui_manager.add_alert(f"Camera bookmark {len(bookmarks)} set")
+
+    def _jump_camera_bookmark(self):
+        """Cycle the camera through saved bookmarks (§8.6)."""
+        bookmarks = getattr(self, "camera_bookmarks", None)
+        if not bookmarks:
+            return
+        cursor = (getattr(self, "_camera_bookmark_cursor", -1) + 1) % len(bookmarks)
+        self._camera_bookmark_cursor = cursor
+        x, y, zoom = bookmarks[cursor]
+        self.camera.zoom = zoom
+        self.camera.x, self.camera.y = x, y
 
     def _jump_to_base(self):
         """Center the camera on the (human) player's castle (§8.6)."""

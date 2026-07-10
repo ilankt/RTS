@@ -717,10 +717,17 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
 
 - [x] ⚡ **Camera nav** *(low–med)* — edge-scroll (14 px window border), Home =
   jump-to-base, Tab = cycle army (selects + centers), F1 = jump-to-idle
-  (§7.4). (2026-07-10. Camera bookmarks still open — fold into the §8.6
-  rebindable-hotkeys pass.)
-- [ ] ⚡ **Rebindable hotkeys** *(med)* — full remap layer + grid hotkeys for production
-  (pairs with §8.2 command card).
+  (§7.4), and **camera bookmarks** (2026-07-10): **B** saves the current view
+  into 4 rotating slots (toast confirms), **N** cycles through them.
+- [x] ⚡ **Rebindable hotkeys** *(med)* — remap layer landed 2026-07-10:
+  `core/keybindings.py` holds the action→key table (15 actions incl. saves,
+  speed, stance, gates, formation, bookmarks); user overrides persist in
+  `keybindings.json` (only diffs written; unknown actions/bad key names
+  ignored; duplicate-key rebinds refused). The in-game keydown handler runs
+  entirely through it, so an edited file rebinds everything and survives
+  restarts (`tests/test_keybindings.py`). Still open: an in-game remap
+  screen (belongs to the §8.2 settings menu) and production **grid hotkeys**,
+  which need the §8.2 command card first (QWER collides with WASD camera).
 - **✅ Verify:** edge-scroll and each jump hotkey move the camera as intended; a rebound
   key works and the binding survives a restart.
 
