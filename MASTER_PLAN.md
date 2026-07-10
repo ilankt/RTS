@@ -745,14 +745,19 @@ due-east** — placement ignores where the enemy actually is.
   damage tracked end-to-end. Validation run: 46 towers dealt ~29.5k damage
   (balanced 12.1k, boomer 9.1k, turtle 5.0k, rusher 3.3k) — towers demonstrably
   matter now. (2026-07-10)
-- [ ] **Wooden walls** *(med)* — make `wall` buildable as a cheap wood-cost
-  segment; drag-placement UI for wall lines; pathfinding already handles
-  incremental blockers, flow fields invalidate on placement (Phase 2/5 ✓).
-- [ ] **Stone walls** *(med)* — second tier: stone cost, much higher HP/armor,
-  either an upgrade of wooden segments in place or a separate piece.
-- [ ] **Gates** *(med)* — a wall piece owned units path through (toggleable
-  blocker per player on the nav grid); without gates, walls strangle the
-  owner's own economy.
+- [x] **Wooden walls** *(med)* — `wooden_wall` buildable (40 wood, 800 hp)
+  2026-07-10; placed via the standard build menu (drag-placement UI for wall
+  *lines* still open below). Reuses the watchtower sprite until wall art
+  exists.
+- [x] **Stone walls** *(med)* — `wall` re-purposed as the stone tier (50 stone,
+  2000 hp, armor 10) and made buildable. 2026-07-10.
+- [x] **Gates** *(med)* — `gate` piece with **G**-key open/close toggle: open
+  gates are skipped by navigation and collision, and the toggle drives the
+  incremental nav notifications so paths/flow fields react instantly.
+  Tested: sealed wall line = no path; open gate lets paths through; reclosing
+  reseals. (V1 is a manual toggle for any unit, not per-player auto-gates.)
+- [ ] **Wall drag-placement UI** *(med)* — click-drag to lay a line of
+  segments instead of placing one at a time.
 - [ ] **AI walling** *(med–high)* — turtle personality walls chokepoints between
   its base and the threat direction; needs the wall pieces + threat map.
   Counter-pressure: rams already deal 2.25× to fortified (§8.4 keeps this
