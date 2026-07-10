@@ -7,7 +7,12 @@ from utils.debug_logger import debug_log
 
 class MovementSystem:
     """Handles all unit movement, pathfinding, and navigation logic"""
-    
+
+    # Arrival behavior (B3): decelerate inside this radius of the final
+    # destination and never step past it - removes overshoot/oscillation.
+    ARRIVAL_SLOWING_RADIUS = 40.0
+    ARRIVAL_MIN_SPEED_FACTOR = 0.4
+
     def __init__(self, game):
         self.game = game
         self.game_map = game.game_map
@@ -598,19 +603,17 @@ class MovementSystem:
         
         if distance < waypoint_tolerance:
             # Reached waypoint
-            pass
             unit.path_index += 1
             if hasattr(unit, '_stuck_detector'):
                 unit._stuck_detector['stuck_timer'] = max(0, unit._stuck_detector['stuck_timer'] - 20)
-            
+
             if unit.path_index >= len(unit.path):
                 # Path complete
-                pass
                 self._handle_path_completion(unit)
         else:
-            # Move toward waypoint
-            pass
-            self._move_unit_toward_destination(unit, pos, direction, delta_time)
+            # Move toward waypoint; decelerate only into the last one
+            is_final_waypoint = unit.path_index == len(unit.path) - 1 and not unit.is_engaging
+            self._move_unit_toward_destination(unit, pos, direction, delta_time, final_approach=is_final_waypoint)
     
     def _check_target_movement(self, unit):
         """Check if movement target has moved significantly"""
@@ -755,16 +758,28 @@ class MovementSystem:
                 unit._stuck_detector['stuck_timer'] = 0
         else:
             # Move toward destination with avoidance for fallback movement
-            pass
             if unit.is_fallback_movement:
                 self._move_unit_toward_destination_with_avoidance(unit, pos, direction, delta_time)
             else:
-                self._move_unit_toward_destination(unit, pos, direction, delta_time)
+                # Direct moves decelerate into the goal unless chasing a target
+                final_approach = not (unit.is_engaging and unit.current_target)
+                self._move_unit_toward_destination(unit, pos, direction, delta_time, final_approach=final_approach)
     
+    def _step_length(self, unit, distance, delta_time, final_approach):
+        """Step length with arrival deceleration and no overshoot."""
+        speed = unit.movement_speed
+        if final_approach and distance < self.ARRIVAL_SLOWING_RADIUS:
+            speed *= max(self.ARRIVAL_MIN_SPEED_FACTOR, distance / self.ARRIVAL_SLOWING_RADIUS)
+        return min(speed * delta_time, distance)
+
     def _move_unit_toward_destination_with_avoidance(self, unit, pos, direction, delta_time):
         """Move unit toward destination with basic obstacle avoidance"""
-        direction.normalize_ip()
-        new_pos = pos + direction * unit.movement_speed * delta_time
+        distance = direction.length()
+        if distance < 1e-6:
+            return
+        direction = direction / distance
+        step = self._step_length(unit, distance, delta_time, final_approach=False)
+        new_pos = pos + direction * step
         
         # Check collisions
         adjusted_pos = self.game._check_unit_collision_and_adjust(unit, new_pos, direction)
@@ -796,14 +811,18 @@ class MovementSystem:
         # Check terrain and update position
         self._check_terrain_and_update(unit, adjusted_pos)
     
-    def _move_unit_toward_destination(self, unit, pos, direction, delta_time):
+    def _move_unit_toward_destination(self, unit, pos, direction, delta_time, final_approach=False):
         """Move unit toward its destination with collision handling"""
-        direction.normalize_ip()
-        new_pos = pos + direction * unit.movement_speed * delta_time
-        
+        distance = direction.length()
+        if distance < 1e-6:
+            return
+        direction = direction / distance
+        step = self._step_length(unit, distance, delta_time, final_approach)
+        new_pos = pos + direction * step
+
         # Check collisions
         adjusted_pos = self.game._check_unit_collision_and_adjust(unit, new_pos, direction)
-        
+
         # Check terrain and update position
         self._check_terrain_and_update(unit, adjusted_pos)
     
