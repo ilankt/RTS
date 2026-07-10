@@ -179,9 +179,12 @@ class _TrainBarracksUnitGoal(Goal):
     # §7.2 reactive counters: how strongly the enemy's army mix pulls this
     # personality off its signature composition, and how many enemy military
     # units must exist before there's anything worth reacting to.
-    REACTIVE_WEIGHT = 0.5
+    # EXPERIMENT LOG (2026-07-10): 0.5 amplified the warrior<->archer mutual-
+    # counter loop across 20 same-seed matches (warrior 26->33%, archer
+    # 17->25%, cavalry 15->7.5%) — softened to 0.25 with a lower cap.
+    REACTIVE_WEIGHT = 0.25
     REACTIVE_MIN_ENEMIES = 4
-    TARGET_FRACTION_CAP = 0.8
+    TARGET_FRACTION_CAP = 0.6
 
     def _counter_boost(self, ctx):
         """Extra target share when this unit counters what the enemy fields."""

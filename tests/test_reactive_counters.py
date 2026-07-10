@@ -37,11 +37,13 @@ def make_ctx(enemy_army):
 
 def test_cavalry_heavy_enemy_boosts_spearmen():
     ctx = make_ctx(["cavalry"] * 8 + ["warrior"] * 2)
+    goal = TrainSpearmanGoal()
     base = composition_target("balanced", "spearman")
-    boosted = TrainSpearmanGoal()._target_fraction(ctx)
+    boosted = goal._target_fraction(ctx)
     assert boosted > base
-    # 80% cavalry * 0.5 weight = +0.4 over base, capped at 0.8
-    assert boosted == pytest.approx(min(0.8, base + 0.4))
+    # 80% cavalry * weight over base, capped
+    expected = min(goal.TARGET_FRACTION_CAP, base + 0.8 * goal.REACTIVE_WEIGHT)
+    assert boosted == pytest.approx(expected)
 
     # Warriors counter neither cavalry nor warrior: no boost
     assert TrainWarriorGoal()._target_fraction(ctx) == pytest.approx(
@@ -51,8 +53,10 @@ def test_cavalry_heavy_enemy_boosts_spearmen():
 
 def test_melee_heavy_enemy_boosts_archers():
     ctx = make_ctx(["warrior"] * 5 + ["spearman"] * 5)
+    goal = TrainArcherGoal()
     base = composition_target("balanced", "archer")
-    assert TrainArcherGoal()._target_fraction(ctx) == pytest.approx(min(0.8, base + 0.5))
+    expected = min(goal.TARGET_FRACTION_CAP, base + 1.0 * goal.REACTIVE_WEIGHT)
+    assert goal._target_fraction(ctx) == pytest.approx(expected)
 
 
 def test_tiny_enemy_army_is_ignored():

@@ -466,7 +466,18 @@ and should override "obvious" instincts.
   reference (army
   massing near the border, a "hostile force detected" alert, scout-visible staging).
   Needs the alert system (§7.4).
-- [ ] **Reactive counters** *(med)* — AI scouts the player's composition and shifts
+- [~] **Reactive counters** *(med)* — mechanism landed 2026-07-10: barracks
+  production targets blend the signature composition with a boost for units
+  whose strong-vs tags cover the enemy's fielded army (≥4 enemy military to
+  react; `tests/test_reactive_counters.py`). **A/B log** (same-seed 20-match,
+  `tools/balance_20_reactive.json` vs `balance_20_counters.json`, run also
+  includes §8.10 AI walling): win spread tightened (boomer 67→33 %, turtle
+  40→60 % — walls work: 47 wooden walls + 5 gates built; balanced/rusher
+  unchanged) **but** matches ran 49 % longer (559→835 s, timeouts 1→3) and
+  the warrior↔archer mutual-counter loop concentrated the mix (warrior
+  26→33 %, archer 17→25 %, cavalry 15→7.5 %). Weight softened 0.5→0.25 (cap
+  0.8→0.6); validation of the softened setting: `balance_20_reactive_soft.json`.
+  Original scope: AI scouts the player's composition and shifts
   production toward counters instead of a fixed comp. Rides on Phase 4.
 - [ ] **Fair perception** *(med)* — AI acts on *scouted* info, not omniscience.
   Pairs with the fog work.
@@ -638,8 +649,12 @@ The UI works but is ad-hoc (delegated panels in `ui/components/*`) and hardcoded
   for everything visual.
 - [ ] **Command card / action grid** *(med)* — SC/AoE-style action grid for the
   selection with grid hotkeys, replacing bespoke panels.
-- [ ] **Multi-select panel** *(med)* — grouped unit icons + counts + health for mixed
-  selections.
+- [x] **Multi-select panel** *(med)* — 2026-07-10: mixed selections now render
+  grouped by unit type (biggest group first) with an ×N count badge per icon
+  and an aggregate health bar (sum hp / sum max), so a 40-unit army fits the
+  panel instead of overflowing a per-unit grid. Tests in
+  `tests/test_multi_select_panel.py`. (Click-icon-to-filter-selection can
+  ride the §8.2 command-card pass.)
 - [x] ⚡ **Settings menu** *(low–med)* — landed 2026-07-10: Settings entry in
   the main menu (`screens/settings_menu.py`) with resolution (720p/900p/1080p,
   applied at startup — main.py patches `core.config` before UI modules import

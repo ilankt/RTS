@@ -367,28 +367,24 @@ class UnitPanel:
         formation_text = self.small_font.render(f"Formation: {formation.title()} (Press F)", True, (200, 200, 200))
         panel_surface.blit(formation_text, (10, 35))
         
-        # Small icon configuration
+        # Grouped by type (§8.2): one icon per unit type with a count badge
+        # and an aggregate health bar, so mixed armies stay readable at any size
         icon_size = 48
         icon_spacing = 4
         icons_per_row = 4
         start_x = 10
         start_y = 60
-        
-        # Draw each selected unit
-        for i, unit in enumerate(selected_objects):
-            # Skip non-units in multi-selection
-            if unit not in self.game.units:
-                continue
-                
-            # Calculate position in grid
+
+        groups = self.group_selected_units(selected_objects)
+        for i, (name, units) in enumerate(groups):
             row = i // icons_per_row
             col = i % icons_per_row
             x = start_x + col * (icon_size + icon_spacing)
             y = start_y + row * (icon_size + icon_spacing + 15)  # Extra space for health bar
-            
+
             # Draw unit icon - use cached icon for performance
-            if unit.name in self.unit_panel_icons and 'multi' in self.unit_panel_icons[unit.name]:
-                cached_icon = self.unit_panel_icons[unit.name]['multi']
+            if name in self.unit_panel_icons and 'multi' in self.unit_panel_icons[name]:
+                cached_icon = self.unit_panel_icons[name]['multi']
                 panel_surface.blit(cached_icon, (x, y))
             else:
                 # Fallback placeholder
@@ -396,22 +392,30 @@ class UnitPanel:
                 placeholder.fill((100, 100, 100))
                 pygame.draw.rect(placeholder, (150, 150, 150), (0, 0, icon_size, icon_size), 2)
                 panel_surface.blit(placeholder, (x, y))
-            
-            # Draw small health bar below icon
+
+            # Count badge in the icon's top-right corner
+            count_text = self.small_font.render(f"x{len(units)}", True, (255, 255, 255))
+            badge = pygame.Rect(x + icon_size - count_text.get_width() - 6, y + 2,
+                                count_text.get_width() + 5, count_text.get_height() + 2)
+            pygame.draw.rect(panel_surface, (0, 0, 0), badge)
+            panel_surface.blit(count_text, (badge.x + 2, badge.y + 1))
+
+            # Aggregate health bar below the icon (sum hp / sum max hp)
             bar_y = y + icon_size + 2
-            bar_width = icon_size
-            bar_height = 4
-            
-            # Get health percentage
-            max_hp = self._get_unit_max_hp(unit)
-            hp_percentage = unit.hp / max_hp if max_hp > 0 else 0
-            
-            # Background bar
-            pygame.draw.rect(panel_surface, (60, 60, 60), (x, bar_y, bar_width, bar_height))
-            # Health fill
-            fill_width = int(bar_width * hp_percentage)
-            health_color = self._get_health_color(hp_percentage)
-            pygame.draw.rect(panel_surface, health_color, (x, bar_y, fill_width, bar_height))
+            total_hp = sum(u.hp for u in units)
+            total_max = sum(self._get_unit_max_hp(u) for u in units)
+            hp_percentage = total_hp / total_max if total_max > 0 else 0
+            pygame.draw.rect(panel_surface, (60, 60, 60), (x, bar_y, icon_size, 4))
+            fill_width = int(icon_size * hp_percentage)
+            pygame.draw.rect(panel_surface, self._get_health_color(hp_percentage), (x, bar_y, fill_width, 4))
+
+    def group_selected_units(self, selected_objects):
+        """Selected units grouped by type, biggest group first: [(name, [units])]."""
+        groups = {}
+        for obj in selected_objects:
+            if obj in self.game.units:
+                groups.setdefault(obj.name, []).append(obj)
+        return sorted(groups.items(), key=lambda item: -len(item[1]))
     
     def _get_unit_max_hp(self, unit):
         """Get the maximum HP for a unit from cached game data."""
