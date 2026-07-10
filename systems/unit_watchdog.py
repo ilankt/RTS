@@ -102,6 +102,15 @@ class UnitWatchdog:
             "WATCHDOG",
         )
 
+        # Remember an interrupted plain move so it can be resumed - a wiped
+        # move order otherwise leaves the unit idle forever (nothing owns it).
+        last_task = getattr(unit, "last_task", None)
+        resume_move = None
+        if isinstance(last_task, dict) and last_task.get("type") == "move":
+            target = last_task.get("target")
+            if isinstance(target, tuple) and math.hypot(target[0] - unit.x, target[1] - unit.y) > 60:
+                resume_move = target
+
         # Full state wipe
         worker_tasks = getattr(self.game, "worker_task_system", None)
         if worker_tasks and worker_tasks.active_task(unit):
@@ -115,6 +124,13 @@ class UnitWatchdog:
             unit.x, unit.y = safe
             perf_stats.increment("watchdog_teleports")
             debug_log.log(f"  Nudged to ({unit.x:.0f}, {unit.y:.0f})", "WATCHDOG")
+
+        if resume_move is not None:
+            resumes = getattr(unit, "_watchdog_resume_count", 0)
+            if resumes < 3:
+                unit._watchdog_resume_count = resumes + 1
+                self.game.pathfinder.issue_move(unit, resume_move)
+                debug_log.log(f"  Resumed move toward {resume_move}", "WATCHDOG")
 
     def _find_nearby_safe_position(self, unit):
         """Find nearest walkable, non-colliding position."""

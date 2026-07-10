@@ -23,6 +23,7 @@ from core.config import (
     PATHFINDING_MAX_REQUEST_MS,
     PATHFINDING_QUEUE_MAX_PER_FRAME,
     PATHFINDING_QUEUE_MAX_RETRIES,
+    PATHFINDING_QUEUE_REQUEST_MAX_MS,
     PATHFINDING_QUEUE_REQUEST_MS,
     PATH_CACHE_MAX_ENTRIES,
     TILE_HEIGHT,
@@ -600,6 +601,12 @@ class Pathfinding:
             return  # superseded by a newer command
         unit._pending_path_seq = None
         self._requeue_retries = retries
+        # Escalate the budget per retry so genuinely long paths (e.g. a
+        # cross-map army order) always complete eventually instead of burning
+        # every retry against the same too-small ceiling.
+        self._request_budget_override = min(
+            PATHFINDING_QUEUE_REQUEST_MAX_MS, PATHFINDING_QUEUE_REQUEST_MS * max(1, retries)
+        )
         try:
             if kind == "move":
                 ok = self.issue_move(unit, payload)

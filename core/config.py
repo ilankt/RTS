@@ -50,9 +50,10 @@ PATHFINDING_MAX_EXPANSIONS = 12000
 # Pathfinding.process_pending), never silently rejected.
 PATHFINDING_MAX_REQUEST_MS = 12
 PATHFINDING_FRAME_BUDGET_MS = 10
-PATHFINDING_QUEUE_REQUEST_MS = 20   # per-request ceiling when drained from the queue
+PATHFINDING_QUEUE_REQUEST_MS = 20   # base ceiling when drained from the queue; escalates per retry
+PATHFINDING_QUEUE_REQUEST_MAX_MS = 80  # hard ceiling for the final retries of a long path
 PATHFINDING_QUEUE_MAX_PER_FRAME = 8
-PATHFINDING_QUEUE_MAX_RETRIES = 5
+PATHFINDING_QUEUE_MAX_RETRIES = 6
 PATH_CACHE_MAX_ENTRIES = 4096
 
 # Resource Gathering Configuration

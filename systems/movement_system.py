@@ -5,6 +5,13 @@ from core.config import DEBUG_MOVEMENT
 from utils.debug_logger import debug_log
 
 
+NUM_STEER_SLOTS = 16
+STEER_SLOT_DIRS = tuple(
+    (math.cos(2 * math.pi * i / NUM_STEER_SLOTS), math.sin(2 * math.pi * i / NUM_STEER_SLOTS))
+    for i in range(NUM_STEER_SLOTS)
+)
+
+
 class MovementSystem:
     """Handles all unit movement, pathfinding, and navigation logic"""
 
@@ -12,6 +19,10 @@ class MovementSystem:
     # destination and never step past it - removes overshoot/oscillation.
     ARRIVAL_SLOWING_RADIUS = 40.0
     ARRIVAL_MIN_SPEED_FACTOR = 0.4
+
+    # Context steering (B1/B4): don't steer in the last stretch - the arrival
+    # logic and right-of-way handle close-range resolution.
+    STEER_MIN_GOAL_DISTANCE = 24.0
 
     def __init__(self, game):
         self.game = game
@@ -818,6 +829,12 @@ class MovementSystem:
             return
         direction = direction / distance
         step = self._step_length(unit, distance, delta_time, final_approach)
+
+        # Context steering: pick the least-obstructed direction near the
+        # desired one instead of walking into neighbors and sliding.
+        if distance > self.STEER_MIN_GOAL_DISTANCE:
+            direction = self._context_steer_direction(unit, pos, direction)
+
         new_pos = pos + direction * step
 
         # Check collisions
@@ -825,6 +842,82 @@ class MovementSystem:
 
         # Check terrain and update position
         self._check_terrain_and_update(unit, adjusted_pos)
+
+    def _context_steer_direction(self, unit, pos, desired_dir):
+        """16-slot interest/danger steering against nearby units (B1/B4).
+
+        Neighbors come from the one shared spatial hash; interaction targets
+        never register as danger so approaches stay possible."""
+        lookahead = unit.radius * 4 + 16
+        collision = getattr(self.game, "collision_system", None)
+        if collision is None or not hasattr(collision, "query_nearby_units"):
+            return desired_dir
+        neighbors = collision.query_nearby_units(pos.x, pos.y, lookahead, exclude=unit)
+        if not neighbors:
+            unit._steer_last_slot = None
+            return desired_dir
+
+        excluded = (
+            unit.current_target,
+            getattr(unit, "gathering_target", None),
+            getattr(unit, "drop_off_target", None),
+            getattr(unit, "building_target", None),
+        )
+        desired_x = desired_dir.x
+        desired_y = desired_dir.y
+        danger = [0.0] * NUM_STEER_SLOTS
+        any_danger = False
+        for other in neighbors:
+            if other in excluded or not getattr(other, "collision", True):
+                continue
+            offset_x = other.x - pos.x
+            offset_y = other.y - pos.y
+            dist = math.hypot(offset_x, offset_y)
+            if dist < 1e-6:
+                continue
+            clearance = dist - unit.radius - other.radius
+            if clearance > lookahead:
+                continue
+            toward_x = offset_x / dist
+            toward_y = offset_y / dist
+            # Ignore neighbors clearly behind us unless already touching.
+            if toward_x * desired_x + toward_y * desired_y < -0.3 and clearance > 0:
+                continue
+            weight = 1.0 - max(0.0, clearance) / lookahead
+            any_danger = True
+            for i, (slot_x, slot_y) in enumerate(STEER_SLOT_DIRS):
+                alignment = slot_x * toward_x + slot_y * toward_y
+                if alignment > 0.6:
+                    value = weight * alignment
+                    if value > danger[i]:
+                        danger[i] = value
+        if not any_danger:
+            unit._steer_last_slot = None
+            return desired_dir
+
+        last_slot = getattr(unit, "_steer_last_slot", None)
+        terrain_probe = getattr(self.game_map, "nav_terrain_walkable", None)
+        probe_distance = unit.radius * 2 + 12
+        scored = []
+        for i, (slot_x, slot_y) in enumerate(STEER_SLOT_DIRS):
+            interest = slot_x * desired_x + slot_y * desired_y
+            if interest < -0.2:
+                continue  # never reverse
+            score = interest - danger[i] * 1.6
+            if i == last_slot:
+                score += 0.08  # hysteresis against slot flip-flop
+            scored.append((score, i, slot_x, slot_y))
+        scored.sort(reverse=True)
+        for score, i, slot_x, slot_y in scored:
+            # Never steer into blocked terrain: a wiped-out move order is far
+            # worse than a slightly more crowded slot.
+            if terrain_probe is not None and not terrain_probe(
+                pos.x + slot_x * probe_distance, pos.y + slot_y * probe_distance
+            ):
+                continue
+            unit._steer_last_slot = i
+            return pygame.math.Vector2((slot_x, slot_y))
+        return desired_dir
     
     def _check_terrain_and_update(self, unit, adjusted_pos):
         """Check terrain and update unit position"""
@@ -838,13 +931,15 @@ class MovementSystem:
         if can_move:
             self._update_unit_position(unit, adjusted_pos)
         else:
-            # Stop at unwalkable terrain and request new path
-            if unit.path:
-                unit.path = None
-                unit.path_index = 0
-            unit.destination = None
-            unit.status = "idle"
-            unit._needs_repath = True  # Request new path next update
+            # Blocked by terrain this step: keep the move order (path and
+            # destination) - steering picks a different slot next frame, and
+            # the blocked-unit handler skips waypoints/repaths if it persists.
+            unit._needs_repath = True
+            if not hasattr(unit, '_movement_blocked_timer'):
+                unit._movement_blocked_timer = 0
+            unit._movement_blocked_timer += 1
+            if unit._movement_blocked_timer > 30:
+                self.game._handle_blocked_unit(unit)
     
     def _update_unit_position(self, unit, new_pos):
         """Update unit position and handle blocked movement more robustly"""
@@ -855,6 +950,10 @@ class MovementSystem:
             unit.status = "run"
             if hasattr(unit, '_movement_blocked_timer'):
                 unit._movement_blocked_timer = 0
+            # Real progress resets the watchdog's resume allowance - the cap
+            # is per stuck incident, not per unit lifetime.
+            if getattr(unit, '_watchdog_resume_count', 0):
+                unit._watchdog_resume_count = 0
         else:
             # Movement blocked
             if not hasattr(unit, '_movement_blocked_timer'):

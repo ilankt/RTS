@@ -284,79 +284,101 @@ class CollisionSystem:
                                                              min_distance,
                                                              unit, overlap)
         
-        # Then check other units with special handling
+        # Then check other units: right-of-way rules (B4) - the higher-priority
+        # unit proceeds and parts the crowd, the lower-priority one yields.
+        # Context steering already avoids most of these contacts proactively.
         for other_unit in self._nearby_units(final_pos.x, final_pos.y, unit.radius, exclude=unit):
-            # --- Drop-off right-of-way ---
-            # Workers approaching a resource yield to workers carrying resources
-            unit_is_carrier = getattr(unit, 'resource_amount', 0) > 0
-            other_is_carrier = getattr(other_unit, 'resource_amount', 0) > 0
-            unit_approaching = (getattr(unit, 'is_engaging', False) and getattr(unit, 'gathering_target', None) and not unit_is_carrier)
-
-            if unit_approaching and other_is_carrier:
-                # This unit is approaching a resource; other is carrying — yield
-                self._record_collision_check()
-                approach_dist = math.sqrt((final_pos.x - other_unit.x)**2 + (final_pos.y - other_unit.y)**2)
-                if approach_dist < unit.radius + other_unit.radius + 2:
-                    final_pos = original_pos
-                    continue
-
-            # Calculate distances
+            if not getattr(other_unit, "collision", True):
+                continue
             self._record_collision_check()
-            current_distance = math.sqrt((unit.x - other_unit.x)**2 + (unit.y - other_unit.y)**2)
-            new_distance = math.sqrt((final_pos.x - other_unit.x)**2 + (final_pos.y - other_unit.y)**2)
             min_distance = unit.radius + other_unit.radius + 2
+            new_distance = math.hypot(final_pos.x - other_unit.x, final_pos.y - other_unit.y)
+            if new_distance >= min_distance:
+                continue
+            current_distance = math.hypot(unit.x - other_unit.x, unit.y - other_unit.y)
+            if current_distance < min_distance and new_distance > current_distance:
+                continue  # Already overlapping - always allow separating moves
 
-            # If already overlapping, prioritize separation
-            if current_distance < min_distance:
-                if new_distance > current_distance:
-                    continue  # Allow movement that separates
-                else:
-                    # For LOS movement that's causing overlapping, temporarily disable it
-                    pass
-                    if (hasattr(unit, 'has_los') and unit.has_los and 
-                        hasattr(unit, 'current_target') and unit.current_target and
-                        current_distance < (unit.radius + other_unit.radius) * 0.8):  # Significantly overlapping
-                        
-                        # Mark unit as needing separation instead of target pursuit
-                        if not hasattr(unit, '_needs_separation'):
-                            unit._needs_separation = 0
-                        unit._needs_separation += 1
-                        
-                        # After 30 frames (0.5s) of overlapping, force pathfinding
-                        if unit._needs_separation >= 30:
-                            unit.has_los = False  # Force pathfinding on next strategy evaluation
-                            unit._needs_separation = 0
-                    
-                    # Try to find a perpendicular escape direction
-                    escape_dir = self._find_escape_direction(original_pos, 
-                                                           pygame.math.Vector2(other_unit.x, other_unit.y),
-                                                           direction)
-                    if escape_dir:
-                        escape_move = escape_dir * (unit.movement_speed * (1/60))
-                        test_pos = original_pos + escape_move
-                        # Check if escape position is valid
-                        if not self._would_collide_with_static(unit, test_pos):
-                            final_pos = test_pos
-                    else:
-                        final_pos = original_pos  # Can't move
+            # Ignore units pressing on our back: a convoy leader must not
+            # yield to its own followers or the whole column freezes.
+            rel_x = other_unit.x - unit.x
+            rel_y = other_unit.y - unit.y
+            if (
+                direction.x * rel_x + direction.y * rel_y <= 0
+                and current_distance >= (unit.radius + other_unit.radius) * 0.9
+            ):
+                continue
+
+            if self._has_right_of_way(unit, other_unit):
+                # Part the crowd: nudge the other unit sideways a bit.
+                self._nudge_aside(other_unit, unit, direction)
+                if new_distance < (unit.radius + other_unit.radius) * 0.75:
+                    # Too deep to push through this frame - hold position and
+                    # let the nudge open space.
+                    final_pos = original_pos
             else:
-                # Reset separation counter when not overlapping
-                pass
-                if hasattr(unit, '_needs_separation'):
-                    unit._needs_separation = 0
-                
-                # Normal collision avoidance
-                if new_distance < min_distance:
-                    # Calculate overlap amount
-                    pass
-                    overlap = min_distance - new_distance
-                    # Try sliding along the unit
-                    final_pos = self._calculate_slide_position(original_pos, final_pos,
-                                                             pygame.math.Vector2(other_unit.x, other_unit.y),
-                                                             other_unit.radius + unit.radius + 2,
-                                                             unit, overlap)
-        
+                # Yield - but creep sideways instead of freezing so crowded
+                # piles drain instead of deadlocking.
+                sidestep = self._yield_sidestep(unit, other_unit, original_pos, direction)
+                final_pos = sidestep if sidestep is not None else original_pos
+
         return final_pos
+
+    def _yield_sidestep(self, unit, other_unit, original_pos, direction):
+        """Small perpendicular step away from the conflict, if safe."""
+        offset_x = unit.x - other_unit.x
+        offset_y = unit.y - other_unit.y
+        norm = math.hypot(offset_x, offset_y)
+        if norm < 1e-6:
+            return None
+        perp_x = -offset_y / norm
+        perp_y = offset_x / norm
+        # Prefer the side that still makes progress toward our goal.
+        if perp_x * direction.x + perp_y * direction.y < 0:
+            perp_x = -perp_x
+            perp_y = -perp_y
+        cand_x = original_pos.x + perp_x * 1.5
+        cand_y = original_pos.y + perp_y * 1.5
+        if self._is_on_unwalkable_terrain(cand_x, cand_y, unit.radius):
+            return None
+        candidate = pygame.math.Vector2(cand_x, cand_y)
+        if self._would_collide_with_static(unit, candidate):
+            return None
+        return candidate
+
+    @staticmethod
+    def _unit_priority(unit):
+        """Right-of-way class: carrier > mover > idle (B4)."""
+        if getattr(unit, "resource_amount", 0) > 0:
+            return 2
+        if getattr(unit, "path", None) or getattr(unit, "destination", None):
+            return 1
+        return 0
+
+    def _has_right_of_way(self, unit, other_unit):
+        return (self._unit_priority(unit), id(unit)) > (self._unit_priority(other_unit), id(other_unit))
+
+    def _nudge_aside(self, other_unit, mover, mover_direction):
+        """Push a lower-priority unit perpendicular to the mover's direction."""
+        if mover_direction.length_squared() < 1e-9:
+            return
+        perp_x = -mover_direction.y
+        perp_y = mover_direction.x
+        offset_x = other_unit.x - mover.x
+        offset_y = other_unit.y - mover.y
+        if offset_x * perp_x + offset_y * perp_y < 0:
+            perp_x = -perp_x
+            perp_y = -perp_y
+        push = 2.5
+        cand_x = other_unit.x + perp_x * push
+        cand_y = other_unit.y + perp_y * push
+        if self._is_on_unwalkable_terrain(cand_x, cand_y, other_unit.radius):
+            return
+        candidate = pygame.math.Vector2(cand_x, cand_y)
+        if self._would_collide_with_static(other_unit, candidate):
+            return
+        other_unit.x = cand_x
+        other_unit.y = cand_y
     
     def _calculate_slide_position(self, start_pos, desired_pos, obstacle_pos, min_distance, unit=None, overlap_amount=0):
         """Calculate a sliding position along an obstacle"""
@@ -434,25 +456,6 @@ class CollisionSystem:
 
         return start_pos  # Can't slide safely, stay in place
     
-    def _find_escape_direction(self, unit_pos, obstacle_pos, preferred_dir):
-        """Find a perpendicular direction to escape from an overlapping obstacle"""
-        to_obstacle = obstacle_pos - unit_pos
-        
-        if to_obstacle.length() < 0.1:
-            # Units are on top of each other, use preferred direction
-            pass
-            return preferred_dir
-        
-        # Get perpendicular directions
-        perpendicular1 = pygame.math.Vector2(-to_obstacle.y, to_obstacle.x).normalize()
-        perpendicular2 = pygame.math.Vector2(to_obstacle.y, -to_obstacle.x).normalize()
-        
-        # Choose the perpendicular that aligns better with preferred direction
-        if preferred_dir.dot(perpendicular1) > preferred_dir.dot(perpendicular2):
-            return perpendicular1
-        else:
-            return perpendicular2
-    
     def _would_collide_with_static(self, unit, test_pos):
         """Check if a position would collide with static obstacles"""
         # Check buildings
@@ -506,11 +509,15 @@ class CollisionSystem:
                         return True
         return False
 
+    # Separation acts only on *deep* overlaps (movement holds at 0.75x radii
+    # sum) with a small capped push, so it can't fight steering or make an
+    # arrived crowd churn.
+    SEPARATION_TRIGGER_FACTOR = 0.9
+    SEPARATION_MAX_PUSH = 1.5
+
     def separate_overlapping_units(self):
-        """Push apart units that are overlapping with priority for drop-off workers"""
+        """Gently push apart units that are deeply overlapping."""
         self.begin_frame()
-        base_separation_force = 0.8  # Increased base separation force
-        
         for i, unit1 in enumerate(self.game.units):
             if not unit1.collision:
                 continue
@@ -520,49 +527,32 @@ class CollisionSystem:
                     continue
                 if not unit2.collision:
                     continue
-                # Calculate distance between units
-                pass
                 dx = unit2.x - unit1.x
                 dy = unit2.y - unit1.y
                 self._record_collision_check()
                 distance = math.sqrt(dx * dx + dy * dy)
-                
-                # Check if they're overlapping
-                min_distance = unit1.radius + unit2.radius + 2
-                if distance < min_distance and distance > 0:
-                    # Calculate overlap amount
-                    pass
-                    overlap = min_distance - distance
-                    
-                    # Increase separation force if either unit is dropping off
-                    separation_force = base_separation_force
-                    if ((hasattr(unit1, 'is_dropping_off') and unit1.is_dropping_off) or 
-                        (hasattr(unit1, 'drop_off_target') and unit1.drop_off_target and 
-                         hasattr(unit1, 'resource_amount') and unit1.resource_amount > 0) or
-                        (hasattr(unit2, 'is_dropping_off') and unit2.is_dropping_off) or 
-                        (hasattr(unit2, 'drop_off_target') and unit2.drop_off_target and 
-                         hasattr(unit2, 'resource_amount') and unit2.resource_amount > 0)):
-                        separation_force = 1.5  # Stronger separation for drop-off workers
-                    
-                    # Normalize direction vector
-                    dx_norm = dx / distance
-                    dy_norm = dy / distance
-                    
-                    # Calculate separation distance for each unit
-                    separation_per_unit = overlap * separation_force / 2
-                    
-                    # Compute candidate positions, only apply if terrain is safe
-                    cand1_x = unit1.x - dx_norm * separation_per_unit
-                    cand1_y = unit1.y - dy_norm * separation_per_unit
-                    cand2_x = unit2.x + dx_norm * separation_per_unit
-                    cand2_y = unit2.y + dy_norm * separation_per_unit
 
-                    if not self._is_on_unwalkable_terrain(cand1_x, cand1_y, unit1.radius):
-                        unit1.x = cand1_x
-                        unit1.y = cand1_y
-                    if not self._is_on_unwalkable_terrain(cand2_x, cand2_y, unit2.radius):
-                        unit2.x = cand2_x
-                        unit2.y = cand2_y
+                trigger_distance = (unit1.radius + unit2.radius) * self.SEPARATION_TRIGGER_FACTOR
+                if distance >= trigger_distance or distance <= 0:
+                    continue
+
+                overlap = trigger_distance - distance
+                push = min(self.SEPARATION_MAX_PUSH, overlap * 0.5)
+
+                dx_norm = dx / distance
+                dy_norm = dy / distance
+
+                cand1_x = unit1.x - dx_norm * push
+                cand1_y = unit1.y - dy_norm * push
+                cand2_x = unit2.x + dx_norm * push
+                cand2_y = unit2.y + dy_norm * push
+
+                if not self._is_on_unwalkable_terrain(cand1_x, cand1_y, unit1.radius):
+                    unit1.x = cand1_x
+                    unit1.y = cand1_y
+                if not self._is_on_unwalkable_terrain(cand2_x, cand2_y, unit2.radius):
+                    unit2.x = cand2_x
+                    unit2.y = cand2_y
     
     def _ensure_unit_on_walkable_terrain(self, unit):
         """Safety net: move unit out of unwalkable terrain using 9-point check"""

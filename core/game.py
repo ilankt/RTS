@@ -437,6 +437,9 @@ class Game:
             # Update unit movement and combat
             self.collision_system.begin_frame()
             self._update_units(self.delta_time)
+            # Resolve residual unit-unit overlaps (steering avoids most, but
+            # spawns/pushes can still compress crowds into deep overlap).
+            self.collision_system.separate_overlapping_units()
             self.worker_task_system.update_post_movement(self.delta_time)
 
             # Update core systems with speed-adjusted delta time
