@@ -63,3 +63,27 @@ def test_apply_to_game_sets_volume_and_speed(tmp_path):
     settings.set("sound_enabled", False)
     settings.apply_to_game(game)
     assert game.sound_manager is None or not game.sound_manager.enabled
+
+
+def test_colorblind_palette_toggle_persists(tmp_path):
+    path = str(tmp_path / "settings.json")
+    settings = Settings(path=path)
+    assert settings.get("colorblind_palette") is False  # default off
+    settings.set("colorblind_palette", True)
+    settings.save()
+    assert Settings(path=path).get("colorblind_palette") is True
+
+
+def test_colorblind_palette_swaps_in_place():
+    """main.py patches PLAYER_COLORS with slice assignment so by-value
+    imports elsewhere see the swap (§8.7)."""
+    import core.config as config
+
+    original = list(config.PLAYER_COLORS)
+    alias = config.PLAYER_COLORS  # simulates `from core.config import PLAYER_COLORS`
+    try:
+        config.PLAYER_COLORS[:] = config.PLAYER_COLORS_COLORBLIND
+        assert alias == config.PLAYER_COLORS_COLORBLIND
+        assert alias is config.PLAYER_COLORS
+    finally:
+        config.PLAYER_COLORS[:] = original

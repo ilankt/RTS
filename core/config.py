@@ -42,6 +42,20 @@ PLAYER_COLORS = [
     (200, 50, 150),   # Pink
 ]
 
+# §8.7 accessibility: colorblind-safe team palette (Okabe-Ito) — swapped
+# in-place over PLAYER_COLORS at startup when the settings toggle is on,
+# so every by-value import sees it. Avoids red/green confusion pairs.
+PLAYER_COLORS_COLORBLIND = [
+    (0, 114, 178),    # Blue (Human player)
+    (230, 159, 0),    # Orange
+    (86, 180, 233),   # Sky blue
+    (240, 228, 66),   # Yellow
+    (204, 121, 167),  # Reddish purple
+    (0, 158, 115),    # Bluish green
+    (213, 94, 0),     # Vermillion
+    (153, 153, 153),  # Grey
+]
+
 # Pathfinding Configuration
 GRID_SIZE = 20  # World units per navigation cell (larger = faster but coarser)
 PATHFINDING_MAX_EXPANSIONS = 12000

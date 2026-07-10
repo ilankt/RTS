@@ -20,6 +20,7 @@ DEFAULTS = {
     "volume": 0.3,               # 0.0 - 1.0
     "sound_enabled": True,
     "default_game_speed": 1.0,   # used when a match doesn't set one
+    "colorblind_palette": False,  # Okabe-Ito team colors (§8.7), on restart
 }
 
 
@@ -46,7 +47,7 @@ class Settings:
                     self.values[key] = min(1.0, max(0.0, float(value)))
                 except (TypeError, ValueError):
                     pass
-            elif key == "sound_enabled":
+            elif key in ("sound_enabled", "colorblind_palette"):
                 self.values[key] = bool(value)
             elif key == "default_game_speed":
                 try:

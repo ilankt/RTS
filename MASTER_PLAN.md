@@ -798,8 +798,12 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
   minutes of a human match, only while the profile shows fewer than 3
   matches played. Tests in `tests/test_onboarding.py`. (A guided practice
   *scenario* remains future content work.)
-- [ ] **Accessibility** *(med)* — colorblind palette (shared with §8.1), UI scale
-  (§8.2), remappable keys (§8.6).
+- [x] **Accessibility** *(med)* — 2026-07-10: **colorblind team palette**
+  (Okabe-Ito, no red/green confusion pairs) toggle in the settings menu,
+  swapped in-place over `PLAYER_COLORS` at startup so every consumer —
+  sprites, minimap, panels — picks it up; **remappable keys** via §8.6's
+  `keybindings.json`; **UI scale** rides the §8.2 resolution setting
+  (full DPI-independent scaling stays with the §8.2 rework item).
 - **✅ Verify:** finish a match and the summary shows real numbers; stats persist across
   runs; a new player can identify what to do from tooltips alone; colorblind mode
   visibly changes the palette.

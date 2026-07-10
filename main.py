@@ -11,6 +11,9 @@ from core.settings import Settings
 
 settings = Settings()
 _config.SCREEN_WIDTH, _config.SCREEN_HEIGHT = settings.get("resolution")
+if settings.get("colorblind_palette"):
+    # In-place so modules that imported the list by value see the swap too
+    _config.PLAYER_COLORS[:] = _config.PLAYER_COLORS_COLORBLIND
 
 from core.config import MIN_GAME_SPEED, MAX_GAME_SPEED
 from core.game import Game
