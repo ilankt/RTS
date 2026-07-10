@@ -26,6 +26,7 @@ class MatchSetupScreen:
             "mode": "play",           # play | spectate
             "opponents": 1,           # AI count (vs human) or total-1 in spectate
             "personality": "random",  # applied to every AI, or random per AI
+            "difficulty": "normal",   # easy | normal | hard (§7.2 honest tiers)
             "seed": random.randint(1, 99999),
             "speed": 1,
         }
@@ -33,6 +34,7 @@ class MatchSetupScreen:
             ("Mode", "mode"),
             ("Opponents", "opponents"),
             ("AI personality", "personality"),
+            ("AI difficulty", "difficulty"),
             ("Map seed", "seed"),
             ("Game speed", "speed"),
             ("Start match", None),
@@ -55,6 +57,10 @@ class MatchSetupScreen:
         elif key == "personality":
             index = PERSONALITY_CHOICES.index(self.config["personality"])
             self.config["personality"] = PERSONALITY_CHOICES[(index + direction) % len(PERSONALITY_CHOICES)]
+        elif key == "difficulty":
+            choices = ["easy", "normal", "hard"]
+            index = choices.index(self.config["difficulty"])
+            self.config["difficulty"] = choices[(index + direction) % len(choices)]
         elif key == "seed":
             self.config["seed"] = max(0, self.config["seed"] + direction)
         elif key == "speed":
@@ -67,6 +73,8 @@ class MatchSetupScreen:
             return str(self.config["opponents"])
         if key == "personality":
             return self.config["personality"].title()
+        if key == "difficulty":
+            return self.config["difficulty"].title()
         if key == "seed":
             return str(self.config["seed"])
         if key == "speed":

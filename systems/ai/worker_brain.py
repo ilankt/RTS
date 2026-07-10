@@ -23,13 +23,18 @@ class WorkerBrain:
 
     def assign_idle_workers(self, ctx):
         """Find all idle workers for this player and give them jobs."""
+        from systems.ai.utility.personality import difficulty_mods
+
+        max_assignments = difficulty_mods(
+            getattr(ctx.player, "ai_difficulty", "normal")
+        ).get("worker_assignments", MAX_IDLE_WORKER_ASSIGNMENTS_PER_TICK)
         assignments = 0
         for worker in ctx.workers:
             if not self._is_idle(worker):
                 continue
             self._assign_worker(worker, ctx)
             assignments += 1
-            if assignments >= MAX_IDLE_WORKER_ASSIGNMENTS_PER_TICK:
+            if assignments >= max_assignments:
                 break
 
     def _is_idle(self, worker) -> bool:

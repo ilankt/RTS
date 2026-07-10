@@ -55,9 +55,13 @@ class UtilityAISystem:
     # --- Public interface (called by core/game.py and ui/ai_debug_panel.py) ---
 
     def update(self, delta_time: float):
+        from .personality import difficulty_mods
+
         for player in self.ai_players:
             self.tick_timer[player] += delta_time
-            if self.tick_timer[player] < self.TICK_INTERVAL:
+            # Difficulty scales reaction time (§7.2): easy AIs think slower.
+            interval = difficulty_mods(getattr(player, "ai_difficulty", "normal"))["tick_interval"]
+            if self.tick_timer[player] < interval:
                 continue
             self.tick_timer[player] = 0.0
             with perf_stats.time_ai_tick():

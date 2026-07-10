@@ -36,9 +36,10 @@ class AttackGoal(Goal):
     SCALE = 8  # +SCALE per extra unit beyond the personality's threshold
 
     def score(self, ctx):
-        from systems.ai.utility.personality import attack_army_threshold
+        from systems.ai.utility.personality import attack_army_threshold, difficulty_mods
 
         min_army = attack_army_threshold(getattr(ctx.player, "ai_personality", "balanced"))
+        min_army = max(2, min_army + difficulty_mods(getattr(ctx.player, "ai_difficulty", "normal"))["attack_threshold_delta"])
         n = len(ctx.military)
         if n < min_army:
             return 0

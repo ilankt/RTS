@@ -238,6 +238,12 @@ class Game:
         elif event.key == pygame.K_F1:
             # Select/cycle idle workers (§7.4)
             self.selection_manager.select_next_idle_worker()
+        elif event.key == pygame.K_HOME:
+            # Jump camera to own base (§8.6)
+            self._jump_to_base()
+        elif event.key == pygame.K_TAB:
+            # Cycle through own military units (§8.6)
+            self._cycle_army_unit()
         elif event.key == pygame.K_F3:
             self.debug_overlay = not self.debug_overlay
         elif event.key == pygame.K_F4:
@@ -493,8 +499,10 @@ class Game:
         finally:
             perf_stats.end_frame()
     
+    EDGE_SCROLL_MARGIN = 14  # px from the window edge that trigger scrolling
+
     def _update_camera_movement(self):
-        """Update camera movement from keyboard input"""
+        """Update camera movement from keyboard input + edge scrolling (§8.6)"""
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             self.camera.move(dx=CAMERA_SPEED)
@@ -504,6 +512,51 @@ class Game:
             self.camera.move(dy=CAMERA_SPEED)
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             self.camera.move(dy=-CAMERA_SPEED)
+
+        # Edge scroll when the mouse hugs the window border
+        if pygame.mouse.get_focused():
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            margin = self.EDGE_SCROLL_MARGIN
+            if mouse_x <= margin:
+                self.camera.move(dx=CAMERA_SPEED)
+            elif mouse_x >= SCREEN_WIDTH - margin:
+                self.camera.move(dx=-CAMERA_SPEED)
+            if mouse_y <= margin:
+                self.camera.move(dy=CAMERA_SPEED)
+            elif mouse_y >= SCREEN_HEIGHT - margin:
+                self.camera.move(dy=-CAMERA_SPEED)
+
+    def _center_camera_on(self, x, y):
+        self.camera.x = -x * self.camera.zoom + MAP_VIEW_WIDTH / 2
+        self.camera.y = -y * self.camera.zoom + MAP_VIEW_HEIGHT / 2
+
+    def _jump_to_base(self):
+        """Center the camera on the (human) player's castle (§8.6)."""
+        human = next((p for p in self.players if p.human), None)
+        castle = next(
+            (b for b in self.buildings if b.name == "castle" and (human is None or b.player is human)),
+            None,
+        )
+        if castle:
+            self._center_camera_on(castle.x, castle.y)
+
+    def _cycle_army_unit(self):
+        """Select and center the next military unit (§8.6)."""
+        human = next((p for p in self.players if p.human), None)
+        if human is None:
+            return
+        military = [
+            u for u in self.units
+            if u.player is human and u.name != "worker" and u.hp > 0
+        ]
+        if not military:
+            return
+        self._army_cycle_index = (getattr(self, "_army_cycle_index", -1) + 1) % len(military)
+        unit = military[self._army_cycle_index]
+        self.selection_manager._clear_all_selections()
+        unit.selected = True
+        self.selection_manager.selected_objects.append(unit)
+        self._center_camera_on(unit.x, unit.y)
     
     # Longest distance (world px) a unit may cover in one movement step before
     # substepping kicks in; keeps high game speeds from tunneling units

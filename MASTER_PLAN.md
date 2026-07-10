@@ -432,10 +432,13 @@ and should override "obvious" instincts.
 
 ### 7.2 AI opponent depth — *builds on Phase 4 (blackboard / squads / influence maps)*
 
-- [ ] **Honest difficulty tiers** *(med)* — Easy→Hard scale *reaction time, scout
-  frequency, build-order tightness, micro, attack-trigger army size* — **not** stats.
-  A separate, transparent "handicap" slider exposes any economic advantage for players
-  who want it.
+- [x] **Honest difficulty tiers** *(med)* — Easy/Normal/Hard implemented
+  2026-07-10 as pure decision-quality scaling (§7.1-compliant, no stat/resource
+  cheats): strategic tick cadence 1.0/0.5/0.35 s, attack-commitment delta
+  +3/0/−1, idle-worker assignments per tick 1/2/3. Selectable per match in the
+  setup screen (`ai_difficulty` on AI players). Verified: easy AIs tick ~3×
+  slower than hard. (Still open for later tiers: scout frequency + micro
+  scaling; the transparent economic "handicap" slider.)
   - *(2026-07-10)* per-personality attack-threshold **mechanism** added
     (`ATTACK_ARMY_THRESHOLDS` / `attack_army_threshold()`), but the first
     tuning (rusher 4, boomer/turtle 8) **failed same-seed validation**:
@@ -672,8 +675,10 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
 
 ### 8.6 Camera, hotkeys & control — *⚡*
 
-- [ ] ⚡ **Camera nav** *(low–med)* — edge-scroll, jump-to-base / cycle-army /
-  jump-to-idle, camera bookmarks.
+- [x] ⚡ **Camera nav** *(low–med)* — edge-scroll (14 px window border), Home =
+  jump-to-base, Tab = cycle army (selects + centers), F1 = jump-to-idle
+  (§7.4). (2026-07-10. Camera bookmarks still open — fold into the §8.6
+  rebindable-hotkeys pass.)
 - [ ] ⚡ **Rebindable hotkeys** *(med)* — full remap layer + grid hotkeys for production
   (pairs with §8.2 command card).
 - **✅ Verify:** edge-scroll and each jump hotkey move the camera as intended; a rebound

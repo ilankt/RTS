@@ -76,3 +76,17 @@ TOWER_CAPS = {
 
 def tower_cap(personality: str) -> int:
     return TOWER_CAPS.get(personality, 1)
+
+
+# §7.2 honest difficulty tiers: scale *decision quality* levers - reaction
+# time (strategic tick cadence), attack commitment, and worker micro - never
+# stats or resources (the §7.1 fairness guardrail).
+DIFFICULTY_MODS = {
+    "easy":   {"tick_interval": 1.0,  "attack_threshold_delta": 3,  "worker_assignments": 1},
+    "normal": {"tick_interval": 0.5,  "attack_threshold_delta": 0,  "worker_assignments": 2},
+    "hard":   {"tick_interval": 0.35, "attack_threshold_delta": -1, "worker_assignments": 3},
+}
+
+
+def difficulty_mods(difficulty: str) -> dict:
+    return DIFFICULTY_MODS.get(difficulty, DIFFICULTY_MODS["normal"])
