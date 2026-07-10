@@ -7,10 +7,18 @@ from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIG
 class ProductionPanel:
     """Manages the unit production interface for buildings"""
     
+    # Tile-grid style shared with the build menu (§8.2 GUI rework)
+    TILE_W = 86
+    TILE_H = 92
+    TILE_GAP = 4
+    TILE_ICON = 38
+    RESOURCE_LETTER = {"gold": "G", "wood": "W", "stone": "S", "food": "F"}
+
     def __init__(self, game):
         self.game = game
         self.small_font = pygame.font.Font(None, 24)
         self.cost_font = pygame.font.Font(None, 16)
+        self.name_font = pygame.font.Font(None, 17)
         
         # Production icons
         self.unit_production_icons = {}
@@ -104,30 +112,30 @@ class ProductionPanel:
         self.unit_production_buttons = []
         
         button_y = ui_y + 35
-        button_size = 75
 
         human_player = self.game.players[0]
 
         # Use cached cost data from game_data
         cost_lookup = self.game.game_data.get("costs", {})
 
+        # Tile grid, matching the build menu's style (§8.2 GUI rework)
+        production_info = self.game.production_manager.get_production_info(selected_building)
+        grid_x = ui_x + (MINIMAP_WIDTH - (2 * self.TILE_W + self.TILE_GAP)) // 2
+
         for i, unit_type in enumerate(selected_building.can_produce):
             costs = cost_lookup.get(unit_type, {})
-            
-            # Check if player can afford this unit
-            can_afford = True
-            for resource, amount in costs.items():
-                if human_player.resources.get(resource, 0) < amount:
-                    can_afford = False
-                    break
-            
-            # Button position - each unit gets its own row
-            button_x = ui_x + padding
-            button_y_offset = button_y + i * (button_size + 25)
-            
-            # Create button rect
-            button_rect = pygame.Rect(button_x, button_y_offset, button_size, button_size)
-            
+            can_afford = all(
+                human_player.resources.get(resource, 0) >= amount
+                for resource, amount in costs.items()
+            )
+
+            row, col = divmod(i, 2)
+            button_rect = pygame.Rect(
+                grid_x + col * (self.TILE_W + self.TILE_GAP),
+                button_y + row * (self.TILE_H + self.TILE_GAP),
+                self.TILE_W, self.TILE_H,
+            )
+
             # Store button info
             self.unit_production_buttons.append({
                 'rect': button_rect,
@@ -136,43 +144,68 @@ class ProductionPanel:
                 'can_afford': can_afford,
                 'building': selected_building
             })
-            
-            # Draw button background
-            button_color = (0, 100, 0) if can_afford else (100, 0, 0)
+
+            if can_afford:
+                fill, border, name_color = (42, 52, 42), (110, 160, 110), (235, 235, 235)
+            else:
+                fill, border, name_color = (50, 38, 38), (140, 90, 90), (190, 140, 130)
             if self.hover_production_button == i:
-                button_color = tuple(min(255, c + 50) for c in button_color)
-            
-            pygame.draw.rect(screen, button_color, button_rect)
-            pygame.draw.rect(screen, (255, 255, 255), button_rect, 2)
-            
-            # Draw unit icon with radial progress if producing
-            production_info = self.game.production_manager.get_production_info(selected_building)
+                fill = tuple(min(255, c + 25) for c in fill)
+                border = (240, 240, 240)
+
+            pygame.draw.rect(screen, fill, button_rect, border_radius=4)
+            pygame.draw.rect(screen, border, button_rect, 2, border_radius=4)
+
+            # Icon at the top of the tile, radial progress while producing
             is_producing = production_info and production_info['unit_type'] == unit_type
             progress = production_info['progress'] if is_producing else 0
-            
+
             if unit_type in self.unit_production_icons:
                 icon = self.unit_production_icons[unit_type]
-                icon_rect = icon.get_rect(center=button_rect.center)
-                
+                if icon.get_width() != self.TILE_ICON:
+                    icon = pygame.transform.smoothscale(icon, (self.TILE_ICON, self.TILE_ICON))
+                icon_rect = icon.get_rect(midtop=(button_rect.centerx, button_rect.y + 5))
                 if is_producing and progress < 1.0:
-                    # Draw icon with radial progress
                     self._draw_icon_with_radial_progress(screen, icon, icon_rect, progress)
                 else:
-                    # Draw normal icon
                     screen.blit(icon, icon_rect)
-                
-                # Draw queue number if there are multiple units of this specific type
-                unit_count = self.game.production_manager.get_unit_count_in_production(selected_building, unit_type)
-                if unit_count > 1:  # Only show number if more than 1 unit of this type
-                    self._draw_queue_number(screen, button_rect, unit_count)
-            
-            # Draw costs below button
-            cost_y = button_rect.bottom + 2
-            cost_text = self._format_costs(costs)
-            cost_surface = self.cost_font.render(cost_text, True, (255, 255, 255) if can_afford else (255, 100, 100))
-            screen.blit(cost_surface, (button_x, cost_y))
 
-        next_y = button_y + len(selected_building.can_produce) * (button_size + 25)
+                unit_count = self.game.production_manager.get_unit_count_in_production(selected_building, unit_type)
+                if unit_count > 1:
+                    self._draw_queue_number(screen, button_rect, unit_count)
+
+            # Name + compact cost, always inside the tile
+            template = self.game.game_data.get("units", {}).get(unit_type)
+            display = getattr(template, "display_name", unit_type.title())
+            name_surface = self.name_font.render(display[:14], True, name_color)
+            screen.blit(name_surface, (button_rect.centerx - name_surface.get_width() // 2,
+                                       button_rect.y + 8 + self.TILE_ICON))
+            cost_line = " ".join(
+                f"{amount}{self.RESOURCE_LETTER.get(resource, resource[0].upper())}"
+                for resource, amount in costs.items() if amount > 0
+            )
+            cost_color = (200, 200, 160) if can_afford else (200, 120, 110)
+            cost_surface = self.cost_font.render(cost_line, True, cost_color)
+            screen.blit(cost_surface, (button_rect.centerx - cost_surface.get_width() // 2,
+                                       button_rect.bottom - 16))
+
+        rows_used = (len(selected_building.can_produce) + 1) // 2
+        next_y = button_y + rows_used * (self.TILE_H + self.TILE_GAP)
+
+        # Production status strip: what's training, how far along, queue depth
+        if production_info:
+            bar_rect = pygame.Rect(ui_x + padding, next_y + 4, MINIMAP_WIDTH - 2 * padding - 12, 14)
+            pygame.draw.rect(screen, (55, 55, 55), bar_rect)
+            fill_w = int(bar_rect.width * min(1.0, production_info['progress']))
+            pygame.draw.rect(screen, (110, 170, 110), (bar_rect.x, bar_rect.y, fill_w, bar_rect.height))
+            pygame.draw.rect(screen, (120, 120, 120), bar_rect, 1)
+            queued = len(getattr(selected_building, "production_queue", ()))
+            label = f"{production_info['unit_type'].title()} {int(production_info['progress'] * 100)}%"
+            if queued:
+                label += f"  ·  queue {queued}"
+            label_surface = self.cost_font.render(label, True, (220, 220, 220))
+            screen.blit(label_surface, (bar_rect.x + 2, bar_rect.bottom + 2))
+            next_y = bar_rect.bottom + 20
         if research_rows:
             self._draw_research_section(screen, selected_building, research_rows, ui_x, max(next_y, ui_y + 35), padding)
 

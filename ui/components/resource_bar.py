@@ -72,10 +72,11 @@ class ResourceBar:
                         rate_surface = self.info_font.render(f"+{rate:.1f}/s", True, (120, 220, 120))
                         resource_bar.blit(rate_surface, (text_x, text_y + text_surface.get_height()))
         
-        # Idle-worker badge (§7.4): amber count + F1 hint, only when nonzero
+        # Idle-worker badge (§7.4): amber count + F1 hint, only when nonzero.
+        # Anchored left of the speed/fog widgets so they never overlap.
         idle_count = len(self.game.selection_manager.get_idle_workers())
         if idle_count:
-            badge_x = TOP_BAR_START_X + len(all_items) * spacing
+            badge_x = top_bar_width - 260
             badge_rect = pygame.Rect(badge_x, row_y + 8, 120, 32)
             pygame.draw.rect(resource_bar, (70, 55, 20), badge_rect)
             pygame.draw.rect(resource_bar, (230, 180, 60), badge_rect, 2)
@@ -114,12 +115,6 @@ class ResourceBar:
         text_surface = self.font.render(speed_text, True, color)
         text_rect = text_surface.get_rect(center=bg_rect.center)
         screen.blit(text_surface, text_rect)
-        
-        # Draw keyboard hint below
-        hint_text = "[ ] to adjust"
-        hint_surface = self.small_font.render(hint_text, True, (150, 150, 150))
-        hint_rect = hint_surface.get_rect(centerx=bg_rect.centerx, top=bg_rect.bottom + 2)
-        screen.blit(hint_surface, hint_rect)
 
     def _draw_fog_indicator(self, screen):
         """Draw fog-of-war debug toggle state near the speed indicator."""

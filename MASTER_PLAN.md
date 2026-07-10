@@ -676,7 +676,18 @@ The UI works but is ad-hoc (delegated panels in `ui/components/*`) and hardcoded
 - [ ] **Resolution independence + UI scaling** *(med–high)* — layout from
   anchors/relative units, not fixed pixels; support arbitrary window sizes. Foundation
   for everything visual.
-- [ ] **Command card / action grid** *(med)* — SC/AoE-style action grid for the
+- [~] **Command card / action grid** *(med)* — first pass 2026-07-10 (from
+  windowed user feedback "this is very bad"): the build menu and unit
+  production are now matching **2-column icon-tile grids** — icon on top,
+  wrapped name, compact cost line ("150G 100W") that never clips — with
+  muted availability states (green-bordered buildable / tan "requires X" /
+  red-tinted unaffordable, dimmed icons), hover highlight, tooltip on top.
+  All 8 military buildings fit on screen at 720p (rows used to clip text
+  AND overflow past the screen bottom — stone wall/gate were unreachable).
+  Production adds a status strip (unit, %, queue depth) under the tiles.
+  Top-bar overlap fixed (idle badge anchored left of Speed/Fog, redundant
+  hint removed). Verified by rendered-frame screenshots. Remaining for the
+  full command card: grid hotkeys + unified action buttons for selections.
   selection with grid hotkeys, replacing bespoke panels.
 - [x] **Multi-select panel** *(med)* — 2026-07-10: mixed selections now render
   grouped by unit type (biggest group first) with an ×N count badge per icon

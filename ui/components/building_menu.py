@@ -13,6 +13,8 @@ class BuildingMenu:
         self.font = pygame.font.Font(None, 30)
         self.small_font = pygame.font.Font(None, 20)
         self.button_font = pygame.font.Font(None, 24)
+        self.name_font = pygame.font.Font(None, 17)
+        self.cost_font = pygame.font.Font(None, 16)
         
         # Menu state
         self.show_menu = False
@@ -34,6 +36,39 @@ class BuildingMenu:
         self.category_icons = {}
         self._load_category_icons()
     
+    # Tile-grid geometry (§8.2 GUI rework)
+    TILE_W = 86
+    TILE_H = 92
+    TILE_GAP = 4
+    TILE_ICON = 38
+    GRID_COLS = 2
+    GRID_TOP = 32
+
+    def _wrap_name(self, name, max_width):
+        """Split a display name into lines that fit the tile width."""
+        words = name.split()
+        lines, current = [], ""
+        for word in words:
+            candidate = f"{current} {word}".strip()
+            if self.name_font.size(candidate)[0] <= max_width or not current:
+                current = candidate
+            else:
+                lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        return lines
+
+    RESOURCE_LETTER = {"gold": "G", "wood": "W", "stone": "S", "food": "F"}
+
+    def _compact_costs(self, building):
+        """"150G 75W" — short enough to never clip a tile."""
+        costs = building.get('costs', {})
+        return " ".join(
+            f"{amount}{self.RESOURCE_LETTER.get(resource, resource[0].upper())}"
+            for resource, amount in costs.items() if amount > 0
+        )
+
     def _load_building_icons(self):
         """Pre-load and cache building icons for better performance"""
         try:
@@ -96,9 +131,10 @@ class BuildingMenu:
         ui_width = MINIMAP_WIDTH - 16
         ui_height = SCREEN_HEIGHT - MINIMAP_HEIGHT - 40
         
-        # Create a semi-transparent overlay for the menu
+        # Opaque menu surface (semi-transparency let the unit panel behind
+        # bleed through as ghost boxes)
         menu_surface = pygame.Surface((ui_width, ui_height), pygame.SRCALPHA)
-        menu_surface.fill((30, 30, 30, 240))
+        menu_surface.fill((30, 30, 30, 255))
         
         # Draw border
         pygame.draw.rect(menu_surface, (100, 100, 100), (0, 0, ui_width, ui_height), 2)
@@ -171,64 +207,63 @@ class BuildingMenu:
         padding = 6  # Still needed for cancel button
         human_player = self.game.players[0]
         
-        # Draw pre-calculated buttons from stored list
-        buttons_drawn = 0
-        
-        for i, button_info in enumerate(self.building_buttons):
+        # Draw the tile grid (§8.2 GUI rework: icon tiles instead of clipped
+        # text rows — 8 entries fit on screen with room to spare)
+        hovered_info = None
+        for button_info in self.building_buttons:
             building = button_info['building']
-            
+
             # Re-check availability (resources/building prerequisites may have changed)
             can_build_now, reason = self._availability(human_player, building)
             button_info['can_afford'] = can_build_now
             button_info['reason'] = reason
-            button_rect = button_info['draw_rect']
-            screen_rect = button_info['click_rect']
-            is_hovered = screen_rect.collidepoint(pygame.mouse.get_pos())
-            
-            # Draw button background with improved colors
+            tile = button_info['draw_rect']
+            is_hovered = button_info['click_rect'].collidepoint(pygame.mouse.get_pos())
+
             if can_build_now:
-                button_color = (0, 100, 0)  # Green when affordable
-                border_color = (0, 200, 0)
-                text_color = (255, 255, 255)
+                fill, border, name_color = (42, 52, 42), (110, 160, 110), (235, 235, 235)
             elif reason.startswith("Requires"):
-                button_color = (80, 70, 35)
-                border_color = (170, 140, 60)
-                text_color = (245, 210, 120)
+                fill, border, name_color = (45, 42, 32), (120, 105, 60), (170, 155, 110)
             else:
-                button_color = (100, 0, 0)  # Red when not affordable
-                border_color = (200, 0, 0)
-                text_color = (255, 150, 150)
+                fill, border, name_color = (50, 38, 38), (140, 90, 90), (190, 140, 130)
             if is_hovered:
-                button_color = tuple(min(255, c + 35) for c in button_color)
-            
-            pygame.draw.rect(menu_surface, button_color, button_rect)
-            pygame.draw.rect(menu_surface, border_color, button_rect, 2)
-            
-            # Draw building icon with padding
-            icon_padding = 5
+                fill = tuple(min(255, c + 25) for c in fill)
+                border = (240, 240, 240)
+
+            pygame.draw.rect(menu_surface, fill, tile, border_radius=4)
+            pygame.draw.rect(menu_surface, border, tile, 2, border_radius=4)
+
+            # Icon centered at the top of the tile, dimmed when unavailable
             if building['name'] in self.building_icons:
                 icon = self.building_icons[building['name']]
-                icon_x = button_rect.x + icon_padding
-                icon_y = button_rect.y + (button_rect.height - self.icon_size) // 2
-                menu_surface.blit(icon, (icon_x, icon_y))
-            
-            # Draw building name to the right of icon with improved position
-            name_x = button_rect.x + icon_padding + self.icon_size + 10
-            name_y = button_rect.y + 8
+                if icon.get_width() != self.TILE_ICON:
+                    icon = pygame.transform.smoothscale(icon, (self.TILE_ICON, self.TILE_ICON))
+                if not can_build_now:
+                    icon = icon.copy()
+                    icon.fill((110, 110, 110, 255), special_flags=pygame.BLEND_RGBA_MULT)
+                menu_surface.blit(icon, (tile.centerx - self.TILE_ICON // 2, tile.y + 5))
+
+            # Name, wrapped to at most two lines that actually fit the tile
             display_name = building.get('display_name', building['name'].replace('_', ' ').title())
-            name_text = self.button_font.render(display_name, True, text_color)
-            menu_surface.blit(name_text, (name_x, name_y))
-            
-            # Draw cost below name
-            cost_text = self._format_costs(building)
-            if cost_text:
-                cost_text = self.small_font.render(cost_text, True, text_color)
-                menu_surface.blit(cost_text, (name_x, name_y + 25))
+            name_y = tile.y + 6 + self.TILE_ICON
+            for line in self._wrap_name(display_name, tile.width - 8)[:2]:
+                text = self.name_font.render(line, True, name_color)
+                menu_surface.blit(text, (tile.centerx - text.get_width() // 2, name_y))
+                name_y += 14
+
+            # Compact cost line ("150G 75W") that never clips
+            cost_line = self._compact_costs(building)
+            if cost_line:
+                cost_color = (200, 200, 160) if can_build_now else (200, 120, 110)
+                text = self.cost_font.render(cost_line, True, cost_color)
+                menu_surface.blit(text, (tile.centerx - text.get_width() // 2, tile.bottom - 16))
 
             if is_hovered:
-                self._draw_building_tooltip(menu_surface, building, reason, ui_width, ui_height)
-            
-            buttons_drawn += 1
+                hovered_info = (building, reason)
+
+        # Tooltip last so no tile draws over it
+        if hovered_info is not None:
+            self._draw_building_tooltip(menu_surface, hovered_info[0], hovered_info[1], ui_width, ui_height)
         
         # Cancel button at bottom with improved styling
         cancel_button_rect = pygame.Rect(padding, ui_height - BUILDING_BUTTON_HEIGHT - padding, 
@@ -343,22 +378,21 @@ class BuildingMenu:
             ui_width = MINIMAP_WIDTH - 16
             
             human_player = self.game.players[0]
-            
-            # Calculate button positions (store visual rectangles)
-            button_x = 8
-            button_y = 40  # Start below title
-            button_width = ui_width - 16
-            button_height = BUILDING_BUTTON_HEIGHT
-            button_spacing = 5
-            
+
+            # Tile grid (§8.2): GRID_COLS columns of fixed-size tiles
+            grid_x = (ui_width - (self.GRID_COLS * self.TILE_W + (self.GRID_COLS - 1) * self.TILE_GAP)) // 2
+
             for i, building in enumerate(buildable_buildings):
-                # Create button rect relative to menu surface
-                button_rect = pygame.Rect(button_x, button_y + i * (button_height + button_spacing),
-                                        button_width, button_height)
-                
+                row, col = divmod(i, self.GRID_COLS)
+                button_rect = pygame.Rect(
+                    grid_x + col * (self.TILE_W + self.TILE_GAP),
+                    self.GRID_TOP + row * (self.TILE_H + self.TILE_GAP),
+                    self.TILE_W, self.TILE_H,
+                )
+
                 # Check if player can build now
                 can_afford, reason = self._availability(human_player, building)
-                
+
                 # Store button info for click detection AND drawing
                 self.building_buttons.append({
                     'click_rect': pygame.Rect(ui_x + button_rect.x, ui_y + button_rect.y, button_rect.width, button_rect.height),
