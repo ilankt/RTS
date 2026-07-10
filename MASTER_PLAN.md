@@ -666,8 +666,10 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
 
 ### 8.7 Meta, onboarding & accessibility
 
-- [ ] ⚡ **Post-match summary** *(low–med)* — resources gathered, units lost, peak army,
-  APM, match length. Disproportionately sticky for the effort.
+- [x] ⚡ **Post-match summary** *(low–med)* — game-over overlay now shows match
+  length (game time) and a per-player table: units trained, buildings built,
+  army remaining, watchtower damage. (2026-07-10; resources-gathered / units-lost
+  / APM columns can extend the same stats hooks later.)
 - [ ] **Profile & achievements** *(med)* — persistent stats + simple achievements for a
   light progression loop.
 - [ ] **Onboarding** *(med)* — tooltips + a practice/first-match flow so new players
@@ -781,9 +783,10 @@ unsequenced — pull them in where they fit.
   unbounded (bars no longer float 100 px above units at max zoom), and any
   living object shows ≥1 px of fill. **Needs a windowed re-check by the user;
   if it persists, grab a screenshot + zoom level.**
-- [ ] **Docs housekeeping**: `CLAUDE.md` was corrected (2026-07-09) to match the 20 px
-  grid + utility AI and point here. `AGENTS.md` still describes the old 4-phase
-  state-machine AI and 8 px grid — refresh it too.
+- [x] **Docs housekeeping**: `CLAUDE.md` corrected 2026-07-09 and refreshed
+  2026-07-10 for the post-Track-A architecture. `AGENTS.md` replaced 2026-07-10
+  with a pointer to CLAUDE.md/MASTER_PLAN plus a quick-facts card (the 298-line
+  standalone copy had drifted to describe the pre-rewrite engine).
 
 ---
 

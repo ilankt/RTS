@@ -150,6 +150,7 @@ class Game:
         self.stats_units_trained = {}
         self.stats_buildings_built = {}
         self.stats_tower_damage = {}  # {player_name: damage dealt by watchtowers}
+        self.sim_time_elapsed = 0.0   # game-time seconds since match start
         
         # Set up initial game state
         self.game_state.setup_game_objects()
@@ -438,6 +439,7 @@ class Game:
             raw_delta_time = delta_time_override if delta_time_override is not None else self.clock.get_time() / 1000.0
             self.delta_time = raw_delta_time * self.game_speed
             self.frame_counter += 1
+            self.sim_time_elapsed += self.delta_time
             
             # Update input
             self._update_camera_movement()
@@ -697,6 +699,10 @@ class Game:
         self.resources.clear()
         self.construction_sites.clear()
         self.frame_counter = 0
+        self.sim_time_elapsed = 0.0
+        self.stats_units_trained = {}
+        self.stats_buildings_built = {}
+        self.stats_tower_damage = {}
         
         # Reset players resources
         for player in self.players:
@@ -747,13 +753,41 @@ class Game:
             title_color = (255, 0, 0)
         
         title_surface = font_large.render(title_text, True, title_color)
-        title_rect = title_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
+        title_rect = title_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 160))
         self.screen.blit(title_surface, title_rect)
-        
+
+        # Post-match summary (§8.7): per-player stats from the match counters
+        font_stats = pygame.font.Font(None, 28)
+        minutes = int(self.sim_time_elapsed // 60)
+        seconds = int(self.sim_time_elapsed % 60)
+        header = f"Match length: {minutes}:{seconds:02d} (game time)"
+        header_surface = font_small.render(header, True, (200, 200, 200))
+        self.screen.blit(header_surface, header_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 105)))
+
+        columns = ["Player", "Units trained", "Buildings", "Army left", "Tower dmg"]
+        col_x = [SCREEN_WIDTH // 2 - 330, SCREEN_WIDTH // 2 - 110, SCREEN_WIDTH // 2 + 30, SCREEN_WIDTH // 2 + 150, SCREEN_WIDTH // 2 + 260]
+        y = SCREEN_HEIGHT // 2 - 70
+        for i, column in enumerate(columns):
+            col_surface = font_small.render(column, True, (150, 150, 150))
+            self.screen.blit(col_surface, (col_x[i], y))
+        y += 28
+        for player in self.players:
+            trained = sum(v for (name, _t), v in self.stats_units_trained.items() if name == player.name)
+            built = sum(v for (name, _t), v in self.stats_buildings_built.items() if name == player.name)
+            army = sum(1 for u in self.units if u.player is player and u.name != "worker")
+            tower_damage = int(self.stats_tower_damage.get(player.name, 0))
+            label = player.name + (" (you)" if player.human else "")
+            values = [label, str(trained), str(built), str(army), str(tower_damage)]
+            for i, value in enumerate(values):
+                color = player.color if i == 0 else (230, 230, 230)
+                cell_surface = font_stats.render(value, True, color)
+                self.screen.blit(cell_surface, (col_x[i], y))
+            y += 30
+
         # Subtitle
         sub_text = "Press R to Restart  |  Press ESC or Q to Quit"
         sub_surface = font_small.render(sub_text, True, (255, 255, 255))
-        sub_rect = sub_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
+        sub_rect = sub_surface.get_rect(center=(SCREEN_WIDTH // 2, y + 30))
         self.screen.blit(sub_surface, sub_rect)
     
     def _update_camera_bounds(self):
