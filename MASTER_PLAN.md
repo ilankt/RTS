@@ -436,6 +436,10 @@ and should override "obvious" instincts.
   frequency, build-order tightness, micro, attack-trigger army size* — **not** stats.
   A separate, transparent "handicap" slider exposes any economic advantage for players
   who want it.
+  - *(started 2026-07-10)* attack-trigger army size is now per-personality
+    (`ATTACK_ARMY_THRESHOLDS`: rusher 4, balanced 6, boomer/turtle 8), tuned
+    from the corrected §8.8 run where rusher went 1–4 vs boomer at the shared
+    threshold of 6. Sim validation run pending.
 - [ ] **Personalities that actually differ** *(med)* — the 4 personalities currently
   only reweight goal categories; give each a signature build order + army composition
   (AoE3-style) so opponents *feel* different game to game.
@@ -675,11 +679,15 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
   AI-vs-AI matches and reports per-personality win rates, match lengths,
   unit/building histograms (fed by new `game.stats_units_trained`/
   `stats_buildings_built` counters), and a never-trained/never-built audit.
-- **✅ Verify (passed 2026-07-10):** 6-match × 2-player baseline
-  (`tools/balance_baseline.json`): 5 decisive (avg 837 sim s) + 1 timeout;
-  wins — balanced 2/4, turtle 2/3, rusher 1/3, boomer 0/2; unit usage spans
-  the whole roster. 6 matches is a smoke baseline — run 20+ matches before
-  making §8.3/§8.4 balance calls (boomer's 0/2 needs the larger sample).
+- **✅ Verify (passed 2026-07-10, superseded numbers below):** authoritative
+  run is the **20-match set after the combat-cadence fix**
+  (`tools/balance_20_fixed.json`, rendered via `tools/render_balance_report.py`):
+  **0 timeouts** (was 4/20 pre-fix — the stall problem was entirely the
+  wall-clock-cadence bug), avg match 584 sim s, wins — boomer 6/9, turtle 3/5,
+  balanced 7/13, **rusher 4/13** (head-to-head 1–4 vs boomer → led to the
+  §7.2 per-personality attack thresholds, validation run pending).
+  **Headline §8.4 finding: rams are 30 % of all military production** — the
+  de-facto win condition; first target for the counter-model rework.
 
 ### 8.9 Bigger swings (later; likely past "polish" scope)
 

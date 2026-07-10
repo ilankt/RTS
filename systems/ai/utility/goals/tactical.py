@@ -33,17 +33,19 @@ class AttackGoal(Goal):
     name = "attack"
     category = "tactical"
 
-    MIN_ARMY = 6
-    SCALE = 8  # +SCALE per extra unit beyond the minimum
+    SCALE = 8  # +SCALE per extra unit beyond the personality's threshold
 
     def score(self, ctx):
+        from systems.ai.utility.personality import attack_army_threshold
+
+        min_army = attack_army_threshold(getattr(ctx.player, "ai_personality", "balanced"))
         n = len(ctx.military)
-        if n < self.MIN_ARMY:
+        if n < min_army:
             return 0
         # Need a target to attack, otherwise pointless
         if not ctx.enemy_buildings:
             return 0
-        return 70 + (n - self.MIN_ARMY) * self.SCALE
+        return 70 + (n - min_army) * self.SCALE
 
     def execute(self, ctx):
         # Behavior flag is read by UtilityAISystem after goal selection;
