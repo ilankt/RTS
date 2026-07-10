@@ -11,6 +11,7 @@ import pygame
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MIN_GAME_SPEED, MAX_GAME_SPEED
 
 PERSONALITY_CHOICES = ["random", "balanced", "rusher", "boomer", "turtle"]
+MUTATOR_CHOICES = ["none", "double_resources", "no_towers", "revealed_map"]
 
 
 class MatchSetupScreen:
@@ -28,6 +29,7 @@ class MatchSetupScreen:
             "personality": "random",  # applied to every AI, or random per AI
             "difficulty": "normal",   # easy | normal | hard (§7.2 honest tiers)
             "victory": "annihilation",  # annihilation | economic | timed (§7.5)
+            "mutator": "none",          # §7.5 match modifiers
             "seed": random.randint(1, 99999),
             "speed": 1,
         }
@@ -37,6 +39,7 @@ class MatchSetupScreen:
             ("AI personality", "personality"),
             ("AI difficulty", "difficulty"),
             ("Victory", "victory"),
+            ("Mutator", "mutator"),
             ("Map seed", "seed"),
             ("Game speed", "speed"),
             ("Start match", None),
@@ -67,6 +70,9 @@ class MatchSetupScreen:
             choices = ["annihilation", "economic", "timed"]
             index = choices.index(self.config["victory"])
             self.config["victory"] = choices[(index + direction) % len(choices)]
+        elif key == "mutator":
+            index = MUTATOR_CHOICES.index(self.config["mutator"])
+            self.config["mutator"] = MUTATOR_CHOICES[(index + direction) % len(MUTATOR_CHOICES)]
         elif key == "seed":
             self.config["seed"] = max(0, self.config["seed"] + direction)
         elif key == "speed":
@@ -83,6 +89,8 @@ class MatchSetupScreen:
             return self.config["difficulty"].title()
         if key == "victory":
             return self.config["victory"].title()
+        if key == "mutator":
+            return self.config["mutator"].replace("_", " ").title()
         if key == "seed":
             return str(self.config["seed"])
         if key == "speed":

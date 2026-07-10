@@ -90,6 +90,8 @@ class BuildWatchtowerGoal(Goal):
     category = "support"
 
     def score(self, ctx):
+        if getattr(ctx.game, "is_building_disabled", None) and ctx.game.is_building_disabled("watchtower"):
+            return 0  # §7.5 no_towers mutator
         if ctx.has_construction_in_progress("watchtower"):
             return 0
         if not ctx.castle:

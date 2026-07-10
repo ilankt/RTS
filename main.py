@@ -61,6 +61,11 @@ def create_game_from_setup(setup):
         if not player.human:
             player.ai_difficulty = setup.get("difficulty", "normal")
     game.victory_condition = setup.get("victory", "annihilation")
+    mutator = setup.get("mutator", "none")
+    if mutator != "none":
+        game.mutators = {mutator}
+        if mutator == "revealed_map":
+            game.fog_of_war_enabled = False
     game.game_speed = max(MIN_GAME_SPEED, min(MAX_GAME_SPEED, setup.get("speed", 1)))
     return game
 

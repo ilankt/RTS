@@ -553,8 +553,13 @@ and should override "obvious" instincts.
   eliminates in every mode. Verified headless: economic and timed both
   trigger and declare the right winner. (Landmark / king-of-the-hill /
   relic-hold remain future variants.)
-- [ ] **Match modifiers ("mutators")** *(low–med)* — optional togglable rules (double
-  resources, no towers, sudden death, harsh-winter attrition à la Northgard).
+- [x] **Match modifiers ("mutators")** *(low–med)* — 2026-07-10: Mutator row in
+  match setup with **Double Resources** (2× gather ticks + farm food),
+  **No Towers** (watchtower disabled for humans via menu/`can_player_build`
+  and for AI via goal + construction guards), and **Revealed Map** (fog off).
+  Applied via `game.mutators`; survives save/load (with fog-enabled state).
+  Tests in `tests/test_mutators.py`. Sudden death is effectively the base
+  rule already (castle loss eliminates); attrition/weather stay future.
 - [ ] **Dynamic map elements / random events** *(med)* — periodic neutral events
   (resource booms, wandering hostiles, weather) that force adaptation.
 - **✅ Verify:** start 3 matches with different setup/seed and confirm they genuinely

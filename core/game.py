@@ -156,6 +156,10 @@ class Game:
         # {resource: [(sim_time, amount), ...]} pruned as it's read
         self.income_events = {}
 
+        # Match mutators (§7.5): optional togglable rules picked at setup.
+        # "double_resources" | "no_towers" | "revealed_map"
+        self.mutators = set()
+
         # Victory condition (§7.5): "annihilation" (default), "economic"
         # (first to gather ECONOMIC_VICTORY_TARGET total), or "timed"
         # (highest score when TIMED_VICTORY_MINUTES elapse). Castle loss
@@ -521,6 +525,16 @@ class Game:
         finally:
             perf_stats.end_frame()
     
+    # Buildings a mutator forbids for everyone this match (§7.5)
+    MUTATOR_DISABLED_BUILDINGS = {"no_towers": {"watchtower"}}
+
+    def is_building_disabled(self, building_name):
+        """Is this building forbidden by an active mutator?"""
+        for mutator in self.mutators:
+            if building_name in self.MUTATOR_DISABLED_BUILDINGS.get(mutator, ()):
+                return True
+        return False
+
     INCOME_WINDOW_SECS = 15.0  # rolling window for the +X/s HUD readout
 
     def record_income(self, player, resource_type, amount):

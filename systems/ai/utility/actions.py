@@ -38,6 +38,8 @@ def start_construction(ctx, building_name: str, building_placer, position=None) 
         return False
     if not getattr(template, "buildable", True):
         return False
+    if getattr(ctx.game, "is_building_disabled", None) and ctx.game.is_building_disabled(building_name):
+        return False
     if not has_required_buildings(ctx.game, ctx.player, getattr(template, "requires", [])):
         return False
 

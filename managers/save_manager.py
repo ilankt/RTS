@@ -36,6 +36,8 @@ class SaveManager:
             # v2 (§9 save/load completeness)
             "sim_time_elapsed": getattr(game, "sim_time_elapsed", 0.0),
             "victory_condition": getattr(game, "victory_condition", "annihilation"),
+            "mutators": sorted(getattr(game, "mutators", ())),
+            "fog_enabled": bool(getattr(getattr(game, "fog_of_war", None), "enabled", True)),
             "tree_regrowth": list(getattr(game, "_tree_regrowth", [])),
             "stats_units_trained": {f"{k[0]}|{k[1]}": v for k, v in getattr(game, "stats_units_trained", {}).items()},
             "stats_buildings_built": {f"{k[0]}|{k[1]}": v for k, v in getattr(game, "stats_buildings_built", {}).items()},
@@ -404,6 +406,8 @@ class SaveManager:
         # tree regrowth, fog exploration
         game.sim_time_elapsed = state.get("sim_time_elapsed", 0.0)
         game.victory_condition = state.get("victory_condition", "annihilation")
+        game.mutators = set(state.get("mutators", []))
+        game.fog_of_war_enabled = state.get("fog_enabled", True)
         game._tree_regrowth = [tuple(entry) for entry in state.get("tree_regrowth", [])]
 
         def _unflatten(flat):

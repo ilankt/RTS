@@ -528,6 +528,9 @@ class BuildingSystem:
     
     def can_player_build(self, player, building_data):
         """Check if a player can afford to build a building"""
+        if getattr(self.game, "is_building_disabled", None) \
+                and self.game.is_building_disabled(building_data.get('name')):
+            return False
         requirements = building_data.get('requires', [])
         if requirements and not has_required_buildings(self.game, player, requirements):
             return False

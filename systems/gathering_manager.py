@@ -41,6 +41,8 @@ class GatheringManager:
                 # Generate food based on config values
                 if building.food_timer >= FARM_FOOD_INTERVAL:
                     food_amount = FARM_FOOD_AMOUNT
+                    if "double_resources" in getattr(self.game, "mutators", ()):
+                        food_amount *= 2
                     if building.player:
                         building.player.resources["food"] += int(food_amount)
                         if hasattr(self.game, "record_income"):
@@ -71,6 +73,8 @@ class GatheringManager:
             player_multiplier = worker.player.gathering_rates.get(resource_type, 1.0)
             player_multiplier *= effective_gather_rate_multiplier(worker.player, resource_type)
         gather_rate = base_rate * player_multiplier
+        if "double_resources" in getattr(self.game, "mutators", ()):
+            gather_rate *= 2.0
 
         # §8.3 worker saturation: past the cap, the node's total output stays
         # flat, so each stacked gatherer works at cap/n rate - expanding to a

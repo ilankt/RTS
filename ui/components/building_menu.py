@@ -382,6 +382,9 @@ class BuildingMenu:
 
     def _availability(self, player, building):
         """Return (can_build, reason) for a building button."""
+        if getattr(self.game, "is_building_disabled", None) \
+                and self.game.is_building_disabled(building.get('name')):
+            return False, "Disabled by mutator"
         requirements = building.get('requires', [])
         if requirements and not has_required_buildings(self.game, player, requirements):
             return False, "Requires " + ", ".join(r.replace('_', ' ').title() for r in requirements)
