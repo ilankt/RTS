@@ -313,7 +313,8 @@ class BuildingMenu:
             
             # Define building categories
             economy_buildings = ['farm', 'house', 'lumbermill', 'mine', 'quarry']
-            military_buildings = ['barracks', 'stable', 'blacksmith', 'siege_workshop', 'watchtower']
+            military_buildings = ['barracks', 'stable', 'blacksmith', 'siege_workshop', 'watchtower',
+                                  'wooden_wall', 'wall', 'gate']
             
             # Filter buildings based on category
             if self.show_category == 'economy':

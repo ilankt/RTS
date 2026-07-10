@@ -8,17 +8,22 @@ from utils.debug_logger import debug_log
 
 class BuildingSystem:
     """Handles building placement, construction, and building management"""
-    
+
+    # §8.10: wall pieces are laid as click-drag lines, one site per slot
+    WALL_DRAG_PIECES = ("wall", "wooden_wall")
+    WALL_SPACING = 56  # matches the AI's sealed-line spacing (radius 32)
+
     def __init__(self, game):
         self.game = game
         self.game_map = game.game_map
-        
+
         # Building placement state
         self.building_placement_mode = False
         self.building_to_place = None
         self.building_preview_valid = False
         self.building_preview_pos = None
         self.selected_builder = None
+        self.wall_drag_anchor = None  # world pos where a wall drag started
         
     def enter_building_placement_mode(self, building_data):
         """Enter building placement mode with the selected building type"""
@@ -50,7 +55,105 @@ class BuildingSystem:
         self.building_preview_valid = False
         self.building_preview_pos = None
         self.selected_builder = None
+        self.wall_drag_anchor = None
         # Cancelled building placement
+
+    # --- Wall drag placement (§8.10) -------------------------------------
+
+    @property
+    def wall_drag_active(self):
+        return self.wall_drag_anchor is not None
+
+    def handle_placement_mouse_down(self, mouse_pos):
+        """Mouse down while placing: walls start a drag, others place at once."""
+        if self.building_to_place and self.building_to_place.get('name') in self.WALL_DRAG_PIECES:
+            if self.building_preview_valid and self.building_preview_pos:
+                self.wall_drag_anchor = tuple(self.building_preview_pos)
+            return True
+        return self.handle_building_placement_click(mouse_pos)
+
+    def finish_wall_drag(self, mouse_pos):
+        """Mouse up after a wall drag: place a site at every valid slot on the
+        anchor→cursor line, stopping when resources run out. The selected
+        builder is sent to the first site; the rest wait for workers."""
+        anchor = self.wall_drag_anchor
+        self.wall_drag_anchor = None
+        if not anchor or not self.building_to_place:
+            return False
+        end = self.game.screen_to_world(mouse_pos[0], mouse_pos[1])
+        placed_any = False
+        for slot in self._wall_drag_slots(anchor, end):
+            if not self._wall_slot_valid(slot):
+                continue  # holes are allowed — terrain/statics plug them
+            if not self._place_wall_site(slot, assign_builder=not placed_any):
+                break  # out of resources
+            placed_any = True
+        self.cancel_building_placement()
+        return placed_any
+
+    def _wall_drag_slots(self, start, end):
+        """Points from start to end spaced WALL_SPACING apart (start included)."""
+        dx, dy = end[0] - start[0], end[1] - start[1]
+        length = math.hypot(dx, dy)
+        if length < self.WALL_SPACING / 2:
+            return [start]
+        steps = int(length // self.WALL_SPACING)
+        return [
+            (start[0] + dx * (i * self.WALL_SPACING / length),
+             start[1] + dy * (i * self.WALL_SPACING / length))
+            for i in range(steps + 1)
+        ]
+
+    def _wall_slot_valid(self, world_pos):
+        """is_valid_building_position, but sibling wall pieces may touch —
+        segments 56 px apart overlap by design so the line seals."""
+        hex_coord = self.game_map.world_to_grid(world_pos[0], world_pos[1])
+        if not hex_coord:
+            return False
+        if self.game_map.grid[hex_coord[1]][hex_coord[0]] in {"water", "lava"}:
+            return False
+        radius = self.building_to_place['size'][0] * TILE_WIDTH / 2
+        wall_names = ("wall", "wooden_wall", "gate")
+        all_objects = (self.game.buildings + self.game.units +
+                       self.game.resources + self.game.construction_sites)
+        for obj in all_objects:
+            if obj is self.selected_builder:
+                continue
+            sibling = (getattr(obj, "name", "") in wall_names
+                       or getattr(obj, "building_name", "") in wall_names)
+            allowed = radius * 0.5 if sibling else radius + obj.radius
+            if math.hypot(world_pos[0] - obj.x, world_pos[1] - obj.y) < allowed:
+                return False
+        return True
+
+    def _place_wall_site(self, world_pos, assign_builder):
+        """Place one wall construction site, paying its cost. False if unaffordable."""
+        human_player = self.game.players[0]
+        if not self.can_player_build(human_player, self.building_to_place):
+            if hasattr(self.game, "sound_manager") and self.game.sound_manager:
+                self.game.sound_manager.play_error()
+            return False
+        for resource, amount in self.building_to_place.get('costs', {}).items():
+            human_player.resources[resource] -= amount
+
+        building_radius = self.building_to_place['size'][0] * TILE_WIDTH / 2
+        site = ConstructionSite(
+            self.building_to_place['name'],
+            self.building_to_place,
+            world_pos[0],
+            world_pos[1],
+            building_radius,
+            human_player,
+        )
+        self.game.construction_sites.append(site)
+        self.game.pathfinder.notify_blocker_added(site)
+        if assign_builder and self.selected_builder:
+            worker_tasks = getattr(self.game, "worker_task_system", None)
+            if worker_tasks:
+                worker_tasks.assign_build(self.selected_builder, site)
+            else:
+                self.game.pathfinder.issue_interact(self.selected_builder, site, "build")
+        return True
     
     def update_building_preview(self, mouse_pos):
         """Update building preview position and validity"""
@@ -110,6 +213,18 @@ class BuildingSystem:
     def draw_building_preview(self, map_surface, camera):
         """Draw the building preview with appropriate tint"""
         if not self.building_preview_pos or not self.building_placement_mode:
+            return
+
+        # Wall drag: ghost circles along the anchor→cursor line (§8.10)
+        if self.wall_drag_active and self.building_preview_pos:
+            radius = self.building_to_place['size'][0] * TILE_WIDTH / 2
+            for slot in self._wall_drag_slots(self.wall_drag_anchor, self.building_preview_pos):
+                color = (0, 255, 0) if self._wall_slot_valid(slot) else (255, 0, 0)
+                pygame.draw.circle(
+                    map_surface, color,
+                    (int(slot[0] * camera.zoom + camera.x), int(slot[1] * camera.zoom + camera.y)),
+                    max(2, int(radius * camera.zoom)), 2,
+                )
             return
             
         # Get building sprite

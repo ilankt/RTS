@@ -760,8 +760,15 @@ due-east** — placement ignores where the enemy actually is.
   incremental nav notifications so paths/flow fields react instantly.
   Tested: sealed wall line = no path; open gate lets paths through; reclosing
   reseals. (V1 is a manual toggle for any unit, not per-player auto-gates.)
-- [ ] **Wall drag-placement UI** *(med)* — click-drag to lay a line of
-  segments instead of placing one at a time.
+- [x] **Wall drag-placement UI** *(med)* — landed 2026-07-10. With a wall
+  piece selected from the build menu (walls/gate now listed under Military —
+  they were missing from the menu's category lists entirely), click-drag
+  draws ghost circles (green/red per slot) along the line and mouse-up
+  places a construction site every 56 px, skipping blocked slots, stopping
+  when resources run out; the selected worker is sent to the first site.
+  Short drag = single piece; gates stay click-to-place. Sibling wall pieces
+  are allowed to touch (the normal placement validity would reject sealed
+  spacing). Tests in `tests/test_wall_drag.py`.
 - [x] **AI walling** *(med–high)* — landed 2026-07-10. `BuildWallGoal`
   (support category, so only turtle's `WALL_SEGMENT_TARGETS = 11` triggers it)
   lays a deterministic 11-slot picket with a middle gate across the threat

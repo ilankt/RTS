@@ -363,7 +363,8 @@ class Game:
                 # Check UI click first
                 if not self.ui_manager.handle_click(mouse_pos):
                     if self.building_system.building_placement_mode:
-                        self.building_system.handle_building_placement_click(mouse_pos)
+                        # Wall pieces start a drag; everything else places now
+                        self.building_system.handle_placement_mouse_down(mouse_pos)
                     elif self.ui_manager.active_command_mode:
                         # Handle command mode click
                         if self.selection_manager.handle_command_mode_click(mouse_pos, self.ui_manager.active_command_mode):
@@ -398,6 +399,8 @@ class Game:
         if event.button == 1:  # Left click
             if self.minimap.dragging:
                 self.minimap.handle_release()
+            elif self.building_system.wall_drag_active:
+                self.building_system.finish_wall_drag(pygame.mouse.get_pos())
             else:
                 self.selection_manager.handle_left_release(pygame.mouse.get_pos())
     
