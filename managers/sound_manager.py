@@ -15,22 +15,94 @@ import math
 MUSIC_DIR = os.path.join("assets", "sounds", "Background Music")
 
 
+class MusicPlayer:
+    """The background-music playlist. pygame.mixer.music is process-global,
+    so this is a module singleton (`music_player`) — the main menu starts a
+    track and a launched match adopts it seamlessly instead of restarting.
+    """
+
+    def __init__(self):
+        self.playlist = []
+        self.index = 0
+        self.volume = 0.4
+        self.started = False
+        self._scanned = False
+
+    def _ensure_ready(self):
+        """Scan the playlist once and make sure the mixer is up."""
+        if not self._scanned:
+            self._scanned = True
+            try:
+                self.playlist = sorted(glob.glob(os.path.join(MUSIC_DIR, "*.ogg")))
+            except Exception:
+                self.playlist = []
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+        except Exception:
+            return False
+        return bool(self.playlist)
+
+    def set_volume(self, volume):
+        self.volume = min(1.0, max(0.0, float(volume)))
+        try:
+            pygame.mixer.music.set_volume(self.volume)
+        except Exception:
+            pass
+
+    def start(self):
+        """Start (or keep) the playlist. Safe no-op without tracks/mixer."""
+        if self.started:
+            return
+        if self._ensure_ready() and self._play_track(self.index):
+            self.started = True
+
+    def stop(self):
+        if not self.started:
+            return
+        try:
+            pygame.mixer.music.stop()
+        except Exception:
+            pass
+        self.started = False
+
+    def update(self):
+        """Advance to the next track when the current one ends (called every
+        frame; get_busy is a cheap C call)."""
+        if not self.started:
+            return
+        try:
+            if pygame.mixer.music.get_busy():
+                return
+        except Exception:
+            return
+        self.index = (self.index + 1) % len(self.playlist)
+        self._play_track(self.index)
+
+    def _play_track(self, index):
+        try:
+            pygame.mixer.music.load(self.playlist[index])
+            pygame.mixer.music.set_volume(self.volume)
+            pygame.mixer.music.play(fade_ms=1500)
+            return True
+        except Exception:
+            return False
+
+
+music_player = MusicPlayer()
+
+
 class SoundManager:
-    """Manages game audio: synthesized SFX and the music playlist."""
+    """Manages game audio: synthesized SFX and the shared music playlist."""
 
     def __init__(self, game):
         self.game = game
         self.enabled = True
         self.volume = 0.3          # SFX volume
-        self.music_volume = 0.4
-        self.music_playlist = []
-        self.music_index = 0
-        self.music_started = False
 
         try:
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
             self._generate_sounds()
-            self.music_playlist = sorted(glob.glob(os.path.join(MUSIC_DIR, "*.ogg")))
         except Exception:
             self.enabled = False
 
@@ -40,54 +112,35 @@ class SoundManager:
         for sound in getattr(self, "sounds", {}).values():
             sound.set_volume(self.volume)
 
-    # ---- Background music (§8.5) -------------------------------------- #
+    # ---- Background music (§8.5): delegates to the shared player ------ #
+
+    @property
+    def music_playlist(self):
+        music_player._ensure_ready()
+        return music_player.playlist
+
+    @property
+    def music_started(self):
+        return music_player.started
+
+    @property
+    def music_volume(self):
+        return music_player.volume
 
     def set_music_volume(self, volume):
         """Music volume 0.0-1.0, independent of the SFX volume."""
-        self.music_volume = min(1.0, max(0.0, float(volume)))
-        try:
-            pygame.mixer.music.set_volume(self.music_volume)
-        except Exception:
-            pass
+        music_player.set_volume(volume)
 
     def start_music(self):
-        """Start the playlist from the current track. Safe no-op when sound
-        is disabled, the mixer failed, or no tracks exist."""
-        if not self.enabled or not self.music_playlist or self.music_started:
-            return
-        if self._play_track(self.music_index):
-            self.music_started = True
+        if self.enabled:
+            music_player.start()
 
     def stop_music(self):
-        if not self.music_started:
-            return
-        try:
-            pygame.mixer.music.stop()
-        except Exception:
-            pass
-        self.music_started = False
+        music_player.stop()
 
     def update_music(self):
-        """Advance to the next track when the current one ends (called every
-        frame; get_busy is a cheap C call)."""
-        if not self.enabled or not self.music_started:
-            return
-        try:
-            if pygame.mixer.music.get_busy():
-                return
-        except Exception:
-            return
-        self.music_index = (self.music_index + 1) % len(self.music_playlist)
-        self._play_track(self.music_index)
-
-    def _play_track(self, index):
-        try:
-            pygame.mixer.music.load(self.music_playlist[index])
-            pygame.mixer.music.set_volume(self.music_volume)
-            pygame.mixer.music.play(fade_ms=1500)
-            return True
-        except Exception:
-            return False
+        if self.enabled:
+            music_player.update()
     
     def _generate_sounds(self):
         """Generate simple synthesized sounds as placeholders."""

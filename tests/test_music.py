@@ -98,3 +98,36 @@ def test_music_volume_setting_persists(tmp_path):
     settings.set("music_volume", 0.7)
     settings.save()
     assert Settings(path=path).get("music_volume") == pytest.approx(0.7)
+
+
+def test_menu_music_is_adopted_by_the_match(game):
+    """The menu starts the shared player; a launched game's start_music
+    must adopt the playing track instead of restarting the playlist."""
+    from managers.sound_manager import music_player
+
+    sound = game.sound_manager
+    if not sound.enabled:
+        pytest.skip("mixer unavailable in this environment")
+
+    music_player.stop()
+    music_player.start()          # the main-menu path
+    assert music_player.started
+    index_before = music_player.index
+
+    sound.start_music()           # the match-launch path: no restart
+    assert music_player.started
+    assert music_player.index == index_before
+    music_player.stop()
+
+
+def test_splash_background_scales_to_screen():
+    from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
+    from screens.main_menu import splash_background, draw_splash
+    import pygame
+
+    surface = splash_background()
+    assert surface is not None
+    assert surface.get_size() == (SCREEN_WIDTH, SCREEN_HEIGHT)
+
+    screen = pygame.display.get_surface() or pygame.display.set_mode((640, 360))
+    draw_splash(screen, "Loading...")  # must not raise

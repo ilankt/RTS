@@ -18,8 +18,19 @@ if settings.get("colorblind_palette"):
 
 from core.config import MIN_GAME_SPEED, MAX_GAME_SPEED
 from core.game import Game
-from screens.main_menu import MainMenu
+from screens.main_menu import MainMenu, draw_splash
 from managers.save_manager import SaveManager
+from managers.sound_manager import music_player
+
+
+def sync_menu_music():
+    """Menu vibe (§8.5): keep the shared playlist matching the settings."""
+    settings.load()  # the pause-screen settings may have changed on disk
+    if settings.get("sound_enabled"):
+        music_player.set_volume(settings.get("music_volume"))
+        music_player.start()
+    else:
+        music_player.stop()
 
 
 def parse_args():
@@ -99,6 +110,7 @@ def main():
         return
 
     while True:
+        sync_menu_music()
         menu = MainMenu(screen)
         choice = menu.run()
 
@@ -109,11 +121,14 @@ def main():
 
             setup = MatchSetupScreen(screen).run()
             if setup:
+                draw_splash(screen, "Preparing the battlefield...")
                 game = create_game_from_setup(setup)
                 game.run()
         elif choice == "spectate":
+            draw_splash(screen, "Preparing the battlefield...")
             launch_spectator(player_count=args.players, speed=args.speed, seed=args.seed)
         elif choice == "load":
+            draw_splash(screen, "Loading...")
             game = Game()
             settings.apply_to_game(game)  # before load: the save's speed wins
             success, msg = SaveManager.load_game(game, slot=0)

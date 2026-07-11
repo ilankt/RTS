@@ -1037,8 +1037,12 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
     auto-advance (runs even while paused); **separate Music/SFX volume**
     settings (mixer bumped to 44.1 kHz, synth SFX resampled to match);
     settings screen now opens **in-game from pause (O)** and re-applies
-    audio live. Still open: menu-specific track, ambient bed, ducking
-    under alerts.
+    audio live. Same day: **menu vibe pass** — the splash art is the main
+    menu background (cover-cropped, scrim column for readability, title
+    drop shadow), a splash + caption shows while a match generates, and
+    the playlist now starts **on the menu** via a shared `music_player`
+    singleton the match adopts without restarting the track. Still open:
+    ambient bed, ducking under alerts.
 - [ ] **VFX / juice** *(med)* — hit sparks, death fades, movement dust, muzzle/impact
   flashes, staged construction visuals, screen shake on big events (build on existing
   particles + castle-destruction shake).
