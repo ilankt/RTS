@@ -24,11 +24,11 @@ from managers.sound_manager import music_player
 
 
 def sync_menu_music():
-    """Menu vibe (§8.5): keep the shared playlist matching the settings."""
+    """Menu vibe (§8.5): loop the menu theme, matching the settings."""
     settings.load()  # the pause-screen settings may have changed on disk
     if settings.get("sound_enabled"):
         music_player.set_volume(settings.get("music_volume"))
-        music_player.start()
+        music_player.play_menu()
     else:
         music_player.stop()
 

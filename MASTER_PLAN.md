@@ -1041,8 +1041,11 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
     menu background (cover-cropped, scrim column for readability, title
     drop shadow), a splash + caption shows while a match generates, and
     the playlist now starts **on the menu** via a shared `music_player`
-    singleton the match adopts without restarting the track. Still open:
-    ambient bed, ducking under alerts.
+    singleton. Track roles are a **file convention** (user request):
+    `menu.ogg` loops forever on the menu (Legacy of the Gilded Peak),
+    `game_0.ogg, game_1.ogg, ...` form the numerically-sorted in-match
+    playlist — drop new files in, no code change. Still open: ambient
+    bed, ducking under alerts.
 - [ ] **VFX / juice** *(med)* — hit sparks, death fades, movement dust, muzzle/impact
   flashes, staged construction visuals, screen shake on big events (build on existing
   particles + castle-destruction shake).

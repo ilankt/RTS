@@ -20,14 +20,24 @@ def game():
     return Game(mode="human_1v1", player_count=2)
 
 
-def test_playlist_contains_the_three_soundtracks(game):
-    sound = game.sound_manager
-    names = [os.path.basename(p) for p in sound.music_playlist]
-    assert names == [
-        "Crown_of_the_Morning.ogg",
-        "Legacy_of_the_Gilded_Peak.ogg",
-        "Where_Light_Fails.ogg",
-    ]
+def test_track_roles_menu_theme_and_game_playlist(game):
+    """menu.ogg is the dedicated menu theme; game_N.ogg form the in-match
+    playlist (drop in game_2, game_3, ... later — no code change)."""
+    from managers.sound_manager import music_player
+
+    names = [os.path.basename(p) for p in game.sound_manager.music_playlist]
+    assert names == ["game_0.ogg", "game_1.ogg"]
+    assert music_player.menu_track is not None
+    assert os.path.basename(music_player.menu_track) == "menu.ogg"
+
+
+def test_game_playlist_sorts_numerically():
+    from managers.sound_manager import MusicPlayer
+
+    key = MusicPlayer._game_sort_key
+    files = ["game_10.ogg", "game_2.ogg", "game_0.ogg", "game_1.ogg"]
+    assert sorted(files, key=key) == [
+        "game_0.ogg", "game_1.ogg", "game_2.ogg", "game_10.ogg"]
 
 
 def test_music_volume_is_independent_and_clamped(game):
@@ -100,9 +110,9 @@ def test_music_volume_setting_persists(tmp_path):
     assert Settings(path=path).get("music_volume") == pytest.approx(0.7)
 
 
-def test_menu_music_is_adopted_by_the_match(game):
-    """The menu starts the shared player; a launched game's start_music
-    must adopt the playing track instead of restarting the playlist."""
+def test_menu_theme_switches_to_game_playlist_and_back(game):
+    """Menu loops menu.ogg; launching a match switches to the game_N
+    playlist; returning to the menu brings the theme back."""
     from managers.sound_manager import music_player
 
     sound = game.sound_manager
@@ -110,13 +120,18 @@ def test_menu_music_is_adopted_by_the_match(game):
         pytest.skip("mixer unavailable in this environment")
 
     music_player.stop()
-    music_player.start()          # the main-menu path
-    assert music_player.started
-    index_before = music_player.index
+    music_player.play_menu()      # the main-menu path
+    assert music_player.mode == 'menu'
+    music_player.update()         # menu theme loops itself: update no-ops
+    assert music_player.mode == 'menu'
 
-    sound.start_music()           # the match-launch path: no restart
-    assert music_player.started
-    assert music_player.index == index_before
+    sound.start_music()           # the match-launch path
+    assert music_player.mode == 'game'
+    sound.start_music()           # idempotent mid-match
+    assert music_player.mode == 'game'
+
+    music_player.play_menu()      # back to the menu after the match
+    assert music_player.mode == 'menu'
     music_player.stop()
 
 

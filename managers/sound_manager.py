@@ -15,33 +15,59 @@ import math
 MUSIC_DIR = os.path.join("assets", "sounds", "Background Music")
 
 
+MENU_TRACK = "menu.ogg"
+
+
 class MusicPlayer:
-    """The background-music playlist. pygame.mixer.music is process-global,
-    so this is a module singleton (`music_player`) — the main menu starts a
-    track and a launched match adopts it seamlessly instead of restarting.
+    """The background music. pygame.mixer.music is process-global, so this
+    is a module singleton (`music_player`).
+
+    Track convention inside MUSIC_DIR — drop in new files, no code change:
+    - `menu.ogg`               the main-menu theme, loops forever
+    - `game_0.ogg, game_1.ogg` the in-match playlist, numerically sorted
     """
 
     def __init__(self):
-        self.playlist = []
+        self.menu_track = None
+        self.game_playlist = []
         self.index = 0
         self.volume = 0.4
-        self.started = False
+        self.mode = None  # None | 'menu' | 'game'
         self._scanned = False
 
+    @property
+    def started(self):
+        return self.mode is not None
+
+    @staticmethod
+    def _game_sort_key(path):
+        """game_10 sorts after game_2; oddly named files sort last, lexically."""
+        stem = os.path.splitext(os.path.basename(path))[0]
+        try:
+            return (0, int(stem.rsplit("_", 1)[-1]), stem)
+        except ValueError:
+            return (1, 0, stem)
+
     def _ensure_ready(self):
-        """Scan the playlist once and make sure the mixer is up."""
+        """Scan the tracks once and make sure the mixer is up."""
         if not self._scanned:
             self._scanned = True
             try:
-                self.playlist = sorted(glob.glob(os.path.join(MUSIC_DIR, "*.ogg")))
+                menu_path = os.path.join(MUSIC_DIR, MENU_TRACK)
+                self.menu_track = menu_path if os.path.exists(menu_path) else None
+                self.game_playlist = sorted(
+                    glob.glob(os.path.join(MUSIC_DIR, "game_*.ogg")),
+                    key=self._game_sort_key,
+                )
             except Exception:
-                self.playlist = []
+                self.menu_track = None
+                self.game_playlist = []
         try:
             if not pygame.mixer.get_init():
                 pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
         except Exception:
             return False
-        return bool(self.playlist)
+        return bool(self.menu_track or self.game_playlist)
 
     def set_volume(self, volume):
         self.volume = min(1.0, max(0.0, float(volume)))
@@ -50,40 +76,68 @@ class MusicPlayer:
         except Exception:
             pass
 
-    def start(self):
-        """Start (or keep) the playlist. Safe no-op without tracks/mixer."""
-        if self.started:
+    def _active_game_playlist(self):
+        """The in-match tracks — falls back to the menu theme when no
+        game_*.ogg exists yet."""
+        if self.game_playlist:
+            return self.game_playlist
+        return [self.menu_track] if self.menu_track else []
+
+    def play_menu(self):
+        """Loop the dedicated menu theme (safe no-op without tracks/mixer)."""
+        if not self._ensure_ready():
             return
-        if self._ensure_ready() and self._play_track(self.index):
-            self.started = True
+        if self.menu_track is None:
+            self.play_game()  # no menu theme yet: reuse the game playlist
+            return
+        if self.mode == 'menu':
+            return
+        if self._play(self.menu_track, loops=-1):
+            self.mode = 'menu'
+
+    def play_game(self):
+        """Start (or keep) the in-match playlist."""
+        if self.mode == 'game':
+            return
+        if not self._ensure_ready():
+            return
+        playlist = self._active_game_playlist()
+        if not playlist:
+            return
+        self.index %= len(playlist)
+        if self._play(playlist[self.index]):
+            self.mode = 'game'
 
     def stop(self):
-        if not self.started:
+        if self.mode is None:
             return
         try:
             pygame.mixer.music.stop()
         except Exception:
             pass
-        self.started = False
+        self.mode = None
 
     def update(self):
-        """Advance to the next track when the current one ends (called every
-        frame; get_busy is a cheap C call)."""
-        if not self.started:
+        """Advance the in-match playlist when a track ends (called every
+        frame; get_busy is a cheap C call). The menu theme loops on its own."""
+        if self.mode != 'game':
             return
         try:
             if pygame.mixer.music.get_busy():
                 return
         except Exception:
             return
-        self.index = (self.index + 1) % len(self.playlist)
-        self._play_track(self.index)
+        playlist = self._active_game_playlist()
+        if not playlist:
+            return
+        self.index = (self.index + 1) % len(playlist)
+        self._play(playlist[self.index])
 
-    def _play_track(self, index):
+    def _play(self, path, loops=0):
         try:
-            pygame.mixer.music.load(self.playlist[index])
+            pygame.mixer.music.load(path)
             pygame.mixer.music.set_volume(self.volume)
-            pygame.mixer.music.play(fade_ms=1500)
+            pygame.mixer.music.play(loops=loops, fade_ms=1500)
             return True
         except Exception:
             return False
@@ -117,7 +171,7 @@ class SoundManager:
     @property
     def music_playlist(self):
         music_player._ensure_ready()
-        return music_player.playlist
+        return music_player.game_playlist
 
     @property
     def music_started(self):
@@ -132,8 +186,9 @@ class SoundManager:
         music_player.set_volume(volume)
 
     def start_music(self):
+        """A match plays the game_* playlist (switching off the menu theme)."""
         if self.enabled:
-            music_player.start()
+            music_player.play_game()
 
     def stop_music(self):
         music_player.stop()
