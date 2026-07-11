@@ -138,6 +138,7 @@ def test_fullscreen_setting_and_display_flags(tmp_path):
     assert settings.display_flags() == 0
 
     settings.set("fullscreen", True)
-    assert settings.display_flags() == (pygame.FULLSCREEN | pygame.SCALED)
+    # Exclusive fullscreen: a real display-mode switch, not SCALED rendering
+    assert settings.display_flags() == pygame.FULLSCREEN
     settings.save()
     assert Settings(path=path).get("fullscreen") is True
