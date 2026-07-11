@@ -169,20 +169,26 @@ class RenderingSystem:
         return sprite_to_draw
     
     def _render_sprite(self, sprite, obj, draw_x, draw_y, camera, map_surface):
-        """Render a sprite at the specified position (scaled copies cached)"""
+        """Render a sprite at the specified position (scaled copies cached).
+        Units walking/facing left draw mirrored — the sheets face right."""
         sprite_w, sprite_h = sprite.get_size()
         scale = (obj.size[0] * TILE_WIDTH) / sprite_w
         scaled_width = int(sprite_w * scale * camera.zoom)
         scaled_height = int(sprite_h * scale * camera.zoom)
+        mirrored = getattr(obj, 'facing_left', False)
 
-        # Only scale if necessary to avoid performance issues
-        if (scaled_width, scaled_height) != (sprite_w, sprite_h):
-            key = (sprite, scaled_width, scaled_height)
+        # Only transform if necessary; cache per (sprite, size, mirrored)
+        if (scaled_width, scaled_height) != (sprite_w, sprite_h) or mirrored:
+            key = (sprite, scaled_width, scaled_height, mirrored)
             scaled_sprite = self._scaled_sprite_cache.get(key)
             if scaled_sprite is None:
                 if len(self._scaled_sprite_cache) > 2048:
                     self._scaled_sprite_cache.clear()
-                scaled_sprite = pygame.transform.scale(sprite, (scaled_width, scaled_height))
+                scaled_sprite = sprite
+                if (scaled_width, scaled_height) != (sprite_w, sprite_h):
+                    scaled_sprite = pygame.transform.scale(scaled_sprite, (scaled_width, scaled_height))
+                if mirrored:
+                    scaled_sprite = pygame.transform.flip(scaled_sprite, True, False)
                 self._scaled_sprite_cache[key] = scaled_sprite
         else:
             scaled_sprite = sprite

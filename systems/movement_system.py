@@ -1002,6 +1002,14 @@ class MovementSystem:
         actually_moved = abs(new_pos.x - unit.x) > 0.1 or abs(new_pos.y - unit.y) > 0.1
         
         if actually_moved:
+            # Face the direction of real horizontal travel (sheets face
+            # right; the renderer mirrors when facing_left). The threshold
+            # keeps steering jitter from flip-flopping the sprite.
+            dx = new_pos.x - unit.x
+            if dx > 0.1:
+                unit.facing_left = False
+            elif dx < -0.1:
+                unit.facing_left = True
             unit.x, unit.y = new_pos.x, new_pos.y
             unit.status = "run"
             if hasattr(unit, '_movement_blocked_timer'):

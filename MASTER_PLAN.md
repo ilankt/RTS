@@ -581,6 +581,10 @@ and should override "obvious" instincts.
   `tests/test_production_queue.py`.
 - [ ] **Readability pass** *(med)* — HP bars, team-color clarity, hover/selection
   highlights, damage/heal floats.
+  - *(2026-07-11)* **Directional sprite mirroring** landed (user request):
+    sheets face right; units moving left render mirrored (cached flip in
+    the renderer), facing persists while idle, and `start_attack` faces
+    the target so combat never plays backwards.
 - **✅ Verify:** each item is observable in-game — idle-worker key selects/cycles and
   the badge counts; double-tap centers; Shift queues; rally points path new units;
   alerts fire *and* ping *and* play sound; right-click gathers; every order gives a

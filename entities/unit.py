@@ -86,6 +86,10 @@ class Unit(GameObject):
         self.collision = True
         self.ghost_timer = None
 
+        # Sprite facing: sheets face right; the renderer mirrors when this
+        # is True. Updated from real horizontal movement and on attack start.
+        self.facing_left = False
+
         # Group-move flow field (Phase 5)
         self.flow_field = None
         self.flow_slot_target = None
@@ -353,6 +357,9 @@ class Unit(GameObject):
         self.in_combat = True
         self.is_engaging = False  # No longer pursuing, now attacking
         self.status = "attack"
+        # Face the enemy, not whichever way we last walked
+        if abs(target.x - self.x) > 1:
+            self.facing_left = target.x < self.x
         
         # Stop movement when attacking
         self.destination = None
