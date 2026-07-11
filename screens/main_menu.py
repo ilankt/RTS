@@ -78,30 +78,24 @@ class MainMenu:
         return self.result
     
     def _get_option_rect(self, index):
-        """Get the rectangle for an option at the given index"""
+        """Fixed-size framed button rect for an option."""
         start_y = SCREEN_HEIGHT // 2 - 40
         spacing = 60
-        text_surface = self.font_medium.render(self.options[index][0], True, self.option_color)
-        text_rect = text_surface.get_rect(center=(SCREEN_WIDTH // 2, start_y + index * spacing))
-        # Expand rect for easier clicking
-        return text_rect.inflate(40, 20)
+        return pygame.Rect(SCREEN_WIDTH // 2 - 180,
+                           start_y + index * spacing - 23, 360, 46)
     
     def draw(self):
         """Draw the menu over the splash art (falls back to the flat bg)."""
         background = splash_background()
         if background is not None:
             self.screen.blit(background, (0, 0))
-            # Scrim column behind title + options so text stays readable
-            # over the busy art
-            scrim = pygame.Surface((560, SCREEN_HEIGHT), pygame.SRCALPHA)
-            scrim_rect = scrim.get_rect(centerx=SCREEN_WIDTH // 2)
-            pygame.draw.rect(
-                scrim, (12, 12, 22, 165),
-                pygame.Rect(0, SCREEN_HEIGHT // 3 - 70,
-                            560, SCREEN_HEIGHT - (SCREEN_HEIGHT // 3 - 70) - 90),
-                border_radius=16,
-            )
-            self.screen.blit(scrim, scrim_rect)
+            # Panel behind title + options so text stays readable over
+            # the busy art (textured via the theme when the art exists)
+            from screens import theme
+            panel_rect = pygame.Rect(
+                SCREEN_WIDTH // 2 - 280, SCREEN_HEIGHT // 3 - 70,
+                560, SCREEN_HEIGHT - (SCREEN_HEIGHT // 3 - 70) - 90)
+            theme.draw_panel(self.screen, panel_rect)
         else:
             self.screen.fill(self.bg_color)
 
@@ -112,25 +106,13 @@ class MainMenu:
         self.screen.blit(shadow, title_rect.move(3, 3))
         self.screen.blit(title, title_rect)
         
-        # Options — exactly one highlighted: selected_index (hover moves it)
-        start_y = SCREEN_HEIGHT // 2 - 40
-        spacing = 60
+        # Options — framed buttons; exactly one highlighted (hover moves it)
+        from screens import theme
 
         for i, (text, action) in enumerate(self.options):
-            rect = self._get_option_rect(i)
-            is_selected = (i == self.selected_index)
-
-            if is_selected:
-                color = self.selected_color
-                # Draw selection indicator
-                pygame.draw.rect(self.screen, (60, 60, 80), rect, border_radius=5)
-                pygame.draw.rect(self.screen, self.selected_color, rect, 2, border_radius=5)
-            else:
-                color = self.option_color
-            
-            text_surface = self.font_medium.render(text, True, color)
-            text_rect = text_surface.get_rect(center=(SCREEN_WIDTH // 2, start_y + i * spacing))
-            self.screen.blit(text_surface, text_rect)
+            theme.draw_action_row(self.screen, self._get_option_rect(i), text,
+                                  i == self.selected_index, self.font_medium,
+                                  primary=(action == "start"))
         
         # Controls hint (on a small backdrop — the art below is busy)
         hint = self.font_small.render("Use Arrow Keys / Mouse to navigate, Enter / Click to select", True, (170, 170, 170))

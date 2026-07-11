@@ -743,6 +743,14 @@ user's request); the checklist items here are its inputs/prerequisites.**
     now a real **pause menu** — Resume / Settings / Quit to Menu,
     clickable, with gameplay clicks blocked while paused. Victory/summary
     overlay is the remaining screen still on the old flat style.
+  - *(2026-07-11, same day)* **User-generated frame art wired in**:
+    `assets/ui/panel_frame.png` (stone panel with gold filigree border)
+    now textures every scrim panel, and `assets/ui/button_frame.png` is
+    3-sliced (fixed ornate end caps, stretched middle) into every menu
+    row/button with programmatic state tints — dimmed normal, warm-glow
+    selected, green-shifted primary. Main menu options became framed
+    buttons too. Flat rounded rects remain as the fallback when the art
+    files are missing.
 - **✅ Verify:** resize the window to a non-720p size and confirm the HUD lays out
   correctly with no clipping; the command card issues actions; tooltips appear on
   hover; settings changes persist across a restart.

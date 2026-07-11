@@ -130,7 +130,7 @@ class SettingsMenu:
     # --- Drawing ------------------------------------------------------------
     ROWS_TOP_OFFSET = 88   # first row's offset inside the panel
     ROW_PITCH = 48
-    ROW_W = 560
+    ROW_W = 530
 
     def _panel_rect(self):
         height = self.ROWS_TOP_OFFSET + len(self.rows) * self.ROW_PITCH + 36

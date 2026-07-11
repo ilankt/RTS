@@ -7,7 +7,14 @@ import pygame
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
 
 SPLASH_PATH = "assets/ui/splash_background.png"
-_splash_cache = {}  # (w, h) -> cover-scaled surface
+PANEL_TEXTURE_PATH = "assets/ui/panel_frame.png"
+BUTTON_FRAME_PATH = "assets/ui/button_frame.png"
+BUTTON_CAP_FRACTION = 0.14  # ornate end caps of the button frame art
+
+_splash_cache = {}   # (w, h) -> cover-scaled surface
+_source_cache = {}   # path -> loaded surface (or None when missing)
+_panel_cache = {}    # (w, h) -> scaled panel texture
+_button_cache = {}   # (w, h, variant) -> 3-sliced frame
 
 TITLE_COLOR = (222, 195, 110)
 TITLE_SHADOW = (12, 12, 12)
@@ -73,13 +80,81 @@ def draw_text_backdrop(screen, rect, alpha=150):
     screen.blit(panel, backdrop.topleft)
 
 
+def _source(path):
+    """Load-and-cache an art source; None when the file is missing."""
+    if path in _source_cache:
+        return _source_cache[path]
+    try:
+        surface = pygame.image.load(path).convert_alpha()
+    except Exception:
+        surface = None
+    _source_cache[path] = surface
+    return surface
+
+
+def _panel_texture(size):
+    cached = _panel_cache.get(size)
+    if cached is not None:
+        return cached
+    source = _source(PANEL_TEXTURE_PATH)
+    if source is None:
+        return None
+    texture = pygame.transform.smoothscale(source, size)
+    _panel_cache[size] = texture
+    return texture
+
+
 def draw_panel(screen, rect):
-    """Rounded scrim panel with a subtle gold border."""
+    """Scrim panel: the generated stone-and-gold texture, or a rounded
+    rect fallback when the art is missing."""
+    texture = _panel_texture(rect.size)
+    if texture is not None:
+        screen.blit(texture, rect.topleft)
+        return
     panel = pygame.Surface(rect.size, pygame.SRCALPHA)
     pygame.draw.rect(panel, PANEL_FILL, panel.get_rect(), border_radius=16)
     pygame.draw.rect(panel, (*PANEL_BORDER, 200), panel.get_rect(), 2,
                      border_radius=16)
     screen.blit(panel, rect.topleft)
+
+
+def _button_frame(size, variant):
+    """The ornate button frame, 3-sliced to `size` (fixed-proportion end
+    caps, stretched middle), with per-state tinting:
+    normal=dimmed, selected=full+warm glow, primary=green-shifted."""
+    key = (*size, variant)
+    cached = _button_cache.get(key)
+    if cached is not None:
+        return cached
+    source = _source(BUTTON_FRAME_PATH)
+    if source is None:
+        return None
+
+    width, height = size
+    src_w, src_h = source.get_size()
+    cap_src = int(src_w * BUTTON_CAP_FRACTION)
+    cap_dst = min(int(cap_src * (height / src_h) * 1.4), width // 3)
+
+    frame = pygame.Surface(size, pygame.SRCALPHA)
+    left = source.subsurface((0, 0, cap_src, src_h))
+    right = source.subsurface((src_w - cap_src, 0, cap_src, src_h))
+    middle = source.subsurface((cap_src, 0, src_w - 2 * cap_src, src_h))
+    frame.blit(pygame.transform.smoothscale(left, (cap_dst, height)), (0, 0))
+    frame.blit(pygame.transform.smoothscale(middle, (width - 2 * cap_dst, height)),
+               (cap_dst, 0))
+    frame.blit(pygame.transform.smoothscale(right, (cap_dst, height)),
+               (width - cap_dst, 0))
+
+    if variant == 'normal':
+        frame.fill((170, 170, 175, 255), special_flags=pygame.BLEND_RGBA_MULT)
+    elif variant == 'selected':
+        frame.fill((34, 24, 0, 0), special_flags=pygame.BLEND_RGB_ADD)
+    elif variant == 'primary':
+        frame.fill((0, 40, 12, 0), special_flags=pygame.BLEND_RGB_ADD)
+    elif variant == 'primary_selected':
+        frame.fill((22, 74, 28, 0), special_flags=pygame.BLEND_RGB_ADD)
+    _button_cache[key] = frame
+    return frame
 
 
 def draw_menu_scene(screen, title, panel_rect):
@@ -94,7 +169,7 @@ def draw_menu_scene(screen, title, panel_rect):
     font = pygame.font.Font(None, 56)
     shadow = font.render(title, True, TITLE_SHADOW)
     text = font.render(title, True, TITLE_COLOR)
-    rect = text.get_rect(center=(panel_rect.centerx, panel_rect.y + 44))
+    rect = text.get_rect(center=(panel_rect.centerx, panel_rect.y + 52))
     screen.blit(shadow, rect.move(2, 2))
     screen.blit(text, rect)
 
@@ -109,44 +184,51 @@ def _arrow(screen, x, y, direction, color):
     pygame.draw.polygon(screen, color, points)
 
 
-def draw_setting_row(screen, rect, label, value, selected, font):
-    """Label left, value right; selected rows get adjuster arrows."""
+def _draw_row_chrome(screen, rect, variant):
+    """Frame art when available, flat rounded rect fallback otherwise."""
+    frame = _button_frame(rect.size, variant)
+    if frame is not None:
+        screen.blit(frame, rect.topleft)
+        return
     row = pygame.Surface(rect.size, pygame.SRCALPHA)
-    if selected:
+    if variant in ('selected', 'primary_selected'):
         pygame.draw.rect(row, (*SELECTED_FILL, 235), row.get_rect(), border_radius=8)
         pygame.draw.rect(row, SELECTED_BORDER, row.get_rect(), 2, border_radius=8)
+    elif variant == 'primary':
+        pygame.draw.rect(row, (*PRIMARY_FILL, 170), row.get_rect(), border_radius=8)
+        pygame.draw.rect(row, (90, 140, 95), row.get_rect(), 1, border_radius=8)
     else:
         pygame.draw.rect(row, ROW_FILL, row.get_rect(), border_radius=8)
     screen.blit(row, rect.topleft)
 
+
+def draw_setting_row(screen, rect, label, value, selected, font):
+    """Label left, value right; selected rows get adjuster arrows."""
+    _draw_row_chrome(screen, rect, 'selected' if selected else 'normal')
+
+    # Keep text clear of the frame's ornate end caps
     label_surface = font.render(label, True,
                                 LABEL_COLOR if selected else MUTED_COLOR)
-    screen.blit(label_surface, (rect.x + 18,
+    screen.blit(label_surface, (rect.x + 38,
                                 rect.centery - label_surface.get_height() // 2))
 
     value_surface = font.render(value, True,
                                 VALUE_COLOR if selected else LABEL_COLOR)
-    value_x = rect.right - 40 - value_surface.get_width()
+    value_x = rect.right - 58 - value_surface.get_width()
     screen.blit(value_surface, (value_x,
                                 rect.centery - value_surface.get_height() // 2))
     if selected:
         _arrow(screen, value_x - 16, rect.centery, -1, SELECTED_BORDER)
-        _arrow(screen, rect.right - 24, rect.centery, 1, SELECTED_BORDER)
+        _arrow(screen, rect.right - 42, rect.centery, 1, SELECTED_BORDER)
 
 
 def draw_action_row(screen, rect, label, selected, font, primary=False):
     """Centered action button (Start / Back / Resume...)."""
-    row = pygame.Surface(rect.size, pygame.SRCALPHA)
     if primary:
-        fill = (*PRIMARY_FILL, 245) if selected else (*PRIMARY_FILL, 170)
-        border = PRIMARY_BORDER if selected else (90, 140, 95)
+        variant = 'primary_selected' if selected else 'primary'
     else:
-        fill = (*SELECTED_FILL, 235) if selected else ROW_FILL
-        border = SELECTED_BORDER if selected else (90, 90, 95)
-    pygame.draw.rect(row, fill, row.get_rect(), border_radius=8)
-    pygame.draw.rect(row, border, row.get_rect(), 2 if selected else 1,
-                     border_radius=8)
-    screen.blit(row, rect.topleft)
+        variant = 'selected' if selected else 'normal'
+    _draw_row_chrome(screen, rect, variant)
 
     color = (240, 240, 220) if selected or primary else LABEL_COLOR
     text = font.render(label, True, color)
