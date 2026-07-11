@@ -125,6 +125,13 @@ class MatchSetupScreen:
                         if label == "Back":
                             return None
                         self._row_adjust(1)
+                if event.type == pygame.MOUSEMOTION:
+                    # Hover moves the ONE selection (no keyboard/mouse
+                    # double highlight)
+                    for i in range(len(self.rows)):
+                        if self._row_rect(i).collidepoint(event.pos):
+                            self.selected_index = i
+                            break
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     for i, (label, key) in enumerate(self.rows):
                         if self._row_rect(i).collidepoint(pygame.mouse.get_pos()):
@@ -153,10 +160,9 @@ class MatchSetupScreen:
         title = self.font_large.render("Match Setup", True, self.title_color)
         self.screen.blit(title, title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 5)))
 
-        mouse_pos = pygame.mouse.get_pos()
         for i, (label, key) in enumerate(self.rows):
             rect = self._row_rect(i)
-            selected = i == self.selected_index or rect.collidepoint(mouse_pos)
+            selected = i == self.selected_index
             color = self.selected_color if selected else self.option_color
             if selected:
                 pygame.draw.rect(self.screen, (60, 60, 80), rect, border_radius=5)

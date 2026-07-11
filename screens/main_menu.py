@@ -102,6 +102,13 @@ class MainMenu:
                     elif event.key == pygame.K_ESCAPE:
                         self.result = "exit"
                         self.running = False
+                elif event.type == pygame.MOUSEMOTION:
+                    # Hover moves the ONE selection (keyboard and mouse share
+                    # it — no double highlight)
+                    for i in range(len(self.options)):
+                        if self._get_option_rect(i).collidepoint(event.pos):
+                            self.selected_index = i
+                            break
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
                     for i, (_, action) in enumerate(self.options):
@@ -152,18 +159,15 @@ class MainMenu:
         self.screen.blit(shadow, title_rect.move(3, 3))
         self.screen.blit(title, title_rect)
         
-        # Options
+        # Options — exactly one highlighted: selected_index (hover moves it)
         start_y = SCREEN_HEIGHT // 2 - 40
         spacing = 60
-        mouse_pos = pygame.mouse.get_pos()
-        
+
         for i, (text, action) in enumerate(self.options):
-            # Check hover
             rect = self._get_option_rect(i)
-            is_hovered = rect.collidepoint(mouse_pos)
             is_selected = (i == self.selected_index)
-            
-            if is_selected or is_hovered:
+
+            if is_selected:
                 color = self.selected_color
                 # Draw selection indicator
                 pygame.draw.rect(self.screen, (60, 60, 80), rect, border_radius=5)
