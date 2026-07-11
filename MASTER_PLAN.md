@@ -900,8 +900,24 @@ time, counters, description); right-click on a queued tile cancels with refund.
   research/army actions, disabled-tile consumption, pan-key suppression,
   right-click refund) + rendered-frame screenshots of all 7 selection
   scenarios at 720p.
-- [ ] **Phase B** — multi-building selection, shortest-queue routing, group
-  rally, configurable Shift-queue-N (default 5), Tab subtype cycling
+- [x] **Phase B** — landed 2026-07-11 (SC2 model). Drag-selecting several own
+  production buildings (already supported by the selection manager) now
+  drives one **union card**: tiles for every type any selected building can
+  produce; a tile press queues at the **shortest queue** among its producers
+  (re-evaluated per unit, so batches spread evenly); right-click removes from
+  the **deepest** queue (full refund) before touching in-progress work.
+  **Buildings join control groups** (`set/recall_control_group` accept
+  buildings; dead ones drop out on recall) and the multi-select header groups
+  buildings by type with count badges. **Shift+tile queues a batch** —
+  `batch_queue_size` in settings (default 5, cycle 1–10 in the settings
+  menu, persisted). Group rally was already live (§7.4) — one right-click
+  rallies every selected producer. **Tab subtype cycling deliberately
+  dropped**: SC2 needs it because one hotkey targets "the active subtype";
+  our card gives every unit type its own position-mapped tile, so there is
+  no ambiguity for Tab to resolve (and Tab is the army-cycle key). Aggregate
+  status strip shows "N/M producing · K queued". Verified: 258 tests green
+  (4 new: shortest-queue routing, union card, batch spread, building control
+  groups) + rendered screenshot of a barracks×2+stable selection.
 - [ ] **Phase C** — global build-queue strip + select-all-production hotkey
 - [ ] **Phase D** — resolution independence (absorbs the §8.2 item above)
 - **✅ Verify:** every selection type drives the same card with the same grid

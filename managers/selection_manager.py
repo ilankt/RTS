@@ -888,22 +888,26 @@ class SelectionManager:
         return names
     
     def set_control_group(self, group_number, add=False):
-        """Assign selected human units to a control group (1-9).
+        """Assign selected human units AND buildings to a control group (1-9)
+        — buildings joining groups is the §8.2.1 Phase B production model.
         If add=True, append to existing group instead of replacing."""
         if not 1 <= group_number <= 9:
             return
-        
-        selected_units = [obj for obj in self.selected_objects
-                         if obj in self.game.units and hasattr(obj, 'player') and obj.player and obj.player.human]
-        
+
+        selected_members = [
+            obj for obj in self.selected_objects
+            if (obj in self.game.units or obj in self.game.buildings)
+            and hasattr(obj, 'player') and obj.player and obj.player.human
+        ]
+
         if add and self.control_groups[group_number]:
             # Add to existing group, avoiding duplicates
             existing = set(id(u) for u in self.control_groups[group_number])
-            for unit in selected_units:
-                if id(unit) not in existing:
-                    self.control_groups[group_number].append(unit)
+            for member in selected_members:
+                if id(member) not in existing:
+                    self.control_groups[group_number].append(member)
         else:
-            self.control_groups[group_number] = selected_units[:]
+            self.control_groups[group_number] = selected_members[:]
     
     def _draw_rally_flags(self, surface, camera):
         """Line + flag from selected own production buildings to their rally point."""
@@ -966,23 +970,27 @@ class SelectionManager:
         return True
 
     def recall_control_group(self, group_number):
-        """Select all units in a control group (1-9). Returns True if group had units."""
+        """Select a control group's members (1-9), units and buildings alike.
+        Returns True if the group had live members."""
         if not 1 <= group_number <= 9:
             return False
-        
-        units = self.control_groups.get(group_number, [])
-        # Filter out dead/gone units
-        valid_units = [u for u in units if u in self.game.units and u.hp > 0]
-        self.control_groups[group_number] = valid_units
-        
-        if not valid_units:
+
+        members = self.control_groups.get(group_number, [])
+        # Filter out dead/gone members
+        valid_members = [
+            m for m in members
+            if (m in self.game.units or m in self.game.buildings) and m.hp > 0
+        ]
+        self.control_groups[group_number] = valid_members
+
+        if not valid_members:
             return False
-        
+
         self._clear_all_selections()
-        for unit in valid_units:
-            unit.selected = True
-            self.selected_objects.append(unit)
-        
+        for member in valid_members:
+            member.selected = True
+            self.selected_objects.append(member)
+
         self._update_smart_cursor_for_selection()
         return True
     

@@ -27,6 +27,7 @@ class SettingsMenu:
             ("Default game speed", "default_game_speed"),
             ("Colorblind team colors", "colorblind_palette"),
             ("Adaptive difficulty", "adaptive_difficulty"),
+            ("Shift-queue batch size", "batch_queue_size"),
             ("Back (saves)", None),
         ]
         self.selected_index = 0
@@ -52,6 +53,9 @@ class SettingsMenu:
         elif key == "default_game_speed":
             speed = self.settings.get("default_game_speed") + direction
             self.settings.set("default_game_speed", float(min(5, max(1, int(speed)))))
+        elif key == "batch_queue_size":
+            size = self.settings.get("batch_queue_size") + direction
+            self.settings.set("batch_queue_size", min(10, max(1, int(size))))
 
     def _value_text(self, key):
         if key == "resolution":
@@ -67,6 +71,8 @@ class SettingsMenu:
             return "On" if self.settings.get("adaptive_difficulty") else "Off"
         if key == "default_game_speed":
             return f"{self.settings.get('default_game_speed'):.0f}x"
+        if key == "batch_queue_size":
+            return f"{self.settings.get('batch_queue_size')} units"
         return ""
 
     # --- Loop ---------------------------------------------------------------

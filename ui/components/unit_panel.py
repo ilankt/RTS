@@ -225,12 +225,25 @@ class UnitPanel:
 
     def _draw_multi_selection(self, panel_surface, selected_objects):
         """Compact multi-selection header: grouped 40px icons + count badges
-        + aggregate health bars, two rows max (7 unit types exist)."""
-        groups = self.group_selected_units(selected_objects)
-        unit_count = sum(len(units) for _n, units in groups)
-        formation = getattr(self.game.selection_manager, 'formation_type', 'ring')
-        title = self.small_font.render(
-            f"{unit_count} selected — {formation.title()} (F)", True, (230, 230, 230))
+        + aggregate health bars, two rows max. Groups units by type, then
+        buildings by type (§8.2.1 Phase B: buildings multi-select too)."""
+        groups = [('unit', name, members) for name, members
+                  in self.group_selected_units(selected_objects)]
+        building_groups = {}
+        for obj in selected_objects:
+            if obj in self.game.buildings:
+                building_groups.setdefault(obj.name, []).append(obj)
+        groups += [('building', name, members) for name, members
+                   in sorted(building_groups.items(), key=lambda kv: -len(kv[1]))]
+
+        unit_count = sum(len(m) for kind, _n, m in groups if kind == 'unit')
+        total = sum(len(m) for _k, _n, m in groups)
+        if unit_count:
+            formation = getattr(self.game.selection_manager, 'formation_type', 'ring')
+            title_text = f"{total} selected — {formation.title()} (F)"
+        else:
+            title_text = f"{total} buildings selected"
+        title = self.small_font.render(title_text, True, (230, 230, 230))
         panel_surface.blit(title, (8, 8))
 
         icon_size = 40
@@ -239,30 +252,36 @@ class UnitPanel:
         start_x = 8
         start_y = 28
 
-        for i, (name, units) in enumerate(groups):
+        for i, (kind, name, members) in enumerate(groups):
             row = i // icons_per_row
             col = i % icons_per_row
             x = start_x + col * (icon_size + icon_spacing)
             y = start_y + row * (icon_size + icon_spacing + 8)
 
-            cached = self.unit_panel_icons.get(name, {}).get('group')
-            if cached is not None:
-                panel_surface.blit(cached, (x, y))
+            if kind == 'unit':
+                icon = self.unit_panel_icons.get(name, {}).get('group')
+            else:
+                icon = self._get_building_icon(members[0], size=icon_size)
+            if icon is not None:
+                panel_surface.blit(icon, (x, y))
             else:
                 placeholder = pygame.Surface((icon_size, icon_size))
                 placeholder.fill((100, 100, 100))
                 pygame.draw.rect(placeholder, (150, 150, 150), (0, 0, icon_size, icon_size), 2)
                 panel_surface.blit(placeholder, (x, y))
 
-            count_text = self.dense_font.render(f"x{len(units)}", True, (255, 255, 255))
+            count_text = self.dense_font.render(f"x{len(members)}", True, (255, 255, 255))
             badge = pygame.Rect(x + icon_size - count_text.get_width() - 5, y + 1,
                                 count_text.get_width() + 4, count_text.get_height() + 1)
             pygame.draw.rect(panel_surface, (0, 0, 0), badge)
             panel_surface.blit(count_text, (badge.x + 2, badge.y + 1))
 
             bar_y = y + icon_size + 1
-            total_hp = sum(u.hp for u in units)
-            total_max = sum(self._get_unit_max_hp(u) for u in units)
+            total_hp = sum(m.hp for m in members)
+            if kind == 'unit':
+                total_max = sum(self._get_unit_max_hp(m) for m in members)
+            else:
+                total_max = sum(self._get_object_max_hp(m) for m in members)
             hp_percentage = total_hp / total_max if total_max > 0 else 0
             pygame.draw.rect(panel_surface, (60, 60, 60), (x, bar_y, icon_size, 4))
             fill_width = int(icon_size * hp_percentage)
@@ -277,19 +296,20 @@ class UnitPanel:
                 groups.setdefault(obj.name, []).append(obj)
         return sorted(groups.items(), key=lambda item: -len(item[1]))
     
-    def _get_building_icon(self, obj):
-        """48px building portrait via the shared icon loader (cached)."""
+    def _get_building_icon(self, obj, size=48):
+        """Building portrait via the shared icon loader (cached per size)."""
         name = getattr(obj, 'name', None)
         if name is None or self.icon_loader is None:
             return None
-        cached = self._building_icon_cache.get(name)
+        key = (name, size)
+        cached = self._building_icon_cache.get(key)
         if cached is not None:
             return cached
         source = self.icon_loader.building_icons.get(name)
         if source is None:
             return None
-        icon = pygame.transform.smoothscale(source, (48, 48))
-        self._building_icon_cache[name] = icon
+        icon = pygame.transform.smoothscale(source, (size, size))
+        self._building_icon_cache[key] = icon
         return icon
 
     def _get_object_max_hp(self, obj):

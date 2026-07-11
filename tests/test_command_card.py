@@ -269,6 +269,94 @@ def test_construction_site_gets_cancel_tile(game, card):
 
 
 # --------------------------------------------------------------------- #
+# Phase B: multi-building production (SC2 model)                         #
+# --------------------------------------------------------------------- #
+
+def test_group_production_routes_to_shortest_queue(game, card):
+    castle = own_castle(game)
+    a = build_own_building(game, "barracks", castle.x + 300, castle.y)
+    b = build_own_building(game, "barracks", castle.x + 300, castle.y + 100)
+    select(game, a, b)
+    content = card.refresh()
+
+    assert content['context'] == 'production'
+    warrior = next(s for s in content['slots'] if s and s.get('unit_type') == 'warrior')
+    assert len(warrior['producers']) == 2
+
+    card._activate(warrior)   # first press -> a (both empty, first wins)
+    card._activate(warrior)   # second press must route to the idle one
+    assert a.current_production is not None
+    assert b.current_production is not None
+
+    game.production_manager.cancel_production(a)
+    game.production_manager.cancel_production(b)
+    game.buildings.remove(a)
+    game.buildings.remove(b)
+
+
+def test_union_card_for_mixed_building_types(game, card):
+    castle = own_castle(game)
+    barracks = build_own_building(game, "barracks", castle.x + 300, castle.y)
+    stable = build_own_building(game, "stable", castle.x + 300, castle.y + 100)
+    select(game, barracks, stable)
+    content = card.refresh()
+
+    types = [s['unit_type'] for s in content['slots'] if s and s['kind'] == 'unit']
+    assert 'warrior' in types and 'cavalry' in types  # union of both producers
+    cavalry = next(s for s in content['slots'] if s['unit_type'] == 'cavalry')
+    assert cavalry['producers'] == [stable]
+
+    game.buildings.remove(barracks)
+    game.buildings.remove(stable)
+
+
+def test_shift_batch_spreads_across_producers(game, card, monkeypatch):
+    castle = own_castle(game)
+    a = build_own_building(game, "barracks", castle.x + 300, castle.y)
+    b = build_own_building(game, "barracks", castle.x + 300, castle.y + 100)
+    select(game, a, b)
+    content = card.refresh()
+    warrior = next(s for s in content['slots'] if s and s.get('unit_type') == 'warrior')
+
+    monkeypatch.setattr(card, "_shift_held", lambda: True)
+    game.batch_queue_size = 4
+    card._activate(warrior)
+
+    depths = sorted(card._queue_depth(x) for x in (a, b))
+    assert depths == [2, 2]  # 4 units spread evenly over both queues
+
+    for building in (a, b):
+        building.production_queue.clear()
+        game.production_manager.cancel_production(building)
+        game.buildings.remove(building)
+    del game.batch_queue_size
+
+
+def test_buildings_join_control_groups(game, card):
+    castle = own_castle(game)
+    a = build_own_building(game, "barracks", castle.x + 300, castle.y)
+    b = build_own_building(game, "barracks", castle.x + 300, castle.y + 100)
+    sm = game.selection_manager
+
+    select(game, a, b)
+    sm.set_control_group(7)
+    clear_selection(game)
+
+    assert sm.recall_control_group(7) is True
+    assert set(sm.selected_objects) == {a, b}
+    assert a.selected and b.selected
+
+    # Dead buildings drop out on recall
+    game.buildings.remove(a)
+    assert sm.recall_control_group(7) is True
+    assert sm.selected_objects == [b]
+
+    game.buildings.remove(b)
+    sm.control_groups[7] = []
+    clear_selection(game)
+
+
+# --------------------------------------------------------------------- #
 # camera-pan key suppression                                             #
 # --------------------------------------------------------------------- #
 

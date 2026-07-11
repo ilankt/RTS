@@ -143,11 +143,10 @@ class CommandCard:
             if own_sites:
                 self._fill_construction(content, own_sites[0])
             elif own_buildings:
-                building = own_buildings[0]
-                if getattr(building, 'is_gate', False):
-                    self._fill_gate(content, building)
+                if len(own_buildings) == 1 and getattr(own_buildings[0], 'is_gate', False):
+                    self._fill_gate(content, own_buildings[0])
                 else:
-                    self._fill_production(content, building, human)
+                    self._fill_production(content, own_buildings, human)
         return content
 
     # ---- build card (the §8.2.1 headline: no drill-down, ever) ------- #
@@ -181,23 +180,36 @@ class CommandCard:
 
     # ---- production / research card ----------------------------------- #
 
-    def _fill_production(self, content, building, human):
-        can_produce = list(getattr(building, 'can_produce', None) or ())
+    def _fill_production(self, content, buildings, human):
+        """Production card for one or several selected buildings (§8.2.1
+        Phase B, SC2 model): tiles are the union of producible types; a tile
+        press queues at the producer with the shortest queue."""
+        producers = [b for b in buildings if getattr(b, 'can_produce', None)]
         research_rows = []
-        if hasattr(self.game, 'research_manager'):
-            research_rows = self.game.research_manager.available_for_building(building)
-        if not can_produce and not research_rows:
+        if len(buildings) == 1 and hasattr(self.game, 'research_manager'):
+            research_rows = self.game.research_manager.available_for_building(buildings[0])
+        if not producers and not research_rows:
             return
 
         content['context'] = 'production'
-        content['building'] = building
+        content['building'] = buildings[0]
+        content['buildings'] = buildings
         cost_lookup = self.game.game_data.get("costs", {})
-        production_info = self.game.production_manager.get_production_info(building)
+        single = producers[0] if len(buildings) == 1 and producers else None
+        production_info = (self.game.production_manager.get_production_info(single)
+                           if single else None)
+
+        unit_types = []
+        for producer in producers:
+            for unit_type in producer.can_produce:
+                if unit_type not in unit_types:
+                    unit_types.append(unit_type)
 
         slot = 0
-        for unit_type in can_produce:
+        for unit_type in unit_types:
             if slot >= len(content['slots']):
                 break
+            type_producers = [b for b in producers if unit_type in b.can_produce]
             costs = cost_lookup.get(unit_type, {})
             can_afford = all(human.resources.get(r, 0) >= a for r, a in costs.items())
             template = self.game.game_data.get("units", {}).get(unit_type)
@@ -210,23 +222,27 @@ class CommandCard:
             if getattr(template, "weak_against", None):
                 tooltip.append("Weak: " + ", ".join(
                     x.title() for x in template.weak_against[:2]))
+            if len(type_producers) > 1:
+                tooltip.append(f"{len(type_producers)} buildings — shortest queue")
             in_production = production_info and production_info['unit_type'] == unit_type
             content['slots'][slot] = {
-                'kind': 'unit', 'unit_type': unit_type, 'building': building,
+                'kind': 'unit', 'unit_type': unit_type,
+                'building': type_producers[0], 'producers': type_producers,
                 'label': display, 'icon': self._icon('unit', unit_type),
                 'cost': self._compact_costs(costs),
                 'enabled': can_afford,
                 'reason': "Ready" if can_afford else "Insufficient resources",
                 'tooltip': tooltip,
                 'progress': production_info['progress'] if in_production else None,
-                'badge': self.game.production_manager.get_unit_count_in_production(
-                    building, unit_type),
+                'badge': sum(self.game.production_manager.get_unit_count_in_production(
+                    b, unit_type) for b in type_producers),
             }
             slot += 1
 
         for tech, can_research, reason in research_rows:
             if slot >= len(content['slots']):
                 break
+            building = buildings[0]
             display = tech.get("display_name", tech["id"])
             state = 'done' if reason == "Already researched" else (
                 'queued' if reason in ("Already in progress", "Already queued") else None)
@@ -245,19 +261,25 @@ class CommandCard:
             }
             slot += 1
 
-        content['strip'] = self._strip_for(building)
+        if single:
+            content['strip'] = self._strip_for(single)
+        elif not producers:
+            content['strip'] = self._strip_for(buildings[0])  # research-only
+        else:
+            content['strip'] = self._group_strip(producers)
 
     def _strip_for(self, building):
-        production_info = self.game.production_manager.get_production_info(building)
-        if production_info:
-            queued = len(getattr(building, "production_queue", ()))
-            label = f"{production_info['unit_type'].title()} {int(production_info['progress'] * 100)}%"
-            if queued:
-                label += f" · queue {queued}"
-            return {'progress': production_info['progress'], 'label': label,
-                    'color': (110, 170, 110)}
+        if building is not None:
+            production_info = self.game.production_manager.get_production_info(building)
+            if production_info:
+                queued = len(getattr(building, "production_queue", ()))
+                label = f"{production_info['unit_type'].title()} {int(production_info['progress'] * 100)}%"
+                if queued:
+                    label += f" · queue {queued}"
+                return {'progress': production_info['progress'], 'label': label,
+                        'color': (110, 170, 110)}
         research_info = None
-        if hasattr(self.game, 'research_manager'):
+        if building is not None and hasattr(self.game, 'research_manager'):
             research_info = self.game.research_manager.get_research_info(building)
         if research_info:
             label = f"{research_info['display_name'][:18]} {int(research_info['progress'] * 100)}%"
@@ -266,6 +288,18 @@ class CommandCard:
             return {'progress': research_info['progress'], 'label': label,
                     'color': (90, 150, 220)}
         return None
+
+    def _group_strip(self, producers):
+        """Aggregate strip for a multi-building selection."""
+        active = sum(1 for b in producers if getattr(b, 'current_production', None))
+        queued = sum(len(getattr(b, 'production_queue', ()) or ()) for b in producers)
+        if not active and not queued:
+            return None
+        label = f"{active}/{len(producers)} producing"
+        if queued:
+            label += f" · {queued} queued"
+        return {'progress': active / max(1, len(producers)), 'label': label,
+                'color': (110, 170, 110)}
 
     # ---- military / construction / gate cards -------------------------- #
 
@@ -675,13 +709,7 @@ class CommandCard:
             slot = content['slots'][index] if content else None
             if slot is None or slot['kind'] != 'unit':
                 return True
-            building = slot['building']
-            unit_type = slot['unit_type']
-            success, _ = self.game.production_manager.cancel_queued(building, unit_type)
-            if not success and building.current_production \
-                    and building.current_production.get('unit_type') == unit_type:
-                success, _ = self.game.production_manager.cancel_production(building)
-            self._play(success)
+            self._cancel_unit(slot)
             return True
         return True
 
@@ -698,9 +726,8 @@ class CommandCard:
             self.game.enter_building_placement_mode(slot['data'])
             self._play(True)
         elif kind == 'unit':
-            ok, _ = self.game.production_manager.start_production(
-                slot['building'], slot['unit_type'])
-            self._play(ok)
+            count = self._batch_size() if self._shift_held() else 1
+            self._queue_unit(slot, count)
         elif kind == 'tech':
             ok, _ = self.game.research_manager.start_research(
                 slot['building'], slot['tech_id'])
@@ -728,6 +755,62 @@ class CommandCard:
         else:
             return False
         return True
+
+    # ---- Phase B: shortest-queue routing + batch queueing ------------- #
+
+    @staticmethod
+    def _shift_held():
+        keys = pygame.key.get_pressed()
+        return keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+
+    def _batch_size(self):
+        """Shift-queue batch size (settings-configurable, default 5)."""
+        try:
+            return max(1, int(getattr(self.game, 'batch_queue_size', 5)))
+        except (TypeError, ValueError):
+            return 5
+
+    @staticmethod
+    def _queue_depth(building):
+        depth = len(getattr(building, 'production_queue', ()) or ())
+        if getattr(building, 'current_production', None):
+            depth += 1
+        return depth
+
+    def _queue_unit(self, slot, count):
+        """Queue `count` units, each at the currently shortest queue among
+        the slot's producers (SC2 model). Stops when a queue is full or
+        resources run out."""
+        producers = slot.get('producers') or [slot['building']]
+        started = 0
+        for _ in range(count):
+            producer = min(producers, key=self._queue_depth)
+            ok, _ = self.game.production_manager.start_production(
+                producer, slot['unit_type'])
+            if not ok:
+                break
+            started += 1
+        self._play(started > 0)
+
+    def _cancel_unit(self, slot):
+        """Right-click semantics across producers: remove a queued unit of
+        that type from the deepest queue (full refund), else cancel an
+        in-progress one (50% refund)."""
+        producers = slot.get('producers') or [slot['building']]
+        unit_type = slot['unit_type']
+        queued = [b for b in producers
+                  if unit_type in (getattr(b, 'production_queue', ()) or ())]
+        if queued:
+            target = max(queued, key=self._queue_depth)
+            success, _ = self.game.production_manager.cancel_queued(target, unit_type)
+        else:
+            success = False
+            for producer in producers:
+                current = getattr(producer, 'current_production', None)
+                if current and current.get('unit_type') == unit_type:
+                    success, _ = self.game.production_manager.cancel_production(producer)
+                    break
+        self._play(success)
 
     def _play(self, ok):
         sound = getattr(self.game, 'sound_manager', None)

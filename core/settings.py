@@ -22,6 +22,7 @@ DEFAULTS = {
     "default_game_speed": 1.0,   # used when a match doesn't set one
     "colorblind_palette": False,  # Okabe-Ito team colors (§8.7), on restart
     "adaptive_difficulty": False,  # covert DDA (§7.2): AI reaction-time nudges
+    "batch_queue_size": 5,        # Shift+production-tile queues N (§8.2.1 B)
 }
 
 
@@ -55,6 +56,11 @@ class Settings:
                     self.values[key] = min(5.0, max(1.0, float(value)))
                 except (TypeError, ValueError):
                     pass
+            elif key == "batch_queue_size":
+                try:
+                    self.values[key] = min(10, max(1, int(value)))
+                except (TypeError, ValueError):
+                    pass
 
     def save(self):
         """Persist only entries that differ from the defaults."""
@@ -86,3 +92,4 @@ class Settings:
                 sound.set_volume(self.values["volume"])
         game.game_speed = self.values["default_game_speed"]
         game.adaptive_difficulty = self.values["adaptive_difficulty"]
+        game.batch_queue_size = self.values["batch_queue_size"]
