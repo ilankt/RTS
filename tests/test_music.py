@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
+import pygame
 import pytest
 
 
@@ -21,12 +22,17 @@ def game():
 
 
 def test_track_roles_menu_theme_and_game_playlist(game):
-    """menu.ogg is the dedicated menu theme; game_N.ogg form the in-match
-    playlist (drop in game_2, game_3, ... later — no code change)."""
+    """menu.ogg is the dedicated menu theme; every game_N.ogg joins the
+    in-match pool automatically, in numeric order (drop-in convention —
+    don't hardcode a count here)."""
+    import re
     from managers.sound_manager import music_player
 
     names = [os.path.basename(p) for p in game.sound_manager.music_playlist]
-    assert names == ["game_0.ogg", "game_1.ogg"]
+    assert len(names) >= 2
+    assert all(re.fullmatch(r"game_\d+\.ogg", n) for n in names)
+    numbers = [int(n[5:-4]) for n in names]
+    assert numbers == sorted(numbers)
     assert music_player.menu_track is not None
     assert os.path.basename(music_player.menu_track) == "menu.ogg"
 
@@ -146,3 +152,48 @@ def test_splash_background_scales_to_screen():
 
     screen = pygame.display.get_surface() or pygame.display.set_mode((640, 360))
     draw_splash(screen, "Loading...")  # must not raise
+
+
+def test_shuffle_never_repeats_the_previous_track():
+    """Random order with a hard rule: the same track never plays twice in a
+    row (once more than one track exists)."""
+    import random as random_module
+    from managers.sound_manager import MusicPlayer
+
+    player = MusicPlayer()
+    player._rng = random_module.Random(42)  # deterministic test
+
+    # 3-track pool: 200 picks never return the previous pick, and every
+    # other track shows up (it is genuinely random, not round-robin)
+    player._last_game_index = 1
+    seen = set()
+    for _ in range(200):
+        pick = player._pick_game_index(3)
+        assert pick != player._last_game_index
+        seen.add(pick)
+        player._last_game_index = pick
+    assert seen == {0, 1, 2}
+
+    # Single track: repeating is the only option
+    player._last_game_index = 0
+    assert player._pick_game_index(1) == 0
+
+
+def test_track_advance_shuffles_through_real_update(game, monkeypatch):
+    from managers.sound_manager import music_player
+
+    sound = game.sound_manager
+    if not sound.enabled:
+        pytest.skip("mixer unavailable in this environment")
+
+    music_player.stop()
+    sound.start_music()
+    assert music_player.mode == 'game'
+    first = music_player.index
+
+    # Simulate the current track ending: update must pick a DIFFERENT track
+    monkeypatch.setattr(pygame.mixer.music, "get_busy", lambda: False)
+    music_player.update()
+    assert music_player.mode == 'game'
+    assert music_player.index != first  # never the same track twice in a row
+    music_player.stop()

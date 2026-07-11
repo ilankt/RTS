@@ -6,6 +6,7 @@ independent of the SFX volume.
 """
 import glob
 import os
+import random
 
 import pygame
 import struct
@@ -24,7 +25,9 @@ class MusicPlayer:
 
     Track convention inside MUSIC_DIR — drop in new files, no code change:
     - `menu.ogg`               the main-menu theme, loops forever
-    - `game_0.ogg, game_1.ogg` the in-match playlist, numerically sorted
+    - `game_0.ogg, game_1.ogg` the in-match pool, played in SHUFFLED order:
+      each pick is random but never the track that just played (when more
+      than one exists)
     """
 
     def __init__(self):
@@ -34,6 +37,10 @@ class MusicPlayer:
         self.volume = 0.4
         self.mode = None  # None | 'menu' | 'game'
         self._scanned = False
+        # Own RNG: track picks must never consume the global random stream
+        # the seeded map gen / AI rolls depend on
+        self._rng = random.Random()
+        self._last_game_index = None  # last game track played, ever
 
     @property
     def started(self):
@@ -95,8 +102,16 @@ class MusicPlayer:
         if self._play(self.menu_track, loops=-1):
             self.mode = 'menu'
 
+    def _pick_game_index(self, count):
+        """A random track index, never the one that played last (repeats
+        only when a single track exists)."""
+        if count <= 1:
+            return 0
+        choices = [i for i in range(count) if i != self._last_game_index]
+        return self._rng.choice(choices)
+
     def play_game(self):
-        """Start (or keep) the in-match playlist."""
+        """Start (or keep) the in-match playlist, shuffled."""
         if self.mode == 'game':
             return
         if not self._ensure_ready():
@@ -104,9 +119,10 @@ class MusicPlayer:
         playlist = self._active_game_playlist()
         if not playlist:
             return
-        self.index %= len(playlist)
+        self.index = self._pick_game_index(len(playlist))
         if self._play(playlist[self.index]):
             self.mode = 'game'
+            self._last_game_index = self.index
 
     def stop(self):
         if self.mode is None:
@@ -130,8 +146,9 @@ class MusicPlayer:
         playlist = self._active_game_playlist()
         if not playlist:
             return
-        self.index = (self.index + 1) % len(playlist)
-        self._play(playlist[self.index])
+        self.index = self._pick_game_index(len(playlist))
+        if self._play(playlist[self.index]):
+            self._last_game_index = self.index
 
     def _play(self, path, loops=0):
         try:
