@@ -4,13 +4,14 @@ import random
 import pygame
 
 # Apply persisted settings BEFORE the game/UI modules import the screen
-# constants by value (§8.2: full resolution independence is future work —
-# until then a resolution change takes effect at startup).
+# constants by value (§8.2.1 Phase D: apply_resolution also recomputes the
+# derived map-view size, so every anchored layout scales with the window;
+# a resolution change takes effect at startup).
 import core.config as _config
 from core.settings import Settings
 
 settings = Settings()
-_config.SCREEN_WIDTH, _config.SCREEN_HEIGHT = settings.get("resolution")
+_config.apply_resolution(*settings.get("resolution"))
 if settings.get("colorblind_palette"):
     # In-place so modules that imported the list by value see the swap too
     _config.PLAYER_COLORS[:] = _config.PLAYER_COLORS_COLORBLIND

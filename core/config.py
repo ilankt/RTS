@@ -1,6 +1,10 @@
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 
+# Derived from the screen size by apply_resolution() (§8.2.1 Phase D) —
+# the defaults below are the 720p values. The map view spans the screen
+# minus the top bar, extending 22 px under the right sidebar so camera
+# centering targets the visible area's middle.
 MAP_VIEW_WIDTH = 1102
 MAP_VIEW_HEIGHT = 620
 
@@ -204,3 +208,15 @@ DEFAULT_GAME_SPEED = 1.0
 MIN_GAME_SPEED = 1.0
 MAX_GAME_SPEED = 5.0
 GAME_SPEED_INCREMENT = 1.0
+
+
+def apply_resolution(width, height):
+    """Set the screen size and recompute the derived layout constants
+    (§8.2.1 Phase D resolution independence). Must run before the game/UI
+    modules import these constants by value — main.py calls it at startup
+    with the persisted settings resolution."""
+    global SCREEN_WIDTH, SCREEN_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
+    SCREEN_WIDTH = int(width)
+    SCREEN_HEIGHT = int(height)
+    MAP_VIEW_WIDTH = SCREEN_WIDTH - (MINIMAP_WIDTH - 22)
+    MAP_VIEW_HEIGHT = SCREEN_HEIGHT - TOP_BAR_HEIGHT

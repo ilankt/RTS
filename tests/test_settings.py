@@ -87,3 +87,30 @@ def test_colorblind_palette_swaps_in_place():
         assert alias is config.PLAYER_COLORS
     finally:
         config.PLAYER_COLORS[:] = original
+
+
+def test_apply_resolution_derives_map_view():
+    """apply_resolution (§8.2.1 Phase D) recomputes the derived layout
+    constants so anchored HUD layouts scale with the startup resolution."""
+    import core.config as config
+
+    original = (config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
+    try:
+        config.apply_resolution(1920, 1080)
+        assert (config.SCREEN_WIDTH, config.SCREEN_HEIGHT) == (1920, 1080)
+        assert config.MAP_VIEW_HEIGHT == 1080 - config.TOP_BAR_HEIGHT
+        assert config.MAP_VIEW_WIDTH == 1920 - (config.MINIMAP_WIDTH - 22)
+    finally:
+        config.apply_resolution(*original)
+        assert (config.MAP_VIEW_WIDTH, config.MAP_VIEW_HEIGHT) == (1102, 620)
+
+
+def test_batch_queue_size_clamped(tmp_path):
+    path = str(tmp_path / "settings.json")
+    settings = Settings(path=path)
+    assert settings.get("batch_queue_size") == 5  # default
+    path_obj = tmp_path / "settings.json"
+    path_obj.write_text('{"batch_queue_size": 99}')
+    assert Settings(path=str(path_obj)).get("batch_queue_size") == 10  # clamped
+    path_obj.write_text('{"batch_queue_size": "junk"}')
+    assert Settings(path=str(path_obj)).get("batch_queue_size") == 5  # default

@@ -675,9 +675,16 @@ The UI works but is ad-hoc (delegated panels in `ui/components/*`) and hardcoded
 **→ The ground-up rework is specced in §8.2.1 below (researched 2026-07-10 at the
 user's request); the checklist items here are its inputs/prerequisites.**
 
-- [ ] **Resolution independence + UI scaling** *(med–high)* — layout from
-  anchors/relative units, not fixed pixels; support arbitrary window sizes. Foundation
-  for everything visual.
+- [x] **Resolution independence + UI scaling** *(med–high)* — landed
+  2026-07-11 as §8.2.1 Phase D: `config.apply_resolution()` recomputes the
+  derived map-view size from any startup resolution, and every HUD element
+  is anchored (top bar spans to the minimap, sidebar/card anchor right,
+  strip/alerts/log anchor left, camera math uses the derived view size).
+  Verified clean at 1920×1080 by rendered frame — which also exposed and
+  fixed a fog gap on the map's last hex column/row (previously hidden under
+  the 720p sidebar). Remaining niceties, deliberately out of scope: live
+  window resizing (resolution applies at startup) and DPI *scaling* of
+  fonts/tiles (the HUD keeps its pixel size and the map view grows).
 - [x] **Command card / action grid** *(med)* — first pass 2026-07-10 (from
   windowed user feedback "this is very bad"): the build menu and unit
   production are now matching **2-column icon-tile grids** — icon on top,
@@ -931,7 +938,14 @@ time, counters, description); right-click on a queued tile cancels with refund.
   rebindable) selects every own building producing non-worker units —
   straight into the Phase B group card. Verified: 261 tests green (3 new)
   + rendered screenshot (worker/warrior/tech rows with progress bars).
-- [ ] **Phase D** — resolution independence (absorbs the §8.2 item above)
+- [x] **Phase D** — landed 2026-07-11 (absorbs the §8.2 resolution item):
+  `config.apply_resolution(w, h)` sets the screen size and recomputes
+  `MAP_VIEW_*`; main.py calls it before UI modules import constants by
+  value. All HUD layout was already anchor-based after Phases A–C, so
+  900p/1080p lay out correctly — verified by a rendered 1080p frame, which
+  also caught a pre-existing fog gap on the map's last hex column/row
+  (fog rects now widen at the map edge). Live resize + DPI scaling of
+  fonts/tiles remain future polish, noted in §8.2.
 - **✅ Verify:** every selection type drives the same card with the same grid
   hotkeys; a barracks+stable group batch-produces to shortest queue and rallies
   with one click; the global strip shows all production and cancels on

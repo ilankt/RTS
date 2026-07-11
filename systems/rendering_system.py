@@ -358,8 +358,17 @@ class RenderingSystem:
                 screen_y = y + camera.y
 
                 # Slightly larger rect to cover tile seams; surface cached per
-                # (size, alpha) instead of allocated per tile per frame.
-                key = (int(tile_width * 0.75) + 2, int(tile_height) + 2, alpha)
+                # (size, alpha) instead of allocated per tile per frame. The
+                # map's last column/row get wider rects: their hex images
+                # overhang where no neighbor's fog covers them (hidden under
+                # the 720p sidebar, visible at higher resolutions).
+                fog_w = int(tile_width * 0.75) + 2
+                fog_h = int(tile_height) + 2
+                if col == self.game.game_map.width - 1:
+                    fog_w = int(tile_width) + 2
+                if row == self.game.game_map.height - 1:
+                    fog_h = int(tile_height * 1.5) + 2
+                key = (fog_w, fog_h, alpha)
                 fog_surface = self._fog_tile_cache.get(key)
                 if fog_surface is None:
                     fog_surface = pygame.Surface((key[0], key[1]), pygame.SRCALPHA)
