@@ -22,6 +22,19 @@ class RenderingSystem:
         self._fog_tile_cache = {}
         # Cached scaled object sprites keyed by (id(sprite), width, height)
         self._scaled_sprite_cache = {}
+        # Per-unit visual scale from units.json (render_scale): normalizes
+        # perceived size across art styles (thin realistic sheets vs chunky
+        # cartoons) without touching collision or gameplay size
+        self._render_scales = {}
+        try:
+            import json
+            with open('data/units.json') as f:
+                for unit in json.load(f):
+                    scale = unit.get('render_scale')
+                    if scale:
+                        self._render_scales[unit['name']] = float(scale)
+        except (OSError, ValueError):
+            pass
     
     def draw_frame(self, screen, map_surface, camera, delta_time=1/60.0):
         """Draw a complete frame"""
@@ -173,6 +186,7 @@ class RenderingSystem:
         Units walking/facing left draw mirrored — the sheets face right."""
         sprite_w, sprite_h = sprite.get_size()
         scale = (obj.size[0] * TILE_WIDTH) / sprite_w
+        scale *= self._render_scales.get(getattr(obj, 'name', None), 1.0)
         scaled_width = int(sprite_w * scale * camera.zoom)
         scaled_height = int(sprite_h * scale * camera.zoom)
         mirrored = getattr(obj, 'facing_left', False)

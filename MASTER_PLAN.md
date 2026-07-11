@@ -1023,6 +1023,16 @@ collapse.
   vs** (green/red) from the unit's tags; and type-disadvantaged hits (armor
   class resists the attack type, or attacker's weak_against covers the
   target — `combat_rules.is_resisted_by`) float a gray "N resisted" cue.
+- [x] **Ram glass-cannon rebalance** (user-reported 2026-07-11: "way too
+  powerful — should hit hard but die easily"): old ram was hp 650 / armor 2
+  — with pierce doing ×0.45 vs siege armor, ranged units needed 160+ shots.
+  Two-round same-seed A/B: **round 1** (hp 280, damage unchanged) failed —
+  fragile rams + slow breach (82 s solo vs a castle) meant failed sieges:
+  timeouts 3/12, matches 671→1189 s, ram share UP to 27%. **round 2 — KEEP**
+  (hp 300, armor 0, damage 55-75 → **85-115**): dies to ~8 warrior hits but
+  breaches decisively; avg match back to 700 s, ram share 24→**20%**, mix
+  healthy (28/23/17/11/20 warrior/archer/spear/cav/ram). Data:
+  `tools/balance_12_ram_nerf.json` / `balance_12_ram_glass.json`.
 - [~] **Position matters** *(med)* — forest-cover prototyped 2026-07-10 behind
   `COMBAT_TERRAIN_COVER_ENABLED` (**default OFF**, per this section's
   prototype-behind-a-flag rule): units standing in forest take ×0.85 damage
@@ -1232,6 +1242,16 @@ unsequenced — pull them in where they fit.
   walling, all landed; drag-placement lays sealed 56 px lines, gates toggle,
   turtle AI walls the threat bearing. Thin/connected wall *sprites* remain a
   missing-art item.)
+- [x] **Spearman/cavalry drawn tiny** (user-reported 2026-07-11): three
+  compounding causes — the AI-generated sheets are thin-realistic style
+  next to the chunky cartoon originals; stale multiplicative type-tints
+  (from the shared-sheet era) washed their colors out; and the spearman's
+  attack frames were authored 40% smaller than its idle (the unit shrank
+  in combat). Fixed: per-unit `render_scale` in units.json (spearman
+  1.22, cavalry 1.12) applied in the renderer only — collision/gameplay
+  size untouched; tints dropped for the dedicated sheets (healer keeps
+  its — still shares the archer sheet); spearman run/attack/guard frames
+  normalized in-place to the idle character height, feet anchored.
 - [x] **Combat cadence was wall-clock, not game-time** (found 2026-07-10 during
   the §8.10 watchtower audit): unit/building attack cooldowns used
   `pygame.time.get_ticks()`, so at 5× speed all combat was effectively 5× slower

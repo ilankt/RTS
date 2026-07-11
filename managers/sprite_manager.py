@@ -71,13 +71,12 @@ def tint_surface_blue(surface, color):
 
 
 UNIT_TYPE_TINTS = {
-    # Multiplicative RGB tint applied after player tint, so units that share
-    # a sprite sheet (warrior/spearman/cavalry, archer/healer) read distinct
-    # at a glance.
-    "spearman": (180, 230, 180),  # greenish - light infantry
-    "cavalry":  (240, 200, 160),  # tan/warm - mounted
-    "ram":      (170, 150, 120),  # muted wood - siege
-    "healer":   (200, 230, 240),  # cool cyan - support
+    # Multiplicative RGB tint applied after player tint, so units that SHARE
+    # a sprite sheet read distinct at a glance. Spearman/cavalry/ram got
+    # dedicated sheets (sprite pipeline, 2026) — tinting those only washed
+    # out their colors and made them read small/feeble. Healer still reuses
+    # the archer sheet, so it keeps its tint.
+    "healer": (200, 230, 240),  # cool cyan - support
 }
 
 
