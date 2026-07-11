@@ -727,50 +727,84 @@ user's request); the checklist items here are its inputs/prerequisites.**
   correctly with no clipping; the command card issues actions; tooltips appear on
   hover; settings changes persist across a restart.
 
-### 8.2.1 GUI ground-up rework — research-backed design spec *(added 2026-07-10)*
+### 8.2.1 GUI ground-up rework — research-backed design spec *(2026-07-10, updated 2026-07-11)*
 
 User verdict on the interim tile-grid pass: **"The GUI needs a rework from
-ground up."** Deep-research run on how RTS games structure build/production UI
-(sources fetched + claims extracted; the adversarial-verification stage failed
-on infrastructure rate limits, so claims below are *primary-sourced but
-panel-unverified* — every one is consistent with genre-standard knowledge).
+ground up."** Two deep-research passes ran on how RTS games structure
+build/production UI. Source reliability is mixed on purpose — noted per claim:
 
-**What the genre does (research findings):**
+- **✅ Verified** = passed adversarial panel review (3 independent votes).
+- **Sourced** = pulled from a primary source (official docs, a studio designer
+  diary, or the game's own published config/hotkey files) but the verification
+  panel didn't reach it (rate-limited both runs) — treat as reliable, not proven.
+- **✗ Refuted** = a specific detail the panel checked and rejected; superseded
+  below.
 
-1. **Two proven placements.** The **right sidebar** is the C&C lineage (Dune II
-   1992 → RA2 → C&C3): credits/radar/build-list stacked vertically. Its defining
-   advantage, per EA's own C&C3 designer diary, is **global production control —
-   build anything from anywhere without moving the camera** (GameSpot designer
-   diary #3). The **bottom command card** is the Blizzard/Ensemble lineage:
-   a *context-sensitive* card for the current selection, with control groups
+*(A second research attempt burned far more budget than it should have —
+re-running a 100-agent workflow twice for a handful of net-new verified facts
+was a bad call; this update was written from what was already gathered,
+without spawning further agents.)*
+
+**What the genre does:**
+
+1. **Two proven placements.** The **right sidebar** (Dune II 1992 → RA2 → C&C3)
+   stacks credits/radar/build-list vertically. Its defining advantage, per EA's
+   own C&C3 designer diary, is **global production control — build anything from
+   anywhere without moving the camera** (Sourced: GameSpot designer diary #3).
+   The **bottom command card** is the Blizzard/Ensemble lineage: a
+   *context-sensitive* card for the current selection, with control groups
    carrying the "produce from anywhere" job instead. C&C Generals moved to a
-   bottom bar because it was the genre norm; C&C3 deliberately moved *back* to
-   the sidebar and modernized it (cnc.fandom.com/wiki/Sidebar).
+   bottom bar because it was the genre norm; C&C3 deliberately moved back to the
+   sidebar and modernized it (Sourced: cnc.fandom.com/wiki/Sidebar).
 2. **Scaling to many buildings = categories + tabs, not bigger lists.** RA2:
    four sidebar tabs (buildings / defense / infantry / vehicles) hot-switched
-   with Q/W/E/R and a 30-deep queue. C&C3: five fixed category tabs with
-   per-factory sub-tabs (each factory its own queue; double-click a sub-tab
-   jumps the camera to it), and it renders **only currently-producible buttons**
-   — locked items show a lock glyph instead of a dead row.
-3. **Grid hotkeys are position-mapped.** SC2's "Grid" layout maps keys to
-   *card positions* (players memorize places, not per-item letters), which
-   transfers across factions/menus (terrancraft.com hotkey analysis). Notable
-   dissent exists — Ensemble's Dave Pottinger disliked grid keys
-   (waywardstrategy.com interview) — so ship grid as default, remap via the
-   existing `keybindings.json` layer.
+   with Q/W/E/R and a 30-deep queue. C&C3: five category tabs with per-factory
+   sub-tabs (each factory its own queue; double-click jumps the camera to it),
+   rendering **only currently-producible buttons** — locked items show a lock
+   glyph instead of a dead row (Sourced: cnc.fandom.com/wiki/Sidebar).
+3. **Grid hotkeys are position-mapped, and one real config confirms exactly how.**
+   Beyond All Reason's own hotkey files (✅ **Verified**, 3-0) map **12 slots as
+   a 3×4 grid across the physical Z/X/C/V, A/S/D/F, and Q/W/E/R rows** — not
+   mnemonics, raw key position. More importantly: **BAR reuses the same four
+   keys for two jobs** — unmodified `Z/X/C/V` pick one of exactly **4 build
+   categories**, and once a category is open, an `Any+` modifier layer turns
+   those *same physical keys* into grid-position slots (✅ Verified, 3-0). That
+   is a directly reusable pattern for a 2-category, ≤12-item roster like ours.
+   One specific claim about BAR — that overflow beyond 12 slots is handled by a
+   dedicated `B` paging hotkey — was **✗ refuted** (1-2 votes); BAR's actual
+   overflow/paging mechanism is genuinely unclear across its two hotkey config
+   files (`grid_keys.txt` vs `gridmenu_keys.txt` disagree on key rows used), so
+   don't copy a paging scheme from BAR without checking the live game. Separately,
+   Ensemble's Dave Pottinger has said on record he personally dislikes
+   QWERTY-grid hotkeys and would offer them as an option, not force them
+   (✅ Verified, 3-0, waywardstrategy.com interview) — reinforcing: ship grid as
+   default, always remappable.
 4. **Multi-building production is the real scaling mechanism** (SC2 model):
    production buildings join control groups; Tab cycles subtypes inside a mixed
-   group; one production keypress queues one unit **at the shortest queue** in
-   the selected group; one right-click sets rally for every selected building
-   (Blizzard control-group guide, Liquipedia, starcraft.fandom). AoE4 goes
-   further: **select-all-of-class hotkeys** (F1 military / F2 economy / F3
-   research production at launch), **Shift = queue 5**, and Season 1's
-   **Global Build Queue** — a persistent HUD strip of everything in production,
-   Ctrl+click to cancel (Xbox Wire hotkey reveal; player.one Season 1 notes).
-5. **Icon+cost+tooltip + explicit disabled states** are universal: cost on/near
+   group; one keypress queues one unit **at the shortest queue** in the group;
+   one right-click rallies every selected building (Sourced: Blizzard's own
+   control-group guide, corroborated by Liquipedia and a hotkey-analysis
+   site — three independent sources agree, though none passed the panel this
+   round). **Batch-queue-size is a converging convention, not one game's quirk:**
+   AoE4 uses Shift = queue 5 (Sourced: Xbox Wire hotkey reveal); **BAR's own
+   changelog confirms the same default** — Shift queued 5, Ctrl(-1) removed one
+   from the queue — and BAR has since made the quantity **user-configurable up
+   to arbitrary batch sizes** (✅ Verified, 3-0 both, beyondallreason.info
+   microblog). Two unrelated lineages landing on "5" independently is a good
+   signal it's the right default, with configurability as the natural next step.
+   AoE4's Season 1 also added a persistent **Global Build Queue** HUD strip
+   showing everything in production everywhere, Ctrl+click to cancel (Sourced:
+   player.one Season 1 notes).
+5. **Rally points are exactly the UX we already built.** Official AoE4 guidance
+   — select a production building, right-click a destination (including a
+   resource node), new units auto-walk there — is **✅ Verified (3-0,
+   ageofempires.com)**, and it is **already what our rally-point feature does**
+   (`§7.4 Rally points`, shipped 2026-07-10). No change needed; this is a
+   confirmation, not a gap.
+6. **Icon+cost+tooltip + explicit disabled states** are universal: cost on/near
    the tile, rich tooltip on hover, unaffordable = dimmed, locked = lock icon +
-   prerequisite line. (Halo Wars 2's GDC 2018 UX-vision postmortem is the
-   canonical talk if deeper reading is wanted: gdcvault.com/play/1024961.)
+   prerequisite line — consistent across every sourced example above, already
+   partially shipped in the interim tile-grid pass.
 
 **Recommendation for this game** (200 px right panel, minimap top-right, 1280×720
 base, 13 buildings / 2 categories, 7 units, single-player, mouse+keyboard):
@@ -782,24 +816,27 @@ already takes 100 px of a 720 px window) can't afford a bottom HUD strip too.
 The rework is to make the sidebar a **real command card system** instead of
 today's bespoke panels:
 
-- **Phase A — unified sidebar command card** *(the "ground-up" part)*: one
-  context-sensitive card component replaces `building_menu` / `production_panel`
-  / per-type panel code paths. Fixed anatomy top-to-bottom: minimap →
-  **selection block** (portrait/grouped icons + stats) → **action card** (a
-  fixed 2×4 tile grid) → status strip. The card's content switches by
-  selection: worker → category tab chips (Economy/Defense-Military, RA2-style
-  Q/W to switch) + build tiles; production building → unit/tech tiles;
-  military → stance/formation/stop tiles. Same tile anatomy everywhere (icon,
-  wrapped name, compact cost, state colors — the interim pass's tile style is
-  the seed). **Position-mapped grid hotkeys** on the 2×4 card: `Q W / A S /
-  Z X / C V` printed on tile corners, driven through `keybindings.json`
-  ("card_slot_0..7"), so muscle memory works across every selection type.
+- **Phase A — unified sidebar command card**: one context-sensitive card
+  component replaces `building_menu` / `production_panel` / per-type panel code
+  paths. Fixed anatomy top-to-bottom: minimap → **selection block**
+  (portrait/grouped icons + stats) → **action card** (fixed 2×4 tile grid) →
+  status strip. Card content switches by selection: worker → 2 category chips
+  (Economy/Military — **reuse the BAR pattern**: the same physical keys pick a
+  category when none is open, then become grid-position slots once one is)
+  + build tiles; production building → unit/tech tiles; military → stance/
+  formation/stop tiles. Same tile anatomy everywhere (icon, wrapped name,
+  compact cost, state colors — the interim pass's tile style is the seed).
+  **Position-mapped grid hotkeys** on the 2×4 card: `Q W / A S / Z X / C V`
+  printed on tile corners, driven through `keybindings.json`
+  ("card_slot_0..7"), always remappable per Pottinger's caveat.
 - **Phase B — multi-building production (SC2 model)**: drag/Shift-click
   selection of multiple own production buildings + buildings joining control
   groups (units-only today); a production tile press queues at the **shortest
-  queue** among selected; one right-click rallies all; Tab cycles subtypes in
-  mixed selections; **Shift+tile = queue 5** (AoE4). Backend already supports
-  per-building queues/rally — this is selection + routing work.
+  queue** among selected; one right-click rallies all (matches the AoE4-
+  verified UX we already ship, extended to groups); Tab cycles subtypes in
+  mixed selections; **Shift+tile = queue 5** as the default batch size (two
+  independent lineages converge on 5), with the quantity **configurable in
+  settings** (BAR's confirmed evolution — don't hardcode 5 forever).
 - **Phase C — global production visibility (AoE4 model)**: a slim **global
   build queue strip** docked under the minimap — live icons + progress for
   every unit/tech in production anywhere; click jumps camera to the producer,
@@ -817,8 +854,9 @@ tooltip line (upgrade to a lock glyph in Phase A); rich hover tooltip (cost,
 time, counters, description); right-click on a queued tile cancels with refund.
 
 - [ ] **Phase A** — unified sidebar command card + position-mapped grid hotkeys
+  (BAR-style dual-purpose category/grid keys)
 - [ ] **Phase B** — multi-building selection, shortest-queue routing, group
-  rally, Shift-queue-5, Tab subtype cycling
+  rally, configurable Shift-queue-N (default 5), Tab subtype cycling
 - [ ] **Phase C** — global build-queue strip + select-all-production hotkey
 - [ ] **Phase D** — resolution independence (absorbs the §8.2 item above)
 - **✅ Verify:** every selection type drives the same card with the same grid
