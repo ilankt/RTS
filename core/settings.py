@@ -93,6 +93,26 @@ class Settings:
             return pygame.FULLSCREEN
         return 0
 
+    def create_display(self, resolution):
+        """set_mode honoring the fullscreen setting, with layout-safe
+        fallbacks. Exclusive fullscreen first; if the driver returns a
+        surface of a DIFFERENT size (mode unsupported — this drew the UI
+        off-position), fall back to SCALED fullscreen so the logical
+        resolution is guaranteed; then windowed."""
+        import pygame
+
+        resolution = tuple(resolution)
+        if self.values["fullscreen"]:
+            try:
+                screen = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
+                if screen.get_size() == resolution:
+                    return screen
+                return pygame.display.set_mode(
+                    resolution, pygame.FULLSCREEN | pygame.SCALED)
+            except pygame.error:
+                pass
+        return pygame.display.set_mode(resolution)
+
     def set(self, key, value):
         if key in DEFAULTS:
             self.values[key] = value

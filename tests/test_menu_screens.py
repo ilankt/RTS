@@ -142,3 +142,49 @@ def test_fullscreen_setting_and_display_flags(tmp_path):
     assert settings.display_flags() == pygame.FULLSCREEN
     settings.save()
     assert Settings(path=path).get("fullscreen") is True
+
+
+def test_map_size_row_caps_opponents(screen):
+    """No 8-player brawls on Tiny: the opponent cap follows the map size,
+    and shrinking the map clamps an already-high opponent count."""
+    from screens.match_setup import MatchSetupScreen, MAP_SIZE_CHOICES
+
+    setup = MatchSetupScreen(screen)
+    assert "speed" not in setup.config          # Game-speed row removed
+    assert not any(key == "speed" for _l, key in setup.rows)
+    assert setup.config["map_size"] == "medium"
+
+    # Large allows 8 total players -> 7 opponents
+    setup.config["map_size"] = "large"
+    setup.config["opponents"] = 1
+    for _ in range(10):
+        setup._adjust("opponents", 1)
+    assert setup.config["opponents"] == 7
+
+    # Cycling down to tiny clamps the head count to 2 players total
+    while setup.config["map_size"] != "tiny":
+        setup._adjust("map_size", 1)
+    assert setup.config["opponents"] == 1
+    setup._adjust("opponents", 1)
+    assert setup.config["opponents"] == 1       # capped, can't grow
+
+    # Word values, with the cap surfaced
+    assert setup._value_text("map_size") == "Tiny (up to 2 players)"
+    assert MAP_SIZE_CHOICES == ["tiny", "small", "medium", "large", "huge"]
+
+
+def test_game_accepts_map_size_and_save_remembers_it(screen, tmp_path, monkeypatch):
+    import random
+    random.seed(97)
+    from core.game import Game
+    from managers.save_manager import SaveManager
+
+    game = Game(mode="human_1v1", player_count=2, map_size=(45, 45))
+    assert (game.game_map.width, game.game_map.height) == (45, 45)
+    castles = [b for b in game.buildings if b.name == "castle"]
+    assert len(castles) == 2                    # both spawns fit on Tiny
+
+    monkeypatch.setattr(SaveManager, "SAVE_DIR", str(tmp_path))
+    SaveManager.save_game(game, slot=3)
+    assert SaveManager.peek_map_size(slot=3) == (45, 45)
+    assert SaveManager.peek_map_size(slot=9) is None  # no such save

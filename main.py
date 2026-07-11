@@ -73,11 +73,18 @@ def launch_spectator(player_count=4, speed=None, seed=None):
 
 def create_game_from_setup(setup):
     """Build a configured Game from a match-setup dict (§7.5)."""
+    from core.config import MAP_SIZES
+
     random.seed(setup["seed"])
+    tiles, max_players = MAP_SIZES.get(setup.get("map_size", "medium"),
+                                       MAP_SIZES["medium"])
+    player_count = max(2, min(setup["opponents"] + 1, max_players))
     if setup["mode"] == "spectate":
-        game = Game(mode="ai_spectator", player_count=max(2, setup["opponents"] + 1))
+        game = Game(mode="ai_spectator", player_count=player_count,
+                    map_size=(tiles, tiles))
     else:
-        game = Game(mode="human_1v1", player_count=setup["opponents"] + 1)
+        game = Game(mode="human_1v1", player_count=player_count,
+                    map_size=(tiles, tiles))
     if setup.get("personality", "random") != "random":
         for player in game.players:
             if not player.human:
@@ -91,19 +98,17 @@ def create_game_from_setup(setup):
         game.mutators = {mutator}
         if mutator == "revealed_map":
             game.fog_of_war_enabled = False
-    settings.apply_to_game(game)  # volume/mute + default speed (§8.2)
-    game.game_speed = max(MIN_GAME_SPEED, min(MAX_GAME_SPEED, setup.get("speed", 1)))
+    # Speed comes from the settings' default + in-game [ ] keys — the
+    # match-setup row was removed (user request)
+    settings.apply_to_game(game)
     return game
 
 
 def apply_display_mode():
     """(Re)create the display honoring the fullscreen setting — called at
-    startup and whenever the settings screen may have changed it."""
-    resolution = (_config.SCREEN_WIDTH, _config.SCREEN_HEIGHT)
-    try:
-        return pygame.display.set_mode(resolution, settings.display_flags())
-    except pygame.error:
-        return pygame.display.set_mode(resolution)  # windowed fallback
+    startup and whenever the settings screen may have changed it. Uses the
+    layout-baked startup resolution, never a pending settings change."""
+    return settings.create_display((_config.SCREEN_WIDTH, _config.SCREEN_HEIGHT))
 
 
 def main():
@@ -138,7 +143,9 @@ def main():
             launch_spectator(player_count=args.players, speed=args.speed, seed=args.seed)
         elif choice == "load":
             draw_splash(screen, "Loading...")
-            game = Game()
+            # Build the Game with the save's map size so restored objects
+            # stay in bounds (terrain itself still regenerates — known gap)
+            game = Game(map_size=SaveManager.peek_map_size(slot=0))
             settings.apply_to_game(game)  # before load: the save's speed wins
             success, msg = SaveManager.load_game(game, slot=0)
             if success:

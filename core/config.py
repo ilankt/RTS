@@ -12,6 +12,16 @@ MAP_VIEW_HEIGHT = 620
 MAP_WIDTH = 70
 MAP_HEIGHT = 70
 
+# Match-setup map sizes (§7.5): word -> (tiles per side, max total players).
+# Small maps cap the player count — spawns need room to spread.
+MAP_SIZES = {
+    "tiny":   (45, 2),
+    "small":  (60, 4),
+    "medium": (70, 6),
+    "large":  (85, 8),
+    "huge":   (100, 8),
+}
+
 TILE_WIDTH = 64
 TILE_HEIGHT = 56
 

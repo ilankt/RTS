@@ -43,19 +43,23 @@ from utils.perf_stats import perf_stats
 
 
 class Game:
-    def __init__(self, mode="human_1v1", player_count=2):
+    def __init__(self, mode="human_1v1", player_count=2, map_size=None):
         pygame.init()
         if not pygame.font.get_init():
             pygame.font.init()
 
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        # Reuse the existing display (it may be exclusive fullscreen — a
+        # plain set_mode here would clobber it back to windowed)
+        self.screen = pygame.display.get_surface() or \
+            pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.map_surface = pygame.Surface((MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT))
         pygame.display.set_caption("RTS Game")
         self.clock = pygame.time.Clock()
         self.running = True
-        
-        # Core game components
-        self.game_map = Map(MAP_WIDTH, MAP_HEIGHT, self)
+
+        # Core game components (§7.5: match setup can pick the map size)
+        map_w, map_h = map_size if map_size else (MAP_WIDTH, MAP_HEIGHT)
+        self.game_map = Map(map_w, map_h, self)
         self.camera = Camera(MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT)
         self.camera.x = TILE_WIDTH * 0.5
         self.camera.y = TILE_HEIGHT * 0.5
@@ -1097,11 +1101,7 @@ class Game:
 
         settings = SettingsMenu(self.screen).run()
         settings.apply_audio(self)
-        try:
-            self.screen = pygame.display.set_mode(
-                (SCREEN_WIDTH, SCREEN_HEIGHT), settings.display_flags())
-        except pygame.error:
-            self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.screen = settings.create_display((SCREEN_WIDTH, SCREEN_HEIGHT))
     
     def _restart_game(self):
         """Restart the game by reinitializing core state"""
@@ -1208,8 +1208,8 @@ class Game:
     
     def _update_camera_bounds(self):
         """Update camera bounds to keep it within map limits"""
-        map_width_pixels = MAP_WIDTH * TILE_WIDTH * 0.75 * self.camera.zoom
-        map_height_pixels = MAP_HEIGHT * TILE_HEIGHT * self.camera.zoom
+        map_width_pixels = self.game_map.width * TILE_WIDTH * 0.75 * self.camera.zoom
+        map_height_pixels = self.game_map.height * TILE_HEIGHT * self.camera.zoom
         
         self.camera.x = max(min(self.camera.x, 0), 
                            MAP_VIEW_WIDTH - map_width_pixels - (TILE_WIDTH * 0.25 * self.camera.zoom))

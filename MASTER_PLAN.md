@@ -596,6 +596,14 @@ and should override "obvious" instincts.
   Game): play-vs-AI or spectate, 1–7 opponents, AI personality, map seed
   (R rerolls), game speed. (2026-07-10. Not yet: map size, per-opponent
   personality, resource richness — extend the same rows when wanted.)
+  - *(2026-07-11, user request)* **Map size row added** (Tiny 45² / Small
+    60² / Medium 70² / Large 85² / Huge 100², `config.MAP_SIZES`) with the
+    **player count capped by map size** (Tiny 2, Small 4, Medium 6,
+    Large/Huge 8) — shrinking the map clamps the opponents row live, and
+    the cap shows in the value ("Tiny (up to 2 players)"). Resource counts
+    already scaled by map area. **Game-speed row removed** (settings'
+    default + in-game [ ] keys own it). Saves store the map size so a load
+    rebuilds matching dimensions (`SaveManager.peek_map_size`).
 - [x] ⚡ **Map/start randomization** *(low–med)* — seed exposed in the setup
   screen and `--seed` CLI; same seed reproduces terrain + starts + layouts
   (verified), fresh seed each screen visit. Terrain/starts/resources were

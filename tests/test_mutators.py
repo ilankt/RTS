@@ -70,12 +70,17 @@ def test_mutators_survive_save_load(game, tmp_path):
 
 def test_setup_wiring_applies_mutator(monkeypatch):
     import main as main_module
+    # Importing main applies the DEVELOPER'S settings.json resolution to
+    # core.config at import time (its real startup job) — undo that so the
+    # rest of the test session keeps the default 720p layout constants
+    import core.config as config
+    config.apply_resolution(1280, 720)
 
     random.seed(4321)
     setup = {
         "mode": "play", "opponents": 1, "personality": "random",
         "difficulty": "normal", "victory": "annihilation",
-        "mutator": "revealed_map", "seed": 4321, "speed": 1,
+        "mutator": "revealed_map", "seed": 4321, "map_size": "medium",
     }
     game = main_module.create_game_from_setup(setup)
     assert game.mutators == {"revealed_map"}

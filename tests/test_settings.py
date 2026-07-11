@@ -102,7 +102,10 @@ def test_apply_resolution_derives_map_view():
         assert config.MAP_VIEW_WIDTH == 1920 - (config.MINIMAP_WIDTH - 22)
     finally:
         config.apply_resolution(*original)
-        assert (config.MAP_VIEW_WIDTH, config.MAP_VIEW_HEIGHT) == (1102, 620)
+    # Restore is consistent whatever resolution the session started at
+    assert (config.SCREEN_WIDTH, config.SCREEN_HEIGHT) == original
+    assert config.MAP_VIEW_HEIGHT == original[1] - config.TOP_BAR_HEIGHT
+    assert config.MAP_VIEW_WIDTH == original[0] - (config.MINIMAP_WIDTH - 22)
 
 
 def test_batch_queue_size_clamped(tmp_path):

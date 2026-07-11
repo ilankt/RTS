@@ -8,12 +8,13 @@ import random
 
 import pygame
 
-from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MIN_GAME_SPEED, MAX_GAME_SPEED
+from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MAP_SIZES
 from screens import theme
 
 PERSONALITY_CHOICES = ["random", "balanced", "rusher", "boomer", "turtle"]
 MUTATOR_CHOICES = ["none", "double_resources", "no_towers", "revealed_map",
                    "random_events", "comeback"]
+MAP_SIZE_CHOICES = list(MAP_SIZES)  # tiny .. huge, in declared order
 
 
 class MatchSetupScreen:
@@ -28,22 +29,22 @@ class MatchSetupScreen:
         self.config = {
             "mode": "play",           # play | spectate
             "opponents": 1,           # AI count (vs human) or total-1 in spectate
+            "map_size": "medium",     # tiny..huge; caps the player count
             "personality": "random",  # applied to every AI, or random per AI
             "difficulty": "normal",   # easy | normal | hard (§7.2 honest tiers)
             "victory": "annihilation",  # annihilation | economic | timed (§7.5)
             "mutator": "none",          # §7.5 match modifiers
             "seed": random.randint(1, 99999),
-            "speed": 1,
         }
         self.rows = [
             ("Mode", "mode"),
+            ("Map size", "map_size"),
             ("Opponents", "opponents"),
             ("AI personality", "personality"),
             ("AI difficulty", "difficulty"),
             ("Victory", "victory"),
             ("Mutator", "mutator"),
             ("Map seed", "seed"),
-            ("Game speed", "speed"),
             ("Start match", None),
             ("Back", None),
         ]
@@ -56,11 +57,22 @@ class MatchSetupScreen:
         self.hint_color = (100, 100, 100)
 
     # --- Value cycling -----------------------------------------------------
+    def _max_opponents(self):
+        """Small maps cap the head count — no 8-player brawls on Tiny."""
+        _tiles, max_players = MAP_SIZES[self.config["map_size"]]
+        return max_players - 1
+
     def _adjust(self, key, direction):
         if key == "mode":
             self.config["mode"] = "spectate" if self.config["mode"] == "play" else "play"
+        elif key == "map_size":
+            index = MAP_SIZE_CHOICES.index(self.config["map_size"])
+            self.config["map_size"] = MAP_SIZE_CHOICES[(index + direction) % len(MAP_SIZE_CHOICES)]
+            # Shrinking the map clamps the opponent count to what fits
+            self.config["opponents"] = min(self.config["opponents"], self._max_opponents())
         elif key == "opponents":
-            self.config["opponents"] = max(1, min(7, self.config["opponents"] + direction))
+            self.config["opponents"] = max(1, min(self._max_opponents(),
+                                                  self.config["opponents"] + direction))
         elif key == "personality":
             index = PERSONALITY_CHOICES.index(self.config["personality"])
             self.config["personality"] = PERSONALITY_CHOICES[(index + direction) % len(PERSONALITY_CHOICES)]
@@ -77,12 +89,13 @@ class MatchSetupScreen:
             self.config["mutator"] = MUTATOR_CHOICES[(index + direction) % len(MUTATOR_CHOICES)]
         elif key == "seed":
             self.config["seed"] = max(0, self.config["seed"] + direction)
-        elif key == "speed":
-            self.config["speed"] = int(max(MIN_GAME_SPEED, min(MAX_GAME_SPEED, self.config["speed"] + direction)))
 
     def _value_text(self, key):
         if key == "mode":
             return "Play (you vs AI)" if self.config["mode"] == "play" else "Spectate (AI vs AI)"
+        if key == "map_size":
+            _tiles, max_players = MAP_SIZES[self.config["map_size"]]
+            return f"{self.config['map_size'].title()} (up to {max_players} players)"
         if key == "opponents":
             return str(self.config["opponents"])
         if key == "personality":
@@ -95,8 +108,6 @@ class MatchSetupScreen:
             return self.config["mutator"].replace("_", " ").title()
         if key == "seed":
             return str(self.config["seed"])
-        if key == "speed":
-            return f"{self.config['speed']}x"
         return ""
 
     # --- Loop ---------------------------------------------------------------

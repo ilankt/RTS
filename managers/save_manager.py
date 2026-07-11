@@ -22,6 +22,8 @@ class SaveManager:
         state = {
             "version": 2,
             "timestamp": datetime.now().isoformat(),
+            "map_size": ([game.game_map.width, game.game_map.height]
+                         if getattr(game, "game_map", None) else None),
             "players": [],
             "buildings": [],
             "units": [],
@@ -155,6 +157,20 @@ class SaveManager:
                         grid[r][c] = fog.EXPLORED
                         explored += 1
             fog._explored_count[player] = explored
+
+    @classmethod
+    def peek_map_size(cls, slot=0):
+        """The save's map dimensions (w, h), so the loader can construct a
+        matching Game before restoring objects. None when unknown."""
+        filepath = os.path.join(cls.SAVE_DIR, f"save_{slot}.json")
+        try:
+            with open(filepath, "r") as f:
+                size = json.load(f).get("map_size")
+            if size and len(size) == 2:
+                return int(size[0]), int(size[1])
+        except (OSError, ValueError, TypeError):
+            pass
+        return None
 
     @classmethod
     def load_game(cls, game, slot=0):
