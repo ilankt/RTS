@@ -809,6 +809,28 @@ without spawning further agents.)*
 **Recommendation for this game** (200 px right panel, minimap top-right, 1280×720
 base, 13 buildings / 2 categories, 7 units, single-player, mouse+keyboard):
 
+**THE CORE FIX — how the builder's build menu is shown.** This is the thing the
+user actually complained about, twice. Current flow (`ui/components/building_menu.py`):
+select worker → panel opens on a **category picker** (two big Economy/Military
+buttons, *zero buildings visible*) → click a category → see ~6-8 tiles → click
+**Back** to reach the other category. **You can never see all 13 buildings at
+once; every building is 2 clicks + scanning away.** That two-level modal
+drill-down is the problem — not the tile styling (already fixed in the interim
+pass).
+
+Fix: **kill the drill-down. Always-visible category tabs, never a picker screen.**
+- Select worker → the card immediately shows **[Economy | Military] tab chips**
+  across the top with one category's grid already displayed (default Economy).
+- One click (or Q/W) swaps the visible category. **No "Back" step, no blank
+  picker.** You're always one click from any of the 13 buildings.
+- ~6-7 buildings per category in a 2-wide grid = 3-4 rows, fits the 200 px panel
+  with no scroll. (If a category ever exceeds ~8, page or scroll *within* the
+  grid — never re-introduce a drill-down.)
+- The tab you last used is remembered while the worker stays selected.
+This is the RA2/BAR always-on-tab model applied to the *mouse* flow, and it's
+Phase A's headline deliverable. Everything below (grid hotkeys, batch
+production, global queue) is secondary depth — do it after the flow is fixed.
+
 **Keep the right sidebar — do not move to a bottom bar.** The C&C3 rationale
 maps exactly onto a comfy single-player RTS: global production without camera
 trips beats APM-style control-group juggling, and our vertical budget (top bar
@@ -853,8 +875,11 @@ unaffordable = dimmed icon + red-tint cost; locked = tan tile + "Requires X"
 tooltip line (upgrade to a lock glyph in Phase A); rich hover tooltip (cost,
 time, counters, description); right-click on a queued tile cancels with refund.
 
-- [ ] **Phase A** — unified sidebar command card + position-mapped grid hotkeys
-  (BAR-style dual-purpose category/grid keys)
+- [ ] **Phase A (headline: fix the build-menu flow)** — replace the two-level
+  category-picker drill-down with always-visible Economy/Military tab chips
+  (one-click swap, no Back, all 13 buildings ≤1 click away); then unified
+  sidebar command card + position-mapped grid hotkeys (BAR-style dual-purpose
+  category/grid keys)
 - [ ] **Phase B** — multi-building selection, shortest-queue routing, group
   rally, configurable Shift-queue-N (default 5), Tab subtype cycling
 - [ ] **Phase C** — global build-queue strip + select-all-production hotkey
