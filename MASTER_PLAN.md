@@ -734,6 +734,15 @@ user's request); the checklist items here are its inputs/prerequisites.**
   same dark-panel style (bg 20/20/30, gold titles, highlight rows).
   Original scope: main/pause/victory screens scale and share the
   visual language.
+  - *(2026-07-11)* **Visual upgrade pass** (user: "they look horrible"):
+    `screens/theme.py` centralizes the language — splash-art backdrop,
+    rounded scrim panels with gold borders, shadowed gold titles,
+    label/value rows with adjuster arrows, green primary action buttons.
+    Match setup + settings restyled with it (also fixed: match setup's
+    Back row clipped off-screen at 720p), and the bare "PAUSED" text is
+    now a real **pause menu** — Resume / Settings / Quit to Menu,
+    clickable, with gameplay clicks blocked while paused. Victory/summary
+    overlay is the remaining screen still on the old flat style.
 - **✅ Verify:** resize the window to a non-720p size and confirm the HUD lays out
   correctly with no clipping; the command card issues actions; tooltips appear on
   hover; settings changes persist across a restart.

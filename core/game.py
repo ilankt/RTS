@@ -382,9 +382,15 @@ class Game:
     
     def _handle_mouse_down(self, event):
         """Handle mouse button down events"""
+        # While paused the pause menu owns the mouse — no gameplay clicks
+        if self.game_paused and not self.game_over_state:
+            if event.button == 1:
+                self._handle_pause_menu_click(pygame.mouse.get_pos())
+            return
+
         if event.button == 1:  # Left click
             mouse_pos = pygame.mouse.get_pos()
-            
+
             # Check AI debug panel click first
             if self.ai_debug_panel.handle_click(mouse_pos):
                 pass  # Debug panel handled the click
@@ -1020,23 +1026,68 @@ class Game:
             unit.stance_home_position = (unit.x, unit.y)
             debug_log.log(f"{unit.name} stance changed to {unit.stance}", "GENERAL")
     
+    PAUSE_OPTIONS = [
+        ("Resume", "resume"),
+        ("Settings", "settings"),
+        ("Quit to Menu", "quit_to_menu"),
+    ]
+
+    def _pause_option_rect(self, index):
+        panel = self._pause_panel_rect()
+        return pygame.Rect(panel.centerx - 150, panel.y + 84 + index * 54, 300, 44)
+
+    def _pause_panel_rect(self):
+        height = 84 + len(self.PAUSE_OPTIONS) * 54 + 52
+        return pygame.Rect(SCREEN_WIDTH // 2 - 190, (SCREEN_HEIGHT - height) // 2,
+                           380, height)
+
     def _draw_pause_overlay(self):
-        """Draw pause overlay"""
+        """The in-game pause menu (§8.2 menu polish): dim the battlefield,
+        then a themed panel with clickable options."""
+        from screens import theme
+
         overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         overlay.fill((0, 0, 0))
-        overlay.set_alpha(120)
+        overlay.set_alpha(140)
         self.screen.blit(overlay, (0, 0))
-        
-        font_large = pygame.font.Font(None, 72)
-        font_small = pygame.font.Font(None, 36)
-        
-        title = font_large.render("PAUSED", True, (255, 255, 255))
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 40))
+
+        panel = self._pause_panel_rect()
+        theme.draw_panel(self.screen, panel)
+
+        font_title = pygame.font.Font(None, 56)
+        shadow = font_title.render("Paused", True, theme.TITLE_SHADOW)
+        title = font_title.render("Paused", True, theme.TITLE_COLOR)
+        title_rect = title.get_rect(center=(panel.centerx, panel.y + 44))
+        self.screen.blit(shadow, title_rect.move(2, 2))
         self.screen.blit(title, title_rect)
-        
-        sub = font_small.render("Press ESC to Resume  ·  O for Settings", True, (200, 200, 200))
-        sub_rect = sub.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
-        self.screen.blit(sub, sub_rect)
+
+        font_option = pygame.font.Font(None, 36)
+        mouse_pos = pygame.mouse.get_pos()
+        for i, (label, _action) in enumerate(self.PAUSE_OPTIONS):
+            rect = self._pause_option_rect(i)
+            theme.draw_action_row(self.screen, rect, label,
+                                  rect.collidepoint(mouse_pos), font_option,
+                                  primary=(label == "Resume"))
+
+        theme.draw_hint(self.screen, "Esc resumes · O opens Settings",
+                        y=panel.bottom - 26)
+
+    def _handle_pause_menu_click(self, mouse_pos):
+        """Left click on the pause menu. Gameplay clicks are blocked while
+        paused — the menu owns the screen."""
+        for i, (_label, action) in enumerate(self.PAUSE_OPTIONS):
+            if not self._pause_option_rect(i).collidepoint(mouse_pos):
+                continue
+            if self.sound_manager:
+                self.sound_manager.play_ui_click()
+            if action == "resume":
+                self.game_paused = False
+            elif action == "settings":
+                self._open_settings_from_pause()
+            elif action == "quit_to_menu":
+                self.game_paused = False
+                self.running = False  # back to main.py's menu loop
+            return
 
     def _open_settings_from_pause(self):
         """Run the settings screen over the paused game and live-apply the

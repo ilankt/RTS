@@ -8,6 +8,7 @@ import pygame
 
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
 from core.settings import Settings, RESOLUTION_CHOICES
+from screens import theme
 
 
 class SettingsMenu:
@@ -127,34 +128,36 @@ class SettingsMenu:
             self._adjust(key, direction)
 
     # --- Drawing ------------------------------------------------------------
+    ROWS_TOP_OFFSET = 88   # first row's offset inside the panel
+    ROW_PITCH = 48
+    ROW_W = 560
+
+    def _panel_rect(self):
+        height = self.ROWS_TOP_OFFSET + len(self.rows) * self.ROW_PITCH + 36
+        top = max(12, (SCREEN_HEIGHT - height) // 2)
+        return pygame.Rect(SCREEN_WIDTH // 2 - 320, top, 640, height)
+
     def _row_rect(self, index):
-        y = SCREEN_HEIGHT // 3 + index * 52
-        return pygame.Rect(SCREEN_WIDTH // 2 - 260, y - 18, 520, 42)
+        panel = self._panel_rect()
+        y = panel.y + self.ROWS_TOP_OFFSET + index * self.ROW_PITCH
+        if index == len(self.rows) - 1:
+            y += 10  # breathe before the Back action
+        return pygame.Rect(SCREEN_WIDTH // 2 - self.ROW_W // 2, y,
+                           self.ROW_W, self.ROW_PITCH - 6)
 
     def draw(self):
-        self.screen.fill(self.bg_color)
-        title = self.font_large.render("Settings", True, self.title_color)
-        self.screen.blit(title, title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 5)))
+        theme.draw_menu_scene(self.screen, "Settings", self._panel_rect())
 
         for i, (label, key) in enumerate(self.rows):
             rect = self._row_rect(i)
             selected = i == self.selected_index
-            color = self.selected_color if selected else self.option_color
-            if selected:
-                pygame.draw.rect(self.screen, (60, 60, 80), rect, border_radius=5)
-                pygame.draw.rect(self.screen, self.selected_color, rect, 2, border_radius=5)
-
             if key is None:
-                text = self.font_medium.render(label, True, color)
-                self.screen.blit(text, text.get_rect(center=rect.center))
+                theme.draw_action_row(self.screen, rect, label, selected,
+                                      self.font_medium)
             else:
-                label_surface = self.font_medium.render(label, True, color)
-                self.screen.blit(label_surface, (rect.x + 14, rect.y + 6))
-                value_surface = self.font_medium.render(f"< {self._value_text(key)} >", True, color)
-                self.screen.blit(value_surface, (rect.right - value_surface.get_width() - 14, rect.y + 6))
+                theme.draw_setting_row(self.screen, rect, label,
+                                       self._value_text(key), selected,
+                                       self.font_medium)
 
-        hint = self.font_small.render(
-            "Arrows to navigate/change - Enter/Esc saves and goes back",
-            True, self.hint_color,
-        )
-        self.screen.blit(hint, hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 50)))
+        theme.draw_hint(self.screen,
+                        "Arrows navigate/change · Enter/Esc saves and goes back")

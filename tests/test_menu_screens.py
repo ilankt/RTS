@@ -67,3 +67,41 @@ def test_match_setup_rows_follow_hover(screen):
 
     setup.run()
     assert setup.selected_index == 1
+
+
+def test_pause_menu_click_actions(screen):
+    """The pause menu owns the mouse: Resume unpauses, Quit exits to the
+    menu loop, and gameplay clicks are blocked while paused."""
+    import random
+    random.seed(4321)
+    from core.game import Game
+
+    game = Game(mode="human_1v1", player_count=2)
+    human = game.players[0]
+    worker = next(u for u in game.units if u.player is human and u.name == "worker")
+
+    game.game_paused = True
+
+    # Gameplay clicks are blocked: clicking a worker while paused must not
+    # select it
+    worker.selected = False
+    event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1)
+    game._handle_mouse_down(event)
+    assert worker.selected is False
+
+    # Resume row unpauses (click at the row's center)
+    resume_rect = game._pause_option_rect(0)
+    pygame.mouse.set_pos(resume_rect.center)
+    game._handle_pause_menu_click(resume_rect.center)
+    assert game.game_paused is False
+
+    # Quit row leaves the match loop
+    game.game_paused = True
+    quit_rect = game._pause_option_rect(2)
+    game._handle_pause_menu_click(quit_rect.center)
+    assert game.running is False
+    assert game.game_paused is False
+
+    # Drawing the overlay must not raise
+    game.game_paused = True
+    game._draw_pause_overlay()

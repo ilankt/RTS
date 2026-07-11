@@ -1,55 +1,8 @@
 import pygame
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
 from managers.sound_manager import music_player
-
-SPLASH_PATH = "assets/ui/splash_background.png"
-_splash_cache = {}  # (w, h) -> cover-scaled surface
-
-
-def splash_background(size=None):
-    """The splash art cover-scaled + center-cropped to `size` (defaults to
-    the screen). Returns None if the art is missing."""
-    size = size or (SCREEN_WIDTH, SCREEN_HEIGHT)
-    cached = _splash_cache.get(size)
-    if cached is not None:
-        return cached
-    try:
-        art = pygame.image.load(SPLASH_PATH).convert()
-    except Exception:
-        return None
-    width, height = size
-    scale = max(width / art.get_width(), height / art.get_height())
-    scaled = pygame.transform.smoothscale(
-        art, (int(art.get_width() * scale) + 1, int(art.get_height() * scale) + 1))
-    surface = pygame.Surface(size)
-    surface.blit(scaled, ((width - scaled.get_width()) // 2,
-                          (height - scaled.get_height()) // 2))
-    _splash_cache[size] = surface
-    return surface
-
-
-def draw_splash(screen, caption=None):
-    """Full-screen splash with an optional caption — used as the loading
-    screen while a match is being generated."""
-    background = splash_background(screen.get_size())
-    if background is not None:
-        screen.blit(background, (0, 0))
-        overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-        overlay.fill((10, 10, 20, 90))
-        screen.blit(overlay, (0, 0))
-    else:
-        screen.fill((20, 20, 30))
-    if caption:
-        font = pygame.font.Font(None, 40)
-        text = font.render(caption, True, (240, 225, 170))
-        rect = text.get_rect(center=(screen.get_width() // 2,
-                                     screen.get_height() - 80))
-        backdrop = rect.inflate(30, 14)
-        panel = pygame.Surface(backdrop.size, pygame.SRCALPHA)
-        panel.fill((0, 0, 0, 150))
-        screen.blit(panel, backdrop.topleft)
-        screen.blit(text, rect)
-    pygame.display.flip()
+# Re-exported for callers/tests that import them from here
+from screens.theme import splash_background, draw_splash  # noqa: F401
 
 
 class MainMenu:
