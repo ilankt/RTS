@@ -17,6 +17,7 @@ RESOLUTION_CHOICES = [[1280, 720], [1600, 900], [1920, 1080]]
 
 DEFAULTS = {
     "resolution": [1280, 720],
+    "fullscreen": False,         # scaled fullscreen (logical res -> monitor)
     "volume": 0.3,               # SFX volume, 0.0 - 1.0
     "music_volume": 0.4,         # background music volume (§8.5)
     "sound_enabled": True,
@@ -50,7 +51,8 @@ class Settings:
                     self.values[key] = min(1.0, max(0.0, float(value)))
                 except (TypeError, ValueError):
                     pass
-            elif key in ("sound_enabled", "colorblind_palette", "adaptive_difficulty"):
+            elif key in ("sound_enabled", "colorblind_palette",
+                         "adaptive_difficulty", "fullscreen"):
                 self.values[key] = bool(value)
             elif key == "default_game_speed":
                 try:
@@ -79,6 +81,16 @@ class Settings:
 
     def get(self, key):
         return self.values[key]
+
+    def display_flags(self):
+        """pygame.display.set_mode flags for the current settings. SCALED
+        fullscreen keeps the chosen logical resolution and scales it to the
+        monitor — no display-mode switching."""
+        import pygame
+
+        if self.values["fullscreen"]:
+            return pygame.FULLSCREEN | pygame.SCALED
+        return 0
 
     def set(self, key, value):
         if key in DEFAULTS:

@@ -1091,11 +1091,17 @@ class Game:
 
     def _open_settings_from_pause(self):
         """Run the settings screen over the paused game and live-apply the
-        audio settings (music/SFX volume, mute) on return (§8.5)."""
+        audio settings (music/SFX volume, mute) and a fullscreen toggle on
+        return (§8.5); resolution still needs a restart."""
         from screens.settings_menu import SettingsMenu
 
         settings = SettingsMenu(self.screen).run()
         settings.apply_audio(self)
+        try:
+            self.screen = pygame.display.set_mode(
+                (SCREEN_WIDTH, SCREEN_HEIGHT), settings.display_flags())
+        except pygame.error:
+            self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     
     def _restart_game(self):
         """Restart the game by reinitializing core state"""

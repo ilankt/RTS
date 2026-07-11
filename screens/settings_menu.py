@@ -23,6 +23,7 @@ class SettingsMenu:
         self.settings = Settings()
         self.rows = [
             ("Resolution", "resolution"),
+            ("Fullscreen", "fullscreen"),
             ("SFX volume", "volume"),
             ("Music volume", "music_volume"),
             ("Sound", "sound_enabled"),
@@ -30,7 +31,7 @@ class SettingsMenu:
             ("Colorblind team colors", "colorblind_palette"),
             ("Adaptive difficulty", "adaptive_difficulty"),
             ("Shift-queue batch size", "batch_queue_size"),
-            ("Back (saves)", None),
+            ("Back", None),
         ]
         self.selected_index = 0
 
@@ -50,7 +51,8 @@ class SettingsMenu:
         elif key in ("volume", "music_volume"):
             volume = round(self.settings.get(key) + direction * 0.1, 1)
             self.settings.set(key, min(1.0, max(0.0, volume)))
-        elif key in ("sound_enabled", "colorblind_palette", "adaptive_difficulty"):
+        elif key in ("sound_enabled", "colorblind_palette",
+                     "adaptive_difficulty", "fullscreen"):
             self.settings.set(key, not self.settings.get(key))
         elif key == "default_game_speed":
             speed = self.settings.get("default_game_speed") + direction
@@ -65,6 +67,8 @@ class SettingsMenu:
             return f"{w} x {h} (restart)"
         if key in ("volume", "music_volume"):
             return f"{int(self.settings.get(key) * 100)}%"
+        if key == "fullscreen":
+            return "On" if self.settings.get("fullscreen") else "Off"
         if key == "sound_enabled":
             return "On" if self.settings.get("sound_enabled") else "Off"
         if key == "colorblind_palette":
@@ -124,8 +128,15 @@ class SettingsMenu:
 
     def _row_adjust(self, direction):
         _label, key = self.rows[self.selected_index]
-        if key is not None:
-            self._adjust(key, direction)
+        if key is None:
+            return
+        self._adjust(key, direction)
+        # Persist immediately — no "save on back" step to forget
+        self.settings.save()
+        if key == "music_volume":
+            # Live preview: the menu theme is playing right now
+            from managers.sound_manager import music_player
+            music_player.set_volume(self.settings.get("music_volume"))
 
     # --- Drawing ------------------------------------------------------------
     ROWS_TOP_OFFSET = 88   # first row's offset inside the panel

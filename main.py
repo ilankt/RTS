@@ -96,13 +96,22 @@ def create_game_from_setup(setup):
     return game
 
 
+def apply_display_mode():
+    """(Re)create the display honoring the fullscreen setting — called at
+    startup and whenever the settings screen may have changed it."""
+    resolution = (_config.SCREEN_WIDTH, _config.SCREEN_HEIGHT)
+    try:
+        return pygame.display.set_mode(resolution, settings.display_flags())
+    except pygame.error:
+        return pygame.display.set_mode(resolution)  # windowed fallback
+
+
 def main():
     args = parse_args()
     pygame.init()
     if not pygame.font.get_init():
         pygame.font.init()
-    resolution = (_config.SCREEN_WIDTH, _config.SCREEN_HEIGHT)
-    screen = pygame.display.set_mode(resolution)
+    screen = apply_display_mode()
 
     if args.spectate:
         launch_spectator(player_count=args.players, speed=args.speed, seed=args.seed)
@@ -140,8 +149,10 @@ def main():
             SettingsMenu(screen).run()
             settings.load()  # pick up what the screen saved
 
-        # Reset display mode in case game modified it
-        screen = pygame.display.set_mode(resolution)
+        # Reset the display in case the game or settings changed it
+        # (also applies a fullscreen toggle made in the settings screen)
+        settings.load()
+        screen = apply_display_mode()
 
     pygame.quit()
 

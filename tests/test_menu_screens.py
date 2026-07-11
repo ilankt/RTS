@@ -105,3 +105,39 @@ def test_pause_menu_click_actions(screen):
     # Drawing the overlay must not raise
     game.game_paused = True
     game._draw_pause_overlay()
+
+
+def test_settings_persist_immediately_on_change(screen, tmp_path):
+    """Every adjustment writes to disk right away — closing the app without
+    touching Back must not lose settings (user request)."""
+    from core.settings import Settings
+    from screens.settings_menu import SettingsMenu
+
+    path = str(tmp_path / "settings.json")
+    menu = SettingsMenu(screen)
+    menu.settings = Settings(path=path)
+
+    menu.selected_index = next(i for i, (_l, key) in enumerate(menu.rows)
+                               if key == "fullscreen")
+    menu._row_adjust(1)  # toggle fullscreen On — no Back, no explicit save
+
+    assert Settings(path=path).get("fullscreen") is True
+
+    menu.selected_index = next(i for i, (_l, key) in enumerate(menu.rows)
+                               if key == "music_volume")
+    menu._row_adjust(1)
+    assert Settings(path=path).get("music_volume") == pytest.approx(0.5)
+
+
+def test_fullscreen_setting_and_display_flags(tmp_path):
+    from core.settings import Settings
+
+    path = str(tmp_path / "settings.json")
+    settings = Settings(path=path)
+    assert settings.get("fullscreen") is False  # default: windowed
+    assert settings.display_flags() == 0
+
+    settings.set("fullscreen", True)
+    assert settings.display_flags() == (pygame.FULLSCREEN | pygame.SCALED)
+    settings.save()
+    assert Settings(path=path).get("fullscreen") is True
