@@ -950,6 +950,11 @@ time, counters, description); right-click on a queued tile cancels with refund.
   hotkeys; a barracks+stable group batch-produces to shortest queue and rallies
   with one click; the global strip shows all production and cancels on
   Ctrl+click; a full match is playable mouse-only AND (production) keyboard-only.
+  - *Status 2026-07-11:* every clause covered by `tests/test_command_card.py`
+    (18 tests) + rendered screenshots of 10 HUD scenarios at 720p/1080p.
+    The one thing automation can't sign off is feel — a windowed
+    mouse-only / keyboard-only match play-through is the remaining human
+    check before calling §8.2.1 fully closed.
 
 ### 8.3 Resource model rethink — *balance-sensitive*
 
