@@ -149,6 +149,25 @@ class ResearchManager:
                 if shown >= self.POWER_SPIKE_FLOAT_CAP:
                     break
 
+    def cancel_research(self, building):
+        """Cancel the in-progress tech at a building — 50% refund, mirroring
+        production cancel (§8.2.1 Phase C global-queue strip). Queued techs
+        start as usual."""
+        research = getattr(building, "current_research", None)
+        if not research:
+            return False, "Nothing in progress"
+        tech = research.get("tech") or self.game.game_data.get("techs", {}).get(
+            research["tech_id"], {})
+        for resource, amount in tech.get("costs", {}).items():
+            building.player.resources[resource] += amount // 2
+        building.current_research = None
+        debug_log.log(
+            f"{building.player.name}: cancelled research {research['tech_id']}",
+            "PRODUCTION",
+        )
+        self._start_next_queued_research(building)
+        return True, "Cancelled"
+
     def _start_next_queued_research(self, building):
         while building.research_queue:
             next_tech_id = building.research_queue.pop(0)

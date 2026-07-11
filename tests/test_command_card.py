@@ -357,6 +357,77 @@ def test_buildings_join_control_groups(game, card):
 
 
 # --------------------------------------------------------------------- #
+# Phase C: global build-queue strip + select-all-production              #
+# --------------------------------------------------------------------- #
+
+def test_global_queue_lists_all_production(game, card):
+    screen = pygame.Surface((1280, 720))
+    strip = game.ui_manager.global_queue
+    castle = own_castle(game)
+    barracks = build_own_building(game, "barracks", castle.x + 300, castle.y)
+    smith = build_own_building(game, "blacksmith", castle.x + 300, castle.y + 100)
+
+    game.production_manager.start_production(castle, "worker")
+    game.production_manager.start_production(barracks, "warrior")
+    game.production_manager.start_production(barracks, "warrior")  # queued
+    game.research_manager.start_research(smith, "forged_blades")
+
+    items = strip._items()
+    kinds = sorted((i['kind'], i['key']) for i in items)
+    assert kinds == [('tech', 'forged_blades'), ('unit', 'warrior'), ('unit', 'worker')]
+    warrior_row = next(i for i in items if i['key'] == 'warrior')
+    assert warrior_row['queued'] == 1
+
+    strip.draw(screen)
+    assert len(strip._rows) == 3
+
+    # Click jumps camera to + selects the producer
+    rect, item = next((r, i) for r, i in strip._rows if i['key'] == 'warrior')
+    assert strip.handle_click(rect.center) is True
+    assert barracks.selected
+
+    game.production_manager.cancel_production(castle)
+    barracks.production_queue.clear()
+    game.production_manager.cancel_production(barracks)
+    game.research_manager.cancel_research(smith)
+    game.buildings.remove(barracks)
+    game.buildings.remove(smith)
+
+
+def test_cancel_research_refunds_half(game, card):
+    human = game.players[0]
+    castle = own_castle(game)
+    smith = build_own_building(game, "blacksmith", castle.x + 300, castle.y)
+    before = sum(human.resources.values())
+
+    game.research_manager.start_research(smith, "forged_blades")
+    spent = before - sum(human.resources.values())
+    assert spent > 0
+
+    ok, _ = game.research_manager.cancel_research(smith)
+    assert ok and smith.current_research is None
+    refunded = sum(human.resources.values()) - (before - spent)
+    assert 0 < refunded <= spent // 2 + 1  # 50% back (integer division)
+
+    game.buildings.remove(smith)
+
+
+def test_select_all_military_production(game, card):
+    castle = own_castle(game)
+    barracks = build_own_building(game, "barracks", castle.x + 300, castle.y)
+    stable = build_own_building(game, "stable", castle.x + 300, castle.y + 100)
+    sm = game.selection_manager
+
+    assert sm.select_all_military_production() is True
+    assert set(sm.selected_objects) == {barracks, stable}  # castle excluded
+    assert card.refresh()['context'] == 'production'
+
+    game.buildings.remove(barracks)
+    game.buildings.remove(stable)
+    clear_selection(game)
+
+
+# --------------------------------------------------------------------- #
 # camera-pan key suppression                                             #
 # --------------------------------------------------------------------- #
 

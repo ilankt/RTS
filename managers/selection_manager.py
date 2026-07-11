@@ -969,6 +969,27 @@ class SelectionManager:
         self._play_unit_sound(worker, "select")
         return True
 
+    def select_all_military_production(self):
+        """Select every own building that produces military units (§8.2.1 C)
+        so one hotkey drives the whole army's production card. Returns True
+        if anything was selected."""
+        players = self.game.players
+        human = players[0] if players and getattr(players[0], "human", False) else None
+        if human is None:
+            return False
+        producers = [
+            b for b in self.game.buildings
+            if b.player is human and b.hp > 0
+            and any(u != "worker" for u in (getattr(b, "can_produce", None) or ()))
+        ]
+        if not producers:
+            return False
+        self._clear_all_selections()
+        for building in producers:
+            building.selected = True
+            self.selected_objects.append(building)
+        return True
+
     def recall_control_group(self, group_number):
         """Select a control group's members (1-9), units and buildings alike.
         Returns True if the group had live members."""

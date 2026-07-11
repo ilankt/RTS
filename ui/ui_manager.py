@@ -5,6 +5,7 @@ from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIG
 from ui.components.cursor_manager import CursorManager
 from ui.components.unit_panel import UnitPanel
 from ui.components.command_card import CommandCard
+from ui.components.global_queue import GlobalQueueStrip
 from ui.components.resource_bar import ResourceBar
 from ui.components.icon_loader import IconLoader
 
@@ -31,6 +32,8 @@ class UIManager:
         self.cursor_manager = CursorManager(game)
         self.unit_panel = UnitPanel(game, self.icon_loader)
         self.command_card = CommandCard(game, self.icon_loader)
+        self.global_queue = GlobalQueueStrip(game, self.icon_loader,
+                                             self.command_card.tech_icons)
         self.resource_bar = ResourceBar(game)
 
         # Alert feed (§7.4): fading toasts under the top bar, plus a
@@ -170,6 +173,9 @@ class UIManager:
 
         screen.blit(panel_surface, (ui_x, ui_y))
 
+        # Global build-queue strip (§8.2.1 Phase C), left map edge
+        self.global_queue.draw(screen)
+
         # Tooltip last so no other draw covers it
         self.command_card.draw_tooltip(screen)
 
@@ -179,6 +185,8 @@ class UIManager:
 
     def handle_click(self, pos):
         """Handle mouse clicks on UI elements"""
+        if self.global_queue.handle_click(pos):
+            return True
         return self.command_card.handle_click(pos)
 
     def handle_right_click(self, pos):

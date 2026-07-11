@@ -15,6 +15,7 @@ BINDINGS_FILE = "keybindings.json"
 
 DEFAULT_BINDINGS = {
     "idle_worker": "f1",          # select/cycle idle workers
+    "select_all_production": "f2",  # select every own military-production building
     "jump_to_base": "home",       # center camera on own castle
     "cycle_army": "tab",          # select + center next military unit
     "path_overlay": "f3",         # pathfinding/coordinate debug overlay

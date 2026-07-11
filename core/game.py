@@ -267,6 +267,9 @@ class Game:
         elif self.keybindings.matches("idle_worker", event.key):
             # Select/cycle idle workers (§7.4)
             self.selection_manager.select_next_idle_worker()
+        elif self.keybindings.matches("select_all_production", event.key):
+            # Select all own military-production buildings (§8.2.1 Phase C)
+            self.selection_manager.select_all_military_production()
         elif self.keybindings.matches("jump_to_base", event.key):
             # Jump camera to own base (§8.6)
             self._jump_to_base()

@@ -918,7 +918,19 @@ time, counters, description); right-click on a queued tile cancels with refund.
   status strip shows "N/M producing · K queued". Verified: 258 tests green
   (4 new: shortest-queue routing, union card, batch spread, building control
   groups) + rendered screenshot of a barracks×2+stable selection.
-- [ ] **Phase C** — global build-queue strip + select-all-production hotkey
+- [x] **Phase C** — landed 2026-07-11. `ui/components/global_queue.py`: a
+  slim overlay strip listing every own unit/tech in production anywhere —
+  icon, name, live progress bar, "+N" queue badge (8 rows + "+N more"
+  overflow). Click a row → camera jumps to and selects the producer;
+  **Ctrl+click cancels** the in-progress item (`research_manager.
+  cancel_research` added: 50% refund mirroring production cancel, queued
+  techs auto-start). Docked on the **left map edge** — the plan drafted
+  "under the minimap" but the Phase A card's fixed grid owns that space,
+  and the left edge is where AoE4 itself docks its global queue.
+  **Select-all-military-production hotkey**: `select_all_production` (F2,
+  rebindable) selects every own building producing non-worker units —
+  straight into the Phase B group card. Verified: 261 tests green (3 new)
+  + rendered screenshot (worker/warrior/tech rows with progress bars).
 - [ ] **Phase D** — resolution independence (absorbs the §8.2 item above)
 - **✅ Verify:** every selection type drives the same card with the same grid
   hotkeys; a barracks+stable group batch-produces to shortest queue and rallies
