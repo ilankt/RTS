@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from entities import Building, ConstructionSite, load_game_data
 from managers.save_manager import SaveManager
-from ui.components.building_menu import BuildingMenu
+from ui.components.command_card import CommandCard
 
 
 def _building_from_template(template, player):
@@ -88,11 +88,11 @@ def test_build_menu_uses_nested_costs_for_watchtower_affordability():
     player = SimpleNamespace(resources={"gold": 999, "wood": 149, "stone": 100})
     building = {"name": "watchtower", "costs": {"wood": 150, "stone": 100}}
 
-    assert BuildingMenu._can_afford(None, player, building) is False
-    assert BuildingMenu._format_costs(None, building) == "Wood: 150, Stone: 100"
+    assert CommandCard._can_afford(player, building) is False
+    assert CommandCard._format_costs(building) == "Wood: 150, Stone: 100"
 
     player.resources["wood"] = 150
-    assert BuildingMenu._can_afford(None, player, building) is True
+    assert CommandCard._can_afford(player, building) is True
 
 
 def test_watchtower_load_preserves_combat_stats(tmp_path, monkeypatch):

@@ -30,6 +30,20 @@ DEFAULT_BINDINGS = {
     "camera_bookmark_set": "b",   # save current camera view (4 rotating slots)
     "camera_bookmark_jump": "n",  # cycle through saved views
     "toggle_event_log": "l",      # scrolling log of past alerts (§8.2)
+    # Command-card grid hotkeys (§8.2.1 Phase A): position-mapped onto the
+    # sidebar's fixed 2x4 tile grid, row by row. While a key maps to an
+    # occupied card slot it wins over WASD camera pan (arrows/edge-scroll
+    # keep panning); "s" deliberately shadows cycle_stance only when a card
+    # tile sits in that slot.
+    "card_slot_0": "q",
+    "card_slot_1": "w",
+    "card_slot_2": "a",
+    "card_slot_3": "s",
+    "card_slot_4": "z",
+    "card_slot_5": "x",
+    "card_slot_6": "c",
+    "card_slot_7": "v",
+    "card_tab_swap": "e",         # swap Economy/Military build tabs
 }
 
 

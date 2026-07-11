@@ -260,6 +260,10 @@ class Game:
                 self.game_paused = not self.game_paused
                 if hasattr(self, 'sound_manager') and self.sound_manager:
                     self.sound_manager.play_ui_click()
+        elif self.ui_manager.command_card.handle_hotkey(event.key):
+            # Command-card grid hotkey (§8.2.1): build/produce/research/army
+            # action on the current selection; unoccupied slots fall through
+            pass
         elif self.keybindings.matches("idle_worker", event.key):
             # Select/cycle idle workers (§7.4)
             self.selection_manager.select_next_idle_worker()
@@ -400,8 +404,8 @@ class Game:
                 self.building_system.cancel_building_placement()
             else:
                 mouse_pos = pygame.mouse.get_pos()
-                # Right-click on a production button cancels a queued unit
-                if self.ui_manager.production_panel.handle_right_click(mouse_pos):
+                # Right-click on the command card (cancel queued units etc.)
+                if self.ui_manager.handle_right_click(mouse_pos):
                     return
                 self.selection_manager.handle_right_click(mouse_pos)
     
@@ -416,8 +420,6 @@ class Game:
         elif self.ui_manager.active_command_mode or SMART_CURSORS_ENABLED:
             # Update cursor based on target validity or smart cursor logic
             self._update_cursor_for_context(mouse_pos)
-        else:
-            self.ui_manager.handle_production_hover(mouse_pos)
     
     def _handle_mouse_up(self, event):
         """Handle mouse button up events"""
@@ -679,15 +681,20 @@ class Game:
     EDGE_SCROLL_MARGIN = 14  # px from the window edge that trigger scrolling
 
     def _update_camera_movement(self):
-        """Update camera movement from keyboard input + edge scrolling (§8.6)"""
+        """Update camera movement from keyboard input + edge scrolling (§8.6).
+
+        A WASD key stops panning while it maps to an occupied command-card
+        slot (§8.2.1 grid hotkeys); arrows and edge-scroll always pan.
+        """
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+        card = self.ui_manager.command_card
+        if keys[pygame.K_LEFT] or (keys[pygame.K_a] and not card.consumes_key(pygame.K_a)):
             self.camera.move(dx=CAMERA_SPEED)
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+        if keys[pygame.K_RIGHT] or (keys[pygame.K_d] and not card.consumes_key(pygame.K_d)):
             self.camera.move(dx=-CAMERA_SPEED)
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
+        if keys[pygame.K_UP] or (keys[pygame.K_w] and not card.consumes_key(pygame.K_w)):
             self.camera.move(dy=CAMERA_SPEED)
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+        if keys[pygame.K_DOWN] or (keys[pygame.K_s] and not card.consumes_key(pygame.K_s)):
             self.camera.move(dy=-CAMERA_SPEED)
 
         # Edge scroll when the mouse hugs the window border

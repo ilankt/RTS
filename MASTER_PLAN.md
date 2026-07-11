@@ -678,7 +678,7 @@ user's request); the checklist items here are its inputs/prerequisites.**
 - [ ] **Resolution independence + UI scaling** *(med–high)* — layout from
   anchors/relative units, not fixed pixels; support arbitrary window sizes. Foundation
   for everything visual.
-- [~] **Command card / action grid** *(med)* — first pass 2026-07-10 (from
+- [x] **Command card / action grid** *(med)* — first pass 2026-07-10 (from
   windowed user feedback "this is very bad"): the build menu and unit
   production are now matching **2-column icon-tile grids** — icon on top,
   wrapped name, compact cost line ("150G 100W") that never clips — with
@@ -688,9 +688,9 @@ user's request); the checklist items here are its inputs/prerequisites.**
   AND overflow past the screen bottom — stone wall/gate were unreachable).
   Production adds a status strip (unit, %, queue depth) under the tiles.
   Top-bar overlap fixed (idle badge anchored left of Speed/Fog, redundant
-  hint removed). Verified by rendered-frame screenshots. Remaining for the
-  full command card: grid hotkeys + unified action buttons for selections.
-  selection with grid hotkeys, replacing bespoke panels.
+  hint removed). Verified by rendered-frame screenshots.
+  **Completed 2026-07-11 by the §8.2.1 Phase A unified command card**
+  (grid hotkeys + unified per-selection actions, bespoke panels deleted).
 - [x] **Multi-select panel** *(med)* — 2026-07-10: mixed selections now render
   grouped by unit type (biggest group first) with an ×N count badge per icon
   and an aggregate health bar (sum hp / sum max), so a 40-unit army fits the
@@ -875,11 +875,31 @@ unaffordable = dimmed icon + red-tint cost; locked = tan tile + "Requires X"
 tooltip line (upgrade to a lock glyph in Phase A); rich hover tooltip (cost,
 time, counters, description); right-click on a queued tile cancels with refund.
 
-- [ ] **Phase A (headline: fix the build-menu flow)** — replace the two-level
-  category-picker drill-down with always-visible Economy/Military tab chips
-  (one-click swap, no Back, all 13 buildings ≤1 click away); then unified
-  sidebar command card + position-mapped grid hotkeys (BAR-style dual-purpose
-  category/grid keys)
+- [x] **Phase A (headline: fix the build-menu flow)** — landed 2026-07-11.
+  `ui/components/command_card.py` replaces `building_menu` + `production_panel`
+  + the 2×2 action buttons (both files deleted). Fixed sidebar anatomy:
+  compact selection header (`unit_panel`, ≤118 px) → tab-chips row → **fixed
+  2×4 tile grid** → status strip. Select worker → build grid shows
+  **immediately** with always-visible [Economy | Military] chips — no picker
+  screen, no Back; one click or **E** swaps tabs (last tab remembered).
+  Card content by selection: worker → build tiles; production building →
+  unit tiles + tech tiles (blacksmith techs now share the tile anatomy, with
+  queued=blue / done=green states); military → Stop/Stance/Formation with
+  live values; construction site → Cancel tile (the old Cancel button called
+  a nonexistent `game.cancel_construction` and would have **crashed on
+  click** — now routed through `building_system`); gate → Open/Close tile.
+  **Position-mapped grid hotkeys**: `card_slot_0..7` = Q W / A S / Z X / C V
+  + `card_tab_swap` = E in `keybindings.json` (remappable), printed as badges
+  on tile corners. Slot keys are consumed **only while a tile occupies the
+  slot** — otherwise they fall through to global bindings (S still cycles
+  stance) and to WASD pan, which is muted per-key only then (arrows/
+  edge-scroll always pan). Military actions deliberately sit on the
+  **Z/X/C row** so an army selection never steals W/A/S panning.
+  Verified: 254 tests green incl. 11 new in `tests/test_command_card.py`
+  (per-selection content, tab swap/memory, hotkey placement/production/
+  research/army actions, disabled-tile consumption, pan-key suppression,
+  right-click refund) + rendered-frame screenshots of all 7 selection
+  scenarios at 720p.
 - [ ] **Phase B** — multi-building selection, shortest-queue routing, group
   rally, configurable Shift-queue-N (default 5), Tab subtype cycling
 - [ ] **Phase C** — global build-queue strip + select-all-production hotkey
@@ -979,9 +999,11 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
   `keybindings.json` (only diffs written; unknown actions/bad key names
   ignored; duplicate-key rebinds refused). The in-game keydown handler runs
   entirely through it, so an edited file rebinds everything and survives
-  restarts (`tests/test_keybindings.py`). Still open: an in-game remap
-  screen (belongs to the §8.2 settings menu) and production **grid hotkeys**,
-  which need the §8.2 command card first (QWER collides with WASD camera).
+  restarts (`tests/test_keybindings.py`). Production/build **grid hotkeys**
+  landed 2026-07-11 with the §8.2.1 command card (`card_slot_0..7` +
+  `card_tab_swap`; the WASD collision is resolved per-key — pan is muted only
+  while a card tile occupies that key). Still open: an in-game remap screen
+  (belongs to the §8.2 settings menu).
 - **✅ Verify:** edge-scroll and each jump hotkey move the camera as intended; a rebound
   key works and the binding survives a restart.
 
