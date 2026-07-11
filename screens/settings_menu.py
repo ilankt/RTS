@@ -22,7 +22,8 @@ class SettingsMenu:
         self.settings = Settings()
         self.rows = [
             ("Resolution", "resolution"),
-            ("Volume", "volume"),
+            ("SFX volume", "volume"),
+            ("Music volume", "music_volume"),
             ("Sound", "sound_enabled"),
             ("Default game speed", "default_game_speed"),
             ("Colorblind team colors", "colorblind_palette"),
@@ -45,9 +46,9 @@ class SettingsMenu:
             self.settings.set("resolution", list(
                 RESOLUTION_CHOICES[(index + direction) % len(RESOLUTION_CHOICES)]
             ))
-        elif key == "volume":
-            volume = round(self.settings.get("volume") + direction * 0.1, 1)
-            self.settings.set("volume", min(1.0, max(0.0, volume)))
+        elif key in ("volume", "music_volume"):
+            volume = round(self.settings.get(key) + direction * 0.1, 1)
+            self.settings.set(key, min(1.0, max(0.0, volume)))
         elif key in ("sound_enabled", "colorblind_palette", "adaptive_difficulty"):
             self.settings.set(key, not self.settings.get(key))
         elif key == "default_game_speed":
@@ -61,8 +62,8 @@ class SettingsMenu:
         if key == "resolution":
             w, h = self.settings.get("resolution")
             return f"{w} x {h} (restart)"
-        if key == "volume":
-            return f"{int(self.settings.get('volume') * 100)}%"
+        if key in ("volume", "music_volume"):
+            return f"{int(self.settings.get(key) * 100)}%"
         if key == "sound_enabled":
             return "On" if self.settings.get("sound_enabled") else "Off"
         if key == "colorblind_palette":

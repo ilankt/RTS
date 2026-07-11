@@ -260,6 +260,10 @@ class Game:
                 self.game_paused = not self.game_paused
                 if hasattr(self, 'sound_manager') and self.sound_manager:
                     self.sound_manager.play_ui_click()
+        elif self.game_paused and self.keybindings.matches("open_settings", event.key):
+            # In-game settings from the pause screen (§8.5): volumes apply
+            # live; resolution still needs a restart
+            self._open_settings_from_pause()
         elif self.ui_manager.command_card.handle_hotkey(event.key):
             # Command-card grid hotkey (§8.2.1): build/produce/research/army
             # action on the current selection; unoccupied slots fall through
@@ -475,6 +479,10 @@ class Game:
         """Update all game systems"""
         perf_stats.begin_frame()
         try:
+            # Music playlist advance runs even while paused/game-over (§8.5)
+            if self.sound_manager:
+                self.sound_manager.update_music()
+
             # Skip updates when paused or game over
             if self.game_paused or self.game_over_state:
                 raw_delta_time = delta_time_override if delta_time_override is not None else self.clock.get_time() / 1000.0
@@ -1026,9 +1034,17 @@ class Game:
         title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 40))
         self.screen.blit(title, title_rect)
         
-        sub = font_small.render("Press ESC to Resume", True, (200, 200, 200))
+        sub = font_small.render("Press ESC to Resume  ·  O for Settings", True, (200, 200, 200))
         sub_rect = sub.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
         self.screen.blit(sub, sub_rect)
+
+    def _open_settings_from_pause(self):
+        """Run the settings screen over the paused game and live-apply the
+        audio settings (music/SFX volume, mute) on return (§8.5)."""
+        from screens.settings_menu import SettingsMenu
+
+        settings = SettingsMenu(self.screen).run()
+        settings.apply_audio(self)
     
     def _restart_game(self):
         """Restart the game by reinitializing core state"""

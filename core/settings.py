@@ -17,7 +17,8 @@ RESOLUTION_CHOICES = [[1280, 720], [1600, 900], [1920, 1080]]
 
 DEFAULTS = {
     "resolution": [1280, 720],
-    "volume": 0.3,               # 0.0 - 1.0
+    "volume": 0.3,               # SFX volume, 0.0 - 1.0
+    "music_volume": 0.4,         # background music volume (§8.5)
     "sound_enabled": True,
     "default_game_speed": 1.0,   # used when a match doesn't set one
     "colorblind_palette": False,  # Okabe-Ito team colors (§8.7), on restart
@@ -44,7 +45,7 @@ class Settings:
             if key == "resolution":
                 if list(value) in RESOLUTION_CHOICES:
                     self.values[key] = list(value)
-            elif key == "volume":
+            elif key in ("volume", "music_volume"):
                 try:
                     self.values[key] = min(1.0, max(0.0, float(value)))
                 except (TypeError, ValueError):
@@ -84,12 +85,27 @@ class Settings:
             self.values[key] = value
 
     def apply_to_game(self, game):
-        """Live-applicable settings: volume/mute and the default game speed."""
-        sound = getattr(game, "sound_manager", None)
-        if sound is not None:
-            sound.enabled = sound.enabled and self.values["sound_enabled"]
-            if hasattr(sound, "set_volume"):
-                sound.set_volume(self.values["volume"])
+        """Live-applicable settings: audio, default game speed, gameplay flags."""
+        self.apply_audio(game)
         game.game_speed = self.values["default_game_speed"]
         game.adaptive_difficulty = self.values["adaptive_difficulty"]
         game.batch_queue_size = self.values["batch_queue_size"]
+
+    def apply_audio(self, game):
+        """Audio-only subset — safe to re-apply mid-match from the pause
+        screen without touching game speed or gameplay flags (§8.5)."""
+        sound = getattr(game, "sound_manager", None)
+        if sound is None:
+            return
+        # hasattr(sounds) == mixer init succeeded; the setting can then
+        # freely re-enable audio that was toggled off earlier in the session
+        sound.enabled = self.values["sound_enabled"] and hasattr(sound, "sounds")
+        if hasattr(sound, "set_volume"):
+            sound.set_volume(self.values["volume"])
+        if hasattr(sound, "set_music_volume"):
+            sound.set_music_volume(self.values["music_volume"])
+        if not self.values["sound_enabled"]:
+            if hasattr(sound, "stop_music"):
+                sound.stop_music()
+        elif hasattr(sound, "start_music"):
+            sound.start_music()

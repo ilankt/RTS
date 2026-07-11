@@ -1030,7 +1030,15 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
 - [ ] ⚡ **Unit response barks** *(low–med)* — selection/order acknowledgements per unit
   type. Big personality gain.
 - [ ] **Combat & impact SFX** *(low–med)* — layered hit/death/siege sounds; ties to VFX.
-- [ ] **Music & ambient** *(low–med)* — menu/game tracks + ambient bed; duck under alerts.
+- [~] **Music & ambient** *(low–med)* — menu/game tracks + ambient bed; duck under alerts.
+  - *(2026-07-11)* **Background music landed** (user-supplied tracks): 3
+    soundtracks converted mp3→ogg (`assets/sounds/Background Music/`),
+    looping playlist via `pygame.mixer.music` with 1.5 s fade-in and
+    auto-advance (runs even while paused); **separate Music/SFX volume**
+    settings (mixer bumped to 44.1 kHz, synth SFX resampled to match);
+    settings screen now opens **in-game from pause (O)** and re-applies
+    audio live. Still open: menu-specific track, ambient bed, ducking
+    under alerts.
 - [ ] **VFX / juice** *(med)* — hit sparks, death fades, movement dust, muzzle/impact
   flashes, staged construction visuals, screen shake on big events (build on existing
   particles + castle-destruction shake).

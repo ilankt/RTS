@@ -31,6 +31,7 @@ DEFAULT_BINDINGS = {
     "camera_bookmark_set": "b",   # save current camera view (4 rotating slots)
     "camera_bookmark_jump": "n",  # cycle through saved views
     "toggle_event_log": "l",      # scrolling log of past alerts (§8.2)
+    "open_settings": "o",         # settings screen while paused (§8.5 audio)
     # Command-card grid hotkeys (§8.2.1 Phase A): position-mapped onto the
     # sidebar's fixed 2x4 tile grid, row by row. While a key maps to an
     # occupied card slot it wins over WASD camera pan (arrows/edge-scroll

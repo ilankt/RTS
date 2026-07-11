@@ -1,31 +1,93 @@
-"""Sound manager - generates placeholder sounds using pygame mixer synthesis.
+"""Sound manager - SFX (synthesized placeholders) + background music.
 
-In a production game, these would be replaced with actual .wav/.ogg files.
+Music (§8.5): every .ogg in assets/sounds/Background Music forms a looping
+playlist streamed through pygame.mixer.music, with its own volume control
+independent of the SFX volume.
 """
+import glob
+import os
+
 import pygame
 import struct
 import math
 
 
+MUSIC_DIR = os.path.join("assets", "sounds", "Background Music")
+
+
 class SoundManager:
-    """Manages game audio including synthesized placeholder effects."""
-    
+    """Manages game audio: synthesized SFX and the music playlist."""
+
     def __init__(self, game):
         self.game = game
         self.enabled = True
-        self.volume = 0.3
+        self.volume = 0.3          # SFX volume
+        self.music_volume = 0.4
+        self.music_playlist = []
+        self.music_index = 0
+        self.music_started = False
 
         try:
-            pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
             self._generate_sounds()
+            self.music_playlist = sorted(glob.glob(os.path.join(MUSIC_DIR, "*.ogg")))
         except Exception:
             self.enabled = False
 
     def set_volume(self, volume):
-        """Master volume 0.0-1.0, applied to every loaded sound (§8.2)."""
+        """SFX volume 0.0-1.0, applied to every loaded sound (§8.2)."""
         self.volume = min(1.0, max(0.0, float(volume)))
         for sound in getattr(self, "sounds", {}).values():
             sound.set_volume(self.volume)
+
+    # ---- Background music (§8.5) -------------------------------------- #
+
+    def set_music_volume(self, volume):
+        """Music volume 0.0-1.0, independent of the SFX volume."""
+        self.music_volume = min(1.0, max(0.0, float(volume)))
+        try:
+            pygame.mixer.music.set_volume(self.music_volume)
+        except Exception:
+            pass
+
+    def start_music(self):
+        """Start the playlist from the current track. Safe no-op when sound
+        is disabled, the mixer failed, or no tracks exist."""
+        if not self.enabled or not self.music_playlist or self.music_started:
+            return
+        if self._play_track(self.music_index):
+            self.music_started = True
+
+    def stop_music(self):
+        if not self.music_started:
+            return
+        try:
+            pygame.mixer.music.stop()
+        except Exception:
+            pass
+        self.music_started = False
+
+    def update_music(self):
+        """Advance to the next track when the current one ends (called every
+        frame; get_busy is a cheap C call)."""
+        if not self.enabled or not self.music_started:
+            return
+        try:
+            if pygame.mixer.music.get_busy():
+                return
+        except Exception:
+            return
+        self.music_index = (self.music_index + 1) % len(self.music_playlist)
+        self._play_track(self.music_index)
+
+    def _play_track(self, index):
+        try:
+            pygame.mixer.music.load(self.music_playlist[index])
+            pygame.mixer.music.set_volume(self.music_volume)
+            pygame.mixer.music.play(fade_ms=1500)
+            return True
+        except Exception:
+            return False
     
     def _generate_sounds(self):
         """Generate simple synthesized sounds as placeholders."""
@@ -56,7 +118,7 @@ class SoundManager:
     
     def _make_sound(self, frequency, duration, wave_type="sine"):
         """Create a synthesized sound."""
-        sample_rate = 22050
+        sample_rate = 44100
         num_samples = int(sample_rate * duration)
         samples = []
         
@@ -82,7 +144,7 @@ class SoundManager:
     
     def _make_descending_sound(self, start_freq, end_freq, duration):
         """Create a descending tone."""
-        sample_rate = 22050
+        sample_rate = 44100
         num_samples = int(sample_rate * duration)
         samples = []
         
@@ -100,7 +162,7 @@ class SoundManager:
     
     def _make_ascending_sound(self, start_freq, end_freq, duration):
         """Create an ascending tone."""
-        sample_rate = 22050
+        sample_rate = 44100
         num_samples = int(sample_rate * duration)
         samples = []
         
