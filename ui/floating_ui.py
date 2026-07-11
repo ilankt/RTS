@@ -276,22 +276,33 @@ class FloatingUI:
                 alpha
             )
     
+    def _visible_through_fog(self, obj):
+        """Bars draw ABOVE the fog overlay (so fog edges never dim them),
+        which means they must respect fog themselves — enemy health bars
+        must not leak through the darkness (user-reported)."""
+        fog = getattr(self.game, 'fog_of_war', None)
+        if fog is None or not fog.enabled:
+            return True
+        return fog.is_object_visible(obj)
+
     def draw_all_floating_ui(self, surface, camera, delta_time=1/60.0):
         """Draw all floating UI elements for visible objects"""
         # Update notifications first
         self.update_notifications(delta_time)
-        
-        # Draw health bars for all units
+
+        # Draw health bars for all fog-visible units and buildings
         for unit in self.game.units:
-            self.draw_health_bar(surface, unit, camera)
-        
-        # Draw health bars for all buildings
+            if self._visible_through_fog(unit):
+                self.draw_health_bar(surface, unit, camera)
+
         for building in self.game.buildings:
-            self.draw_health_bar(surface, building, camera)
-        
+            if self._visible_through_fog(building):
+                self.draw_health_bar(surface, building, camera)
+
         # Draw construction progress bars for construction sites
         for construction_site in self.game.construction_sites:
-            self.draw_construction_bar(surface, construction_site, camera)
-            
+            if self._visible_through_fog(construction_site):
+                self.draw_construction_bar(surface, construction_site, camera)
+
         # Draw floating notifications
         self.draw_notifications(surface, camera)

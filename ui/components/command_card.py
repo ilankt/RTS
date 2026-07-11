@@ -494,6 +494,7 @@ class CommandCard:
             hovered = screen_tile.collidepoint(mouse_pos)
             if hovered:
                 self._hovered_slot = slot
+                self._hovered_rect = screen_tile
             self._draw_tile(panel_surface, tile, slot, i, hovered)
 
         # Status strip (production/research progress + queue depth)
@@ -604,21 +605,27 @@ class CommandCard:
         surface.blit(revealed, icon_rect)
 
     def draw_tooltip(self, screen):
-        """Rich hover tooltip, drawn last so nothing covers it."""
+        """Rich hover tooltip as a flyout NEXT TO the hovered tile (the old
+        screen-bottom box floated detached from the panel — read as a stray
+        overlapping box, user-reported)."""
         if self._hovered_slot is None:
             return
         lines = [line for line in self._hovered_slot.get('tooltip', []) if line][:5]
         if not lines:
             return
-        tooltip_rect = pygame.Rect(SCREEN_WIDTH - MINIMAP_WIDTH + 6,
-                                   SCREEN_HEIGHT - 95, MINIMAP_WIDTH - 12, 88)
-        pygame.draw.rect(screen, (10, 10, 10), tooltip_rect)
-        pygame.draw.rect(screen, (120, 120, 120), tooltip_rect, 1)
-        y = tooltip_rect.y + 6
-        for line in lines:
-            text = self.cost_font.render(line[:34], True, (230, 230, 230))
-            screen.blit(text, (tooltip_rect.x + 6, y))
-            y += 16
+        width = 210
+        height = 12 + 16 * len(lines)
+        anchor = getattr(self, '_hovered_rect', None) or self._panel_rect
+        y = min(max(6, anchor.y), SCREEN_HEIGHT - height - 6)
+        tooltip_rect = pygame.Rect(self._panel_rect.x - width - 6, y, width, height)
+        pygame.draw.rect(screen, (10, 10, 14), tooltip_rect, border_radius=6)
+        pygame.draw.rect(screen, (150, 132, 80), tooltip_rect, 1, border_radius=6)
+        text_y = tooltip_rect.y + 6
+        for i, line in enumerate(lines):
+            color = (235, 220, 170) if i == 0 else (225, 225, 225)
+            text = self.cost_font.render(line[:34], True, color)
+            screen.blit(text, (tooltip_rect.x + 8, text_y))
+            text_y += 16
 
     # ------------------------------------------------------------------ #
     # input                                                              #

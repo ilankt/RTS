@@ -111,6 +111,16 @@ class UnitWatchdog:
             if isinstance(target, tuple) and math.hypot(target[0] - unit.x, target[1] - unit.y) > 60:
                 resume_move = target
 
+        # Same for an interrupted ATTACK: a besieger wedged behind friendly
+        # lines used to lose its order entirely here and idle out in the
+        # field (user-reported "units stop trying to reach the enemy").
+        resume_attack = None
+        attack_target = unit.current_target
+        if (attack_target is not None
+                and getattr(attack_target, "hp", 0) > 0
+                and getattr(attack_target, "in_world", True)):
+            resume_attack = attack_target
+
         # Full state wipe
         worker_tasks = getattr(self.game, "worker_task_system", None)
         if worker_tasks and worker_tasks.active_task(unit):
@@ -125,8 +135,13 @@ class UnitWatchdog:
             perf_stats.increment("watchdog_teleports")
             debug_log.log(f"  Nudged to ({unit.x:.0f}, {unit.y:.0f})", "WATCHDOG")
 
-        if resume_move is not None:
-            resumes = getattr(unit, "_watchdog_resume_count", 0)
+        resumes = getattr(unit, "_watchdog_resume_count", 0)
+        if resume_attack is not None and getattr(unit, "can_attack_flag", False):
+            if resumes < 3:
+                unit._watchdog_resume_count = resumes + 1
+                self.game.pathfinder.issue_interact(unit, resume_attack, "attack")
+                debug_log.log(f"  Resumed attack on {resume_attack.name}", "WATCHDOG")
+        elif resume_move is not None:
             if resumes < 3:
                 unit._watchdog_resume_count = resumes + 1
                 self.game.pathfinder.issue_move(unit, resume_move)

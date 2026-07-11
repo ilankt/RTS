@@ -1250,6 +1250,20 @@ unsequenced — pull them in where they fit.
   walling, all landed; drag-placement lays sealed 56 px lines, gates toggle,
   turtle AI walls the threat bearing. Thin/connected wall *sprites* remain a
   missing-art item.)
+- [x] **Five user-reported bugs, batch 2026-07-11**: (1) the command-card
+  hover tooltip drew as a detached box pinned to the screen bottom, half
+  overlapping the sidebar ("two boxes") — now a flyout anchored beside the
+  hovered tile; (2) tab chips verified clickable at every resolution (the
+  live miss was the fullscreen surface-size mismatch, fixed same day);
+  (3) enemy health bars leaked through unexplored fog — floating bars draw
+  above the fog overlay, so they now fog-check themselves; (4) **siege
+  reach**: units ordered to attack sometimes stopped trying — the watchdog
+  wiped attack orders on recovery (now resumed like moves, 3-resume cap)
+  and attack contact points prefer arcs not already held by in-combat
+  friendlies (latecomers route around the ring). Repro: 24 warriors vs a
+  cluttered castle went from units orbiting/giving up to razing it;
+  regression tests in `tests/test_siege_reach.py`; (5) the attack-range
+  ring on selected units removed.
 - [x] **Spearman/cavalry drawn tiny** (user-reported 2026-07-11): three
   compounding causes — the AI-generated sheets are thin-realistic style
   next to the chunky cartoon originals; stale multiplicative type-tints

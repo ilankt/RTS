@@ -1213,7 +1213,34 @@ class Pathfinding:
         for offset in offsets:
             angle = base_angle + offset
             candidates.append((target.x + math.cos(angle) * distance, target.y + math.sin(angle) * distance))
+        if mode == "attack":
+            candidates = self._decluster_attack_candidates(candidates, unit)
         return candidates
+
+    def _decluster_attack_candidates(self, candidates: List[Point], unit) -> List[Point]:
+        """Free contact points first, crowded ones as a fallback: latecomers
+        in a siege otherwise re-path forever into an arc already packed with
+        friendly attackers while the far side of the target sits empty
+        (user-reported: units 'stop trying' to reach attack positions)."""
+        collision = getattr(self.game, "collision_system", None)
+        player = getattr(unit, "player", None)
+        if collision is None or player is None:
+            return candidates
+        spacing = max(12.0, getattr(unit, "radius", 8.0) * 1.8)
+        free, crowded = [], []
+        for point in candidates:
+            # Only units ACTIVELY attacking count as occupiers — they hold
+            # their spot until the target dies. Merely-engaging units are
+            # still marching and will vacate (counting them made every arc
+            # look full during a mass order).
+            occupied = any(
+                getattr(other, "player", None) is player
+                and getattr(other, "in_combat", False)
+                for other in collision.query_nearby_units(
+                    point[0], point[1], spacing, exclude=unit)
+            )
+            (crowded if occupied else free).append(point)
+        return free + crowded
 
     def _interaction_distance(self, unit, target, mode: str) -> float:
         unit_radius = getattr(unit, "radius", 8)
