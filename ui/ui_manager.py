@@ -156,15 +156,19 @@ class UIManager:
         return self.cursor_manager.command_cursors
 
     def draw_ui_panel(self, screen):
-        """Draw the sidebar: selection header + command card."""
+        """Draw the sidebar: selection header + command card. The panel
+        fills the WHOLE right column below the minimap — the old inset
+        margins let the screen's background gray show around it as a
+        second, offset rectangle (user-reported)."""
         ui_x = SCREEN_WIDTH - MINIMAP_WIDTH
-        ui_y = MINIMAP_HEIGHT + 8
-        ui_width = MINIMAP_WIDTH - 16
-        ui_height = SCREEN_HEIGHT - MINIMAP_HEIGHT - 40
+        ui_y = MINIMAP_HEIGHT
+        ui_width = MINIMAP_WIDTH
+        ui_height = SCREEN_HEIGHT - MINIMAP_HEIGHT
 
         panel_surface = pygame.Surface((ui_width, ui_height))
         panel_surface.fill((20, 20, 20))
-        pygame.draw.rect(panel_surface, (50, 50, 50), (0, 0, ui_width, ui_height), 2)
+        # Seam only on the map-facing edge; the other sides hug the screen
+        pygame.draw.line(panel_surface, (50, 50, 50), (0, 0), (0, ui_height), 2)
 
         selected_objects = self.get_selected_objects()
         self.unit_panel.draw_panel(panel_surface, ui_width, selected_objects)
