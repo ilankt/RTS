@@ -692,18 +692,19 @@ class SelectionManager:
     def _play_unit_sound(self, unit, sound_type):
         if not getattr(getattr(unit, "player", None), "human", False):
             return
-        self._play_human_sound(sound_type)
+        # Pass the unit type through so barks / per-type variants play (§8.5)
+        self._play_human_sound(sound_type, getattr(unit, "name", None))
 
-    def _play_human_sound(self, sound_type):
+    def _play_human_sound(self, sound_type, unit_name=None):
         sound_manager = getattr(self.game, "sound_manager", None)
         if not sound_manager:
             return
         if sound_type == "select":
-            sound_manager.play_select()
+            sound_manager.play_select(unit_name)
         elif sound_type == "move":
-            sound_manager.play_move_order()
+            sound_manager.play_move_order(unit_name)
         elif sound_type == "attack":
-            sound_manager.play_attack()
+            sound_manager.play_attack(unit_name)
         elif sound_type == "gather":
             sound_manager.play_gather()
     

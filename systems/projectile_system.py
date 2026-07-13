@@ -260,10 +260,14 @@ class ProjectileSystem:
     def update(self, delta_time: float) -> None:
         """Update all projectiles, then drop dead ones in a single pass"""
         any_dead = False
+        particles = getattr(self.game, 'particles', None)
         for projectile in self.projectiles:
             projectile.update(delta_time)
             if not projectile.alive:
                 any_dead = True
+                # §8.5 impact flash where the shot lands
+                if particles:
+                    particles.spawn_impact_flash(projectile.x, projectile.y)
         if any_dead:
             self.projectiles = [p for p in self.projectiles if p.alive]
                 

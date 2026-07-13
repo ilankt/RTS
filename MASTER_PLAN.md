@@ -1082,10 +1082,25 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
   `attack`/`gather` (selection manager) and `build_complete` (building system)
   were already wired — the backlog entry was stale; `alert` is now wired to the
   rate-limited under-attack alert (sound + minimap ping).
-- [ ] ⚡ **Unit response barks** *(low–med)* — selection/order acknowledgements per unit
-  type. Big personality gain.
-- [ ] **Combat & impact SFX** *(low–med)* — layered hit/death/siege sounds; ties to VFX.
-- [~] **Music & ambient** *(low–med)* — menu/game tracks + ambient bed; duck under alerts.
+- [x] ⚡ **Unit response barks** *(low–med)* — code landed 2026-07-13:
+  selection/move/attack acknowledgements are per-unit-type. Real voice files
+  are drop-in content — `assets/sfx/bark_<unit>_<select|move|attack>_<n>.ogg`
+  (numbered variants rotate); until files exist, each unit type gets a
+  deterministic pitch-variant of the synth blip so types are audibly
+  distinct now. Tests in `tests/test_audio.py`.
+- [x] **Combat & impact SFX** *(low–med)* — code landed 2026-07-13: every
+  synth SFX is now overridable by a real file (`assets/sfx/<key>.ogg|.wav`,
+  synth kept as fallback — the AUDIO_GUIDE §2 contract). hit/death/attack
+  triggers were already wired; sourcing the actual sounds is content work
+  per AUDIO_GUIDE.
+- [x] **Music & ambient** *(low–med)* — completed 2026-07-13: **mood-aware
+  music** — `peace_*`/`combat_*` pools (AUDIO_GUIDE `assets/music/` layout,
+  legacy `game_*` folder still works); combat mood follows human-involved
+  damage events with a 10 s linger; **victory/defeat stingers** play on game
+  over when the files exist; **ambient bed** (`ambient.ogg`) loops on its own
+  channel; **alerts duck the music** (×0.35, 2.5 s, smooth recovery).
+  All content files are drop-in optional — missing pools fall back cleanly.
+  Tests in `tests/test_audio.py`.
   - *(2026-07-11)* **Background music landed** (user-supplied tracks): 3
     soundtracks converted mp3→ogg (`assets/sounds/Background Music/`),
     looping playlist via `pygame.mixer.music` with 1.5 s fade-in and
@@ -1101,9 +1116,15 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
     `game_0.ogg, game_1.ogg, ...` form the numerically-sorted in-match
     playlist — drop new files in, no code change. Still open: ambient
     bed, ducking under alerts.
-- [ ] **VFX / juice** *(med)* — hit sparks, death fades, movement dust, muzzle/impact
-  flashes, staged construction visuals, screen shake on big events (build on existing
-  particles + castle-destruction shake).
+- [x] **VFX / juice** *(med)* — landed 2026-07-13 on the existing particle
+  system (which now uses its own RNG so bursts never perturb the seeded
+  sim stream): **death fades** (units/buildings ghost out in place, capped
+  list, sims can't grow it), **movement dust** (fast movers, draw-time hook
+  so headless sims pay nothing), **muzzle + impact flashes** (archer/tower
+  shots), **staged construction** (the finished building rises out of the
+  site with progress — verified by rendered frame), **build dust** while a
+  worker hammers, **ram-hit camera rattle** (castle/military-building
+  destruction shake already existed). Tests in `tests/test_vfx.py`.
 - **✅ Verify:** play a match and confirm every listed SFX fires at the right moment
   (select, move, gather, build-complete, attack, alert), music/ambient is audible, and
   combat shows the new VFX.

@@ -316,7 +316,13 @@ export OGG via A or B. Skip MP3 entirely.
 2. **SFX:** download a Kenney/Freesound CC0 pack → pick one clip per row in §2.2 →
    trim + normalize in Audacity → export OGG → drop in `assets/sfx/` with the exact
    key name.
-3. Ping me to wire up the music streaming + real-SFX loader, and it all plays.
+3. ~~Ping me to wire up the music streaming + real-SFX loader~~ **Wired
+   (2026-07-13):** everything above is drop-in live — SFX files override the
+   synth bleeps automatically, `peace_*`/`combat_*` pools drive mood-aware
+   music (combat music kicks in during fights), `victory.ogg`/`defeat.ogg`
+   play on game over, `ambient.ogg` loops as a bed, and alerts duck the
+   music. Barks too: `bark_<unit>_<select|move|attack>_<n>.ogg` (numbered
+   variants rotate per unit type).
 
 ---
 

@@ -189,6 +189,11 @@ class CombatSystem:
                     is_counter = has_bonus_against(unit, unit.current_target)
                     resisted = is_resisted_by(unit, unit.current_target)
                     damage_events.append((unit.current_target, damage_dealt, is_counter, resisted))
+                    if hasattr(self.game, 'notify_human_combat'):
+                        self.game.notify_human_combat(unit, unit.current_target)
+                    # §8.5 juice: ram blows rattle the camera a little
+                    if unit.name == 'ram' and getattr(self.game, 'camera', None):
+                        self.game.camera.add_shake(2.5)
                 
                 # Auto-engage nearby enemies if idle. Acquisition scans are
                 # throttled per unit (~0.25-0.5s, jittered) — C2.
@@ -265,6 +270,8 @@ class CombatSystem:
                             has_bonus_against(building, building.current_target),
                             is_resisted_by(building, building.current_target),
                         ))
+                        if hasattr(self.game, 'notify_human_combat'):
+                            self.game.notify_human_combat(building, building.current_target)
                         # §8.10 tower-value metric for the balance sim
                         if building.name == "watchtower" and building.player:
                             stats = getattr(self.game, "stats_tower_damage", None)
@@ -397,6 +404,13 @@ class CombatSystem:
             self.game.particles.spawn_death_particles(unit.x, unit.y, count=6)
         if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
             self.game.sound_manager.play_death()
+        # §8.5 death fade: the unit's last frame ghosts out in place
+        renderer = getattr(self.game, 'rendering_system', None)
+        if renderer is not None and hasattr(unit, 'get_current_sprite'):
+            try:
+                renderer.add_death_fade(unit, unit.get_current_sprite())
+            except Exception:
+                pass
         
         # Clear any units targeting this one
         for other_unit in self.game.units:
@@ -427,6 +441,15 @@ class CombatSystem:
             self.game.particles.spawn_death_particles(building.x, building.y, count=count)
         if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
             self.game.sound_manager.play_death()
+        # §8.5 death fade for the building sprite
+        renderer = getattr(self.game, 'rendering_system', None)
+        if renderer is not None:
+            try:
+                player_index = self.game.players.index(building.player)
+                sprite = renderer.sprite_manager.get_building_sprite(building.name, player_index)
+                renderer.add_death_fade(building, sprite)
+            except Exception:
+                pass
         
         # Screen shake on major building destruction
         if building.name == "castle":
@@ -456,6 +479,10 @@ class CombatSystem:
         """Create a projectile for an attack"""
         if self.projectile_system:
             self.projectile_system.create_projectile(attacker, target, damage)
+            # §8.5 muzzle flash where ranged shots leave the attacker
+            if (getattr(self.game, 'particles', None)
+                    and getattr(attacker, 'name', None) in ("archer", "watchtower")):
+                self.game.particles.spawn_muzzle_flash(attacker.x, attacker.y - 12)
     
     def get_units_in_combat(self):
         """Get all units currently in combat"""

@@ -504,9 +504,16 @@ class Game:
         """Update all game systems"""
         perf_stats.begin_frame()
         try:
-            # Music playlist advance runs even while paused/game-over (§8.5)
+            # Music playlist advance runs even while paused/game-over (§8.5).
+            # Mood follows recent human-involved combat; game over plays the
+            # victory/defeat stinger once (when the files exist).
             if self.sound_manager:
-                self.sound_manager.update_music()
+                if self.game_over_state and not getattr(self, "_stinger_played", False):
+                    self._stinger_played = True
+                    self.sound_manager.play_game_over(
+                        self.game_over_state in ("victory", "simulation_complete"))
+                in_combat = getattr(self, "_human_combat_until", 0.0) > self.sim_time_elapsed
+                self.sound_manager.update_music(in_combat)
 
             # Skip updates when paused or game over
             if self.game_paused or self.game_over_state:
@@ -594,6 +601,17 @@ class Game:
             if building_name in self.MUTATOR_DISABLED_BUILDINGS.get(mutator, ()):
                 return True
         return False
+
+    COMBAT_MOOD_LINGER_S = 10.0  # combat music holds this long past the last hit
+
+    def notify_human_combat(self, attacker, target):
+        """§8.5 music mood: remember that the human is fighting (either
+        side of a damage event) so the combat playlist takes over."""
+        for obj in (attacker, target):
+            player = getattr(obj, "player", None)
+            if player is not None and getattr(player, "human", False):
+                self._human_combat_until = self.sim_time_elapsed + self.COMBAT_MOOD_LINGER_S
+                return
 
     INCOME_WINDOW_SECS = 15.0  # rolling window for the +X/s HUD readout
 
@@ -1122,6 +1140,8 @@ class Game:
         """Restart the game by reinitializing core state"""
         self.game_over_state = None
         self.winning_player = None
+        self._stinger_played = False
+        self._human_combat_until = 0.0
         self.worker_task_system = WorkerTaskSystem(self)
         for obj in self.buildings + self.units + self.resources + self.construction_sites:
             obj.in_world = False

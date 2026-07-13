@@ -380,6 +380,10 @@ class BuildingSystem:
                     build_speed *= effective_build_speed_multiplier(site.player)
                 site.construction_progress += build_speed
                 debug_log.log(f"  Construction progress: {site.construction_progress:.2f}/{site.construction_duration} (+{build_speed:.3f})", "BUILD_UPDATE")
+                # §8.5 build dust: a puff each time progress crosses a 0.7s mark
+                if (getattr(self.game, 'particles', None)
+                        and int(site.construction_progress / 0.7) != int((site.construction_progress - build_speed) / 0.7)):
+                    self.game.particles.spawn_build_particles(site.x, site.y - 10, count=3)
                 
                 # Check if construction is complete
                 if site.construction_progress >= site.construction_duration:

@@ -43,6 +43,13 @@ class RenderingSystem:
         self.hud_frame = NineSliceFrame("assets/ui/hud_top_bar.png",
                                         src_inset=(105, 100, 105, 100),
                                         dst_inset=(24, 24, 24, 24))
+
+        # §8.5 death fades: brief alpha-fading ghosts of freshly dead units/
+        # buildings (no death sprite sheets exist). Capped so headless sims —
+        # which never draw and therefore never age the list — can't grow it.
+        self._death_fades = []
+        self._DEATH_FADE_MAX = 32
+        self._DEATH_FADE_S = 1.1
     
     def draw_frame(self, screen, map_surface, camera, delta_time=1/60.0):
         """Draw a complete frame"""
@@ -59,7 +66,10 @@ class RenderingSystem:
         
         # Draw map
         self.game.game_map.draw(map_surface, camera)
-        
+
+        # §8.5: fading corpses lie under the living
+        self._draw_death_fades(map_surface, camera, delta_time)
+
         # Draw all game objects
         self._draw_all_objects(map_surface, camera)
         
@@ -155,6 +165,51 @@ class RenderingSystem:
             )
         self.game.order_flashes = alive
 
+    def add_death_fade(self, obj, sprite):
+        """§8.5: register a just-died object's sprite to fade out in place."""
+        if sprite is None:
+            return
+        if len(self._death_fades) >= self._DEATH_FADE_MAX:
+            self._death_fades.pop(0)
+        self._death_fades.append({
+            "sprite": sprite,
+            "x": obj.x, "y": obj.y,
+            "size": tuple(getattr(obj, "size", (1, 1))),
+            "name": getattr(obj, "name", None),
+            "facing_left": getattr(obj, "facing_left", False),
+            "age": 0.0,
+        })
+
+    def _draw_death_fades(self, map_surface, camera, delta_time):
+        if not self._death_fades:
+            return
+        alive = []
+        for fade in self._death_fades:
+            fade["age"] += delta_time
+            if fade["age"] >= self._DEATH_FADE_S:
+                continue
+            alive.append(fade)
+            sprite = fade["sprite"]
+            sprite_w, sprite_h = sprite.get_size()
+            scale = (fade["size"][0] * TILE_WIDTH) / sprite_w
+            scale *= self._render_scales.get(fade["name"], 1.0)
+            width = max(1, int(sprite_w * scale * camera.zoom))
+            height = max(1, int(sprite_h * scale * camera.zoom))
+            key = (sprite, width, height, fade["facing_left"])
+            scaled = self._scaled_sprite_cache.get(key)
+            if scaled is None:
+                scaled = pygame.transform.scale(sprite, (width, height))
+                if fade["facing_left"]:
+                    scaled = pygame.transform.flip(scaled, True, False)
+                self._scaled_sprite_cache[key] = scaled
+            # Per-frame copy so alpha never sticks to the cached surface
+            ghost = scaled.copy()
+            ghost.set_alpha(int(255 * (1.0 - fade["age"] / self._DEATH_FADE_S)))
+            draw_x = (fade["x"] * camera.zoom) + camera.x - width / 2
+            draw_y = (fade["y"] * camera.zoom) + camera.y - height / 2
+            map_surface.blit(ghost, (draw_x, draw_y))
+        self._death_fades = alive
+
     def _draw_all_objects(self, map_surface, camera):
         """Draw visible game objects (frustum-culled, fog-filtered, y-sorted)"""
         zoom = camera.zoom
@@ -190,16 +245,64 @@ class RenderingSystem:
         visible.sort(key=lambda obj: obj.y)
         for obj in visible:
             self._draw_object(obj, map_surface, camera)
+
+        # §8.5 movement dust: fast movers kick up puffs at their feet.
+        # Draw-time hook on purpose — visible units only, zero sim cost in
+        # headless runs; throttled + jittered per unit.
+        particles = getattr(self.game, 'particles', None)
+        if particles:
+            frame = self.game.frame_counter
+            for obj in visible:
+                if (getattr(obj, 'status', None) == 'run'
+                        and getattr(obj, 'movement_speed', 0) >= 55
+                        and frame >= getattr(obj, '_next_dust_frame', 0)):
+                    obj._next_dust_frame = frame + 14 + (id(obj) % 8)
+                    particles.spawn_move_dust(obj.x, obj.y + obj.radius * 0.5)
     
     def _draw_object(self, obj, map_surface, camera):
         """Draw a single game object"""
         draw_x = (obj.x * camera.zoom) + camera.x
         draw_y = (obj.y * camera.zoom) + camera.y
-        
+
         sprite_to_draw = self._get_object_sprite(obj)
-        
+
         if sprite_to_draw:
             self._render_sprite(sprite_to_draw, obj, draw_x, draw_y, camera, map_surface)
+
+        # §8.5 staged construction: the finished building rises out of the
+        # site as progress advances (bottom slice grows with progress).
+        if isinstance(obj, ConstructionSite):
+            self._draw_construction_stage(obj, draw_x, draw_y, camera, map_surface)
+
+    def _draw_construction_stage(self, site, draw_x, draw_y, camera, map_surface):
+        duration = getattr(site, 'construction_duration', 0) or 1
+        progress = min(1.0, getattr(site, 'construction_progress', 0) / duration)
+        if progress < 0.12:
+            return  # bare foundation until work meaningfully starts
+        try:
+            player_index = self.game.players.index(site.player)
+        except (ValueError, AttributeError):
+            return
+        sprite = self.sprite_manager.get_building_sprite(site.building_name, player_index)
+        if sprite is None:
+            return
+        sprite_w, sprite_h = sprite.get_size()
+        scale = (site.size[0] * TILE_WIDTH) / sprite_w
+        width = max(1, int(sprite_w * scale * camera.zoom))
+        height = max(1, int(sprite_h * scale * camera.zoom))
+        key = (sprite, width, height, False)
+        scaled = self._scaled_sprite_cache.get(key)
+        if scaled is None:
+            if len(self._scaled_sprite_cache) > 2048:
+                self._scaled_sprite_cache.clear()
+            scaled = pygame.transform.scale(sprite, (width, height))
+            self._scaled_sprite_cache[key] = scaled
+        # Bottom slice, proportional to progress, anchored at the sprite's base
+        slice_h = max(1, int(height * progress))
+        src = pygame.Rect(0, height - slice_h, width, slice_h)
+        blit_x = draw_x - width / 2
+        blit_y = draw_y - height / 2 + (height - slice_h)
+        map_surface.blit(scaled, (blit_x, blit_y), area=src)
     
     def _get_object_sprite(self, obj):
         """Get the appropriate sprite for an object"""
