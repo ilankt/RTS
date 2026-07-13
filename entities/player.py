@@ -1,4 +1,4 @@
-from core.config import HUMAN_STARTING_RESOURCES, AI_STARTING_RESOURCES
+from core.config import HUMAN_STARTING_RESOURCES, AI_STARTING_RESOURCES, PLAYER_GATHERING_MULTIPLIER
 
 
 class Player:
@@ -16,10 +16,10 @@ class Player:
         # Player capacities and rates (for future tech tree upgrades)
         self.builder_capacity = 10  # Max number of builders that can work on a building
         self.gathering_rates = {
-            "gold": 5.0,      # Multiplier for gathering rates
-            "stone": 5.0,
-            "wood": 5.0,
-            "food": 5.0
+            "gold": PLAYER_GATHERING_MULTIPLIER,
+            "stone": PLAYER_GATHERING_MULTIPLIER,
+            "wood": PLAYER_GATHERING_MULTIPLIER,
+            "food": PLAYER_GATHERING_MULTIPLIER,
         }
         
         # Technology and upgrade tracking (for future implementation)

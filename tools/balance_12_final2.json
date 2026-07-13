@@ -1,0 +1,254 @@
+{
+  "matches": 12,
+  "players_per_match": 2,
+  "timeouts": 0,
+  "avg_match_sim_seconds": 593.6,
+  "win_rate_by_personality": {
+    "balanced": {
+      "appearances": 7,
+      "wins": 4,
+      "win_rate": 0.57
+    },
+    "boomer": {
+      "appearances": 7,
+      "wins": 3,
+      "win_rate": 0.43
+    },
+    "rusher": {
+      "appearances": 6,
+      "wins": 2,
+      "win_rate": 0.33
+    },
+    "turtle": {
+      "appearances": 4,
+      "wins": 3,
+      "win_rate": 0.75
+    }
+  },
+  "unit_usage_total": {
+    "archer": 59,
+    "cavalry": 2,
+    "ram": 78,
+    "spearman": 123,
+    "warrior": 56,
+    "worker": 169
+  },
+  "building_usage_total": {
+    "barracks": 22,
+    "blacksmith": 21,
+    "farm": 45,
+    "house": 53,
+    "lumbermill": 14,
+    "mine": 6,
+    "quarry": 22,
+    "siege_workshop": 16,
+    "stable": 3,
+    "watchtower": 22
+  },
+  "unit_usage_by_personality": {
+    "rusher": {
+      "worker": 31,
+      "spearman": 18,
+      "warrior": 5,
+      "ram": 5
+    },
+    "turtle": {
+      "worker": 22,
+      "warrior": 6,
+      "archer": 18,
+      "spearman": 18,
+      "ram": 9,
+      "cavalry": 2
+    },
+    "boomer": {
+      "worker": 62,
+      "archer": 12,
+      "spearman": 27,
+      "warrior": 9,
+      "ram": 12
+    },
+    "balanced": {
+      "worker": 54,
+      "ram": 52,
+      "spearman": 60,
+      "archer": 29,
+      "warrior": 36
+    }
+  },
+  "building_usage_by_personality": {
+    "turtle": {
+      "house": 12,
+      "farm": 10,
+      "quarry": 3,
+      "watchtower": 5,
+      "mine": 1,
+      "barracks": 4,
+      "blacksmith": 4,
+      "siege_workshop": 3,
+      "stable": 2,
+      "lumbermill": 3
+    },
+    "rusher": {
+      "barracks": 6,
+      "house": 8,
+      "farm": 5,
+      "blacksmith": 6,
+      "quarry": 4,
+      "lumbermill": 2,
+      "siege_workshop": 2,
+      "stable": 1,
+      "watchtower": 1
+    },
+    "boomer": {
+      "house": 17,
+      "farm": 17,
+      "barracks": 5,
+      "quarry": 4,
+      "blacksmith": 4,
+      "siege_workshop": 4,
+      "lumbermill": 7,
+      "watchtower": 5
+    },
+    "balanced": {
+      "house": 16,
+      "farm": 13,
+      "watchtower": 11,
+      "barracks": 7,
+      "quarry": 11,
+      "blacksmith": 7,
+      "mine": 5,
+      "siege_workshop": 7,
+      "lumbermill": 2
+    }
+  },
+  "never_trained": [],
+  "never_built": [],
+  "tower_damage_by_personality": {
+    "balanced": 8757,
+    "boomer": 784,
+    "rusher": 1309,
+    "turtle": 1548
+  },
+  "matches_detail": [
+    {
+      "seed": 1000,
+      "personalities": {
+        "AI 1": "turtle",
+        "AI 2": "rusher"
+      },
+      "winner_personality": "turtle",
+      "completed": true,
+      "sim_seconds": 679.3
+    },
+    {
+      "seed": 1001,
+      "personalities": {
+        "AI 1": "boomer",
+        "AI 2": "rusher"
+      },
+      "winner_personality": "boomer",
+      "completed": true,
+      "sim_seconds": 463.5
+    },
+    {
+      "seed": 1002,
+      "personalities": {
+        "AI 1": "boomer",
+        "AI 2": "balanced"
+      },
+      "winner_personality": "balanced",
+      "completed": true,
+      "sim_seconds": 679.0
+    },
+    {
+      "seed": 1003,
+      "personalities": {
+        "AI 1": "balanced",
+        "AI 2": "balanced"
+      },
+      "winner_personality": "balanced",
+      "completed": true,
+      "sim_seconds": 1520.6
+    },
+    {
+      "seed": 1004,
+      "personalities": {
+        "AI 1": "balanced",
+        "AI 2": "rusher"
+      },
+      "winner_personality": "balanced",
+      "completed": true,
+      "sim_seconds": 247.5
+    },
+    {
+      "seed": 1005,
+      "personalities": {
+        "AI 1": "turtle",
+        "AI 2": "turtle"
+      },
+      "winner_personality": "turtle",
+      "completed": true,
+      "sim_seconds": 503.7
+    },
+    {
+      "seed": 1006,
+      "personalities": {
+        "AI 1": "rusher",
+        "AI 2": "boomer"
+      },
+      "winner_personality": "rusher",
+      "completed": true,
+      "sim_seconds": 268.3
+    },
+    {
+      "seed": 1007,
+      "personalities": {
+        "AI 1": "boomer",
+        "AI 2": "boomer"
+      },
+      "winner_personality": "boomer",
+      "completed": true,
+      "sim_seconds": 368.1
+    },
+    {
+      "seed": 1008,
+      "personalities": {
+        "AI 1": "boomer",
+        "AI 2": "rusher"
+      },
+      "winner_personality": "rusher",
+      "completed": true,
+      "sim_seconds": 554.2
+    },
+    {
+      "seed": 1009,
+      "personalities": {
+        "AI 1": "boomer",
+        "AI 2": "rusher"
+      },
+      "winner_personality": "boomer",
+      "completed": true,
+      "sim_seconds": 411.4
+    },
+    {
+      "seed": 1010,
+      "personalities": {
+        "AI 1": "turtle",
+        "AI 2": "balanced"
+      },
+      "winner_personality": "turtle",
+      "completed": true,
+      "sim_seconds": 359.3
+    },
+    {
+      "seed": 1011,
+      "personalities": {
+        "AI 1": "balanced",
+        "AI 2": "balanced"
+      },
+      "winner_personality": "balanced",
+      "completed": true,
+      "sim_seconds": 1067.9
+    }
+  ]
+}

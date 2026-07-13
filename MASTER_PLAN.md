@@ -519,9 +519,21 @@ and should override "obvious" instincts.
   positioning still decide fights (validated: no dominant unit in the
   same-seed mix). Terrain bonuses remain the separate §8.4 "position
   matters" item.
-- [ ] **Risk/reward economy** *(med)* — expanding/booming opens a real, scoutable
-  vulnerability window, so greed vs safety is a live choice. (Enabled by §8.3 worker
-  saturation.)
+- [x] **Risk/reward economy** *(med)* — landed 2026-07-13 on three pillars:
+  (1) **worker saturation is live** (was prototype-flagged) — a node's total
+  yield caps at 3 gatherers, so income growth *requires* forward dropoffs;
+  the income-vs-worker-count curve the plan asked for is
+  `tools/chart_worker_saturation.py` → `tools/saturation_curve.json`
+  (one node goes flat at the cap, two nodes keep climbing).
+  (2) **Raids punish greed**: `_find_attack_target` no longer beelines the
+  castle — a raid-sized army (≤7, rusher ≤12) prefers the least-defended
+  enemy *economy* building (lumbermill/mine/quarry/farm) when it's
+  meaningfully softer (<0.6×) than the castle's threat. Fog rules hold:
+  the AI can only raid expansions it has scouted, and cavalry (the raid
+  unit) now actually gets fielded (§8.3 fix).
+  (3) **The window is scoutable both ways**: first-sighting intel alerts
+  (§7.3 scouting payoff) already announce enemy expansions to the human.
+  Tests in `tests/test_risk_reward.py`.
 - [x] **Anti-snowball / comeback** *(med)* — 2026-07-10 as the **comeback
   mutator** (opt-in, keeping default balance untouched): any player —
   human or AI, symmetric — below 60 % of the score leader gathers 15 %
@@ -1000,18 +1012,33 @@ time, counters, description); right-click on a queued tile cancels with refund.
 Today: gold/stone (1/s, carry 10, 1000-node), wood (2/s, carry 20, 600-node), food
 from farms (3/s) — four resources with fuzzy identities.
 
-- [ ] **Sharpen resource identity** *(med)* — give each a distinct strategic role
-  (e.g. gold = scarce/contested → map control; wood = renewable bulk; stone =
-  rare/strategic → defense & key buildings; food = land+labor). Or cut to 2–3 if roles
-  can't be made distinct.
+- [x] **Sharpen resource identity** *(med)* — landed 2026-07-13 as a cost
+  re-map (validated same-seed, see below):
+  **gold = the army currency** (every non-siege combat unit + tier-2
+  military buildings + techs; scarce/contested by node placement);
+  **wood = renewable building bulk + bows/siege frames** (removed from
+  warrior/spearman); **stone = defense & siege only** (removed from
+  barracks/stable/mine/quarry; watchtower re-costed 75w/**125s**) — you
+  never pay stone to unlock the economy, only to fortify or besiege;
+  **food = labor** (all units, farms only). Barracks 150g/100w/50s →
+  **100g/100w** so a barracks-first rush is a real opening from the lean
+  100g start. Also fixed alongside (the lean-start regression from the
+  §8.4 watch-item): **cavalry joined every personality's composition
+  target** (rusher/balanced 0.15, boomer 0.10, turtle 0.05),
+  `TrainCavalryGoal` is composition-driven like the barracks units, and
+  `BuildStableGoal` outranks flat train goals once a core army exists.
 - [x] **Worker saturation** *(med)* — prototyped behind
   `WORKER_SATURATION_ENABLED` (2026-07-10): past 3 gatherers a node's total
   yield stays flat (each stacked worker gathers at cap/n rate). Verified:
   per-worker rate exactly halves at 6 gatherers. The AI's existing crowding
   penalties already push it to spread across nodes; the full §8.8
   income-vs-worker-count charting remains for the tuning pass.
-- [ ] **Gathering range/flow tuning** *(low)* — `GATHERING_DISTANCE_MULTIPLIER = 0.5`
-  makes workers hug nodes; tune gather + drop-off distances so it feels smooth.
+- [x] **Gathering range/flow tuning** *(low)* — audited 2026-07-13:
+  `GATHERING_DISTANCE_MULTIPLIER` was **dead code** (defined, never read —
+  removed). The real formula lives in `gathering_manager.get_gathering_distance`
+  / `get_drop_off_distance`: combined radii + 10% + 5 px, plus a generous
+  interaction tolerance — workers do not actually hug nodes; the config
+  comment was describing a wiring that never existed. No feel change needed.
 - [x] **Income-rate HUD** *(low)* — 2026-07-10: green `+X/s` under each
   stockpile in the top bar, from a 15 s rolling window of the human player's
   worker drop-offs and farm ticks (`game.record_income`/`income_rate`).
@@ -1068,6 +1095,15 @@ collapse.
     0/6 wins, boomer 6/7, and cavalry is never trained** (stable rarely
     built). The old `balance_20_reactive_soft.json` baseline is stale.
     Fix rides with the §8.3 resource-identity pass.
+    **→ RESOLVED same day** through five same-seed 12-match iterations
+    (`balance_12_{cover_off,cover_on,identity,raids,final,final2}.json`):
+    cost re-map + cavalry in compositions + §7.3 raid targeting + rusher
+    early-raid trigger (4) + 5th rusher worker + cavalry re-priced
+    food-heavy (120g/80f → 80g/100f — it lost every gold race to the
+    100g warrior). Final spread: **rusher 33 / boomer 43 / balanced 57 /
+    turtle 75 %** (was 0/86/29/75), 0 timeouts, every unit & building
+    used. Remaining watch-items: cavalry trains but stays marginal
+    (2/318 units), spearman-heavy mix (39 %).
 - **✅ Verify:** *prototype behind a flag first.* Spearman-vs-cavalry does distinctly
   more damage than archer-vs-cavalry (read the numbers); the unit panel shows counters
   and combat pops "Effective/Resisted"; the §8.8 balance sim shows no single dominant
@@ -1196,6 +1232,12 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
   §7.2 per-personality attack thresholds, validation run pending).
   **Headline §8.4 finding: rams are 30 % of all military production** — the
   de-facto win condition; first target for the counter-model rework.
+  - *(2026-07-13)* **New authoritative dataset under the lean-start
+    economy: `tools/balance_12_final2.json`** (same-seed 12-match run on
+    the §8.3 identity re-map + §7.3 raid targeting + terrain cover ON):
+    0 timeouts, avg 594 sim s, wins rusher 33 / boomer 43 / balanced 57 /
+    turtle 75 %, all units/buildings used. Pre-lean-start datasets
+    (`balance_20_*`) are historical reference only.
 
 ### 8.9 Bigger swings (later; likely past "polish" scope)
 

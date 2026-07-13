@@ -36,7 +36,7 @@ class FakePlayer:
         self.name = "AI"
         self.human = False
         self.color = (255, 0, 0)
-        self.resources = {"gold": 200, "wood": 200, "stone": 100, "food": 100}
+        self.resources = {"gold": 200, "wood": 200, "stone": 150, "food": 100}
         self.ai_personality = personality
 
 
@@ -77,20 +77,22 @@ class FakeGame:
         self.resources = []
         self.construction_sites = []
         self.players = [player]
+        # Costs mirror data/units.json + data/buildings.json (§8.3 resource
+        # identity re-map, 2026-07-13) — keep in sync when rebalancing.
         self.game_data = {
             "costs": {
                 "worker":   {"gold": 50, "food": 25},
-                "warrior":  {"gold": 100, "wood": 25, "food": 50},
+                "warrior":  {"gold": 100, "food": 50},
                 "archer":   {"gold": 75, "wood": 50, "food": 40},
-                "spearman": {"gold": 60, "wood": 25, "food": 35},
+                "spearman": {"gold": 60, "food": 35},
                 "cavalry":  {"gold": 120, "food": 80},
                 "farm":     {"wood": 75},
                 "house":    {"gold": 50, "wood": 50},
-                "barracks": {"gold": 150, "wood": 100, "stone": 50},
-                "watchtower": {"wood": 150, "stone": 100},
+                "barracks": {"gold": 100, "wood": 100},
+                "watchtower": {"wood": 75, "stone": 125},
                 "lumbermill": {"gold": 75, "wood": 75},
-                "mine": {"gold": 75, "wood": 75, "stone": 25},
-                "quarry": {"gold": 75, "wood": 50, "stone": 50},
+                "mine": {"gold": 75, "wood": 75},
+                "quarry": {"gold": 75, "wood": 75},
             },
             "buildings": {},
             "units": {},

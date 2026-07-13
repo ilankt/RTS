@@ -5,6 +5,7 @@ squad per tick (rotating), so a big army never issues all its paths in a
 single tick (the C1 spike).
 """
 import math
+from systems.ai.utility.personality import raid_army_limit
 from systems.combat_rules import is_building_target
 from utils.debug_logger import debug_log
 
@@ -223,17 +224,35 @@ class MilitaryBrain:
     # threat costs this many px of extra "distance".
     THREAT_DISTANCE_WEIGHT = 0.8
 
+    # §7.3 risk/reward: forward economy buildings are raid bait. A raid-sized
+    # army prefers them when they're meaningfully softer than the castle.
+    ECONOMY_RAID_TARGETS = ("lumbermill", "mine", "quarry", "farm")
+    RAID_SOFTNESS = 0.6  # econ target must be < this fraction of castle threat
+
     def _find_attack_target(self, ctx):
         """Best enemy target: castles first, then buildings, then units —
-        each scored by distance + local threat from the influence map."""
+        each scored by distance + local threat from the influence map.
+        Exception (§7.3): a raid-sized army hits undefended expansions
+        (forward dropoffs/farms) instead of walking into castle defenses —
+        expanding greedily without protection is now punishable. Fog rules
+        still apply: ctx.enemy_buildings only contains what was scouted."""
         ref_x = ctx.castle.x if ctx.castle else 0
         ref_y = ctx.castle.y if ctx.castle else 0
 
         def score(obj):
             return math.hypot(obj.x - ref_x, obj.y - ref_y) + ctx.threat_at(obj.x, obj.y) * self.THREAT_DISTANCE_WEIGHT
 
-        # Prefer the least-defended enemy castle
         castles = [b for b in ctx.enemy_buildings if b.name == "castle"]
+
+        if castles and len(ctx.military) <= raid_army_limit(getattr(ctx.player, "ai_personality", "balanced")):
+            econ = [b for b in ctx.enemy_buildings if b.name in self.ECONOMY_RAID_TARGETS]
+            if econ:
+                best_econ = min(econ, key=score)
+                castle_threat = min(ctx.threat_at(c.x, c.y) for c in castles)
+                if ctx.threat_at(best_econ.x, best_econ.y) < castle_threat * self.RAID_SOFTNESS:
+                    return best_econ
+
+        # Prefer the least-defended enemy castle
         if castles:
             return min(castles, key=score)
 

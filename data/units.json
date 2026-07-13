@@ -64,7 +64,6 @@
     "icon": "assets/ui/Units/warrior_icon.png",
     "costs": {
       "gold": 100,
-      "wood": 25,
       "food": 50
     },
     "min_damage": 18,
@@ -151,7 +150,6 @@
     "icon": "assets/ui/Units/spearman_icon.png",
     "costs": {
       "gold": 60,
-      "wood": 25,
       "food": 35
     },
     "min_damage": 14,
@@ -196,8 +194,8 @@
     "build_time": 10,
     "icon": "assets/ui/Units/cavalry_icon.png",
     "costs": {
-      "gold": 120,
-      "food": 80
+      "gold": 80,
+      "food": 100
     },
     "min_damage": 20,
     "max_damage": 26,

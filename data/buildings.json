@@ -19,9 +19,8 @@
     "armor_type": "fortified",
     "armor_value": 5,
     "costs": {
-      "gold": 150,
-      "wood": 100,
-      "stone": 50
+      "gold": 100,
+      "wood": 100
     }
   },
   {
@@ -138,8 +137,7 @@
     "armor_type": "fortified",
     "armor_value": 4,
     "costs": {
-      "wood": 75,
-      "stone": 25
+      "wood": 75
     }
   },
   {
@@ -162,8 +160,7 @@
     "armor_type": "fortified",
     "armor_value": 4,
     "costs": {
-      "wood": 50,
-      "stone": 50
+      "wood": 75
     }
   },
   {
@@ -195,8 +192,8 @@
     "attack_speed": 1.5,
     "attack_range": 175,
     "costs": {
-      "wood": 150,
-      "stone": 100
+      "wood": 75,
+      "stone": 125
     }
   },
   {
@@ -222,8 +219,7 @@
     "armor_value": 4,
     "costs": {
       "gold": 150,
-      "wood": 100,
-      "stone": 50
+      "wood": 100
     }
   },
   {

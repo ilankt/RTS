@@ -1,5 +1,7 @@
 import math
-from core.config import GATHERING_RATES, DROP_OFF_BUILDINGS, DROP_OFF_DELAY, FARM_FOOD_AMOUNT, FARM_FOOD_INTERVAL
+from core.config import (GATHERING_RATES, DROP_OFF_BUILDINGS, DROP_OFF_DELAY,
+                         FARM_FOOD_AMOUNT, FARM_FOOD_INTERVAL,
+                         WORKER_SATURATION_ENABLED, WORKER_SATURATION_CAP)
 from systems.upgrade_effects import effective_gather_rate_multiplier
 from utils.debug_logger import debug_log
 
@@ -16,6 +18,14 @@ def get_drop_off_distance(worker, building):
     combined_radius = worker.radius + building.radius
     buffer = combined_radius * 0.1  # 10% buffer as requested
     return combined_radius + buffer + 5  # Additional 5px safety margin
+
+def saturation_multiplier(active_gatherers):
+    """§8.3 worker saturation: per-worker rate multiplier keeping a node's
+    total output flat past WORKER_SATURATION_CAP gatherers. Pure function so
+    the balance tooling charts exactly what the game runs."""
+    if not WORKER_SATURATION_ENABLED or active_gatherers <= WORKER_SATURATION_CAP:
+        return 1.0
+    return WORKER_SATURATION_CAP / active_gatherers
 
 class GatheringManager:
     def __init__(self, game):
@@ -104,12 +114,7 @@ class GatheringManager:
         # §8.3 worker saturation: past the cap, the node's total output stays
         # flat, so each stacked gatherer works at cap/n rate - expanding to a
         # fresh node beats piling onto one.
-        from core.config import WORKER_SATURATION_ENABLED, WORKER_SATURATION_CAP
-
-        if WORKER_SATURATION_ENABLED:
-            active_gatherers = len(getattr(resource, "gatherers", ()) or ())
-            if active_gatherers > WORKER_SATURATION_CAP:
-                gather_rate *= WORKER_SATURATION_CAP / active_gatherers
+        gather_rate *= saturation_multiplier(len(getattr(resource, "gatherers", ()) or ()))
 
         amount_to_gather = gather_rate * delta_time
 

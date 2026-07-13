@@ -37,7 +37,10 @@ class BuildStableGoal(Goal):
             return 0
         if not ctx.can_afford("stable"):
             return 0
-        return 50
+        # Once a core army exists cavalry adds raid/counter value — outrank
+        # the flat train goals so the stable actually gets built (it never
+        # did under the lean economy at a flat 50).
+        return 70 if len(ctx.military) >= 3 else 45
 
     def execute(self, ctx):
         return start_construction(ctx, "stable", ctx.game.ai_system.building_placer)
@@ -176,10 +179,12 @@ def _military_fraction(ctx, name):
     return count / total
 
 
-class _TrainBarracksUnitGoal(Goal):
-    """Shared base for warrior/archer/spearman."""
+class _TrainCompositionUnitGoal(Goal):
+    """Shared base for composition-driven unit training (warrior/archer/
+    spearman from the barracks, cavalry from the stable)."""
     category = "military"
     unit_name = "<unset>"
+    production_building = "barracks"
 
     # §7.2 reactive counters: how strongly the enemy's army mix pulls this
     # personality off its signature composition, and how many enemy military
@@ -218,11 +223,11 @@ class _TrainBarracksUnitGoal(Goal):
             return 0
         if not ctx.can_afford(self.unit_name):
             return 0
-        building = ctx.find_idle_production_building("barracks")
+        building = ctx.find_idle_production_building(self.production_building)
         if not building:
             return 0
         target_fraction = self._target_fraction(ctx)
-        # If no military yet, all three barracks-units score the same baseline
+        # If no military yet, every trainable unit scores the same baseline
         # so personality / cost differences pick one. Once an army exists, push
         # whichever type is under-represented.
         frac = _military_fraction(ctx, self.unit_name) if ctx.military else target_fraction
@@ -231,50 +236,35 @@ class _TrainBarracksUnitGoal(Goal):
         return 50 + (target_fraction - frac) * 100
 
     def execute(self, ctx):
-        building = ctx.find_idle_production_building("barracks")
+        building = ctx.find_idle_production_building(self.production_building)
         return queue_unit(ctx, building, self.unit_name)
 
 
-class TrainWarriorGoal(_TrainBarracksUnitGoal):
+class TrainWarriorGoal(_TrainCompositionUnitGoal):
     name = "train_warrior"
     unit_name = "warrior"
 
 
 
-class TrainArcherGoal(_TrainBarracksUnitGoal):
+class TrainArcherGoal(_TrainCompositionUnitGoal):
     name = "train_archer"
     unit_name = "archer"
 
 
 
-class TrainSpearmanGoal(_TrainBarracksUnitGoal):
+class TrainSpearmanGoal(_TrainCompositionUnitGoal):
     name = "train_spearman"
     unit_name = "spearman"
 
 
 
-class TrainCavalryGoal(Goal):
+class TrainCavalryGoal(_TrainCompositionUnitGoal):
+    """Composition-driven like the barracks units (§7.2 signature armies) —
+    sharing the base also gives cavalry the reactive counter boost (it gets
+    trained up when the enemy fields what it's strong against)."""
     name = "train_cavalry"
-    category = "military"
-
-    CAP = 3
-
-    def score(self, ctx):
-        if not ctx.has_pop_space():
-            return 0
-        if not ctx.can_afford("cavalry"):
-            return 0
-        building = ctx.find_idle_production_building("stable")
-        if not building:
-            return 0
-        cavalry = sum(1 for u in ctx.military if u.name == "cavalry")
-        if cavalry >= self.CAP:
-            return 20
-        return 55
-
-    def execute(self, ctx):
-        building = ctx.find_idle_production_building("stable")
-        return queue_unit(ctx, building, "cavalry")
+    unit_name = "cavalry"
+    production_building = "stable"
 
 
 class TrainRamGoal(Goal):

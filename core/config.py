@@ -118,8 +118,9 @@ DROP_OFF_BUILDINGS = {
     "wood": ["lumbermill", "castle"]
 }
 
-# Gathering distance multiplier (fraction of combined radii)
-GATHERING_DISTANCE_MULTIPLIER = 0.5
+# (GATHERING_DISTANCE_MULTIPLIER removed 2026-07-13 — it was never read.
+# Gather/drop-off proximity lives in gathering_manager.get_gathering_distance
+# and get_drop_off_distance: combined radii + 10% + 5 px.)
 
 # Top Bar UI Configuration
 TOP_BAR_HEIGHT = 100
@@ -176,6 +177,11 @@ HEALER_HEAL_RANGE = 110.0   # world px
 # fresh nodes instead of stacking one.
 WORKER_SATURATION_ENABLED = True
 WORKER_SATURATION_CAP = 3
+
+# Every player's base gathering-rate multiplier (per resource). Effective
+# income = GATHERING_RATES[type] * this (* upgrades). Shared by
+# entities/player.py and the §8.3 balance tooling.
+PLAYER_GATHERING_MULTIPLIER = 5.0
 
 # Combat counter model (§8.4, prototyped behind a flag): attackers deal bonus
 # damage to targets listed in their strong_against tags, making e.g.
