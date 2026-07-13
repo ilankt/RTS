@@ -1182,6 +1182,22 @@ due-east** — placement ignores where the enemy actually is.
   damage tracked end-to-end. Validation run: 46 towers dealt ~29.5k damage
   (balanced 12.1k, boomer 9.1k, turtle 5.0k, rusher 3.3k) — towers demonstrably
   matter now. (2026-07-10)
+
+> **⏸ Walls & gates DISABLED / deferred (2026-07-12).** The wall mechanics below
+> all landed and work (drag-line placement + live cost readout, Esc/right-click
+> cancel, AI walling, gate toggle, nav sealing), but `wall` / `wooden_wall` /
+> `gate` are now **`buildable: false`** in `data/buildings.json` — hidden from
+> the human build menu ([command_card.py:160](ui/components/command_card.py:160))
+> and skipped by the AI's `start_construction`
+> ([actions.py:39](systems/ai/utility/actions.py:39)); `BuildWallGoal.score` also
+> bails on non-buildable pieces so a turtle doesn't churn. **Why:** a single
+> straight segment sprite can't read correctly for lines built in ~6 directions
+> on the hex map — walls need **orientation-aware art** (straight / corner / end /
+> T pieces) plus auto-connection logic before they're worth shipping. The
+> `Watchtower.png` placeholder sprite is still what they'd draw as. **Re-enable:**
+> flip the three `buildable` flags back to `true` and supply the oriented
+> sprites. Watchtowers (above) stay live and unaffected.
+
 - [x] **Wooden walls** *(med)* — `wooden_wall` buildable (40 wood, 800 hp)
   2026-07-10; placed via the standard build menu (drag-placement UI for wall
   *lines* still open below). Reuses the watchtower sprite until wall art

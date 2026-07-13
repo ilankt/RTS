@@ -144,13 +144,14 @@ class GameState:
         """Place resources around the map"""
         # First, place guaranteed resources near each castle
         for spawn_r, spawn_c in spawn_locations:
-            # Place 1 gold deposit near castle (3-5 tiles away)
-            self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 5, 1, amount_override=500)
-            
-            # Place 1 stone deposit near castle (3-5 tiles away)
-            self._place_resource_near_spawn("stone", spawn_r, spawn_c, 3, 5, 1, amount_override=500)
-            
-            # Place 8 wood resources near castle (2-6 tiles away)
+            # Starting gold/stone: one RICH deposit each near the castle (5x the
+            # old 500). Big enough to carry the early game, so hunting for fresh
+            # deposits is a mid-game concern, not an opening chore. (2026-07-12)
+            self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 5, 1, amount_override=2500)
+
+            self._place_resource_near_spawn("stone", spawn_r, spawn_c, 3, 5, 1, amount_override=2500)
+
+            # Wood is left as-is (per-bunch amount is fine) — 8 trees near spawn.
             self._place_resource_near_spawn("wood", spawn_r, spawn_c, 2, 6, 8, amount_override=250)
         
         # Calculate resource counts based on map size and player count
@@ -164,19 +165,21 @@ class GameState:
         player_factor = 1.0 - (player_count - 2) * 0.1  # -10% per player above 2
         player_factor = max(0.5, player_factor)  # Minimum 50%
         
-        # Calculate final resource counts
-        extra_gold = int(random.randint(2, 3) * area_factor * player_factor)
-        extra_stone = int(random.randint(2, 3) * area_factor * player_factor)
-        extra_wood = int(random.randint(8, 12) * area_factor * player_factor)
-        
-        # Place scarce additional resources across the map
+        # Resource counts (rebalance 2026-07-12): FEWER but far RICHER gold/stone
+        # deposits — you control a deposit longer and hunt less often — and MORE
+        # wood clusters so timber is always easy to find nearby.
+        extra_gold = int(random.randint(1, 2) * area_factor * player_factor)
+        extra_stone = int(random.randint(1, 2) * area_factor * player_factor)
+        extra_wood = int(random.randint(20, 30) * area_factor * player_factor)
+
+        # Additional gold/stone across the map — 5x richer per node (was 1500).
         for _ in range(extra_gold):
-            self._place_random_resource("gold", spawn_locations, min_distance=15, amount_override=1500)
-        
+            self._place_random_resource("gold", spawn_locations, min_distance=15, amount_override=7500)
+
         for _ in range(extra_stone):
-            self._place_random_resource("stone", spawn_locations, min_distance=15, amount_override=1500)
-        
-        # Instead of individual trees, create forest clusters
+            self._place_random_resource("stone", spawn_locations, min_distance=15, amount_override=7500)
+
+        # Instead of individual trees, create forest clusters (many more now)
         self._place_forest_clusters(extra_wood, spawn_locations)
     
     def _place_resource_near_spawn(self, resource_type, spawn_r, spawn_c, min_dist, max_dist, count, amount_override=None):

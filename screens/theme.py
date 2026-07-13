@@ -29,6 +29,8 @@ PANEL_BORDER = (105, 92, 55)
 PRIMARY_FILL = (38, 74, 44)
 PRIMARY_BORDER = (120, 200, 130)
 
+SETTING_VALUE_INSET = 58  # value's right inset, clears the frame end cap
+
 
 def splash_background(size=None):
     """The splash art cover-scaled + center-cropped to `size` (defaults to
@@ -214,12 +216,22 @@ def draw_setting_row(screen, rect, label, value, selected, font):
 
     value_surface = font.render(value, True,
                                 VALUE_COLOR if selected else LABEL_COLOR)
-    value_x = rect.right - 58 - value_surface.get_width()
+    value_x = rect.right - SETTING_VALUE_INSET - value_surface.get_width()
     screen.blit(value_surface, (value_x,
                                 rect.centery - value_surface.get_height() // 2))
     if selected:
         _arrow(screen, value_x - 16, rect.centery, -1, SELECTED_BORDER)
         _arrow(screen, rect.right - 42, rect.centery, 1, SELECTED_BORDER)
+
+
+def setting_click_step(rect, value_width, click_x):
+    """+1 or -1 for a mouse click on a setting row. Splits at the value's
+    horizontal center, matching the ◀ value ▶ adjuster arrows drawn by
+    draw_setting_row: clicking left of the value steps down, right steps up.
+    Without this, every click increments and there is no way to lower a
+    value with the mouse (user-reported: game speed stuck at max)."""
+    value_center = rect.right - SETTING_VALUE_INSET - value_width / 2
+    return 1 if click_x >= value_center else -1
 
 
 def draw_action_row(screen, rect, label, selected, font, primary=False):

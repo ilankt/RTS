@@ -8,7 +8,8 @@ from core.config import (SCREEN_WIDTH, SCREEN_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
                         SMART_CURSORS_ENABLED, DEFAULT_GAME_SPEED, MIN_GAME_SPEED,
                         MAX_GAME_SPEED, GAME_SPEED_INCREMENT, AI_ONLY_MODE,
                         AI_ONLY_PLAYER_COUNT, SPECTATOR_FOG_OF_WAR,
-                        SPECTATOR_START_ZOOM)
+                        SPECTATOR_START_ZOOM, HUMAN_STARTING_RESOURCES,
+                        AI_STARTING_RESOURCES)
 from world.map import Map
 from world.camera import Camera
 from entities import load_game_data
@@ -256,6 +257,11 @@ class Game:
             # Game over takes priority
             if self.game_over_state:
                 self.running = False
+            # Back out of building/wall placement before anything else — this
+            # also aborts an in-progress wall drag. Nothing is charged until
+            # release, so it's a zero-cost bail-out (Esc used to pause here).
+            elif self.building_system.building_placement_mode:
+                self.building_system.cancel_building_placement()
             # Check if command mode is active first
             elif self.ui_manager.active_command_mode:
                 self.ui_manager.clear_command_mode()
@@ -296,6 +302,12 @@ class Game:
             self.fog_of_war_enabled = not self.fog_of_war_enabled
             state = "enabled" if self.fog_of_war_enabled else "disabled"
             debug_log.log(f"Fog of war {state}", "GENERAL")
+            # Visible toast so this debug toggle is never a silent/mysterious
+            # change (e.g. an accidental F6 while reaching for F1).
+            try:
+                self.ui_manager.add_alert(f"Fog of war {state} (F6)")
+            except Exception:
+                pass
         elif self.keybindings.matches("quick_save", event.key):
             try:
                 path = SaveManager.save_game(self, slot=0)
@@ -1123,9 +1135,9 @@ class Game:
         # Reset players resources
         for player in self.players:
             if player.human:
-                player.resources = self.game_data.get("starting_resources_human", {"food": 10000, "gold": 10000, "stone": 10000, "wood": 10000}).copy()
+                player.resources = self.game_data.get("starting_resources_human", HUMAN_STARTING_RESOURCES).copy()
             else:
-                player.resources = self.game_data.get("starting_resources_ai", {"food": 10000, "gold": 10000, "stone": 10000, "wood": 10000}).copy()
+                player.resources = self.game_data.get("starting_resources_ai", AI_STARTING_RESOURCES).copy()
         
         # Reinitialize game state
         self.game_state.setup_game_objects()

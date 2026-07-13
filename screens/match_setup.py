@@ -146,13 +146,18 @@ class MatchSetupScreen:
                             break
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     for i, (label, key) in enumerate(self.rows):
-                        if self._row_rect(i).collidepoint(pygame.mouse.get_pos()):
+                        rect = self._row_rect(i)
+                        if rect.collidepoint(event.pos):
                             self.selected_index = i
                             if label == "Start match":
                                 return dict(self.config)
                             if label == "Back":
                                 return None
-                            self._row_adjust(1)
+                            # Left arrow/half steps down, right steps up
+                            value_w = self.font_medium.size(self._value_text(key))[0]
+                            self._row_adjust(theme.setting_click_step(
+                                rect, value_w, event.pos[0]))
+                            break
             self.draw()
             pygame.display.flip()
             clock.tick(60)

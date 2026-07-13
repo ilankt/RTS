@@ -24,7 +24,8 @@ class BuildingSystem:
         self.building_preview_pos = None
         self.selected_builder = None
         self.wall_drag_anchor = None  # world pos where a wall drag started
-        
+        self.drag_font = pygame.font.Font(None, 26)  # wall-drag cost readout
+
     def enter_building_placement_mode(self, building_data):
         """Enter building placement mode with the selected building type"""
         # Find and store the selected worker
@@ -154,7 +155,40 @@ class BuildingSystem:
             else:
                 self.game.pathfinder.issue_interact(self.selected_builder, site, "build")
         return True
-    
+
+    def _draw_wall_drag_cost(self, map_surface, camera, valid_count):
+        """Live '{N} segments · {cost}' readout at the cursor during a wall
+        drag, so the commitment is clear BEFORE releasing (nothing is charged
+        until release). Amber + '(afford K)' when the stockpile can't cover the
+        whole run — mirrors finish_wall_drag stopping when resources run out."""
+        costs = self.building_to_place.get('costs', {})
+        if valid_count <= 0 or not costs:
+            return
+        player = self.game.players[0]
+        affordable = min((int(player.resources.get(r, 0) // c) for r, c in costs.items()),
+                         default=0)
+        placeable = min(valid_count, affordable)
+
+        cost_str = "  ".join(f"{c * valid_count} {r}" for r, c in costs.items())
+        noun = "segment" if valid_count == 1 else "segments"
+        label = f"{valid_count} {noun} · {cost_str}"
+        if placeable < valid_count:
+            label += f"  (afford {placeable})"
+            color = (255, 180, 70)
+        else:
+            color = (170, 255, 170)
+
+        end = self.building_preview_pos
+        sx = int(end[0] * camera.zoom + camera.x) + 16
+        sy = max(4, int(end[1] * camera.zoom + camera.y) - 34)
+        text = self.drag_font.render(label, True, color)
+        backdrop = pygame.Surface((text.get_width() + 10, text.get_height() + 6),
+                                  pygame.SRCALPHA)
+        backdrop.fill((0, 0, 0, 175))
+        map_surface.blit(backdrop, (sx - 5, sy - 3))
+        map_surface.blit(text, (sx, sy))
+
+
     def update_building_preview(self, mouse_pos):
         """Update building preview position and validity"""
         if not self.building_placement_mode or not self.building_to_place:
@@ -218,13 +252,17 @@ class BuildingSystem:
         # Wall drag: ghost circles along the anchor→cursor line (§8.10)
         if self.wall_drag_active and self.building_preview_pos:
             radius = self.building_to_place['size'][0] * TILE_WIDTH / 2
+            valid_count = 0
             for slot in self._wall_drag_slots(self.wall_drag_anchor, self.building_preview_pos):
-                color = (0, 255, 0) if self._wall_slot_valid(slot) else (255, 0, 0)
+                ok = self._wall_slot_valid(slot)
+                valid_count += 1 if ok else 0
+                color = (0, 255, 0) if ok else (255, 0, 0)
                 pygame.draw.circle(
                     map_surface, color,
                     (int(slot[0] * camera.zoom + camera.x), int(slot[1] * camera.zoom + camera.y)),
                     max(2, int(radius * camera.zoom)), 2,
                 )
+            self._draw_wall_drag_cost(map_surface, camera, valid_count)
             return
             
         # Get building sprite

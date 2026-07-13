@@ -9,15 +9,17 @@ live to each new Game.
 import json
 import os
 
+from core.app_paths import user_path
 from utils.debug_logger import debug_log
 
-SETTINGS_FILE = "settings.json"
+# Relative when run from source; under %LOCALAPPDATA%\RTS when frozen.
+SETTINGS_FILE = user_path("settings.json")
 
 RESOLUTION_CHOICES = [[1280, 720], [1600, 900], [1920, 1080]]
 
 DEFAULTS = {
-    "resolution": [1280, 720],
-    "fullscreen": False,         # exclusive fullscreen (display-mode switch)
+    "resolution": [1920, 1080],
+    "fullscreen": True,          # scaled fullscreen at the logical resolution
     "volume": 0.3,               # SFX volume, 0.0 - 1.0
     "music_volume": 0.4,         # background music volume (§8.5)
     "sound_enabled": True,
@@ -84,29 +86,31 @@ class Settings:
 
     def display_flags(self):
         """pygame.display.set_mode flags for the current settings.
-        Fullscreen is EXCLUSIVE (user request): a real display-mode switch
-        to the chosen resolution, not desktop-scaled rendering. Callers
-        fall back to windowed if the driver refuses the mode."""
+        Fullscreen renders at the logical resolution and lets SDL GPU-scale
+        it to fill the display (FULLSCREEN | SCALED) — reliable across
+        monitors and driver quirks, unlike an exclusive display-mode switch
+        which black-screened / drew off-position on some setups."""
         import pygame
 
         if self.values["fullscreen"]:
-            return pygame.FULLSCREEN
+            return pygame.FULLSCREEN | pygame.SCALED
         return 0
 
     def create_display(self, resolution):
-        """set_mode honoring the fullscreen setting, with layout-safe
-        fallbacks. Exclusive fullscreen first; if the driver returns a
-        surface of a DIFFERENT size (mode unsupported — this drew the UI
-        off-position), fall back to SCALED fullscreen so the logical
-        resolution is guaranteed; then windowed."""
+        """set_mode honoring the fullscreen setting.
+
+        Fullscreen uses FULLSCREEN | SCALED: the game renders at the logical
+        `resolution` and SDL scales it to fill the physical display. This
+        avoids the exclusive display-mode switch that stopped producing a
+        working fullscreen on some drivers, and it keeps screen.get_size()
+        (and therefore the baked HUD layout + mouse coordinates) equal to
+        the logical resolution. Falls back to a window if the driver refuses
+        a fullscreen mode."""
         import pygame
 
         resolution = tuple(resolution)
         if self.values["fullscreen"]:
             try:
-                screen = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
-                if screen.get_size() == resolution:
-                    return screen
                 return pygame.display.set_mode(
                     resolution, pygame.FULLSCREEN | pygame.SCALED)
             except pygame.error:

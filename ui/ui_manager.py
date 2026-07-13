@@ -8,6 +8,7 @@ from ui.components.command_card import CommandCard
 from ui.components.global_queue import GlobalQueueStrip
 from ui.components.resource_bar import ResourceBar
 from ui.components.icon_loader import IconLoader
+from ui.hud_background import NineSliceFrame
 
 
 class UIManager:
@@ -35,6 +36,13 @@ class UIManager:
         self.global_queue = GlobalQueueStrip(game, self.icon_loader,
                                              self.command_card.tech_icons)
         self.resource_bar = ResourceBar(game)
+        # Asymmetric frame: thick ornate wood rail on the map-facing (left)
+        # edge + top/bottom, thin plain stone on the screen edge (right). dst
+        # insets leave a 180 px inner column — just enough for the tile grid
+        # and 4-wide multi-select icons to sit INSIDE the frame, not over it.
+        self.sidebar_frame = NineSliceFrame("assets/ui/hud_side_panel.png",
+                                            src_inset=(150, 125, 45, 125),
+                                            dst_inset=(14, 16, 6, 16))
 
         # Alert feed (§7.4): fading toasts under the top bar, plus a
         # persistent scrolling log behind them (§8.2, toggled with L)
@@ -166,14 +174,25 @@ class UIManager:
         ui_height = SCREEN_HEIGHT - MINIMAP_HEIGHT
 
         panel_surface = pygame.Surface((ui_width, ui_height))
-        panel_surface.fill((20, 20, 20))
-        # Seam only on the map-facing edge; the other sides hug the screen
-        pygame.draw.line(panel_surface, (50, 50, 50), (0, 0), (0, ui_height), 2)
-
+        background = self.sidebar_frame.render(ui_width, ui_height)
         selected_objects = self.get_selected_objects()
-        self.unit_panel.draw_panel(panel_surface, ui_width, selected_objects)
-        self.command_card.draw(panel_surface, ui_x, ui_y, ui_width, ui_height,
-                               selected_objects)
+        if background is not None:
+            # Framed panel: paint the stone-and-rails frame, then draw all
+            # content into the inner rectangle so the tiles sit INSIDE the
+            # frame instead of overlapping the rails.
+            panel_surface.blit(background, (0, 0))
+            inner = self.sidebar_frame.content_rect(ui_width, ui_height)
+            content = panel_surface.subsurface(inner)
+            self.unit_panel.draw_panel(content, inner.width, selected_objects)
+            self.command_card.draw(content, ui_x + inner.x, ui_y + inner.y,
+                                   inner.width, inner.height, selected_objects)
+        else:
+            panel_surface.fill((20, 20, 20))
+            # Seam only on the map-facing edge; the other sides hug the screen
+            pygame.draw.line(panel_surface, (50, 50, 50), (0, 0), (0, ui_height), 2)
+            self.unit_panel.draw_panel(panel_surface, ui_width, selected_objects)
+            self.command_card.draw(panel_surface, ui_x, ui_y, ui_width, ui_height,
+                                   selected_objects)
 
         screen.blit(panel_surface, (ui_x, ui_y))
 

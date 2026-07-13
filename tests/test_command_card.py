@@ -123,8 +123,10 @@ def test_tab_swap_hotkey_and_memory(game, card):
     assert card.handle_hotkey(key("e")) is True
     content = card.refresh()
     names = [slot['name'] for slot in content['slots'] if slot]
+    # wall/wooden_wall/gate are deferred (buildable:false in data) so the menu
+    # skips them — see MASTER_PLAN §8.10. Re-add here when walls ship.
     assert names == ['barracks', 'stable', 'blacksmith', 'siege_workshop',
-                     'watchtower', 'wooden_wall', 'wall', 'gate']
+                     'watchtower']
 
     # Remembered while the worker stays selected (and across reselection)
     clear_selection(game)

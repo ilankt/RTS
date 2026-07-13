@@ -147,6 +147,11 @@ class BuildWallGoal(Goal):
         piece = ctx.game.ai_system.building_placer.next_wall_piece(ctx, segments)
         if piece is None:
             return 0  # line complete or unplannable
+        # Walls are deferred (buildings.json buildable:false) — skip so a turtle
+        # doesn't burn its top goal slot every tick on a piece it can't build.
+        template = ctx.game.game_data.get("buildings", {}).get(piece[0])
+        if template is not None and not getattr(template, "buildable", True):
+            return 0
         if not ctx.can_afford(piece[0]):
             return 0
         # High base on purpose: AttackGoal succeeds every tick it wins, so a

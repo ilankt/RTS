@@ -123,8 +123,8 @@ GATHERING_DISTANCE_MULTIPLIER = 0.5
 
 # Top Bar UI Configuration
 TOP_BAR_HEIGHT = 100
-TOP_BAR_START_X = 20
-TOP_BAR_SPACING = 200
+TOP_BAR_START_X = 48   # clears the framed banner's left end-cap
+TOP_BAR_SPACING = 185  # keeps the 5th item clear of the right-side Idle badge
 TOP_BAR_ROW_Y = 25
 TOP_BAR_ITEMS = ["food", "gold", "stone", "wood", "house"]
 # Top bar width will be MAP_VIEW_WIDTH (to not overlap minimap)
@@ -139,19 +139,26 @@ BUILDING_ICON_SIZE = 48  # Button height - padding (60 - 12 = 48)
 # Starting Resources Configuration
 # Adjust these values to balance the game difficulty
 # Higher values = easier start, lower values = more challenging
+#
+# Deliberately lean: enough to open (a couple of houses/farms, a few extra
+# workers, and a down-payment toward the first barracks) but NOT enough to
+# build everything at once — the player has to prioritise. For reference:
+# worker 25f, house 50w, farm/lumbermill 75w, barracks 150g/100w/50s,
+# warrior 100g/25w/50f. Gold (100) is intentionally short of a barracks so
+# the first military push requires gathering first.
 
 HUMAN_STARTING_RESOURCES = {
-    "food": 10000,      # Starting food for human player
-    "gold": 10000,      # Starting gold for human player
-    "stone": 10000,     # Starting stone for human player
-    "wood": 10000       # Starting wood for human player
+    "food": 200,      # Starting food for human player
+    "gold": 100,      # Starting gold for human player
+    "stone": 75,      # Starting stone for human player
+    "wood": 200       # Starting wood for human player
 }
 
 AI_STARTING_RESOURCES = {
-    "food": 10000,      # Starting food for AI players
-    "gold": 10000,      # Starting gold for AI players
-    "stone": 10000,     # Starting stone for AI players
-    "wood": 10000       # Starting wood for AI players
+    "food": 200,      # Starting food for AI players
+    "gold": 100,      # Starting gold for AI players
+    "stone": 75,      # Starting stone for AI players
+    "wood": 200       # Starting wood for AI players
 }
 
 # Victory conditions (§7.5)
@@ -186,7 +193,9 @@ COMBAT_FOREST_COVER_MULTIPLIER = 0.85  # damage taken by a unit in forest
 DEBUG_PATHFINDING = False  # Enable/disable pathfinding debug output
 DEBUG_MOVEMENT = False     # Enable/disable movement debug output
 DEBUG_TO_FILE = True       # Enable/disable debug output to file
-DEBUG_FILE_PATH = "debug.dat"  # Path to debug output file
+# Relative when run from source; under %LOCALAPPDATA%\RTS when frozen.
+from core.app_paths import user_path as _user_path
+DEBUG_FILE_PATH = _user_path("debug.dat")  # Path to debug output file
 DEBUG_ENABLED_CATEGORIES = {
     "GENERAL",
     "ERROR",

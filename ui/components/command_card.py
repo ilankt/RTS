@@ -487,8 +487,10 @@ class CommandCard:
             slot = content['slots'][i]
             screen_tile = tile.move(ui_x, ui_y)
             if slot is None:
-                pygame.draw.rect(panel_surface, (26, 26, 30), tile, border_radius=4)
-                pygame.draw.rect(panel_surface, (44, 44, 50), tile, 1, border_radius=4)
+                # Warm stone socket (not flat black) so empty slots still read
+                # as empty but stay in the panel's stone/wood palette.
+                pygame.draw.rect(panel_surface, (42, 38, 34), tile, border_radius=4)
+                pygame.draw.rect(panel_surface, (70, 62, 52), tile, 1, border_radius=4)
                 continue
             self._slot_rects.append((i, screen_tile))
             hovered = screen_tile.collidepoint(mouse_pos)

@@ -116,12 +116,18 @@ class SettingsMenu:
                             break
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     for i, (label, key) in enumerate(self.rows):
-                        if self._row_rect(i).collidepoint(pygame.mouse.get_pos()):
+                        rect = self._row_rect(i)
+                        if rect.collidepoint(event.pos):
                             self.selected_index = i
                             if key is None:
                                 self.settings.save()
                                 return self.settings
-                            self._row_adjust(1)
+                            # Click the left arrow/half to step down, the
+                            # right to step up (not always up)
+                            value_w = self.font_medium.size(self._value_text(key))[0]
+                            self._row_adjust(theme.setting_click_step(
+                                rect, value_w, event.pos[0]))
+                            break
             self.draw()
             pygame.display.flip()
             clock.tick(60)

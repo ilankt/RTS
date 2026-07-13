@@ -1,5 +1,5 @@
 import pygame
-from core.config import TILE_WIDTH, TOP_BAR_HEIGHT
+from core.config import TILE_WIDTH, TOP_BAR_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
 from entities import Building, Unit, Resource, ConstructionSite
 from utils.perf_stats import perf_stats
 
@@ -35,6 +35,14 @@ class RenderingSystem:
                         self._render_scales[unit['name']] = float(scale)
         except (OSError, ValueError):
             pass
+
+        # Ornate frame art (the four-sided banner) reused border-only to frame
+        # the map + minimap, matching the top-bar/sidebar look. Falls back to a
+        # drawn bevel if the art is missing.
+        from ui.hud_background import NineSliceFrame
+        self.hud_frame = NineSliceFrame("assets/ui/hud_top_bar.png",
+                                        src_inset=(105, 100, 105, 100),
+                                        dst_inset=(24, 24, 24, 24))
     
     def draw_frame(self, screen, map_surface, camera, delta_time=1/60.0):
         """Draw a complete frame"""
@@ -83,10 +91,40 @@ class RenderingSystem:
         self.game.minimap.draw(screen)
         self.game.ui_manager.draw_ui_panel(screen)
         self.game.ui_manager.draw_top_bar(screen)
+        self._draw_map_border(screen)
         self.game.ui_manager.draw_alerts(screen)
         self.game.ui_manager.draw_event_log(screen)
         self.game.ai_debug_panel.draw(screen)
-    
+
+    @staticmethod
+    def _draw_beveled_frame(screen, rect):
+        """A beveled wood-and-iron border drawn inside `rect`: outer dark lip,
+        wood body, warm highlight, inner shadow line. Matches the panel art so
+        the map and minimap read as framed viewports, not bare black edges."""
+        pygame.draw.rect(screen, (20, 17, 13), rect, 9)
+        pygame.draw.rect(screen, (92, 66, 40), rect.inflate(-4, -4), 5)
+        pygame.draw.rect(screen, (140, 104, 62), rect.inflate(-4, -4), 1)
+        pygame.draw.rect(screen, (32, 24, 16), rect.inflate(-16, -16), 2)
+
+    def _draw_map_border(self, screen):
+        """Frame the play area and the minimap with the ornate frame art
+        (border only, transparent centre), falling back to a drawn bevel."""
+        map_rect = pygame.Rect(0, TOP_BAR_HEIGHT,
+                               SCREEN_WIDTH - MINIMAP_WIDTH,
+                               SCREEN_HEIGHT - TOP_BAR_HEIGHT)
+        mini_rect = pygame.Rect(SCREEN_WIDTH - MINIMAP_WIDTH, 0,
+                                MINIMAP_WIDTH, MINIMAP_HEIGHT)
+        map_border = self.hud_frame.render_border(map_rect.width, map_rect.height)
+        # Thinner frame on the small minimap so it doesn't swallow the map.
+        mini_border = self.hud_frame.render_border(mini_rect.width, mini_rect.height,
+                                                   dst_inset=(16, 16, 16, 16))
+        if map_border is not None:
+            screen.blit(map_border, map_rect.topleft)
+            screen.blit(mini_border, mini_rect.topleft)
+        else:
+            self._draw_beveled_frame(screen, map_rect)
+            self._draw_beveled_frame(screen, mini_rect)
+
     ORDER_FLASH_MS = 450
     ORDER_FLASH_COLORS = {
         "move": (90, 255, 120),

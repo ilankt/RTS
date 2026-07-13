@@ -119,9 +119,10 @@ def test_settings_persist_immediately_on_change(screen, tmp_path):
 
     menu.selected_index = next(i for i, (_l, key) in enumerate(menu.rows)
                                if key == "fullscreen")
-    menu._row_adjust(1)  # toggle fullscreen On — no Back, no explicit save
+    before = menu.settings.get("fullscreen")
+    menu._row_adjust(1)  # toggle fullscreen — no Back, no explicit save
 
-    assert Settings(path=path).get("fullscreen") is True
+    assert Settings(path=path).get("fullscreen") is (not before)
 
     menu.selected_index = next(i for i, (_l, key) in enumerate(menu.rows)
                                if key == "music_volume")
@@ -129,19 +130,66 @@ def test_settings_persist_immediately_on_change(screen, tmp_path):
     assert Settings(path=path).get("music_volume") == pytest.approx(0.5)
 
 
+def test_setting_click_step_splits_at_value_center():
+    """The mouse-click adjuster splits a row at its value's center so the
+    ◀ value ▶ arrows work: left steps down, right steps up."""
+    from screens import theme
+
+    rect = pygame.Rect(100, 0, 530, 42)
+    value_w = 30
+    center = rect.right - theme.SETTING_VALUE_INSET - value_w / 2
+    assert theme.setting_click_step(rect, value_w, center - 5) == -1
+    assert theme.setting_click_step(rect, value_w, center + 5) == 1
+
+
+def test_settings_mouse_click_can_decrease_a_value(screen, tmp_path):
+    """User-reported: game speed got stuck at max because every mouse click
+    on a settings row stepped UP. A click on the left arrow/half must step
+    the value DOWN; the right steps it back up."""
+    from core.settings import Settings
+    from screens.settings_menu import SettingsMenu
+
+    path = str(tmp_path / "settings.json")
+    menu = SettingsMenu(screen)
+    menu.settings = Settings(path=path)
+    menu.settings.set("default_game_speed", 4.0)
+
+    row = next(i for i, (_l, key) in enumerate(menu.rows)
+               if key == "default_game_speed")
+    rect = menu._row_rect(row)
+
+    # Click near the left arrow -> step down
+    pygame.event.clear()
+    pygame.event.post(pygame.event.Event(
+        pygame.MOUSEBUTTONDOWN, button=1, pos=(rect.left + 30, rect.centery)))
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE))
+    menu.run()
+    assert menu.settings.get("default_game_speed") == 3.0
+
+    # Click near the right arrow -> step back up
+    menu.settings.set("default_game_speed", 3.0)
+    pygame.event.clear()
+    pygame.event.post(pygame.event.Event(
+        pygame.MOUSEBUTTONDOWN, button=1, pos=(rect.right - 20, rect.centery)))
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE))
+    menu.run()
+    assert menu.settings.get("default_game_speed") == 4.0
+
+
 def test_fullscreen_setting_and_display_flags(tmp_path):
     from core.settings import Settings
 
     path = str(tmp_path / "settings.json")
     settings = Settings(path=path)
-    assert settings.get("fullscreen") is False  # default: windowed
-    assert settings.display_flags() == 0
+    assert settings.get("fullscreen") is True  # default: fullscreen 1920x1080
+    # Scaled fullscreen: render at the logical resolution, GPU-scale to fill
+    # the display (reliable across monitors) — not an exclusive mode switch
+    assert settings.display_flags() == (pygame.FULLSCREEN | pygame.SCALED)
 
-    settings.set("fullscreen", True)
-    # Exclusive fullscreen: a real display-mode switch, not SCALED rendering
-    assert settings.display_flags() == pygame.FULLSCREEN
+    settings.set("fullscreen", False)  # windowed is still an option
+    assert settings.display_flags() == 0
     settings.save()
-    assert Settings(path=path).get("fullscreen") is True
+    assert Settings(path=path).get("fullscreen") is False
 
 
 def test_map_size_row_caps_opponents(screen):

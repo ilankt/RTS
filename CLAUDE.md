@@ -63,10 +63,13 @@ tools/          - benchmark_ai_spectator.py (headless perf benchmark), sprite pi
 ## Content
 
 - **Units** (`data/units.json`): worker, warrior, archer, spearman, cavalry, ram, healer.
-  `healer` (requires `temple`) and `temple`/`wall` (`buildable: false`) are intentionally
-  deferred — data exists, gameplay logic does not yet (see MASTER_PLAN.md backlog).
+  `healer` (requires `temple`) and `temple` (`buildable: false`) are intentionally deferred —
+  data exists, gameplay logic does not yet (see MASTER_PLAN.md backlog).
 - **Buildings** (`data/buildings.json`): castle, barracks, farm, house, lumbermill, mine, quarry,
-  watchtower, stable, blacksmith, siege_workshop, plus deferred temple/wall.
+  watchtower, stable, blacksmith, siege_workshop. `temple` is deferred (data only).
+  `wall`/`wooden_wall`/`gate` are **fully implemented** (drag-line placement, AI walling, gate
+  toggle, nav sealing) but currently **disabled via `buildable: false`** pending
+  orientation-aware sprites — flip the flags to re-enable (see MASTER_PLAN §8.10).
 - **Tech tree** (`data/techs.json`): 6 blacksmith upgrades (gather rate, armor, melee/ranged
   damage, siege damage) applied via `systems/upgrade_effects.py` and researched through
   `systems/research_manager.py`. AI research goals live in

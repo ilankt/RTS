@@ -312,7 +312,7 @@
     "requires": [
       "barracks"
     ],
-    "buildable": true,
+    "buildable": false,
     "strong_against": [],
     "weak_against": [
       "ram"
@@ -335,7 +335,7 @@
     "display_name": "Wooden Wall",
     "role": "Cheap early wall segment",
     "requires": [],
-    "buildable": true,
+    "buildable": false,
     "strong_against": [],
     "weak_against": [
       "ram"
@@ -358,7 +358,7 @@
     "display_name": "Gate",
     "role": "Wall segment your units can pass when open (G toggles)",
     "requires": [],
-    "buildable": true,
+    "buildable": false,
     "strong_against": [],
     "weak_against": [
       "ram"

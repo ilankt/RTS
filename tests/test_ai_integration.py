@@ -1,5 +1,10 @@
-"""AI integration (§9 test coverage): run a real AI-vs-AI sim for two
-game-minutes and assert observable outcomes, not attributes."""
+"""AI integration (§9 test coverage): run a real AI-vs-AI sim for four
+game-minutes and assert observable outcomes, not attributes.
+
+Four minutes, not two: with the lean starting economy (config
+HUMAN/AI_STARTING_RESOURCES) an AI must build a barracks and gather before
+it can train troops, so the first army lands around ~2.5 game-minutes
+instead of instantly off a huge opening stockpile."""
 import os
 import random
 import sys
@@ -20,7 +25,7 @@ def played_game():
     game = Game(mode="ai_spectator", player_count=2)
     game.players[0].ai_personality = "boomer"
     game.players[1].ai_personality = "rusher"
-    for _ in range(60 * 120):  # two game-minutes at 60 fps
+    for _ in range(60 * 240):  # four game-minutes at 60 fps
         game.update(delta_time_override=1 / 60)
     return game
 
@@ -44,7 +49,7 @@ def test_ai_expands_its_base(played_game):
     for player in game.players:
         built = [k for (name, k), v in game.stats_buildings_built.items()
                  if name == player.name and v > 0]
-        assert built, f"{player.name} built nothing in two minutes"
+        assert built, f"{player.name} built nothing in four minutes"
 
 
 def test_ai_fields_an_army(played_game):
@@ -64,7 +69,7 @@ def test_ai_fields_an_army(played_game):
 def test_sim_stays_healthy(played_game):
     game = played_game
     # The clock ran, nobody won by accident, and units aren't leaking hp<0
-    assert game.sim_time_elapsed == pytest.approx(120.0, abs=1.0)
+    assert game.sim_time_elapsed == pytest.approx(240.0, abs=1.0)
     assert all(u.hp > 0 for u in game.units)
     # Pathfinding didn't wedge: no unit is stuck with an empty path forever
     # (the watchdog would have teleported it; just assert the lists are sane)
