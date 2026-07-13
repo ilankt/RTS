@@ -1086,17 +1086,21 @@ class Pathfinding:
         if the start was reached, None if inconclusive (region larger than the
         cap; let the real search decide).
 
-        Open-region verdicts (None) are memoized per (goal, radius, revision) —
-        during wars the same enemy-base goals are probed constantly and each
-        inconclusive flood costs ~2k cell probes."""
+        Memoized per (goal, radius, revision): open-region verdicts store
+        True (start-independent "inconclusive"), and CLOSED pockets store the
+        complete flooded cell set — the war-dominant case, where every unit
+        attacking a sealed target used to re-flood the same pocket per path
+        request (~2ms each, ~19% of a profiled 8-player war frame budget);
+        with the set cached the verdict is one membership test for any start."""
         memo = getattr(self, "_pocket_memo", None)
         if memo is None:
             memo = self._pocket_memo = {}
         memo_key = (goal_cell, unit_radius, self.grid.revision)
         cached = memo.get(memo_key)
         if cached is not None:
-            # Only 'inconclusive/open' verdicts are start-independent.
-            return None
+            if cached is True:
+                return None  # open region - inconclusive for every start
+            return start_cell in cached  # complete pocket set
         cell_walkable = self.grid.cell_walkable
         seen = {goal_cell}
         stack = [goal_cell]
@@ -1113,6 +1117,11 @@ class Pathfinding:
                 if neighbor not in seen and neighbor[0] >= 0 and neighbor[1] >= 0 and cell_walkable(neighbor, unit_radius):
                     seen.add(neighbor)
                     stack.append(neighbor)
+        # Flood exhausted without reaching the start: `seen` IS the goal's
+        # whole enclosed pocket, valid for any future start at this revision.
+        if len(memo) > self.POCKET_MEMO_MAX:
+            memo.clear()
+        memo[memo_key] = frozenset(seen)
         return False
 
     def _request_budget_ms(self) -> float:

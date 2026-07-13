@@ -383,6 +383,21 @@ Phases 1–3 alone should clear the avg/p95/hitch targets; Phases 4–5 are what
     spatial-query iteration in steering. Residual gap is Phase 6 territory
     (numpy/Numba movement + A* kernels, possibly ORCA) — each still gated
     behind a fresh profile.
+  - **Status 2026-07-13 (fresh measurement + one more profile-backed win):**
+    standard benchmark (120 s, 4p): avg **2.4** / p95 **11.5** / max **23** /
+    teleports **0** — all targets met. 8-player war (300 s, ~87 u): avg
+    **6.7** ✓ / p95 **16.3** ~borderline / max **61** ✗ / ai_max **4.2** ✓ /
+    teleports ~2.4/min ✗. 200-unit march: avg **17.6** ✗ / p95 18.9 ✗ /
+    max 30.5 ✓ — steady-state steering cost, not spikes. **Quick win
+    landed:** `_goal_pocket_reachable` now memoizes CLOSED pocket sets
+    (was ~19 % of profiled war time — every unit attacking a sealed target
+    re-flooded the same pocket per request); war max 74→61,
+    `path_queue_failed` 660→432. **Named residual kernels (fresh cProfile,
+    `tools/war8p.prof`):** `jump_straight`+`walkable` ≈23 s cum of a 57 s
+    profiled war (the JPS scan kernel — the numpy/Numba port target) and
+    per-unit context steering at 200-unit scale. These are the genuine
+    Phase 6 items; no cheaper structural win remains visible in the
+    profile.
 
 ---
 
