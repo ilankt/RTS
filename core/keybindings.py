@@ -9,9 +9,11 @@ import os
 
 import pygame
 
+from core.app_paths import user_path
 from utils.debug_logger import debug_log
 
-BINDINGS_FILE = "keybindings.json"
+# Relative when run from source; under %LOCALAPPDATA%\RTS when frozen.
+BINDINGS_FILE = user_path("keybindings.json")
 
 DEFAULT_BINDINGS = {
     "idle_worker": "f1",          # select/cycle idle workers

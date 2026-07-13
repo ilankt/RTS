@@ -1,7 +1,17 @@
 import argparse
+import os
 import random
+import sys
 
 import pygame
+
+# When frozen by PyInstaller, the bundled assets/data are unpacked to a temp
+# dir (sys._MEIPASS). Chdir there so every relative "assets/..." / "data/..."
+# read across the codebase resolves. Writable files (saves, settings, debug)
+# use absolute paths under %LOCALAPPDATA% via core.app_paths, so they are
+# unaffected by this. No-op when running from source.
+if getattr(sys, "frozen", False):
+    os.chdir(getattr(sys, "_MEIPASS", os.path.dirname(sys.executable)))
 
 # Apply persisted settings BEFORE the game/UI modules import the screen
 # constants by value (§8.2.1 Phase D: apply_resolution also recomputes the

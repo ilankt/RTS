@@ -53,6 +53,9 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+# PyInstaller / Inno Setup installer output
+installer_output/
+installer/app.ico
 # User-local runtime files (settings + hotkey overrides)
 settings.json
 keybindings.json

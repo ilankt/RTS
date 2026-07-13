@@ -8,9 +8,11 @@ import json
 import os
 from datetime import date
 
+from core.app_paths import user_path
 from utils.debug_logger import debug_log
 
-PROFILE_FILE = "profile.json"
+# Relative when run from source; under %LOCALAPPDATA%\RTS when frozen.
+PROFILE_FILE = user_path("profile.json")
 
 STAT_DEFAULTS = {
     "matches_played": 0,

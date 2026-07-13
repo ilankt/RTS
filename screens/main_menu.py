@@ -1,5 +1,6 @@
 import pygame
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
+from core.version import GAME_VERSION
 from managers.sound_manager import music_player
 # Re-exported for callers/tests that import them from here
 from screens.theme import splash_background, draw_splash  # noqa: F401
@@ -123,7 +124,7 @@ class MainMenu:
         self.screen.blit(hint, hint_rect)
         
         # Version
-        version = self.font_small.render("v1.0 - Improvement Plan Build", True, (170, 170, 170))
+        version = self.font_small.render(f"v{GAME_VERSION}", True, (170, 170, 170))
         version_rect = version.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 30))
         backdrop = pygame.Surface(version_rect.inflate(20, 8).size, pygame.SRCALPHA)
         backdrop.fill((0, 0, 0, 140))

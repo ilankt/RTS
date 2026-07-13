@@ -2,11 +2,14 @@ import json
 import os
 from datetime import datetime
 
+from core.app_paths import user_path
+
 
 class SaveManager:
     """Handles saving and loading game state"""
-    
-    SAVE_DIR = "saves"
+
+    # Relative when run from source; under %LOCALAPPDATA%\RTS when frozen.
+    SAVE_DIR = user_path("saves")
     
     @classmethod
     def ensure_save_dir(cls):
