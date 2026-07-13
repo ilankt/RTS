@@ -183,10 +183,14 @@ WORKER_SATURATION_CAP = 3
 COMBAT_BONUS_VS_TAGS_ENABLED = True
 COMBAT_BONUS_VS_TAG_MULTIPLIER = 1.5
 
-# §8.4 "position matters", prototyped behind a flag (default OFF until a
-# balance-sim A/B validates it): units standing in forest take reduced
-# damage — cover makes wooded ground a defensive lever.
-COMBAT_TERRAIN_COVER_ENABLED = False
+# §8.4 "position matters" — units standing in forest take reduced damage,
+# making wooded ground a defensive lever. Default ON since the 2026-07-13
+# same-seed A/B (tools/balance_12_cover_{off,on}.json): identical win rates,
+# 0 timeouts, and ram reliance dropped 32%→20% with cover on.
+# Override for A/B sim runs with the RTS_TERRAIN_COVER env var (1/0).
+import os as _os
+
+COMBAT_TERRAIN_COVER_ENABLED = _os.environ.get("RTS_TERRAIN_COVER", "1").strip().lower() in {"1", "true", "on", "yes"}
 COMBAT_FOREST_COVER_MULTIPLIER = 0.85  # damage taken by a unit in forest
 
 # Debug Configuration

@@ -17,6 +17,10 @@ class SelectionManager:
         
         # Formation type for group movement
         self.formation_type = "ring"  # ring, line, box, wedge
+
+        # Object currently under the mouse cursor (§7.4 readability:
+        # hover highlight). Set by game._update_cursor_for_context.
+        self.hovered_object = None
     
     def handle_left_click(self, mouse_pos):
         """Handle left mouse button down"""
@@ -846,6 +850,36 @@ class SelectionManager:
             pygame.draw.ellipse(surface, color, marker, 2)
             # (The attack-range ring that used to draw here was removed —
             # user feedback: "remove the ugly range ring from selected units")
+
+        self._draw_hover_marker(surface, camera)
+
+    def _draw_hover_marker(self, surface, camera):
+        """§7.4 readability: a dimmer, thinner ground ellipse under the object
+        the mouse is over, so hover targets read before you click."""
+        obj = self.hovered_object
+        if obj is None or getattr(obj, 'selected', False):
+            return
+        # The hover ref is only refreshed on mouse motion — drop it if the
+        # object has since died/depleted or slipped back under the fog.
+        if not getattr(obj, 'in_world', True) or getattr(obj, 'hp', 1) <= 0:
+            self.hovered_object = None
+            return
+        if not self._is_object_visible_to_human(obj):
+            return
+
+        if hasattr(obj, 'player') and obj.player:
+            color = (200, 200, 200) if obj.player.human else (200, 150, 70)
+        else:
+            color = (170, 170, 170)  # resources / neutral
+
+        screen_x = (obj.x * camera.zoom) + camera.x
+        screen_y = (obj.y * camera.zoom) + camera.y
+        ellipse_w = max(12, int(obj.radius * 2.2 * camera.zoom))
+        ellipse_h = max(5, int(ellipse_w * 0.38))
+        feet_y = screen_y + obj.radius * camera.zoom * 0.55
+        marker = pygame.Rect(int(screen_x - ellipse_w / 2),
+                             int(feet_y - ellipse_h / 2), ellipse_w, ellipse_h)
+        pygame.draw.ellipse(surface, color, marker, 1)
     
     def get_selected_unit_names(self):
         """Get names of selected units"""

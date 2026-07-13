@@ -379,11 +379,15 @@ class CombatSystem:
                 best = ally
 
         if best is not None:
-            best.hp = min(self._unit_max_hp(best), best.hp + HEALER_HEAL_AMOUNT)
+            healed = min(self._unit_max_hp(best), best.hp + HEALER_HEAL_AMOUNT) - best.hp
+            best.hp += healed
             healer._heal_cooldown = HEALER_HEAL_INTERVAL
             healer.status = "attack"  # plays the healer's cast animation
             if getattr(self.game, "particles", None):
                 self.game.particles.spawn_attack_particles(best.x, best.y, count=1)
+            # §7.4 readability: green "+N" float so heals are legible
+            if getattr(self.game, "floating_ui", None):
+                self.game.floating_ui.add_heal_notification(best, healed)
         # (no target in range: cooldown stays expired so the next tick can heal)
 
     def handle_unit_death(self, unit):

@@ -579,12 +579,22 @@ and should override "obvious" instincts.
   refund)** or cancels the in-progress one (50 % refund) when none queued.
   Stale panel rects no longer eat clicks after deselecting. Tests in
   `tests/test_production_queue.py`.
-- [ ] **Readability pass** *(med)* — HP bars, team-color clarity, hover/selection
+- [x] **Readability pass** *(med)* — HP bars, team-color clarity, hover/selection
   highlights, damage/heal floats.
   - *(2026-07-11)* **Directional sprite mirroring** landed (user request):
     sheets face right; units moving left render mirrored (cached flip in
     the renderer), facing persists while idle, and `start_attack` faces
     the target so combat never plays backwards.
+  - *(2026-07-13)* **Completed**: HP-bar borders now carry the **owner's
+    player color** (fill stays HP-coded green/yellow/red) so friend/foe
+    reads at a glance; **hover highlight** — a thin ground ellipse under
+    the object beneath the cursor (white-gray own / amber enemy / gray
+    neutral), fed by the existing cursor-context probe, fog-checked, and
+    dropped when the object dies; **heal floats** — green "+N" over units
+    the healer mends (damage/counter/resisted floats already existed).
+    Tests in `tests/test_readability.py` + rendered-frame verification.
+    Always-on HP bars kept deliberately (prior user feedback favored
+    visible bars).
 - **✅ Verify:** each item is observable in-game — idle-worker key selects/cycles and
   the badge counts; double-tap centers; Shift queues; rally points path new units;
   alerts fire *and* ping *and* play sound; right-click gathers; every order gives a
@@ -1041,13 +1051,23 @@ collapse.
   breaches decisively; avg match back to 700 s, ram share 24→**20%**, mix
   healthy (28/23/17/11/20 warrior/archer/spear/cav/ram). Data:
   `tools/balance_12_ram_nerf.json` / `balance_12_ram_glass.json`.
-- [~] **Position matters** *(med)* — forest-cover prototyped 2026-07-10 behind
-  `COMBAT_TERRAIN_COVER_ENABLED` (**default OFF**, per this section's
-  prototype-behind-a-flag rule): units standing in forest take ×0.85 damage
+- [x] **Position matters** *(med)* — forest-cover prototyped 2026-07-10 behind
+  `COMBAT_TERRAIN_COVER_ENABLED`: units standing in forest take ×0.85 damage
   (buildings never get cover); terrain read via a module-level provider so
-  the shared damage math stays entity-agnostic. Flip the flag + run the §8.8
-  sim to evaluate. High-ground needs elevation data the map doesn't have;
-  flanking needs facing — both stay open.
+  the shared damage math stays entity-agnostic. **Enabled by default
+  2026-07-13** after a 12-match same-seed A/B
+  (`tools/balance_12_cover_{off,on}.json`): win rates identical, 0 timeouts,
+  matches slightly shorter (641 vs 686 s), and ram share dropped 32%→20%
+  (infantry gains). Env-overridable via `RTS_TERRAIN_COVER=0` for sims.
+  High-ground needs elevation data the map doesn't have; flanking needs
+  facing — both stay open.
+  - **⚠ Baseline watch-item (2026-07-13, orthogonal to cover — present in
+    both A/B arms):** the lean-start economy change (starting resources
+    10000 → 200/100/75/200, snapshot commit `96edf32`) regressed
+    personality balance vs the old authoritative §8.8 dataset: **rusher
+    0/6 wins, boomer 6/7, and cavalry is never trained** (stable rarely
+    built). The old `balance_20_reactive_soft.json` baseline is stale.
+    Fix rides with the §8.3 resource-identity pass.
 - **✅ Verify:** *prototype behind a flag first.* Spearman-vs-cavalry does distinctly
   more damage than archer-vs-cavalry (read the numbers); the unit panel shows counters
   and combat pops "Effective/Resisted"; the §8.8 balance sim shows no single dominant

@@ -102,9 +102,16 @@ class FloatingUI:
         # Always show health bars (remove this condition to show all health bars)
         # if health_percentage >= 1.0 and not hasattr(obj, 'construction_progress'):
         #     return
-            
-        self._draw_bar(surface, screen_x, screen_y, health_percentage, 
-                      self.get_health_color(health_percentage), camera.zoom)
+
+        # §7.4 readability: the bar border carries the OWNER's color so
+        # friend/foe reads at a glance even when sprites overlap (fill color
+        # stays HP-coded green/yellow/red for everyone).
+        owner = getattr(obj, 'player', None)
+        border_color = getattr(owner, 'color', None) if owner else None
+
+        self._draw_bar(surface, screen_x, screen_y, health_percentage,
+                      self.get_health_color(health_percentage), camera.zoom,
+                      border_color=border_color)
     
     def draw_construction_bar(self, surface, construction_site, camera):
         """Draw construction progress bar for construction sites"""
@@ -126,7 +133,8 @@ class FloatingUI:
         self._draw_bar(surface, screen_x, screen_y, construction_percentage,
                       self.health_colors['construction'], camera.zoom)
     
-    def _draw_bar(self, surface, screen_x, screen_y, percentage, color, zoom):
+    def _draw_bar(self, surface, screen_x, screen_y, percentage, color, zoom,
+                  border_color=None):
         """Draw a progress bar at the specified screen position"""
         # Scale bar size with zoom, clamped to a readable range at both ends
         # (unclamped scaling made bars detach from their units at max zoom).
@@ -148,8 +156,8 @@ class FloatingUI:
             progress_rect = pygame.Rect(bar_x, bar_y, progress_width, bar_height)
             pygame.draw.rect(surface, color, progress_rect)
         
-        # Draw border
-        pygame.draw.rect(surface, (0, 0, 0), background_rect, 1)
+        # Draw border — owner-colored when the object has a player (§7.4)
+        pygame.draw.rect(surface, border_color or (0, 0, 0), background_rect, 1)
     
     def _get_max_hp(self, obj):
         """Get maximum HP for an object from cached game data."""
@@ -188,6 +196,18 @@ class FloatingUI:
             y=target.y - 40,
             color=(255, 215, 80),
             duration=1.4,
+        ))
+
+    def add_heal_notification(self, target, heal_amount):
+        """Green "+N" float above a freshly healed unit (§7.4 readability)."""
+        if heal_amount <= 0:
+            return
+        self.notifications.append(FloatingNotification(
+            text=f"+{int(heal_amount)}",
+            x=target.x + (hash(id(target)) % 16 - 8),
+            y=target.y - 30,
+            color=(90, 230, 110),
+            duration=0.9,
         ))
 
     def add_damage_notification(self, target, damage_amount, is_critical=False, is_resisted=False):

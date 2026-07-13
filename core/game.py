@@ -465,13 +465,16 @@ class Game:
         # Skip if mouse is over UI areas
         if (mouse_pos[0] > SCREEN_WIDTH - MINIMAP_WIDTH or  # Right panel/minimap
             mouse_pos[1] < TOP_BAR_HEIGHT):  # Top bar
+            self.selection_manager.hovered_object = None
             return
-            
+
         # Get world position
         world_pos = self.screen_to_world(mouse_pos[0], mouse_pos[1])
-        
+
         # Check what object is at this position
         clicked_object = self.selection_manager._get_object_at_position(world_pos)
+        # §7.4 readability: remember what's under the cursor for the hover marker
+        self.selection_manager.hovered_object = clicked_object
         
         if self.ui_manager.active_command_mode:
             # Command mode active - show tinted cursor for invalid targets
