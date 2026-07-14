@@ -28,6 +28,9 @@ class MilitaryBrain:
         """Run military logic for one AI player from the blackboard snapshot."""
         castle = ctx.castle
         if not castle:
+            # §8.12: losing the castle used to lobotomize the military —
+            # the whole brain bailed here. Now it's a last stand.
+            self._last_stand(ctx)
             return
 
         military = ctx.military
@@ -112,6 +115,44 @@ class MilitaryBrain:
                         sent.append(unit)
                 if sent:
                     self._telegraph_attack(ctx, target, sent)
+
+    def _last_stand(self, ctx):
+        """§8.12 castle lost: guard the rebuild site if one exists, otherwise
+        take the fight to the enemy with everything left. No castle does not
+        mean no teeth."""
+        military = ctx.military
+        if not military:
+            return
+
+        # A castle rebuild in progress is the one thing worth protecting
+        rebuild_site = next(
+            (s for s in ctx.construction_sites if s.building_name == "castle"), None)
+        if rebuild_site is not None:
+            defenders_needed = False
+            for enemy in ctx.enemy_units:
+                if (enemy.x - rebuild_site.x) ** 2 + (enemy.y - rebuild_site.y) ** 2 <= 500 ** 2:
+                    defenders_needed = True
+                    break
+            for unit in military:
+                if unit.in_combat or unit.is_engaging:
+                    continue
+                if defenders_needed:
+                    closest = min(
+                        ctx.enemy_units,
+                        key=lambda e: (unit.x - e.x) ** 2 + (unit.y - e.y) ** 2)
+                    self._command_attack(unit, closest, ctx)
+                elif (unit.x - rebuild_site.x) ** 2 + (unit.y - rebuild_site.y) ** 2 > 400 ** 2:
+                    self.game.selection_manager._move_unit_to_position(
+                        unit, (rebuild_site.x + 80, rebuild_site.y + 80), self.game.pathfinder)
+            return
+
+        # No rebuild underway: nothing to protect, so fight with all of it
+        target = self._find_attack_target(ctx)
+        if target is None:
+            return
+        for unit in military:
+            if not unit.in_combat and not unit.is_engaging:
+                self._command_attack(unit, target, ctx)
 
     def _telegraph_attack(self, ctx, target, squad):
         """§7.2 telegraph: a push at the human gets a scoutable cue — but only

@@ -990,6 +990,21 @@ class Game:
             if self.sim_time_elapsed >= TIMED_VICTORY_MINUTES * 60:
                 self._declare_winner(max(self.players, key=self._score))
 
+    def _player_can_continue(self, player, castle_count):
+        """§8.12: losing the castle is no longer instant elimination — the
+        castle is rebuildable, so a player stays in the game while they hold
+        a castle, a castle construction site, or any surviving worker
+        (the comeback path). Out = none of the three."""
+        if castle_count > 0:
+            return True
+        for site in self.construction_sites:
+            if site.player is player and site.building_name == "castle":
+                return True
+        for unit in self.units:
+            if unit.player is player and unit.name == "worker" and unit.hp > 0:
+                return True
+        return False
+
     def _check_victory_defeat(self):
         """Check if victory or defeat conditions are met"""
         if self.game_over_state:
@@ -998,18 +1013,21 @@ class Game:
             self._check_special_victory()
             if self.game_over_state:
                 return
-        
+
         # Count castles per player
         castles_by_player = {}
         for building in self.buildings:
             if building.name == "castle":
                 castles_by_player[building.player] = castles_by_player.get(building.player, 0) + 1
-        
+
         human_players = [p for p in self.players if p.human]
         ai_players = [p for p in self.players if not p.human]
 
         if not human_players:
-            active_players = [p for p in ai_players if castles_by_player.get(p, 0) > 0]
+            active_players = [
+                p for p in ai_players
+                if self._player_can_continue(p, castles_by_player.get(p, 0))
+            ]
             if len(active_players) <= 1 and len(ai_players) > 1:
                 self.winning_player = active_players[0] if active_players else None
                 self.game_over_state = "simulation_complete"
@@ -1018,17 +1036,21 @@ class Game:
             return
 
         human_player = human_players[0]
-        
-        # Check human defeat (no castle)
-        if human_player and castles_by_player.get(human_player, 0) == 0:
+
+        # Check human defeat (no castle, no castle site, no workers left)
+        if human_player and not self._player_can_continue(
+                human_player, castles_by_player.get(human_player, 0)):
             self.game_over_state = "defeat"
             debug_log.log("Game Over: Human player defeated!", "GENERAL")
             self._record_match_result()
             return
 
-        # Check human victory (all AI castles destroyed)
+        # Check human victory (every AI knocked out for good)
         if ai_players:
-            all_ai_defeated = all(castles_by_player.get(p, 0) == 0 for p in ai_players)
+            all_ai_defeated = all(
+                not self._player_can_continue(p, castles_by_player.get(p, 0))
+                for p in ai_players
+            )
             if all_ai_defeated:
                 self.game_over_state = "victory"
                 debug_log.log("Game Over: Human player victorious!", "GENERAL")

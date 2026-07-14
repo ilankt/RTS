@@ -51,6 +51,20 @@ class BuildingPlacer:
         debug_log.log(f"AI BuildingPlacer: No valid position found for {building_type} near {resource_name}", "AI")
         return None
 
+    def _rebuild_anchor(self, ctx) -> Optional[Tuple[float, float]]:
+        """§8.12 castle rebuild: with no castle to ring around, anchor at
+        the surviving base — the own building nearest the worker cluster,
+        else the worker cluster itself."""
+        if not ctx.workers:
+            return None
+        wx = sum(w.x for w in ctx.workers) / len(ctx.workers)
+        wy = sum(w.y for w in ctx.workers) / len(ctx.workers)
+        own = [b for group in ctx.buildings.values() for b in group if b.hp > 0]
+        if own:
+            nearest = min(own, key=lambda b: (b.x - wx) ** 2 + (b.y - wy) ** 2)
+            return (nearest.x, nearest.y)
+        return (wx, wy)
+
     def _find_near_castle(self, building_type: str, ctx) -> Optional[Tuple[float, float]]:
         """Ring search around the castle (100-300px, 30-degree increments).
 
@@ -58,7 +72,14 @@ class BuildingPlacer:
         to the bearing of the nearest enemy castle are tried first, so towers
         stand between the base and the enemy instead of at the first free slot
         due-east."""
-        if not ctx.castle:
+        if ctx.castle:
+            anchor_x, anchor_y = ctx.castle.x, ctx.castle.y
+        elif building_type == "castle":
+            anchor = self._rebuild_anchor(ctx)
+            if anchor is None:
+                return None
+            anchor_x, anchor_y = anchor
+        else:
             return None
 
         angles = list(range(0, 360, 30))
@@ -82,8 +103,8 @@ class BuildingPlacer:
 
         for angle_deg, distance in candidates:
             angle = math.radians(angle_deg)
-            x = ctx.castle.x + distance * math.cos(angle)
-            y = ctx.castle.y + distance * math.sin(angle)
+            x = anchor_x + distance * math.cos(angle)
+            y = anchor_y + distance * math.sin(angle)
             if self._is_valid_position(x, y, building_type, ctx):
                 return (x, y)
 

@@ -1,4 +1,5 @@
 from .economy import (
+    RebuildCastleGoal,
     TrainWorkerGoal,
     BuildFarmGoal,
     BuildHouseGoal,
@@ -56,6 +57,7 @@ ALL_GOALS = [
     ResearchReinforcedFramesGoal,
     ResearchSiegeEngineeringGoal,
     # Economy
+    RebuildCastleGoal,
     TrainWorkerGoal,
     BuildHouseGoal,
     BuildFarmGoal,

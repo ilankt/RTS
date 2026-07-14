@@ -3,6 +3,28 @@ from systems.ai.utility.goal import Goal
 from systems.ai.utility.actions import start_construction, queue_unit
 
 
+class RebuildCastleGoal(Goal):
+    """§8.12: losing the castle is no longer game over — with surviving
+    workers and a saved-up stockpile the AI rebuilds. Outranks everything
+    (there is no plan B without a town center)."""
+    name = "rebuild_castle"
+    category = "economy"
+
+    def score(self, ctx):
+        if ctx.castle is not None:
+            return 0
+        if ctx.has_construction_in_progress("castle"):
+            return 0
+        if not ctx.workers:
+            return 0
+        if not ctx.can_afford("castle"):
+            return 0
+        return 300
+
+    def execute(self, ctx):
+        return start_construction(ctx, "castle", ctx.game.ai_system.building_placer)
+
+
 class TrainWorkerGoal(Goal):
     name = "train_worker"
     category = "economy"

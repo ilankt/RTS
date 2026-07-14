@@ -193,7 +193,46 @@ class WorkerTaskSystem:
     # ------------------------------------------------------------------
     # Game loop hooks
     # ------------------------------------------------------------------
+    # §8.12 worker flee: how recent a hit must be to trigger flight, and how
+    # long a fleeing worker ignores further triggers (frames).
+    FLEE_TRIGGER_FRAMES = 45
+    FLEE_COOLDOWN_FRAMES = 300
+
+    def _flee_from_attackers(self) -> None:
+        """§8.12: AI workers under attack run to their base instead of
+        gathering while being murdered (raids get counterplay). Human
+        workers stay under player control."""
+        frame = getattr(self.game, "frame_counter", 0)
+        for worker in self.game.units:
+            if worker.name != "worker" or worker.hp <= 0:
+                continue
+            if getattr(worker, "_last_damage_frame", -1) < frame - self.FLEE_TRIGGER_FRAMES:
+                continue
+            if getattr(worker.player, "human", False):
+                continue
+            if getattr(worker, "_fleeing_until", 0) > frame:
+                continue
+            attacker = getattr(worker, "last_attacker", None)
+            if attacker is None or getattr(attacker, "hp", 0) <= 0:
+                continue
+            worker._fleeing_until = frame + self.FLEE_COOLDOWN_FRAMES
+            self.assign_move(worker, self._find_refuge(worker, attacker))
+
+    def _find_refuge(self, worker, attacker):
+        """Nearest own building (castle preferred), else straight away."""
+        own = [b for b in self.game.buildings
+               if b.player is worker.player and b.hp > 0]
+        if own:
+            castles = [b for b in own if b.name == "castle"]
+            anchor = castles[0] if castles else min(
+                own, key=lambda b: (b.x - worker.x) ** 2 + (b.y - worker.y) ** 2)
+            return (anchor.x + 60, anchor.y + 60)
+        dx, dy = worker.x - attacker.x, worker.y - attacker.y
+        norm = max(1.0, (dx * dx + dy * dy) ** 0.5)
+        return (worker.x + dx / norm * 250, worker.y + dy / norm * 250)
+
     def update_pre_movement(self, delta_time: float) -> None:
+        self._flee_from_attackers()
         self._remove_dead_worker_tasks()
         for task in list(self.tasks.values()):
             if task.phase == FAILED:

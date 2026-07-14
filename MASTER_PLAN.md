@@ -1441,7 +1441,40 @@ bumped **0.9.0-beta → 0.10.0-beta** (no installer build).
   castle attacks trigger a visible all-in defense; depleted-node workers
   walk to the next tree.
 
-### 8.12 AI depth — proposed next round *(2026-07-14, suggestions)*
+### 8.12 AI depth — next round *(2026-07-14)*
+
+User-reported from further AI-vs-AI spectating (second batch):
+
+- [x] **Mutual battlefield awareness** *(med)* — landed 2026-07-14. Root
+  cause ran deeper than reported: target acquisition searched only
+  **weapon range**, so melee units were blind beyond 48 px even when
+  IDLE. New `AGGRO_RANGE = 200` notice radius (stances still gate the
+  response), plus AI units **on the move** engage enemy units that come
+  within it (attack-move semantics for AI marches; human orders stay
+  literal). Exposed and fixed a latent crash: idle workers/healers could
+  now *acquire* targets and divide by `attack_speed = 0` — acquisition is
+  gated on `can_attack_flag` + a stand-down guard in `update_combat`.
+- [x] **No tunnel vision on buildings** *(med)* — landed 2026-07-14: a
+  unit hammering a *building* that takes hits from a live enemy *unit*
+  switches to the guard (rams keep ramming — escorts handle guards).
+- [x] **Losing the castle ≠ lobotomy** *(med–high)* — landed 2026-07-14:
+  **castle buildable** (500g/200w/300s — in the human Economy tab and via
+  the AI's top-priority `RebuildCastleGoal`, placement anchored at the
+  surviving base/worker cluster); **last stand** — a castle-less military
+  guards its rebuild site if one exists, otherwise attacks with
+  everything; **elimination re-ruled** — out means no castle AND no
+  castle site AND no workers (a surviving worker is a real comeback
+  path). Bonus items from the proposals below also landed: **rams react
+  to fortifications** (tower/castle/wall-heavy enemies pull siege
+  production) and **AI workers flee attackers** to their base (raids get
+  counterplay; human workers stay under player control).
+  - **Validation (2026-07-14, `tools/balance_12_depth2.json`, 4×3
+    parallel slices):** 1/12 timeouts (was 2/12), avg 650 sim s (761
+    before — wider aggro means armies actually meet), 338 tests green
+    incl. 10 new. **⚠ Balance watch-item sharpened:** the batch swings
+    further defender-ward — rusher 0/6, boomer 86 %, cavalry flickers to
+    0 again (awareness intercepts raiders, worker-flee blunts raids).
+    The §8.11 aggression re-tune is now the top balance priority.
 
 Candidates for "more depth", ordered by feel-per-effort. Top three are the
 recommended next batch:

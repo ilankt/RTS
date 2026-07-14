@@ -284,7 +284,12 @@ class TrainRamGoal(Goal):
         rams = sum(1 for u in ctx.military if u.name == "ram")
         if rams >= self.CAP:
             return 15
-        return 65 + min(len(ctx.enemy_buildings), 4) * 5
+        # §8.12 reactive counters vs fortifications: a towered-up enemy
+        # visibly pulls siege production (unit-only counters missed this)
+        fortifications = sum(
+            1 for b in ctx.enemy_buildings
+            if b.name in ("watchtower", "castle", "wall", "wooden_wall", "gate"))
+        return 65 + min(len(ctx.enemy_buildings), 4) * 5 + min(fortifications, 4) * 8
 
     def execute(self, ctx):
         building = ctx.find_idle_production_building("siege_workshop")

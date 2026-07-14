@@ -197,6 +197,56 @@ def test_out_of_range_attacker_is_ignored():
     assert marcher.current_target is not sniper
 
 
+# ---------------------------------------------------- §8.12 awareness
+def test_ai_marcher_engages_enemy_units_passing_by():
+    """Armies no longer pass each other blindly: an AI unit on the move
+    engages enemy units that come within reach (no damage needed)."""
+    game, p1, p2 = make_combat_pair()
+    marcher = make_warrior(game, p1, 300, 300)
+    marcher.status = "run"
+    enemy = make_warrior(game, p2, 420, 300)  # within MARCH_ENGAGE_RANGE
+
+    CombatSystem(game).update_combat_units(1 / 60)
+    assert marcher.current_target is enemy
+
+
+def test_human_marcher_orders_stay_literal():
+    game, p1, p2 = make_combat_pair()
+    p1.human = True
+    marcher = make_warrior(game, p1, 300, 300)
+    marcher.status = "run"
+    make_warrior(game, p2, 420, 300)
+
+    CombatSystem(game).update_combat_units(1 / 60)
+    assert marcher.current_target is None, "human move commands are not hijacked"
+
+
+def test_sieging_unit_switches_to_guard_when_hit():
+    """§8.12 no tunnel vision: hammering a building while a guard kills you
+    is over — the unit turns on the guard."""
+    game, p1, p2 = make_combat_pair()
+    attacker_of_building = make_warrior(game, p1, 300, 300)
+
+    class Building:  # is_building_target checks the class NAME
+        pass
+
+    building = Building()
+    building.name, building.x, building.y = "castle", 320, 300
+    building.hp, building.player, building.in_world = 2500, p2, True
+    building.radius, building.size = 60, [2.5, 2.5]
+    building.armor_type, building.armor_value = "fortified", 10
+    attacker_of_building.current_target = building
+    attacker_of_building.in_combat = True
+    attacker_of_building.status = "attack"
+
+    guard = make_warrior(game, p2, 330, 320)
+    attacker_of_building.last_attacker = guard
+    attacker_of_building._last_damage_frame = game.frame_counter
+
+    CombatSystem(game).update_combat_units(1 / 60)
+    assert attacker_of_building.current_target is guard, "the building can wait"
+
+
 # ------------------------------------------------------- emergency defense
 def _emergency_ctx(castle, military, enemy, under_attack):
     return SimpleNamespace(

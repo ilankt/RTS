@@ -28,7 +28,7 @@
     "display_name": "Castle",
     "role": "Town center and victory objective",
     "requires": [],
-    "buildable": false,
+    "buildable": true,
     "strong_against": [],
     "weak_against": [
       "ram"

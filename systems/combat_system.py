@@ -13,6 +13,12 @@ from systems.combat_rules import (
 
 
 class CombatSystem:
+    # §8.12 battlefield awareness: how far a unit NOTICES enemies (world px).
+    # Acquisition used to be capped at weapon range, so melee units were
+    # blind beyond 48 px — even idle armies let enemies stroll past. Stances
+    # still gate the response (stand-ground never chases, defensive leashes).
+    AGGRO_RANGE = 200
+
     """Handles combat targeting, attack positioning, and combat logic"""
     
     def __init__(self, game):
@@ -100,7 +106,7 @@ class CombatSystem:
     def evaluate_combat_targets(self, unit):
         """Evaluate potential combat targets for a unit (spatial-index query)"""
         potential_targets = []
-        search_range = unit.get_effective_attack_range("search")
+        search_range = max(unit.get_effective_attack_range("search"), self.AGGRO_RANGE)
         collision = self.game.collision_system
 
         for other_unit in collision.query_nearby_units(unit.x, unit.y, search_range, exclude=unit):
@@ -202,7 +208,12 @@ class CombatSystem:
                 
                 # Auto-engage nearby enemies if idle. Acquisition scans are
                 # throttled per unit (~0.25-0.5s, jittered) — C2.
-                if unit.status == "idle" and not unit.current_target:
+                # can_attack_flag gate (§8.12): workers/healers must never
+                # acquire targets — the old weapon-range-sized search only
+                # hid that (range 0 found nothing); AGGRO_RANGE would let an
+                # idle worker "attack" at attack_speed 0 and divide by zero.
+                if (unit.status == "idle" and not unit.current_target
+                        and getattr(unit, "can_attack_flag", False)):
                     if unit.stance == STANCE_NO_ATTACK:
                         pass  # Never auto-attack
                     elif self.game.frame_counter < getattr(unit, "_next_target_scan_frame", 0):
@@ -235,15 +246,66 @@ class CombatSystem:
                                     # Auto-engaging target
                                     pass
                 
-                # §8.11 retaliation: a unit hit while MOVING (marching to a
-                # far target, or just walking) turns on its attacker instead
-                # of soaking free damage all the way to its destination —
-                # auto-engage above only ever ran for idle units.
+                # §8.11/§8.12 retaliation + battlefield awareness for units
+                # ON THE MOVE (the idle block above owns the idle case).
                 elif (
                     unit.status == "run"
                     and not unit.in_combat
                     and getattr(unit, "can_attack_flag", False)
                     and unit.stance in (STANCE_AGGRESSIVE, STANCE_DEFENSIVE)
+                ):
+                    engaged = False
+                    # (1) Hit while moving -> turn on the attacker (§8.11)
+                    if getattr(unit, "_last_damage_frame", -1_000_000) >= self.game.frame_counter - 45:
+                        attacker = getattr(unit, "last_attacker", None)
+                        if (
+                            attacker is not None
+                            and getattr(attacker, "hp", 0) > 0
+                            and getattr(attacker, "in_world", True)
+                            and unit.current_target is not attacker
+                            # rams only ever answer buildings (can't hit units)
+                            and not (getattr(unit, "building_only_attack", False)
+                                     and not is_building_target(attacker))
+                        ):
+                            dist_sq = (attacker.x - unit.x) ** 2 + (attacker.y - unit.y) ** 2
+                            if dist_sq <= unit.stance_chase_distance ** 2:
+                                unit.current_target = attacker
+                                unit.is_engaging = True
+                                engaged = True
+                    # (2) §8.12 battlefield awareness: AI units on the move
+                    # engage enemy UNITS that come within reach — armies no
+                    # longer pass each other blindly. Human orders stay
+                    # literal (nobody wants hijacked move commands), and
+                    # marches don't get distracted by mere buildings.
+                    if (
+                        not engaged
+                        and unit.stance == STANCE_AGGRESSIVE
+                        and not getattr(unit.player, "human", True)
+                        and not getattr(unit, "building_only_attack", False)
+                        and (unit.current_target is None
+                             or is_building_target(unit.current_target))
+                        and self.game.frame_counter >= getattr(unit, "_next_target_scan_frame", 0)
+                    ):
+                        unit._next_target_scan_frame = self.game.frame_counter + 15 + (id(unit) % 16)
+                        for target, distance in self.evaluate_combat_targets(unit):
+                            if is_building_target(target):
+                                continue
+                            if distance <= self.AGGRO_RANGE:
+                                unit.current_target = target
+                                unit.is_engaging = True
+                            break  # nearest unit target decides either way
+
+                # §8.12 no tunnel vision: a unit hammering a BUILDING while a
+                # live enemy UNIT hits it switches to the guard — the building
+                # can wait; dying to the last man against masonry cannot.
+                # Rams keep ramming (their escorts handle the guards).
+                elif (
+                    unit.in_combat
+                    and unit.current_target is not None
+                    and is_building_target(unit.current_target)
+                    and getattr(unit, "can_attack_flag", False)
+                    and not getattr(unit, "building_only_attack", False)
+                    and unit.stance != STANCE_NO_ATTACK
                     and getattr(unit, "_last_damage_frame", -1_000_000)
                         >= self.game.frame_counter - 45
                 ):
@@ -252,14 +314,12 @@ class CombatSystem:
                         attacker is not None
                         and getattr(attacker, "hp", 0) > 0
                         and getattr(attacker, "in_world", True)
-                        and unit.current_target is not attacker
-                        # rams only ever answer buildings (they can't hit units)
-                        and not (getattr(unit, "building_only_attack", False)
-                                 and not is_building_target(attacker))
+                        and not is_building_target(attacker)
                     ):
                         dist_sq = (attacker.x - unit.x) ** 2 + (attacker.y - unit.y) ** 2
                         if dist_sq <= unit.stance_chase_distance ** 2:
                             unit.current_target = attacker
+                            unit.in_combat = False
                             unit.is_engaging = True
 
                 # Defensive leash (§9 backlog fix): a DEFENSIVE unit that chased

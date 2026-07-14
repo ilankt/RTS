@@ -29,7 +29,8 @@ from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIG
 from systems.upgrade_effects import has_required_buildings
 
 
-ECONOMY_BUILDINGS = ['farm', 'house', 'lumbermill', 'mine', 'quarry']
+# Castle listed last (§8.12): rebuildable after a loss — expensive comeback
+ECONOMY_BUILDINGS = ['farm', 'house', 'lumbermill', 'mine', 'quarry', 'castle']
 MILITARY_BUILDINGS = ['barracks', 'stable', 'blacksmith', 'siege_workshop',
                       'watchtower', 'wooden_wall', 'wall', 'gate']
 

@@ -390,6 +390,13 @@ class Unit(GameObject):
         # system can detect "a new attack happened".
         self._attack_cooldown = getattr(self, "_attack_cooldown", 0.0) - delta_time
         if self._attack_cooldown <= 0:
+            if self.attack_speed <= 0:
+                # Non-combat unit (worker/healer) wedged into combat state
+                # somehow — never divide by zero, just stand down (§8.12)
+                self.in_combat = False
+                self.current_target = None
+                self.status = "idle"
+                return
             # Perform attack
             damage = self.calculate_damage(self.current_target)
             self.current_target.hp -= damage
