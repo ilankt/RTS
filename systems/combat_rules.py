@@ -57,6 +57,11 @@ def is_building_target(target) -> bool:
 
 
 def is_valid_attack_target(attacker, target) -> bool:
+    # Corpses and despawned objects are never valid — without this, units
+    # kept "attacking" dead targets until cleanup, widening the frozen-
+    # animation window (§8.11).
+    if getattr(target, "hp", 0) <= 0 or not getattr(target, "in_world", True):
+        return False
     if getattr(attacker, "building_only_attack", False) and not is_building_target(target):
         return False
     return True

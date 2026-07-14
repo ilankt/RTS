@@ -153,11 +153,15 @@ class WorkerBrain:
     def _find_best_resource_to_gather(self, worker, ctx):
         """Pick the best known resource, preferring serviced short loops."""
         gathering_counts = ctx.gathering_counts_by_type
+        worker_tasks = getattr(self.game, "worker_task_system", None)
 
         candidates = [
             resource
             for resource in ctx.known_resources()
             if resource.name in gathering_counts and resource.amount_remaining > 0
+            # §8.11: skip nodes this worker just failed to slot into —
+            # re-picking the same crowded node thrashed FAILED→FAILED
+            and not (worker_tasks and worker_tasks.recently_failed(worker, resource, "gather"))
         ]
         if not candidates:
             return None

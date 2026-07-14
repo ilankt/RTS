@@ -39,6 +39,7 @@ class GoalContext:
     enemy_units: list = field(default_factory=list)
     enemy_buildings: list = field(default_factory=list)
     enemies_near_base: list = field(default_factory=list)
+    castle_under_attack: bool = False  # §8.11: castle hit in the last ~3s
     known_resources_by_type: Dict[str, list] = field(default_factory=dict)
     gatherers_by_resource: Dict[int, int] = field(default_factory=dict)
     gathering_counts_by_type: Dict[str, int] = field(default_factory=dict)
@@ -122,6 +123,13 @@ class GoalContext:
                 for e in ctx.enemy_buildings
                 if (e.x - cx) ** 2 + (e.y - cy) ** 2 <= radius_sq
             ]
+            # §8.11 emergency defense: the castle took a hit within the last
+            # ~3 sim-seconds (combat stamps _last_damage_frame on victims).
+            last_hit = getattr(ctx.castle, "_last_damage_frame", None)
+            ctx.castle_under_attack = (
+                last_hit is not None
+                and last_hit >= getattr(game, "frame_counter", 0) - 180
+            )
 
         for resource in getattr(game, "resources", []):
             if getattr(resource, "amount_remaining", 0) <= 0:

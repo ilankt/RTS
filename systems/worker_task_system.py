@@ -44,6 +44,13 @@ NO_PROGRESS_TIMEOUT = 5.0
 FAILED_PATH_COOLDOWN = 2.0
 SLOT_COUNT = 24
 SLOT_EXTRA_RINGS = (0.0, 8.0, 16.0, 24.0, 40.0)
+# §8.11 stuck-worker fix: the stationary phases (DROPPING_OFF / BUILDING)
+# had NO timeout — a wedged worker there was invisible to both the AI
+# idle-scan (task not FAILED) and the watchdog (is_dropping_off/is_building
+# flags skip it). These caps make every wedge self-heal into FAILED, which
+# the AI reassigns and the human sees on the idle badge.
+DROPOFF_STALL_TIMEOUT = 6.0   # legit drop-off wait is DROP_OFF_DELAY (0.5s)
+BUILD_STALL_TIMEOUT = 8.0     # construction progress frozen this long = wedged
 
 
 @dataclass
@@ -70,6 +77,8 @@ class WorkerTask:
     out_of_range_time: float = 0.0
     repath_attempts: int = 0
     blocked_contact_points: list = None
+    stall_time: float = 0.0            # §8.11: stationary-phase wedge timer
+    last_build_progress: float = -1.0  # §8.11: detects frozen construction
 
 
 class WorkerTaskSystem:
@@ -94,6 +103,9 @@ class WorkerTaskSystem:
 
         resource_slot = self._reserve_slot(worker, resource, "gather")
         if not resource_slot:
+            # §8.11: remember the slot failure so the AI doesn't re-pick this
+            # same crowded node next tick (FAILED→reassign→FAILED thrash)
+            self._remember_path_failure(worker, resource, "gather")
             return self._set_failed(task, "no_resource_slot")
         task.resource_contact_point = resource_slot
 
@@ -227,11 +239,14 @@ class WorkerTaskSystem:
         task.contact_point = task.resource_contact_point
         task.dropoff = None
         if self._recent_path_failure(task.worker, task.resource, "gather"):
+            # Backoff instead of retrying every frame (§8.11 churn fix)
+            task.repath_cooldown = max(task.repath_cooldown, REPATH_COOLDOWN)
             return False
         if not task.contact_point:
             task.contact_point = self._reserve_slot(task.worker, task.resource, "gather", self._blocked_points(task))
             task.resource_contact_point = task.contact_point
         if not task.contact_point:
+            self._remember_path_failure(task.worker, task.resource, "gather")
             return self._set_failed(task, "no_resource_slot")
         return self._path_to_contact(task, task.resource, "gather", task.contact_point)
 
@@ -241,6 +256,7 @@ class WorkerTaskSystem:
         if not task.dropoff:
             return self._set_failed(task, "no_dropoff")
         if self._recent_path_failure(task.worker, task.dropoff, "dropoff"):
+            task.repath_cooldown = max(task.repath_cooldown, REPATH_COOLDOWN)
             return False
         task.dropoff_contact_point = self._reserve_slot(task.worker, task.dropoff, "dropoff", self._blocked_points(task))
         if not task.dropoff_contact_point:
@@ -252,6 +268,7 @@ class WorkerTaskSystem:
         task.phase = MOVING_TO_BUILD
         task.contact_point = task.build_contact_point
         if self._recent_path_failure(task.worker, task.construction_site, "build"):
+            task.repath_cooldown = max(task.repath_cooldown, REPATH_COOLDOWN)
             return False
         if not task.contact_point:
             task.contact_point = self._reserve_slot(task.worker, task.construction_site, "build", self._blocked_points(task))
@@ -297,7 +314,7 @@ class WorkerTaskSystem:
                     worker.is_gathering = False
                     self._begin_path_to_dropoff(task)
                     return
-            self._complete_task(task)
+            self._continue_or_complete(task)
             return
 
         if not self._at_contact(task, resource, "gather", task.resource_contact_point, hold=True):
@@ -315,7 +332,7 @@ class WorkerTaskSystem:
             task.dropoff = self._find_dropoff(worker)
             self._begin_path_to_dropoff(task)
         elif result == "depleted":
-            self._complete_task(task)
+            self._continue_or_complete(task)
 
     def _update_dropoff(self, task: WorkerTask, delta_time: float) -> None:
         worker = task.worker
@@ -337,6 +354,7 @@ class WorkerTaskSystem:
         task.out_of_range_time = 0.0
 
         if self.game.gathering_manager.drop_off_resources(worker, building, delta_time):
+            task.stall_time = 0.0
             self._release_slot(worker, building, "dropoff")
             task.dropoff_contact_point = None
             task.dropoff = None
@@ -344,7 +362,14 @@ class WorkerTaskSystem:
                 worker.previous_gathering_target = None
                 self._begin_path_to_resource(task, RETURNING_TO_RESOURCE)
             else:
-                self._complete_task(task)
+                # Original node died while we hauled — continue on a neighbor
+                self._continue_or_complete(task)
+        else:
+            # §8.11: a drop-off that never completes (cargo/building desync)
+            # used to freeze the worker forever — fail it so recovery runs.
+            task.stall_time += delta_time
+            if task.stall_time >= DROPOFF_STALL_TIMEOUT:
+                self._set_failed(task, "dropoff_stalled")
 
     def _update_building(self, task: WorkerTask, delta_time: float) -> None:
         site = task.construction_site
@@ -361,6 +386,16 @@ class WorkerTaskSystem:
         task.worker.is_building = True
         task.worker.status = "build"
         site.builder = task.worker
+        # §8.11: frozen construction progress = wedged build; self-heal it.
+        # No progress attribute (minimal test doubles) -> no signal to judge.
+        progress = getattr(site, "construction_progress", None)
+        if progress is None or progress != task.last_build_progress:
+            task.last_build_progress = progress if progress is not None else -1.0
+            task.stall_time = 0.0
+        else:
+            task.stall_time += delta_time
+            if task.stall_time >= BUILD_STALL_TIMEOUT:
+                self._set_failed(task, "build_stalled")
 
     # ------------------------------------------------------------------
     # Navigation and slots
@@ -500,6 +535,12 @@ class WorkerTaskSystem:
 
     def _path_failure_key(self, worker, target, mode: str) -> Tuple[int, int, str]:
         return (id(worker), id(target), mode)
+
+    def recently_failed(self, worker, target, mode: str = "gather") -> bool:
+        """Public: did this worker recently fail to reach/slot this target?
+        The AI's resource picker consults it to break the FAILED→re-pick-the-
+        same-node→FAILED loop (§8.11)."""
+        return self._recent_path_failure(worker, target, mode)
 
     def _recent_path_failure(self, worker, target, mode: str) -> bool:
         if target is None:
@@ -665,6 +706,48 @@ class WorkerTaskSystem:
         for attr in ("path_target_object", "path_target_object_pos", "path_target_mode"):
             if hasattr(worker, attr):
                 delattr(worker, attr)
+
+    # §8.11: how far a worker looks for the next same-type node when its
+    # current one runs dry ("move to a close tree nearby, don't idle").
+    RESOURCE_CONTINUE_RADIUS = 400.0
+
+    def _find_continuation_resource(self, depleted_resource):
+        """Nearest live same-type node near the one that just ran dry.
+        Prefers un-crowded nodes so continuation doesn't stack a node past
+        the saturation cap. Rare event (a few per minute) — linear scan."""
+        from core.config import WORKER_SATURATION_CAP
+
+        name = depleted_resource.name
+        cx, cy = depleted_resource.x, depleted_resource.y
+        radius_sq = self.RESOURCE_CONTINUE_RADIUS ** 2
+        best = None
+        best_key = None
+        for res in self.game.resources:
+            if res is depleted_resource or res.name != name:
+                continue
+            if not getattr(res, "in_world", True) or getattr(res, "amount_remaining", 0) <= 0:
+                continue
+            d_sq = (res.x - cx) ** 2 + (res.y - cy) ** 2
+            if d_sq > radius_sq:
+                continue
+            crowded = len(getattr(res, "gatherers", ()) or ()) >= WORKER_SATURATION_CAP
+            key = (crowded, d_sq)
+            if best_key is None or key < best_key:
+                best, best_key = res, key
+        return best
+
+    def _continue_or_complete(self, task: WorkerTask) -> None:
+        """§8.11 worker continuation: when a gather task's node depletes,
+        retarget to a nearby same-type node instead of idling — human and
+        AI workers both. Falls back to idle when nothing is in range."""
+        replacement = None
+        if task.kind == "gather" and task.resource is not None:
+            replacement = self._find_continuation_resource(task.resource)
+        worker = task.worker
+        self._complete_task(task)
+        if replacement is not None:
+            # assign_gather natively handles a carrying worker (dropoff first)
+            self.assign_gather(worker, replacement)
 
     def _complete_task(self, task: WorkerTask) -> None:
         worker = task.worker

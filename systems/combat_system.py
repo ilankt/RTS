@@ -1,10 +1,11 @@
 import math
 from core.config import DEBUG_MOVEMENT
-from entities.unit import STANCE_DEFENSIVE, STANCE_NO_ATTACK, STANCE_STAND_GROUND
+from entities.unit import STANCE_AGGRESSIVE, STANCE_DEFENSIVE, STANCE_NO_ATTACK, STANCE_STAND_GROUND
 from systems.combat_rules import (
     calculate_damage as calculate_combat_damage,
     effective_attack_range,
     has_bonus_against,
+    is_building_target,
     is_resisted_by,
     is_valid_attack_target,
     type_effectiveness,
@@ -189,6 +190,10 @@ class CombatSystem:
                     is_counter = has_bonus_against(unit, unit.current_target)
                     resisted = is_resisted_by(unit, unit.current_target)
                     damage_events.append((unit.current_target, damage_dealt, is_counter, resisted))
+                    # §8.11: victims remember their attacker (retaliation,
+                    # emergency defense) — also makes the kill-XP path live
+                    unit.current_target.last_attacker = unit
+                    unit.current_target._last_damage_frame = self.game.frame_counter
                     if hasattr(self.game, 'notify_human_combat'):
                         self.game.notify_human_combat(unit, unit.current_target)
                     # §8.5 juice: ram blows rattle the camera a little
@@ -230,6 +235,33 @@ class CombatSystem:
                                     # Auto-engaging target
                                     pass
                 
+                # §8.11 retaliation: a unit hit while MOVING (marching to a
+                # far target, or just walking) turns on its attacker instead
+                # of soaking free damage all the way to its destination —
+                # auto-engage above only ever ran for idle units.
+                elif (
+                    unit.status == "run"
+                    and not unit.in_combat
+                    and getattr(unit, "can_attack_flag", False)
+                    and unit.stance in (STANCE_AGGRESSIVE, STANCE_DEFENSIVE)
+                    and getattr(unit, "_last_damage_frame", -1_000_000)
+                        >= self.game.frame_counter - 45
+                ):
+                    attacker = getattr(unit, "last_attacker", None)
+                    if (
+                        attacker is not None
+                        and getattr(attacker, "hp", 0) > 0
+                        and getattr(attacker, "in_world", True)
+                        and unit.current_target is not attacker
+                        # rams only ever answer buildings (they can't hit units)
+                        and not (getattr(unit, "building_only_attack", False)
+                                 and not is_building_target(attacker))
+                    ):
+                        dist_sq = (attacker.x - unit.x) ** 2 + (attacker.y - unit.y) ** 2
+                        if dist_sq <= unit.stance_chase_distance ** 2:
+                            unit.current_target = attacker
+                            unit.is_engaging = True
+
                 # Defensive leash (§9 backlog fix): a DEFENSIVE unit that chased
                 # its target beyond stance_chase_distance drops the chase and
                 # walks back to its home position instead of freezing in the
@@ -270,6 +302,8 @@ class CombatSystem:
                             has_bonus_against(building, building.current_target),
                             is_resisted_by(building, building.current_target),
                         ))
+                        building.current_target.last_attacker = building
+                        building.current_target._last_damage_frame = self.game.frame_counter
                         if hasattr(self.game, 'notify_human_combat'):
                             self.game.notify_human_combat(building, building.current_target)
                         # §8.10 tower-value metric for the balance sim
@@ -395,6 +429,10 @@ class CombatSystem:
             # §7.4 readability: green "+N" float so heals are legible
             if getattr(self.game, "floating_ui", None):
                 self.game.floating_ui.add_heal_notification(best, healed)
+        elif healer.status == "attack" and not healer.in_combat:
+            # No one to heal: drop the cast pose or the healer sits in its
+            # attack animation forever (§8.11 frozen-animation family)
+            healer.status = "idle"
         # (no target in range: cooldown stays expired so the next tick can heal)
 
     def handle_unit_death(self, unit):
@@ -412,14 +450,19 @@ class CombatSystem:
             except Exception:
                 pass
         
-        # Clear any units targeting this one
+        # Clear any units targeting this one. Also reset status: units left
+        # in status="attack"/"run" with no target froze in their attack
+        # animation forever AND stopped acquiring targets (the auto-engage
+        # gate requires status=="idle") — user-reported §8.11.
         for other_unit in self.game.units:
             if hasattr(other_unit, 'current_target') and other_unit.current_target == unit:
                 other_unit.current_target = None
                 other_unit.is_engaging = False
                 if hasattr(other_unit, 'in_combat'):
                     other_unit.in_combat = False
-        
+                if other_unit.status in ("attack", "run") and not getattr(other_unit, 'destination', None):
+                    other_unit.status = "idle"
+
         # Remove from game lists
         unit.in_world = False
         if unit in self.game.units:
@@ -457,13 +500,16 @@ class CombatSystem:
         elif building.name in ("barracks", "watchtower", "stable"):
             self.game.camera.add_shake(5.0)
         
-        # Clear any units targeting this building
+        # Clear any units targeting this building (incl. the frozen-attack-
+        # animation reset — see handle_unit_death)
         for unit in self.game.units:
             if hasattr(unit, 'current_target') and unit.current_target == building:
                 unit.current_target = None
                 unit.is_engaging = False
                 if hasattr(unit, 'in_combat'):
                     unit.in_combat = False
+                if unit.status in ("attack", "run") and not getattr(unit, 'destination', None):
+                    unit.status = "idle"
         
         # Remove from game lists
         building.in_world = False

@@ -275,10 +275,13 @@ class RenderingSystem:
             self._draw_construction_stage(obj, draw_x, draw_y, camera, map_surface)
 
     def _draw_construction_stage(self, site, draw_x, draw_y, camera, map_surface):
+        """§8.5 (user request 2026-07-14): the finished building fades IN over
+        the site as progress advances — alpha 0 → 255, "appearing" rather
+        than the earlier bottom-slice curtain reveal."""
         duration = getattr(site, 'construction_duration', 0) or 1
         progress = min(1.0, getattr(site, 'construction_progress', 0) / duration)
-        if progress < 0.12:
-            return  # bare foundation until work meaningfully starts
+        if progress <= 0.02:
+            return  # bare foundation until work starts
         try:
             player_index = self.game.players.index(site.player)
         except (ValueError, AttributeError):
@@ -297,12 +300,18 @@ class RenderingSystem:
                 self._scaled_sprite_cache.clear()
             scaled = pygame.transform.scale(sprite, (width, height))
             self._scaled_sprite_cache[key] = scaled
-        # Bottom slice, proportional to progress, anchored at the sprite's base
-        slice_h = max(1, int(height * progress))
-        src = pygame.Rect(0, height - slice_h, width, slice_h)
-        blit_x = draw_x - width / 2
-        blit_y = draw_y - height / 2 + (height - slice_h)
-        map_surface.blit(scaled, (blit_x, blit_y), area=src)
+        # Alpha copies are cached in 32 quantized steps so a site fading over
+        # 10-15s costs ~32 copies total, not one per frame.
+        alpha_bucket = min(31, int(progress * 32))
+        akey = (sprite, width, height, 'fade', alpha_bucket)
+        ghost = self._scaled_sprite_cache.get(akey)
+        if ghost is None:
+            if len(self._scaled_sprite_cache) > 2048:
+                self._scaled_sprite_cache.clear()
+            ghost = scaled.copy()
+            ghost.set_alpha(min(255, alpha_bucket * 8 + 8))
+            self._scaled_sprite_cache[akey] = ghost
+        map_surface.blit(ghost, (draw_x - width / 2, draw_y - height / 2))
     
     def _get_object_sprite(self, obj):
         """Get the appropriate sprite for an object"""

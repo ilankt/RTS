@@ -1172,10 +1172,12 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
   sim stream): **death fades** (units/buildings ghost out in place, capped
   list, sims can't grow it), **movement dust** (fast movers, draw-time hook
   so headless sims pay nothing), **muzzle + impact flashes** (archer/tower
-  shots), **staged construction** (the finished building rises out of the
-  site with progress — verified by rendered frame), **build dust** while a
-  worker hammers, **ram-hit camera rattle** (castle/military-building
-  destruction shake already existed). Tests in `tests/test_vfx.py`.
+  shots), **staged construction** (the finished building **fades in** over
+  the site, alpha 0→255 with progress — reworked 2026-07-14 per user
+  request from the original bottom-slice reveal; alpha copies cached in 32
+  quantized steps), **build dust** while a worker hammers, **ram-hit camera
+  rattle** (castle/military-building destruction shake already existed).
+  Tests in `tests/test_vfx.py`.
 - **✅ Verify:** play a match and confirm every listed SFX fires at the right moment
   (select, move, gather, build-complete, attack, alert), music/ambient is audible, and
   combat shows the new VFX.
@@ -1336,6 +1338,99 @@ due-east** — placement ignores where the enemy actually is.
   side (not due-east by accident); the sim's tower-damage metric is nonzero and
   meaningful; a walled turtle base forces attackers through a gate or a
   ram-siege; the owner's workers still path freely via gates.
+
+### 8.11 Playtest feedback batch — AI-vs-AI observation (2026-07-14)
+
+User-reported from spectating AI matches, plus a version milestone. Version
+bumped **0.9.0-beta → 0.10.0-beta** (no installer build).
+
+- [x] **Towers out-range archers** *(low)* — archer range 200 (225 fletched)
+  vs watchtower 175 meant a single archer could demolish a tower for free.
+  Watchtower `attack_range` 175 → **230**: ahead of even fletched archers
+  (both gain +25 from fletching, so the gap holds post-upgrade).
+- [x] **Workers still get stuck a lot** *(med)* — root-caused 2026-07-14 to
+  a structural blind spot: workers wedged in the stationary task phases
+  (DROPPING_OFF/BUILDING) were invisible to BOTH recovery systems — the AI
+  idle-scan skips non-FAILED tasks and the watchdog skips
+  `is_dropping_off`/`is_building` — and those phases had **no timeout**.
+  Fixed: stall timeouts (drop-off 6 s, build 8 s on frozen progress) fail
+  the task into the normal recovery path; slot-exhaustion failures are now
+  remembered so the AI stops re-picking the same crowded node
+  (FAILED→reassign→FAILED thrash — the most common visible "stuck"); and
+  recent-failure retries back off instead of churning every frame.
+- [x] **Units frozen in attack animation with no enemies around** *(med)* —
+  root-caused 2026-07-14: on a focus-fire kill, `handle_unit_death` cleared
+  every other attacker's target but left `status="attack"` — which not only
+  froze the animation, it PERMANENTLY disabled target re-acquisition (the
+  auto-engage gate requires `status=="idle"`). Fixed there + in building
+  destruction; corpses/despawned objects are no longer valid attack targets
+  (`is_valid_attack_target` checks hp/in_world); idle healers drop their
+  cast pose. Victims also record `last_attacker` now, which makes the
+  dormant kill-XP path live.
+- [x] **Emergency castle defense** *(med)* — 2026-07-14: combat stamps
+  `_last_damage_frame` on victims; `ctx.castle_under_attack` (hit within
+  ~3 s) escalates `DefendBaseGoal` to score 500+ and flips military_brain
+  into **full recall**: units marching or fighting far from home abort and
+  come defend (fights within 600 px of the castle are kept — they're
+  already defending), and damaged units skip the retreat rule — the castle
+  is worth more than any soldier.
+- [x] **Attack-move retaliation** *(med)* — 2026-07-14: auto-engage only
+  ever ran for `status=="idle"` units, so marching armies soaked free
+  damage all the way to their destination. Now a unit hit while moving
+  (aggressive/defensive stance, non-ram vs units) turns on its attacker
+  when it's within chase range. Squadmates spread the fight naturally via
+  the existing idle auto-engage once they stop.
+- [x] **Worker auto-continue on depletion** *(low–med)* — 2026-07-14: all
+  three depletion paths (mid-gather, node-vanished, returned-from-dropoff)
+  retarget to the nearest live same-type node within 400 px (preferring
+  un-crowded nodes), for human and AI workers alike; idle only when
+  nothing is in range.
+- [x] **Construction fade-in** *(low, user request)* — buildings now
+  materialize (alpha 0→255 with progress) instead of the bottom-slice
+  curtain reveal; verified by rendered frame (§8.5 entry updated).
+- **✅ Verify:** `tests/test_playtest_batch.py` (10 tests) +
+  `tests/test_worker_task_system.py` continuation tests cover every item;
+  12-match validation sim (`tools/balance_12_playtest.json`): 0 timeouts,
+  all units/buildings used, towers now deal real damage (turtle 2.3k /
+  balanced 3.8k across the set — the range fix bites). The sim also caught
+  a rams-only crash no unit test reached (missing import in the
+  retaliation branch) — regression-tested now. **⚠ Watch-item:** the batch
+  shifted the win spread defender-ward (rusher 33→17 %, boomer 43→71 %) —
+  expected, since emergency defense + retaliation + stronger towers all
+  favor defenders; re-tune the aggression side with the §8.12 round.
+  The remaining human check is spectating an AI match — towers repel lone
+  archers; no frozen attack animations; a raided march turns and fights;
+  castle attacks trigger a visible all-in defense; depleted-node workers
+  walk to the next tree.
+
+### 8.12 AI depth — proposed next round *(2026-07-14, suggestions)*
+
+Candidates for "more depth", ordered by feel-per-effort. Top three are the
+recommended next batch:
+
+- [ ] **Reactive counters vs fortifications** *(low–med)* — reactive
+  production only reads the enemy's *units*; a tower/castle-heavy turtle
+  should visibly pull ram/siege production. Cheap: include defensive
+  buildings in the counter signal.
+- [ ] **Squad retreat & regroup** *(med)* — army-level "we're losing this
+  fight" detection (squad hp dropping fast vs damage dealt) → disengage,
+  re-mass at a rally point, re-engage. Currently only individuals retreat
+  at 30 % hp; armies bleed out piecemeal.
+- [ ] **Worker flee behavior** *(low–med)* — workers under attack keep
+  gathering like nothing happened; they should run to the castle/towers
+  and resume after. Pairs with raid targeting (raids get counterplay).
+- [ ] **Timing pushes on power spikes** *(low)* — AI attacks sync to its
+  own tech completion (attack-commitment bonus for ~30 s after a combat
+  tech lands) — personalities get sharper timing identities.
+- [ ] **Coordinated multi-prong attacks** *(med–high)* — main army push +
+  simultaneous cavalry raid on the economy from another bearing (squad
+  layer exists; needs a second simultaneous command channel).
+- [ ] **Map control / expansion denial** *(med)* — small guard posted at
+  contested rich gold/stone nodes; deny scouted enemy expansions before
+  they're defended.
+- [ ] **Tower-aware army pathing** *(med)* — armies route around known
+  tower coverage using the existing threat map instead of walking through
+  it (flow-field + threat infrastructure already in place).
 
 ---
 

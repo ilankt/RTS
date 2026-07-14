@@ -72,7 +72,8 @@ def test_death_fade_registers_caps_and_expires(game):
     assert not renderer._death_fades
 
 
-def test_construction_stage_draws_building_slice(game):
+def test_construction_stage_fades_building_in(game):
+    """The building 'appears': more construction progress = more opaque."""
     from entities.construction_site import ConstructionSite
 
     renderer = game.rendering_system
@@ -84,15 +85,17 @@ def test_construction_stage_draws_building_slice(game):
     }
     site = ConstructionSite("barracks", building_data, 200, 200, radius=30, player=human)
 
-    surface = pygame.Surface((400, 400))
-    surface.fill((1, 2, 3))
+    def render_sum(progress_fraction):
+        surface = pygame.Surface((400, 400))
+        surface.fill((0, 0, 0))
+        site.construction_progress = progress_fraction * site.construction_duration
+        renderer._draw_construction_stage(site, 200, 200, FLAT_CAMERA, surface)
+        return int(pygame.surfarray.array3d(surface).sum())
 
-    site.construction_progress = 0.05 * site.construction_duration
-    renderer._draw_construction_stage(site, 200, 200, FLAT_CAMERA, surface)
-    early = pygame.surfarray.array3d(surface).sum()
+    untouched = render_sum(0.0)      # bare foundation: nothing drawn
+    faint = render_sum(0.25)
+    solid = render_sum(0.95)
 
-    site.construction_progress = 0.9 * site.construction_duration
-    renderer._draw_construction_stage(site, 200, 200, FLAT_CAMERA, surface)
-    late = pygame.surfarray.array3d(surface).sum()
-
-    assert late != early, "at 90% progress the building slice must draw pixels"
+    assert untouched == 0
+    assert faint > untouched, "at 25% the building is faintly visible"
+    assert solid > faint * 1.5, "at 95% it is far more opaque than at 25%"

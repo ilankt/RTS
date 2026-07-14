@@ -20,6 +20,10 @@ class DefendBaseGoal(Goal):
             return 0
         # Highest priority — overrides economy/military goals.
         # Per-threat ramp so a swarm scores higher than a lone raider.
+        # §8.11: the castle actually taking hits dwarfs everything — losing
+        # it IS losing the game (military_brain escalates to a full recall).
+        if getattr(ctx, "castle_under_attack", False):
+            return 500 + len(threats) * 10
         return 200 + len(threats) * 10
 
     def execute(self, ctx):

@@ -16,6 +16,9 @@ class MilitaryBrain:
     RETREAT_HP_PERCENT = 0.30  # Retreat when below 30% HP
     ARCHER_KITE_DISTANCE = 80  # Minimum distance archers try to maintain from melee
     SQUAD_SIZE = 10            # Units per squad; one squad is commanded per tick
+    # §8.11 emergency defense: units fighting within this range of the castle
+    # keep their targets during a full recall; everyone farther comes home.
+    EMERGENCY_KEEP_FIGHT_RADIUS = 600
 
     def __init__(self, game):
         self.game = game
@@ -41,16 +44,35 @@ class MilitaryBrain:
         # 0. Micro: retreat damaged units, kite with archers
         self._apply_micro(military, castle, max_hp_cache)
 
-        # 1. Emergency defense - all hands, defense outranks squad pacing
+        # 1. Emergency defense - all hands, defense outranks squad pacing.
+        # §8.11: when the CASTLE itself is being hit, this escalates to a
+        # full recall — units marching/fighting far away abort and come home
+        # (losing the castle loses the game; there is nothing better to do).
         if enemies_near_base:
-            debug_log.log(f"AI {ctx.player.name}: {len(enemies_near_base)} enemies near base! Defending.", "AI")
+            emergency = getattr(ctx, "castle_under_attack", False)
+            debug_log.log(
+                f"AI {ctx.player.name}: {len(enemies_near_base)} enemies near base! "
+                f"{'CASTLE UNDER ATTACK - full recall.' if emergency else 'Defending.'}",
+                "AI",
+            )
             for unit in military:
-                if not unit.in_combat and not unit.is_engaging:
-                    # Don't send retreating units to defense
-                    if self._should_retreat(unit, max_hp_cache.get(unit, unit.hp)):
+                if unit.in_combat or unit.is_engaging:
+                    if not emergency:
+                        continue  # normal defense never interrupts fights
+                    # Units already fighting near home keep their targets;
+                    # everyone farther gets recalled (micro-retreat template)
+                    if math.hypot(unit.x - castle.x, unit.y - castle.y) <= self.EMERGENCY_KEEP_FIGHT_RADIUS:
                         continue
-                    closest_enemy = min(enemies_near_base, key=lambda e: math.hypot(unit.x - e.x, unit.y - e.y))
-                    self._command_attack(unit, closest_enemy, ctx)
+                    unit.clear_all_movement_state()
+                    unit.current_target = None
+                    unit.in_combat = False
+                    unit.is_engaging = False
+                # In an emergency even hurt units fight - the castle is worth
+                # more than any single soldier.
+                elif not emergency and self._should_retreat(unit, max_hp_cache.get(unit, unit.hp)):
+                    continue
+                closest_enemy = min(enemies_near_base, key=lambda e: math.hypot(unit.x - e.x, unit.y - e.y))
+                self._command_attack(unit, closest_enemy, ctx)
             return  # Defense takes priority over everything
 
         # 2. Attack phase: send ONE squad of idle military per tick

@@ -215,6 +215,53 @@ def test_loaded_worker_without_dropoff_fails_cleanly():
     assert worker.resource_amount == 4
 
 
+def test_worker_continues_to_nearby_node_when_depleted():
+    """§8.11: a worker whose node runs dry walks to a close same-type node
+    instead of idling."""
+    game, player, _, wood = make_economy_game()
+    worker = game.units[0]
+    wood.amount_remaining = 6  # depletes after ~1.5 carries
+    nearby = FakeResource("wood", wood.x + 120, wood.y + 40, amount=200)
+    far = FakeResource("wood", wood.x + 900, wood.y, amount=200)  # beyond radius
+    game.resources.extend([nearby, far])
+
+    assert game.worker_task_system.assign_gather(worker, wood)
+    tick(game, count=600, delta_time=0.1)
+
+    task = game.worker_task_system.active_task(worker)
+    assert task is not None and task.kind == "gather"
+    assert task.resource is nearby, "worker should continue on the close node"
+    assert wood.amount_remaining <= 0
+    assert player.resources["wood"] >= 6  # original node fully delivered
+
+
+def test_worker_idles_when_no_node_in_continue_radius():
+    game, _, _, wood = make_economy_game()
+    worker = game.units[0]
+    wood.amount_remaining = 6
+    far = FakeResource("wood", wood.x + 900, wood.y, amount=200)
+    game.resources.append(far)
+
+    assert game.worker_task_system.assign_gather(worker, wood)
+    tick(game, count=600, delta_time=0.1)
+
+    assert game.worker_task_system.active_task(worker) is None
+    assert worker.status == "idle"
+
+
+def test_continuation_prefers_uncrowded_node():
+    game, _, _, wood = make_economy_game()
+    worker = game.units[0]
+    wood.amount_remaining = 0
+    closest = FakeResource("wood", wood.x + 60, wood.y, amount=200)
+    closest.gatherers = [object(), object(), object()]  # at saturation cap
+    open_node = FakeResource("wood", wood.x + 200, wood.y, amount=200)
+    game.resources.extend([closest, open_node])
+
+    found = game.worker_task_system._find_continuation_resource(wood)
+    assert found is open_node, "crowded node should lose to an open one"
+
+
 def test_depleted_resource_cleanup_preserves_carried_cargo():
     game, player, _, wood = make_economy_game()
     worker = game.units[0]

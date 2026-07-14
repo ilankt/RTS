@@ -116,7 +116,9 @@ def test_watchtower_load_preserves_combat_stats(tmp_path, monkeypatch):
     assert loaded_tower.max_damage == 18
     assert loaded_tower.attack_type == "pierce"
     assert loaded_tower.attack_speed == 1.5
-    assert loaded_tower.attack_range == 175
+    # Towers out-range archers (230 vs 200/225 fletched) — a lone archer must
+    # never plink a tower down for free (user-reported 2026-07-14)
+    assert loaded_tower.attack_range == 230
 
 
 def test_watchtower_construction_load_preserves_future_combat_stats(tmp_path, monkeypatch):
@@ -145,4 +147,4 @@ def test_watchtower_construction_load_preserves_future_combat_stats(tmp_path, mo
     assert loaded_site.building_data["max_damage"] == 18
     assert loaded_site.building_data["attack_type"] == "pierce"
     assert loaded_site.building_data["attack_speed"] == 1.5
-    assert loaded_site.building_data["attack_range"] == 175
+    assert loaded_site.building_data["attack_range"] == 230
