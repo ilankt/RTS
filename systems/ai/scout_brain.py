@@ -132,34 +132,62 @@ class ScoutBrain:
         rows = (mr, h // 2, h - 1 - mr)
         return [(r, c) for r in rows for c in cols]
 
+    def _tile_explored(self, player, r, c):
+        """Explored per the FOG grid — the model that actually gates the
+        AI's knowledge. The scout's own 6-tile stamp is WIDER than fog
+        sight (~2.7 tiles), so trusting it left permanent blind spots: a
+        castle could sit on a scout-'explored' tile the fog never saw,
+        and 2/12 fair-perception matches stalled exactly that way."""
+        fog = getattr(self.game, "fog_of_war", None)
+        if fog is not None and player in fog.visibility_grid:
+            return fog.visibility_grid[player][r][c] >= fog.EXPLORED
+        return (r, c) in self.explored_tiles.get(player, set())
+
     def next_unexplored_anchor(self, player, from_pos=None):
-        """World position of the best unexplored spawn anchor: farthest from
-        our castle (enemies are maximally spread), nearest to from_pos as a
-        tie-break. None when all anchors are explored. Also used by the
+        """World position of the best fog-unexplored search target: spawn
+        anchors first (farthest from our castle — enemies are maximally
+        spread; nearest to from_pos as tie-break), then a coarse sweep for
+        the farthest unexplored ground once anchors are done. None only
+        when the map is essentially fully explored. Also used by the
         military brain for armed scouting when no enemy is known."""
-        explored = self.explored_tiles.get(player, set())
         own_castle = next(
             (b for b in self.game.buildings
              if b.player == player and b.name == "castle" and b.hp > 0),
             None,
         )
-        best = None
-        best_key = None
-        for r, c in self._spawn_anchors():
-            if (r, c) in explored:
-                continue
+
+        def key_for(r, c):
             wx, wy = self.game.game_map.grid_to_world(c, r)
             home_dist = math.hypot(wx - own_castle.x, wy - own_castle.y) if own_castle else 0.0
             travel = math.hypot(wx - from_pos[0], wy - from_pos[1]) if from_pos else 0.0
-            key = (-home_dist, travel)
+            return (-home_dist, travel), (wx, wy)
+
+        best = None
+        best_key = None
+        for r, c in self._spawn_anchors():
+            if self._tile_explored(player, r, c):
+                continue
+            key, pos = key_for(r, c)
             if best_key is None or key < best_key:
-                best, best_key = (wx, wy), key
+                best, best_key = pos, key
+        if best is not None:
+            return best
+
+        # Anchors done, enemy still unknown: sweep a coarse grid for the
+        # farthest unexplored ground (fills the anchor gaps — the search
+        # never goes back to blind random-walking).
+        h, w = self.game.game_map.height, self.game.game_map.width
+        for r in range(3, h - 3, 4):
+            for c in range(3, w - 3, 4):
+                if self._tile_explored(player, r, c):
+                    continue
+                key, pos = key_for(r, c)
+                if best_key is None or key < best_key:
+                    best, best_key = pos, key
         return best
 
     def _find_unexplored_target(self, player, scout):
         """Find an unexplored tile to send the scout to."""
-        explored = self.explored_tiles.get(player, set())
-
         # If we know enemy castle, scout around it
         enemy_castle = self.known_enemy_castles.get(player)
         if enemy_castle and random.random() < 0.3:
@@ -177,13 +205,13 @@ class ScoutBrain:
         # Otherwise, find an unexplored edge
         map_w = self.game.game_map.width
         map_h = self.game.game_map.height
-        
-        # Pick random unexplored tiles near the edge
+
+        # Pick random unexplored tiles near the edge (fog model — §8.11)
         candidates = []
         for _ in range(20):
             r = random.randint(2, map_h - 3)
             c = random.randint(2, map_w - 3)
-            if (r, c) not in explored:
+            if not self._tile_explored(player, r, c):
                 world_pos = self.game.game_map.grid_to_world(c, r)
                 candidates.append((world_pos, math.hypot(world_pos[0] - scout.x, world_pos[1] - scout.y)))
         
@@ -198,7 +226,11 @@ class ScoutBrain:
         return self.game.game_map.grid_to_world(c, r)
 
     def get_exploration_percent(self, player):
-        """Return percentage of map explored."""
+        """Return percentage of map explored (fog model when available —
+        the scout's own 6-tile stamp overestimates coverage, §8.11)."""
+        fog = getattr(self.game, "fog_of_war", None)
+        if fog is not None and player in fog.visibility_grid:
+            return fog.get_exploration_percent(player)
         explored = self.explored_tiles.get(player, set())
         total_tiles = self.game.game_map.width * self.game.game_map.height
         if total_tiles == 0:

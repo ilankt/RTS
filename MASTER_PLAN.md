@@ -1269,6 +1269,14 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
     stalls when neither side finds a kill), wins rusher 17 / balanced 43 /
     turtle 50 / boomer 57 %, cavalry usage up (9). Long matches are best
     simmed in parallel slices with disjoint `--seed-base`.
+    **→ Timeout watch-item RESOLVED same day:** both stalls were scout
+    blind spots — the scout brain's own explored model stamped 6 tiles vs
+    the fog's ~2.7, so a castle could sit on scout-"explored" ground the
+    fog never saw, and the anchor search stopped instead of sweeping on.
+    Scout targeting now reads the FOG grid directly and sweeps to the
+    farthest unexplored ground after the anchors. Verified on the exact
+    stalled seeds: 1000 → turtle in 1060 s, 1001 → boomer in 501 s
+    (both previously hit the 3600 s cap).
 
 ### 8.9 Bigger swings (later; likely past "polish" scope)
 
