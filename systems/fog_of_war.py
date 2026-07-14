@@ -41,8 +41,18 @@ class FogOfWar:
 
     @property
     def enabled(self):
-        """Whether fog should affect rendering and visibility checks."""
+        """Whether fog RULES apply (perception gating + grid updates).
+        False only when fog is off as a game rule (revealed_map mutator,
+        F6 debug toggle) — then everyone is legitimately omniscient."""
         return getattr(self.game, "fog_of_war_enabled", True)
+
+    @property
+    def reveal_display(self):
+        """Whether the DISPLAY shows everything regardless of fog rules.
+        §8.11 fair spectating: in spectator mode the AIs still play under
+        fog (their grids update, their perception is gated), but the human
+        viewer watches the whole map."""
+        return bool(getattr(self.game, "spectator_reveal_display", False))
 
     def _init_player_grid(self, player):
         """Initialize a player's visibility grid."""
@@ -175,8 +185,8 @@ class FogOfWar:
         return False
 
     def get_tile_state(self, player, r: int, c: int) -> int:
-        """Get the fog state of a tile for a player."""
-        if not self.enabled:
+        """Get the fog state of a tile for a player (display consumer)."""
+        if not self.enabled or self.reveal_display:
             return self.VISIBLE
         if player not in self.visibility_grid:
             return self.VISIBLE
@@ -185,8 +195,8 @@ class FogOfWar:
         return self.UNEXPLORED
 
     def is_object_visible(self, obj) -> bool:
-        """Check if an object is visible to the human player."""
-        if not self.enabled:
+        """Check if an object is visible to the human VIEWER (display)."""
+        if not self.enabled or self.reveal_display:
             return True
 
         human = self.game.players[0] if self.game.players else None

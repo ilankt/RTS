@@ -120,10 +120,46 @@ class ScoutBrain:
                 not unit.destination and 
                 not unit.path)
 
+    # §8.11 directed scouting: spawn placement maximizes player spread, so
+    # enemies live near far edges/corners — that's fair MAP knowledge (any
+    # human knows it too). Anchors at 15% margins + center; probed
+    # farthest-from-home first. Without this, random-walk scouting under
+    # fair perception never found the enemy and matches timed out.
+    def _spawn_anchors(self):
+        w, h = self.game.game_map.width, self.game.game_map.height
+        mc, mr = max(3, int(w * 0.15)), max(3, int(h * 0.15))
+        cols = (mc, w // 2, w - 1 - mc)
+        rows = (mr, h // 2, h - 1 - mr)
+        return [(r, c) for r in rows for c in cols]
+
+    def next_unexplored_anchor(self, player, from_pos=None):
+        """World position of the best unexplored spawn anchor: farthest from
+        our castle (enemies are maximally spread), nearest to from_pos as a
+        tie-break. None when all anchors are explored. Also used by the
+        military brain for armed scouting when no enemy is known."""
+        explored = self.explored_tiles.get(player, set())
+        own_castle = next(
+            (b for b in self.game.buildings
+             if b.player == player and b.name == "castle" and b.hp > 0),
+            None,
+        )
+        best = None
+        best_key = None
+        for r, c in self._spawn_anchors():
+            if (r, c) in explored:
+                continue
+            wx, wy = self.game.game_map.grid_to_world(c, r)
+            home_dist = math.hypot(wx - own_castle.x, wy - own_castle.y) if own_castle else 0.0
+            travel = math.hypot(wx - from_pos[0], wy - from_pos[1]) if from_pos else 0.0
+            key = (-home_dist, travel)
+            if best_key is None or key < best_key:
+                best, best_key = (wx, wy), key
+        return best
+
     def _find_unexplored_target(self, player, scout):
         """Find an unexplored tile to send the scout to."""
         explored = self.explored_tiles.get(player, set())
-        
+
         # If we know enemy castle, scout around it
         enemy_castle = self.known_enemy_castles.get(player)
         if enemy_castle and random.random() < 0.3:
@@ -132,7 +168,12 @@ class ScoutBrain:
             dist = random.uniform(200, 400)
             return (enemy_castle[0] + math.cos(angle) * dist,
                    enemy_castle[1] + math.sin(angle) * dist)
-        
+
+        # Probe likely spawn areas before wandering (§8.11)
+        anchor = self.next_unexplored_anchor(player, (scout.x, scout.y))
+        if anchor is not None:
+            return anchor
+
         # Otherwise, find an unexplored edge
         map_w = self.game.game_map.width
         map_h = self.game.game_map.height

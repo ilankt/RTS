@@ -7,7 +7,7 @@ from core.config import (SCREEN_WIDTH, SCREEN_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
                         MINIMAP_HEIGHT, NUM_PLAYERS, PLAYER_COLORS, TOP_BAR_HEIGHT,
                         SMART_CURSORS_ENABLED, DEFAULT_GAME_SPEED, MIN_GAME_SPEED,
                         MAX_GAME_SPEED, GAME_SPEED_INCREMENT, AI_ONLY_MODE,
-                        AI_ONLY_PLAYER_COUNT, SPECTATOR_FOG_OF_WAR,
+                        AI_ONLY_PLAYER_COUNT, SPECTATOR_REVEALED_DISPLAY,
                         SPECTATOR_START_ZOOM, HUMAN_STARTING_RESOURCES,
                         AI_STARTING_RESOURCES)
 from world.map import Map
@@ -127,7 +127,11 @@ class Game:
         self.unit_watchdog = UnitWatchdog(self)
         self.ai_system = UtilityAISystem(self)
         self.projectile_system = ProjectileSystem(self)
-        self.fog_of_war_enabled = SPECTATOR_FOG_OF_WAR if self.spectator_mode else True
+        # §8.11 fair spectating: fog RULES are always on (AIs must scout —
+        # they used to be omniscient in spectator mode and built across the
+        # map); spectators get a revealed DISPLAY instead of disabled fog.
+        self.fog_of_war_enabled = True
+        self.spectator_reveal_display = self.spectator_mode and SPECTATOR_REVEALED_DISPLAY
         self.fog_of_war = FogOfWar(self)
         self.particles = Particles(self)
         self.sound_manager = SoundManager(self)

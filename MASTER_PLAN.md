@@ -501,8 +501,13 @@ and should override "obvious" instincts.
   buildings don't move) and enemy **units it can currently see**; the threat
   map, attack targeting, tower/wall bearings, and reactive counters all
   inherit the scouted view, so the AI hunts with its scout before it can
-  hunt with its army. Spectator mode / balance sims run fog-off and stay
-  omniscient, so the §8.8 baseline is untouched. Verified live: a blind AI
+  hunt with its army. ~~Spectator mode / balance sims run fog-off and stay
+  omniscient~~ **(superseded 2026-07-14, user report: AIs built across the
+  map in spectate)** — fog RULES now always apply to AI players; spectator
+  mode only reveals the *display* (`SPECTATOR_REVEALED_DISPLAY`,
+  `game.spectator_reveal_display`), and the `revealed_map` mutator remains
+  true omniscience for everyone as a game rule. Balance sims therefore run
+  fair now (see §8.8 re-baseline). Verified live: a blind AI
   in a human match still grows its economy, expands exploration, and builds
   (`tests/test_fair_perception.py`, incl. a 3-game-minute integration run).
   Pairs with the fog work.
@@ -1255,6 +1260,15 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
     0 timeouts, avg 594 sim s, wins rusher 33 / boomer 43 / balanced 57 /
     turtle 75 %, all units/buildings used. Pre-lean-start datasets
     (`balance_20_*`) are historical reference only.
+  - *(2026-07-14)* **Authoritative dataset under FAIR PERCEPTION:
+    `tools/balance_12_fair.json`** — since §8.11 fair spectating, sims run
+    with AIs under fog (scouting required), so all omniscient datasets
+    above are historical. 12 matches (4×3 parallel slices via
+    `tools/merge_balance_runs.py`): avg 761 sim s (~35 % longer — finding
+    the enemy takes time), **2/12 timeouts** (watch-item: fair-perception
+    stalls when neither side finds a kill), wins rusher 17 / balanced 43 /
+    turtle 50 / boomer 57 %, cavalry usage up (9). Long matches are best
+    simmed in parallel slices with disjoint `--seed-base`.
 
 ### 8.9 Bigger swings (later; likely past "polish" scope)
 
@@ -1388,6 +1402,22 @@ bumped **0.9.0-beta → 0.10.0-beta** (no installer build).
 - [x] **Construction fade-in** *(low, user request)* — buildings now
   materialize (alpha 0→255 with progress) instead of the bottom-slice
   curtain reveal; verified by rendered frame (§8.5 entry updated).
+- [x] **Fair spectating + build-on-revealed-ground** *(med, user report:
+  "AI putting buildings across the map")* — 2026-07-14. Root cause was
+  twofold: spectator mode ran fog-off making AIs **omniscient by design**
+  (old §7.2 note), and building placement **never checked exploration** for
+  anyone. Now: (1) fog rules always apply to AI players — spectator mode
+  reveals only the viewer's *display* (`spectator_reveal_display`; the
+  `revealed_map` mutator stays true omniscience as a rule); (2) AI and
+  human placement both require **explored ground** (`building_placer` +
+  `is_valid_building_position`); worker continuation is fog-gated too;
+  (3) fair perception made sims time out — the scout random-walked and
+  armies idled with no known target — fixed by **directed scouting**
+  (probe far spawn-anchor corners/edges first — fair map knowledge since
+  spawn placement maximizes spread) and **armed scouting** (a standing
+  army with no known enemy sends one squad probing anchors).
+  Tests in `tests/test_fair_spectating.py`; perf gate unaffected
+  (fog updates cost ~0.15 ms/frame in the benchmark).
 - **✅ Verify:** `tests/test_playtest_batch.py` (10 tests) +
   `tests/test_worker_task_system.py` continuation tests cover every item;
   12-match validation sim (`tools/balance_12_playtest.json`): 0 timeouts,

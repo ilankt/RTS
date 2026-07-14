@@ -75,6 +75,22 @@ class MilitaryBrain:
                 self._command_attack(unit, closest_enemy, ctx)
             return  # Defense takes priority over everything
 
+        # 2b. Armed scouting (§8.11 fair perception): a standing army with NO
+        # known enemy buildings can't attack — AttackGoal never fires. Send
+        # one squad probing the likely spawn areas so the army finds the
+        # fight instead of idling at home while the lone scout wanders.
+        if not ctx.enemy_buildings and len(military) >= 5:
+            scout_brain = getattr(getattr(self.game, "ai_system", None), "scout_brain", None)
+            if scout_brain is not None:
+                anchor = scout_brain.next_unexplored_anchor(ctx.player, (castle.x, castle.y))
+                if anchor is not None:
+                    squad = self._next_squad(ctx.player, military)
+                    for unit in squad:
+                        if self._is_idle_military(unit):
+                            self.game.selection_manager._move_unit_to_position(
+                                unit, anchor, self.game.pathfinder)
+                    return
+
         # 2. Attack phase: send ONE squad of idle military per tick
         if should_attack:
             target = self._find_attack_target(ctx)

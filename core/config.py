@@ -42,7 +42,10 @@ MINIMAP_HEIGHT = 200
 # Players
 AI_ONLY_MODE = False  # Legacy fallback; Game() now defaults to human 1v1.
 AI_ONLY_PLAYER_COUNT = 4
-SPECTATOR_FOG_OF_WAR = False
+# §8.11 fair spectating: fog RULES always apply to AI players (they scout
+# like anyone else); this only controls whether the spectator's DISPLAY
+# reveals the whole map (True) or watches through player 1's fog (False).
+SPECTATOR_REVEALED_DISPLAY = True
 SPECTATOR_START_ZOOM = 0.5
 NUM_PLAYERS = 4  # Configurable number of players (minimum 2)
 PLAYER_COLORS = [

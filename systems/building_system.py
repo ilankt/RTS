@@ -219,11 +219,19 @@ class BuildingSystem:
         hex_coord = self.game_map.world_to_grid(world_pos[0], world_pos[1])
         if not hex_coord:
             return False
-            
+
         # Check terrain type
         tile_type = self.game_map.grid[hex_coord[1]][hex_coord[0]]
         if tile_type in {"water", "lava"}:
             return False
+
+        # §8.11: no building on unexplored ground — same rule the AI follows
+        # (is_explored short-circuits to True when fog is off as a game rule)
+        fog = getattr(self.game, "fog_of_war", None)
+        builder_player = getattr(self.selected_builder, "player", None)
+        if fog is not None and builder_player is not None:
+            if not fog.is_explored(builder_player, world_pos[0], world_pos[1]):
+                return False
         
         # Check collision with existing objects, including the builder itself
         all_objects = self.game.buildings + self.game.units + self.game.resources + self.game.construction_sites

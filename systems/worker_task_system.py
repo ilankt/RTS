@@ -711,7 +711,7 @@ class WorkerTaskSystem:
     # current one runs dry ("move to a close tree nearby, don't idle").
     RESOURCE_CONTINUE_RADIUS = 400.0
 
-    def _find_continuation_resource(self, depleted_resource):
+    def _find_continuation_resource(self, depleted_resource, player=None):
         """Nearest live same-type node near the one that just ran dry.
         Prefers un-crowded nodes so continuation doesn't stack a node past
         the saturation cap. Rare event (a few per minute) — linear scan."""
@@ -720,6 +720,7 @@ class WorkerTaskSystem:
         name = depleted_resource.name
         cx, cy = depleted_resource.x, depleted_resource.y
         radius_sq = self.RESOURCE_CONTINUE_RADIUS ** 2
+        fog = getattr(self.game, "fog_of_war", None)
         best = None
         best_key = None
         for res in self.game.resources:
@@ -729,6 +730,10 @@ class WorkerTaskSystem:
                 continue
             d_sq = (res.x - cx) ** 2 + (res.y - cy) ** 2
             if d_sq > radius_sq:
+                continue
+            # §8.11 fair perception: only continue onto nodes the worker's
+            # player has actually revealed
+            if fog is not None and player is not None and not fog.is_explored(player, res.x, res.y):
                 continue
             crowded = len(getattr(res, "gatherers", ()) or ()) >= WORKER_SATURATION_CAP
             key = (crowded, d_sq)
@@ -742,7 +747,8 @@ class WorkerTaskSystem:
         AI workers both. Falls back to idle when nothing is in range."""
         replacement = None
         if task.kind == "gather" and task.resource is not None:
-            replacement = self._find_continuation_resource(task.resource)
+            replacement = self._find_continuation_resource(
+                task.resource, getattr(task.worker, "player", None))
         worker = task.worker
         self._complete_task(task)
         if replacement is not None:

@@ -190,6 +190,8 @@ class BuildingPlacer:
         map_h = self.game.game_map.height * TILE_HEIGHT
         if x < 50 or y < 50 or x > map_w - 50 or y > map_h - 50:
             return False
+        if not self._is_explored_by(ctx.player, x, y):
+            return False  # §8.11: walls need revealed ground too
         grid_pos = self.game.game_map.world_to_grid(x, y)
         if not grid_pos:
             return False
@@ -226,12 +228,25 @@ class BuildingPlacer:
         nearest = min(targets, key=lambda b: (b.x - ctx.castle.x) ** 2 + (b.y - ctx.castle.y) ** 2)
         return math.degrees(math.atan2(nearest.y - ctx.castle.y, nearest.x - ctx.castle.x)) % 360
 
+    def _is_explored_by(self, player, x: float, y: float) -> bool:
+        """§8.11: building requires REVEALED ground — the AI may only place
+        where its own fog grid says explored (is_explored short-circuits to
+        True when fog is off as a game rule, e.g. the revealed_map mutator)."""
+        fog = getattr(self.game, "fog_of_war", None)
+        if fog is None:
+            return True
+        return fog.is_explored(player, x, y)
+
     def _is_valid_position(self, x: float, y: float, building_type: str, ctx) -> bool:
         """Check terrain, collisions, and enemy proximity."""
         # Map bounds
         map_w = self.game.game_map.width * TILE_WIDTH
         map_h = self.game.game_map.height * TILE_HEIGHT
         if x < 50 or y < 50 or x > map_w - 50 or y > map_h - 50:
+            return False
+
+        # §8.11: never build on unexplored ground
+        if not self._is_explored_by(ctx.player, x, y):
             return False
 
         # Terrain check
