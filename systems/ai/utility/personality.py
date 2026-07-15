@@ -19,8 +19,17 @@ PERSONALITY_WEIGHTS = {
 # RETRY (2026-07-13): with §7.3 raid targeting, a small army no longer
 # marches into castle DPS — it hits undefended expansions. That flips the
 # early-attack math, so rusher gets its early trigger back alongside raids.
+# AGGRESSION RE-TUNE (2026-07-14): boomer commits LATE (9) — its identity
+# is boom-then-overwhelm, and attacking at the shared threshold 6 with a
+# superior economy made it the best rusher too (86 % win rate after the
+# §8.12 defender buffs). The gap is the rusher's timing window.
+# Rusher's early trigger (4) removed 2026-07-14: with §8.11 emergency
+# defense + §8.12 awareness, a 4-5 unit push into a mobilized base is a
+# guaranteed wipe (instrumented seed 1001: 5 units died without scratching
+# the castle, then the counterattack ended the game). Rusher's identity is
+# warrior-heavy pressure + relentless raids, not suicide timing.
 ATTACK_ARMY_THRESHOLDS = {
-    "rusher": 4,
+    "boomer": 9,
 }
 
 
@@ -54,14 +63,21 @@ def raid_army_limit(personality: str) -> int:
 # army*, not just in category weights. Worker target shapes the opening
 # (rusher cuts economy to field units sooner; boomer over-invests), and the
 # composition targets give each a recognizable army identity.
-# Rusher 4→5 (2026-07-13): under the lean-start economy 4 workers couldn't
-# sustain reinforcement waves — rusher went 0/6 in three straight 12-match
-# runs even with raid targeting; the 5th worker funds the follow-up wave.
+# Rusher 4→5→6→8 (2026-07-14 aggression re-tune, instrumented-match
+# diagnosis): under the lean economy every army unit costs gold and gold
+# costs worker-seconds — a light-worker rusher structurally cannot field
+# the early army its identity promises (6 workers produced 4 spearmen by
+# t=210 vs boomer's 13 military). Rusher's identity lives in its early
+# trigger + raids + warrior-heavy comp; its economy must be near-parity.
+# Near-parity economies (2026-07-14 re-tune): with gold income capped by
+# node saturation + haul time, worker count was the only macro that
+# mattered and boomer's 9 beat everything (71-86% win rate). Identities
+# now live in attack thresholds, compositions, raids, and support spend.
 WORKER_TARGETS = {
-    "rusher": 5,
-    "balanced": 6,
-    "turtle": 6,
-    "boomer": 9,
+    "rusher": 8,
+    "balanced": 7,
+    "turtle": 7,
+    "boomer": 8,
 }
 
 # Cavalry included since 2026-07-13: it was absent from every table, and with

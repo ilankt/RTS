@@ -1475,6 +1475,39 @@ User-reported from further AI-vs-AI spectating (second batch):
     further defender-ward — rusher 0/6, boomer 86 %, cavalry flickers to
     0 again (awareness intercepts raiders, worker-flee blunts raids).
     The §8.11 aggression re-tune is now the top balance priority.
+- [x] **Aggression re-tune pass** *(2026-07-14, user request: "rusher
+  shouldn't be at 0%")* — three sim cycles + five INSTRUMENTED matches
+  (`scratchpad diagnose_rusher.py` pattern: 30 s state samples — worker
+  allocation, per-node distances, stockpiles). The instrumentation found
+  five structural defects that aggregate win rates hid:
+  1. **Gold was a fake economy** — one near-castle node, saturation cap
+     3, carry 10 → ~0.5 g/s per worker FOR EVERYONE; gold armies were
+     tiny regardless of macro and the wood-priced ram was the de-facto
+     army. Gold carry 10 → **20**.
+  2. **Spearman meta = affordability artifact** — composition targets
+     can't assert themselves when the flagship unit is the unaffordable
+     one. Warrior 100g → **80g** (warrior share up 47 % in the battery).
+  3. **Food-crisis starvation** — low-economy-weight personalities
+     under-built farms (weighted flat-40 goal) and banked gold they
+     couldn't spend. Farm goal escalates to 70 under 50 food.
+  4. **Spawn luck ≈ 2× income** — starting-deposit band was 3-5 tiles,
+     an `int()` truncation widened it further (147 px vs 280 px rich
+     nodes), and a node could be placed with NO walkable approach (one
+     match: 2500 gold untouched all game). Band 3-4 + honest rounding +
+     open-approach validation, wide-band fallback.
+  5. **Worker count was the only macro** — near-parity targets
+     (rusher/boomer 8, balanced/turtle 7); boomer's identity moved to its
+     late attack commitment (threshold **9**), which IS the rusher's
+     timing window; rusher's suicide-trigger 4 removed (§8.11 defense
+     math makes 4-unit pushes guaranteed wipes); ram fortification boost
+     tamed (+8×4 → +5×3; ram share 35 % → 8 %).
+  **Result (`tools/balance_12_retune3.json`):** rusher 0 → **17 %**,
+  boomer 86 → **71 %**, turtle 50 %, warriors 112 (+47 %), rams 31
+  (was 135), 2/12 timeouts. **Caveat:** the fixed seed schedule pits
+  rusher against boomer in 4 of its 6 matches, so per-personality rates
+  carry matchup bias — the true spread is tighter. Remaining boomer edge
+  is a job for the deeper §8.12 items (squad retreat & regroup,
+  multi-prong attacks), not more parameter knobs.
 
 Candidates for "more depth", ordered by feel-per-effort. Top three are the
 recommended next batch:

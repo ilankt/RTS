@@ -63,7 +63,7 @@
     "build_time": 8,
     "icon": "assets/ui/Units/warrior_icon.png",
     "costs": {
-      "gold": 100,
+      "gold": 80,
       "food": 50
     },
     "min_damage": 18,

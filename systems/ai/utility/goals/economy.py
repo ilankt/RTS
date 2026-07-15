@@ -65,6 +65,11 @@ class BuildFarmGoal(Goal):
         farms = len(ctx.buildings.get("farm", []))
         if farms == 0:
             return 80
+        # §8.12 re-tune: a food CRISIS gates all unit production (every unit
+        # costs food) — at the old flat 40, low-economy-weight personalities
+        # (rusher ×0.7 = 28) starved with gold banked and no way to spend it.
+        if ctx.resources.get("food", 0) < 50 and farms < 5:
+            return 70
         if farms < 3 and ctx.resources.get("food", 0) < 100:
             return 40
         return 0

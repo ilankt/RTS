@@ -95,8 +95,13 @@ GATHERING_RATES = {
     "food": 3      # Food per second from farms
 }
 
+# Gold 10→20 (2026-07-14 aggression re-tune, diagnosed via instrumented
+# match): with one rich node per base, a 3-gatherer saturation cap, and a
+# carry of 10, effective gold income was ~0.5/s per worker FOR EVERYONE —
+# gold armies were tiny regardless of economy size, so the wood-priced ram
+# became the de-facto army and the best wood economy (boomer) always won.
 WORKER_CAPACITY = {
-    "gold": 10,
+    "gold": 20,
     "stone": 10,
     "wood": 20
 }

@@ -147,9 +147,15 @@ class GameState:
             # Starting gold/stone: one RICH deposit each near the castle (5x the
             # old 500). Big enough to carry the early game, so hunting for fresh
             # deposits is a mid-game concern, not an opening chore. (2026-07-12)
-            self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 5, 1, amount_override=2500)
+            # Band tightened 3-5 → 3-4 tiles (2026-07-14): with haul time
+            # dominating gold income, a 147 px vs 280 px starting deposit was
+            # a ~2x income difference decided by spawn luck (instrumented
+            # seed 1001). Wider band kept as fallback so placement never fails.
+            if not self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 4, 1, amount_override=2500):
+                self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 6, 1, amount_override=2500)
 
-            self._place_resource_near_spawn("stone", spawn_r, spawn_c, 3, 5, 1, amount_override=2500)
+            if not self._place_resource_near_spawn("stone", spawn_r, spawn_c, 3, 4, 1, amount_override=2500):
+                self._place_resource_near_spawn("stone", spawn_r, spawn_c, 3, 6, 1, amount_override=2500)
 
             # Wood is left as-is (per-bunch amount is fine) — 8 trees near spawn.
             self._place_resource_near_spawn("wood", spawn_r, spawn_c, 2, 6, 8, amount_override=250)
@@ -183,7 +189,8 @@ class GameState:
         self._place_forest_clusters(extra_wood, spawn_locations)
     
     def _place_resource_near_spawn(self, resource_type, spawn_r, spawn_c, min_dist, max_dist, count, amount_override=None):
-        """Place a specific number of resources near a spawn location"""
+        """Place a specific number of resources near a spawn location.
+        Returns True when everything requested was placed."""
         placed = 0
         attempts = 0
         max_attempts = count * 50
@@ -192,16 +199,22 @@ class GameState:
             # Random angle and distance for better distribution
             angle = random.uniform(0, 2 * 3.14159)
             distance = random.uniform(min_dist, max_dist)
-            
-            # Calculate position using proper circular distribution
-            dr = int(distance * math.sin(angle))
-            dc = int(distance * math.cos(angle))
+
+            # Calculate position using proper circular distribution.
+            # round(), not int(): truncation used to shrink the ring below
+            # min_dist (a "3-4 tile" band produced 2.6-tile placements),
+            # reintroducing the spawn-luck income spread (2026-07-14).
+            dr = round(distance * math.sin(angle))
+            dc = round(distance * math.cos(angle))
+            if math.hypot(dr, dc) < min_dist:
+                attempts += 1
+                continue
             r = spawn_r + dr
             c = spawn_c + dc
-            
+
             # Check bounds (keep away from edges)
             edge_buffer = 3  # Keep resources at least 3 tiles from edge
-            if (edge_buffer <= r < self.game.game_map.height - edge_buffer and 
+            if (edge_buffer <= r < self.game.game_map.height - edge_buffer and
                 edge_buffer <= c < self.game.game_map.width - edge_buffer):
                 # Check terrain suitability
                 terrain = self.game.game_map.grid[r][c]
@@ -214,9 +227,13 @@ class GameState:
                 
                 if suitable:
                     world_pos = self.game.game_map.grid_to_world(c, r)
-                    
-                    # Check collision with all game objects
-                    if not self._check_collision_with_objects(world_pos[0], world_pos[1], 16):  # 16 is resource radius (TILE_WIDTH/4)
+
+                    # Check collision with all game objects, and require an
+                    # open approach: a node wedged into clutter with no
+                    # walkable gathering ring starves that spawn's economy
+                    # for the whole match (2026-07-14, instrumented run).
+                    if (not self._check_collision_with_objects(world_pos[0], world_pos[1], 16)
+                            and self._has_open_approach(world_pos[0], world_pos[1])):
                         resource_name = resource_type
                         
                         resource = self._create_instance_from_template(self.game.game_data["resources"][resource_name])
@@ -225,9 +242,34 @@ class GameState:
                             resource.amount_remaining = amount_override
                         self.game.resources.append(resource)
                         placed += 1
-            
+
             attempts += 1
-    
+        return placed >= count
+
+    def _has_open_approach(self, x, y, ring=44.0, needed=4):
+        """At least `needed` of 8 points on the gathering ring around (x, y)
+        are on walkable terrain and clear of placed objects — workers can
+        actually stand next to the node and mine it."""
+        open_points = 0
+        for i in range(8):
+            angle = i * math.pi / 4
+            px = x + ring * math.cos(angle)
+            py = y + ring * math.sin(angle)
+            grid = self.game.game_map.world_to_grid(px, py)
+            if not grid:
+                continue
+            col, row = grid
+            if not (0 <= row < self.game.game_map.height and 0 <= col < self.game.game_map.width):
+                continue
+            if self.game.game_map.grid[row][col] in {"water", "lava", "mountain"}:
+                continue
+            if self._check_collision_with_objects(px, py, 12):
+                continue
+            open_points += 1
+            if open_points >= needed:
+                return True
+        return False
+
     def _place_forest_clusters(self, total_trees, spawn_locations):
         """Place trees in natural forest clusters instead of scattered individual trees"""
         # Calculate number of forests based on total trees
