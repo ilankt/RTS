@@ -496,3 +496,37 @@ class SaveManager:
                 except:
                     pass
         return saves
+
+    # Number of named slots the save/load screen offers.
+    SLOT_COUNT = 6
+
+    @classmethod
+    def slot_meta(cls, slot):
+        """Friendly metadata for the save/load UI, or None if the slot is
+        empty. Reads only the cheap header fields of the save."""
+        filepath = os.path.join(cls.SAVE_DIR, f"save_{slot}.json")
+        if not os.path.exists(filepath):
+            return None
+        try:
+            with open(filepath, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (OSError, ValueError):
+            return None
+
+        # When the save was written -> "Jul 14, 15:32"
+        stamp = data.get("timestamp", "")
+        when = "Unknown time"
+        try:
+            when = datetime.fromisoformat(stamp).strftime("%b %d, %H:%M")
+        except (ValueError, TypeError):
+            pass
+
+        players = data.get("players", [])
+        humans = sum(1 for p in players if p.get("human"))
+        kind = "vs AI" if humans and len(players) == 2 else (
+            f"{len(players)}-player" if players else "match")
+        size = data.get("map_size") or [0, 0]
+        secs = int(data.get("sim_time_elapsed", 0))
+        clock = f"{secs // 60}:{secs % 60:02d}"
+        summary = f"{kind} · {size[0]}×{size[1]} · {clock} played"
+        return {"when": when, "summary": summary}

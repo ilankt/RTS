@@ -152,14 +152,18 @@ def main():
             draw_splash(screen, "Preparing the battlefield...")
             launch_spectator(player_count=args.players, speed=args.speed, seed=args.seed)
         elif choice == "load":
-            draw_splash(screen, "Loading...")
-            # Build the Game with the save's map size so restored objects
-            # stay in bounds (terrain itself still regenerates — known gap)
-            game = Game(map_size=SaveManager.peek_map_size(slot=0))
-            settings.apply_to_game(game)  # before load: the save's speed wins
-            success, msg = SaveManager.load_game(game, slot=0)
-            if success:
-                game.run()
+            from screens.save_load_menu import SaveLoadScreen
+
+            slot = SaveLoadScreen(screen).run()  # load-only from the main menu
+            if slot is not None:
+                draw_splash(screen, "Loading...")
+                # Build the Game with the save's map size so restored objects
+                # stay in bounds (terrain itself still regenerates — known gap)
+                game = Game(map_size=SaveManager.peek_map_size(slot=slot))
+                settings.apply_to_game(game)  # before load: the save's speed wins
+                success, msg = SaveManager.load_game(game, slot=slot)
+                if success:
+                    game.run()
         elif choice == "settings":
             from screens.settings_menu import SettingsMenu
 

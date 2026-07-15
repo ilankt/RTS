@@ -324,15 +324,23 @@ class Game:
             try:
                 path = SaveManager.save_game(self, slot=0)
                 debug_log.log(f"Game saved to {path}", "GENERAL")
+                if self.ui_manager:
+                    self.ui_manager.add_alert("Game saved (Slot 1)")
             except Exception as e:
                 debug_log.log(f"Save failed: {e}", "GENERAL")
+                if self.ui_manager:
+                    self.ui_manager.add_alert("Save failed")
         elif self.keybindings.matches("quick_load", event.key):
             try:
                 success, msg = SaveManager.load_game(self, slot=0)
                 debug_log.log(f"Load: {msg}", "GENERAL")
+                if self.ui_manager:
+                    self.ui_manager.add_alert("Game loaded" if success else "No save in Slot 1")
             except Exception as e:
                 debug_log.log(f"Load failed: {e}", "GENERAL")
                 debug_log.log(traceback.format_exc(), "GENERAL")
+                if self.ui_manager:
+                    self.ui_manager.add_alert("Load failed")
         elif self.keybindings.matches("speed_down", event.key):
             self.game_speed = max(MIN_GAME_SPEED, self.game_speed - GAME_SPEED_INCREMENT)
             debug_log.log(f"Game speed: {self.game_speed:.1f}x", "GENERAL")
@@ -1108,6 +1116,7 @@ class Game:
     
     PAUSE_OPTIONS = [
         ("Resume", "resume"),
+        ("Save / Load", "save_load"),
         ("Settings", "settings"),
         ("Help", "help"),
         ("Quit to Menu", "quit_to_menu"),
@@ -1163,6 +1172,8 @@ class Game:
                 self.sound_manager.play_ui_click()
             if action == "resume":
                 self.game_paused = False
+            elif action == "save_load":
+                self._open_save_load_from_pause()
             elif action == "settings":
                 self._open_settings_from_pause()
             elif action == "help":
@@ -1183,6 +1194,23 @@ class Game:
         settings = SettingsMenu(self.screen).run()
         settings.apply_audio(self)
         self.screen = settings.create_display((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    def _open_save_load_from_pause(self):
+        """Multi-slot Save / Load over the paused game. Saving writes the
+        chosen slot in place; loading restores it into the running match and
+        unpauses. (Loading a save from a different map size reuses the current
+        terrain — the known save/load gap.)"""
+        from screens.save_load_menu import SaveLoadScreen
+
+        slot = SaveLoadScreen(self.screen, game=self).run()
+        if slot is not None:
+            try:
+                success, msg = SaveManager.load_game(self, slot=slot)
+                if self.ui_manager:
+                    self.ui_manager.add_alert("Game loaded" if success else "Load failed")
+            except Exception as e:
+                debug_log.log(f"Load failed: {e}", "GENERAL")
+            self.game_paused = False
     
     def _restart_game(self):
         """Restart the game by reinitializing core state"""
