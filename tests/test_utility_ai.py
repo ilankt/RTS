@@ -346,12 +346,17 @@ class TestBuildWatchtowerGoal:
         ctx = _ctx_with(p, units=workers, buildings=[castle])
         assert BuildWatchtowerGoal().score(ctx) == 45
 
-    def test_zero_when_watchtower_exists(self):
+    def test_second_tower_allowed_third_needs_pressure(self):
+        # §8.12 batch 3: tower #2 guards the forward economy without
+        # pressure; from #3 on the pressure gate applies.
         p = FakePlayer()
         castle = FakeBuilding("castle", p)
         tower = FakeBuilding("watchtower", p)
         workers = [FakeUnit("worker", p) for _ in range(3)]
         ctx = _ctx_with(p, units=workers, buildings=[castle, tower])
+        assert BuildWatchtowerGoal().score(ctx) > 0
+        ctx = _ctx_with(p, units=workers, buildings=[castle, tower,
+                                                     FakeBuilding("watchtower", p)])
         assert BuildWatchtowerGoal().score(ctx) == 0
 
     def test_zero_when_watchtower_is_unaffordable(self):

@@ -1,7 +1,7 @@
 import math
 import pygame
 from entities import Building, ConstructionSite
-from core.config import TILE_WIDTH, TOP_BAR_HEIGHT
+from core.config import TILE_WIDTH, TILE_HEIGHT, TOP_BAR_HEIGHT
 from systems.upgrade_effects import effective_build_speed_multiplier, has_required_buildings
 from utils.debug_logger import debug_log
 
@@ -214,8 +214,15 @@ class BuildingSystem:
             
         building_size = self.building_to_place['size']
         building_radius = building_size[0] * TILE_WIDTH / 2
-        
-        # Check if position is within map bounds
+
+        # Check if position is within map bounds — radius-aware (§8.12
+        # batch 3): buildings must fit entirely inside the world
+        map_w = self.game_map.width * TILE_WIDTH
+        map_h = self.game_map.height * TILE_HEIGHT
+        margin = building_radius + 20
+        if (world_pos[0] < margin or world_pos[1] < margin
+                or world_pos[0] > map_w - margin or world_pos[1] > map_h - margin):
+            return False
         hex_coord = self.game_map.world_to_grid(world_pos[0], world_pos[1])
         if not hex_coord:
             return False

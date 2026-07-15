@@ -1341,6 +1341,43 @@ map objectives. Listed for completeness; revisit only after Tracks A–C land.
   support-composition rule adds the sustain dimension to fights. Needs the
   temple sprite (healer currently reuses archer sheets — its own sheet
   wanted too).
+**AI tune-up batch 3 (2026-07-14, user spectating reports — all landed
+same day):**
+
+- [x] **Slow factions** *(investigated)* — root cause was the
+  builder-starvation regression fixed earlier the same day (workers never
+  idled → construction stalled for minutes). Verified post-fix with an
+  instrumented balanced-vs-turtle match: turtle fields 8 military + 7
+  building types by t=150. Balanced remains the mildest personality
+  (chronic ~29-43 %) — its identity pass stays a §7.2 watch-item.
+- [x] **Watchtowers with map awareness** *(med)* — tower #1 rings the
+  castle on the threat bearing (unchanged); **tower #2 now guards the
+  forward economy** — the placer anchors it at the forward dropoff
+  (mine/lumbermill/quarry/market ≥300 px out) farthest from existing
+  towers — and needs no pressure; the pressure gate applies from #3 on.
+  Caps +1 (turtle 4 / balanced+boomer 3 / rusher 2). Battery: towers
+  built doubled (~2 per player-match); turtle's towers dealt 21.7k
+  damage across the set.
+- [x] **Ram-spam loop** *(low)* — rams are the only gold-free unit, so a
+  wood-flush gold-broke AI trained one every quiet tick (user saw ~30;
+  the old past-cap "filler 15" was the leak). Cap is now proportional —
+  25 % of the army, min 3, **zero past the cap** — big ram trains require
+  an army to escort them. Battery: rams settle at ~15 % of production.
+- [x] **Rams march unescorted** *(low–med)* — squads sliced the army list
+  in production order, so consecutively-trained rams formed pure-ram
+  squads that walked to their deaths alone. The army is now interleaved
+  by unit type before squad chunking: every squad mixes fighters with
+  siege.
+- [x] **Buildings half off the map** *(low)* — placement bounds used a
+  flat 50 px margin regardless of building size; bounds are now
+  radius-aware (building must fit entirely in the world) for the AI
+  placer and the human placement ghost alike.
+  - **Battery (`tools/balance_12_tuneup3.json`):** 2/12 timeouts, avg
+    1125 sim s, cavalry at its series-high (21), markets in use (8).
+    ⚠ rusher 0/6 this round (yo-yos 0–2 wins per battery; more towers =
+    stronger defense again) — the §8.12 multi-prong/timing work remains
+    the aggression side's structural fix.
+
 - [ ] **Unit active abilities** *(med–high, LATER)* — one ability per core
   unit (cavalry charge, spearman brace, archer volley); micro depth, and a
   natural difficulty-tier lever ("hard AI uses abilities well").

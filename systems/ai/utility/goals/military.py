@@ -108,16 +108,18 @@ class BuildWatchtowerGoal(Goal):
         towers = len(ctx.buildings.get("watchtower", []))
         if towers >= tower_cap(getattr(ctx.player, "ai_personality", "balanced")):
             return 0
-        if towers == 0:
-            base = 45
-        else:
-            # Additional towers only when there's actual pressure to answer
-            base = 20
         threat = ctx.threat_at(ctx.castle.x, ctx.castle.y)
         pressure = min(50, threat * 0.05)
-        if towers > 0 and pressure <= 0:
+        if towers == 0:
+            return 45 + pressure
+        # §8.12 batch 3: tower #2 guards the forward economy (the §7.3 raid
+        # targets) and needs no pressure — the pressure gate meant every AI
+        # stopped at exactly one tower in practice. From #3 on, pressure.
+        if towers == 1:
+            return 35 + pressure
+        if pressure <= 0:
             return 0
-        return base + pressure
+        return 20 + pressure
 
     def execute(self, ctx):
         return start_construction(ctx, "watchtower", ctx.game.ai_system.building_placer)
@@ -281,9 +283,14 @@ class TrainRamGoal(Goal):
         building = ctx.find_idle_production_building("siege_workshop")
         if not building:
             return 0
+        # §8.12 batch 3: proportional hard cap. Rams are the only GOLD-FREE
+        # combat unit, so a wood-flush gold-broke AI used to win every quiet
+        # tick with the old flat filler score and mass ~30 rams. Now big ram
+        # counts require a big army to escort them (25% of military, min 3),
+        # and past the cap the goal is silent — no filler.
         rams = sum(1 for u in ctx.military if u.name == "ram")
-        if rams >= self.CAP:
-            return 15
+        if rams >= max(self.CAP, int(0.25 * len(ctx.military))):
+            return 0
         # §8.12 reactive counters vs fortifications: a towered-up enemy
         # visibly pulls siege production (unit-only counters missed this).
         # Capped low — the first tuning (+8 each, cap 4) stacked with the

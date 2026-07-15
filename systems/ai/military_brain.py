@@ -271,14 +271,33 @@ class MilitaryBrain:
             )
 
     def _next_squad(self, player, military):
-        """Rotating squad view over the army (index-chunked, stable order)."""
+        """Rotating squad view over the army (index-chunked, stable order).
+
+        §8.12 batch 3: the army is INTERLEAVED by unit type before chunking.
+        Raw production order put consecutively-trained rams into pure-ram
+        squads that marched to the enemy unescorted (user-reported); round-
+        robin by type gives every squad a mix of fighters and siege."""
         if not military:
             return []
-        squad_count = max(1, (len(military) + self.SQUAD_SIZE - 1) // self.SQUAD_SIZE)
+        by_type = {}
+        for unit in military:
+            by_type.setdefault(unit.name, []).append(unit)
+        buckets = list(by_type.values())
+        interleaved = []
+        index = 0
+        while len(interleaved) < len(military):
+            bucket = buckets[index % len(buckets)]
+            if bucket:
+                interleaved.append(bucket.pop(0))
+            else:
+                buckets.pop(index % len(buckets))
+                continue
+            index += 1
+        squad_count = max(1, (len(interleaved) + self.SQUAD_SIZE - 1) // self.SQUAD_SIZE)
         cursor = self._next_squad_index.get(player, 0) % squad_count
         self._next_squad_index[player] = (cursor + 1) % squad_count
         start = cursor * self.SQUAD_SIZE
-        return military[start:start + self.SQUAD_SIZE]
+        return interleaved[start:start + self.SQUAD_SIZE]
 
     def _apply_micro(self, military, castle, max_hp_cache):
         """Apply micro-management: retreat, kiting"""

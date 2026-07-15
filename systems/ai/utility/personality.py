@@ -103,11 +103,13 @@ def composition_target(personality: str, unit_name: str) -> float:
 
 
 # §8.10: how many watchtowers each personality is willing to maintain.
+# +1 across the board (2026-07-14 batch 3): tower #2 now guards the forward
+# economy, so a second tower is useful map play, not spam.
 TOWER_CAPS = {
-    "turtle": 3,
-    "balanced": 2,
-    "boomer": 2,
-    "rusher": 1,
+    "turtle": 4,
+    "balanced": 3,
+    "boomer": 3,
+    "rusher": 2,
 }
 
 

@@ -65,6 +65,32 @@ class BuildingPlacer:
             return (nearest.x, nearest.y)
         return (wx, wy)
 
+    def _forward_tower_anchor(self, ctx) -> Optional[Tuple[float, float]]:
+        """§8.12 batch 3 map awareness: after the first castle-ring tower,
+        towers guard the FORWARD ECONOMY — the dropoffs raids target. Pick
+        the forward dropoff (>=300px from the castle) farthest from every
+        existing tower (the least-protected one)."""
+        if not ctx.castle:
+            return None
+        towers = ctx.buildings.get("watchtower", [])
+        best, best_score = None, -1.0
+        for name in ("mine", "lumbermill", "quarry", "market"):
+            for building in ctx.buildings.get(name, []):
+                castle_dist = math.hypot(building.x - ctx.castle.x, building.y - ctx.castle.y)
+                if castle_dist < 300:
+                    continue  # castle-ring towers already cover home turf
+                tower_dist = min(
+                    (math.hypot(building.x - t.x, building.y - t.y) for t in towers),
+                    default=1e9,
+                )
+                if tower_dist < 260:
+                    continue  # this one is already guarded
+                if tower_dist > best_score:
+                    best, best_score = building, tower_dist
+        if best is None:
+            return None
+        return (best.x, best.y)
+
     def _find_near_castle(self, building_type: str, ctx) -> Optional[Tuple[float, float]]:
         """Ring search around the castle (100-300px, 30-degree increments).
 
@@ -81,6 +107,19 @@ class BuildingPlacer:
             anchor_x, anchor_y = anchor
         else:
             return None
+
+        # Towers after the first guard the forward economy when one needs it
+        if building_type == "watchtower" and ctx.buildings.get("watchtower"):
+            forward = self._forward_tower_anchor(ctx)
+            if forward is not None:
+                for distance in range(90, 220, 40):
+                    for angle_deg in range(0, 360, 30):
+                        angle = math.radians(angle_deg)
+                        x = forward[0] + distance * math.cos(angle)
+                        y = forward[1] + distance * math.sin(angle)
+                        if self._is_valid_position(x, y, "watchtower", ctx):
+                            return (x, y)
+                # fall through to the castle ring if nothing fits out there
 
         angles = list(range(0, 360, 30))
         distances = list(range(100, 320, 40))
@@ -260,10 +299,18 @@ class BuildingPlacer:
 
     def _is_valid_position(self, x: float, y: float, building_type: str, ctx) -> bool:
         """Check terrain, collisions, and enemy proximity."""
-        # Map bounds
+        # Get building radius from template (needed for radius-aware bounds)
+        building_template = self.game.game_data["buildings"].get(building_type)
+        if not building_template:
+            return False
+        building_radius = building_template.radius
+
+        # Map bounds — radius-aware (§8.12 batch 3): a flat 50px margin let
+        # large buildings sit half outside the world at the map border
         map_w = self.game.game_map.width * TILE_WIDTH
         map_h = self.game.game_map.height * TILE_HEIGHT
-        if x < 50 or y < 50 or x > map_w - 50 or y > map_h - 50:
+        margin = building_radius + 20
+        if x < margin or y < margin or x > map_w - margin or y > map_h - margin:
             return False
 
         # §8.11: never build on unexplored ground
@@ -280,12 +327,6 @@ class BuildingPlacer:
         terrain = self.game.game_map.grid[row][col]
         if terrain not in ("grass", "plains", "dirt"):
             return False
-
-        # Get building radius from template
-        building_template = self.game.game_data["buildings"].get(building_type)
-        if not building_template:
-            return False
-        building_radius = building_template.radius
         min_distance = building_radius + 30
 
         # Collision with existing statics via the shared spatial index
