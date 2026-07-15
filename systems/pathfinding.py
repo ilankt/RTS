@@ -113,6 +113,19 @@ class NavigationGrid:
         setattr(self.game_map, "nav_terrain_walkable", self.terrain_walkable)
         self.rebuild()
 
+    def rebuild_terrain(self):
+        """Rebuild the static terrain bitmap + its connected components.
+
+        Terrain is treated as immutable in normal play, so the bitmap is built
+        once here and mark_dirty()/rebuild() deliberately never wipe it. Save
+        loading is the one case where the ground genuinely changes underfoot,
+        so it has to say so explicitly.
+        """
+        self._terrain_bitmap = self._build_terrain_bitmap()
+        self._terrain_components = self._build_terrain_components()
+        setattr(self.game_map, "nav_terrain_walkable", self.terrain_walkable)
+        self.rebuild()
+
     def rebuild(self):
         start_time = time.perf_counter()
         self._walkable_cache.clear()
@@ -472,6 +485,16 @@ class Pathfinding:
         """Full nav + path-cache rebuild. Bulk fallback only — runtime world
         changes should go through notify_blocker_added/removed instead."""
         self.grid.mark_dirty()
+        self._path_cache.clear()
+        self._negative_path_keys.clear()
+        self.flow_fields.invalidate()
+
+    def rebuild_terrain(self):
+        """The ground itself changed (save loading). Rebuilds the static
+        terrain bitmap — which mark_dirty deliberately never touches — and
+        then drops every cached path/flow field, since they were all solved
+        against the old map."""
+        self.grid.rebuild_terrain()
         self._path_cache.clear()
         self._negative_path_keys.clear()
         self.flow_fields.invalidate()

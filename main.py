@@ -157,8 +157,8 @@ def main():
             slot = SaveLoadScreen(screen).run()  # load-only from the main menu
             if slot is not None:
                 draw_splash(screen, "Loading...")
-                # Build the Game with the save's map size so restored objects
-                # stay in bounds (terrain itself still regenerates — known gap)
+                # Build the Game at the save's map size; load_game then puts
+                # the saved terrain back over the freshly generated one.
                 game = Game(map_size=SaveManager.peek_map_size(slot=slot))
                 settings.apply_to_game(game)  # before load: the save's speed wins
                 success, msg = SaveManager.load_game(game, slot=slot)

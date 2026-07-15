@@ -1718,6 +1718,21 @@ unsequenced — pull them in where they fit.
   task/gather targets, combat targets, in-flight paths (units re-idle on load).
   Roundtrip covered by `tests/test_save_load.py` (full v2 field cycle on a live
   game + 60 post-load frames; gate-open survival).
+  - *(2026-07-14)* **v3 — terrain persists** (user-reported: loads dropped you
+    onto a freshly generated random map with your objects scattered over it).
+    The map's **seed cannot** do this: `world/map.py` generation also draws
+    from the global RNG (beaches, lake shores, volcanic scatter), so replaying
+    the seed yields a *different* map — and moving generation onto a private
+    RNG would silently rebaseline every seeded map (incl. the §8.8 sim seeds).
+    So the grid itself is stored: a tile palette + one char per tile (+7 KB on
+    a 70×70 save, 23 → 30 KB). `_restore_terrain` runs FIRST in `load_game`,
+    before any blocker is placed, and rebuilds everything derived from the
+    ground — the pathfinder's static terrain bitmap + connected components
+    (`Pathfinding.rebuild_terrain`; `mark_dirty` deliberately never wipes
+    those, since terrain is otherwise immutable), every cached path/flow
+    field, and the minimap's baked texture. v1/v2 saves still load and simply
+    keep the generated map. Tests in `tests/test_terrain_save_load.py`;
+    verified visually (loaded minimap pixel-identical to the saved one).
 - [x] **Sound coverage**: audited 2026-07-10 — five of the six were already
   called; `alert` now fires on under-attack. (Realized in §8.5.)
 - [x] **Test coverage**: closed 2026-07-10 — the suite is now 192 tests and

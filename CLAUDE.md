@@ -146,9 +146,12 @@ Do not maintain a second roadmap or changelog in this file — update MASTER_PLA
 rely on `git log` for history.
 
 ## Known Gaps (stable, not currently being worked)
-- **Save/Load** (F5/F9) persists only camera, players, and basic unit/building/resource/site
-  fields — not AI state, fog grids, production/research queues, or paths. Load won't crash but
-  state diverges from what was saved.
+- **Save/Load** is save format **v3** (`managers/save_manager.py`, still loads v1/v2):
+  terrain, units, buildings, construction sites, resources, production/research queues,
+  rally points, gates, stances, fog (explored), sim clock, stats, and tree timers all
+  persist. Reachable from the pause menu, the main menu (multi-slot screen), and F5/F9
+  (slot 0). Deliberately **not** saved — each self-heals within an AI tick of resuming:
+  AI brain state, worker task/gather targets, combat targets, in-flight paths.
 - Units can still get stuck at tight spots between static obstacles in rare cases; the
   `unit_watchdog` recovers them (teleport-to-safe-position) after several seconds rather than
   routing around cleanly — see MASTER_PLAN.md's local-steering phase for the real fix.

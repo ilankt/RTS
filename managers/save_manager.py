@@ -23,7 +23,7 @@ class SaveManager:
         
         # Build serializable state
         state = {
-            "version": 2,
+            "version": 3,  # v3 adds terrain; v1/v2 still load (map regenerates)
             "timestamp": datetime.now().isoformat(),
             "map_size": ([game.game_map.width, game.game_map.height]
                          if getattr(game, "game_map", None) else None),
@@ -45,6 +45,7 @@ class SaveManager:
             "fog_enabled": bool(getattr(getattr(game, "fog_of_war", None), "enabled", True)),
             "tree_regrowth": list(getattr(game, "_tree_regrowth", [])),
             "fountains": [[f.x, f.y] for f in getattr(game, "fountains", ())],
+            "terrain": cls._serialize_terrain(game),
             "stats_units_trained": {f"{k[0]}|{k[1]}": v for k, v in getattr(game, "stats_units_trained", {}).items()},
             "stats_buildings_built": {f"{k[0]}|{k[1]}": v for k, v in getattr(game, "stats_buildings_built", {}).items()},
             "stats_tower_damage": dict(getattr(game, "stats_tower_damage", {})),
@@ -136,6 +137,62 @@ class SaveManager:
         return filepath
     
     @classmethod
+    def _serialize_terrain(cls, game):
+        """The tile grid as a palette + one character per tile (~5 KB for a
+        70×70 map).
+
+        Storing the map's generation seed instead would NOT reproduce it:
+        terrain generation also draws from the global RNG (world/map.py
+        random.random() calls for beaches, lake shores, volcanic scatter),
+        so replaying the seed alone yields a different map. The grid is the
+        only faithful record, and it stays correct even if generation
+        changes later.
+        """
+        game_map = getattr(game, "game_map", None)
+        grid = getattr(game_map, "grid", None)
+        if not grid:
+            return None
+        palette, index, rows = [], {}, []
+        for row in grid:
+            chars = []
+            for name in row:
+                i = index.get(name)
+                if i is None:
+                    i = index[name] = len(palette)
+                    palette.append(name)
+                chars.append(chr(48 + i))  # printable, JSON-safe
+            rows.append("".join(chars))
+        return {"palette": palette, "rows": rows}
+
+    @classmethod
+    def _restore_terrain(cls, game, terrain):
+        """Put the saved ground back and rebuild everything derived from it:
+        the pathfinder's static terrain bitmap/components and the minimap's
+        baked texture. Without this the load silently kept the freshly
+        generated random map (user-reported: loads didn't restore the map)."""
+        game_map = getattr(game, "game_map", None)
+        if not terrain or game_map is None:
+            return False
+        palette = terrain.get("palette") or []
+        rows = terrain.get("rows") or []
+        if not palette or len(rows) != game_map.height:
+            return False
+        grid = []
+        for row in rows:
+            if len(row) != game_map.width:
+                return False
+            grid.append([palette[ord(c) - 48] for c in row])
+        game_map.grid = grid
+
+        pathfinder = getattr(game, "pathfinder", None)
+        if pathfinder is not None:
+            pathfinder.rebuild_terrain()
+        minimap = getattr(game, "minimap", None)
+        if minimap is not None:
+            minimap.map_texture = minimap.create_map_texture()
+        return True
+
+    @classmethod
     def _serialize_fog(cls, game):
         """Explored tiles per player index, one '01' string per row."""
         fog = getattr(game, "fog_of_war", None)
@@ -193,8 +250,9 @@ class SaveManager:
         with open(filepath, "r") as f:
             state = json.load(f)
         
-        # Validate version (v1 saves load with v2 fields defaulting)
-        if state.get("version") not in (1, 2):
+        # Validate version (older saves load with newer fields defaulting —
+        # v1/v2 simply keep the generated terrain, as they always did)
+        if state.get("version") not in (1, 2, 3):
             return False, "Unsupported save version"
         
         # Clear existing state (mark old objects dead so stale references fail
@@ -209,7 +267,12 @@ class SaveManager:
         if hasattr(game, "worker_task_system"):
             for worker in list(game.worker_task_system.tasks.keys()):
                 game.worker_task_system.cancel(worker)
-        
+
+        # Restore the ground FIRST: every blocker/path computed below must see
+        # the saved terrain, not the random map this Game was built with.
+        # (v1 saves have no terrain — they keep the generated map, as before.)
+        cls._restore_terrain(game, state.get("terrain"))
+
         # Restore players
         player_map = {}
         for player_data in state["players"]:
