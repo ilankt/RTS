@@ -112,8 +112,8 @@ def test_worker_selection_shows_build_grid_immediately(game, card):
     assert content['context'] == 'build'
     assert [tab for tab, _ in content['chips']] == ['economy', 'military']
     names = [slot['name'] for slot in content['slots'] if slot]
-    assert names == ['farm', 'house', 'lumbermill', 'mine', 'quarry', 'castle']
-    assert content['slots'][6] is None  # economy leaves the last row empty
+    assert names == ['farm', 'house', 'lumbermill', 'mine', 'quarry', 'market', 'castle']
+    assert content['slots'][7] is None  # economy leaves the last slot empty
 
 
 def test_tab_swap_hotkey_and_memory(game, card):

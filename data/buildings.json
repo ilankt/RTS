@@ -164,6 +164,29 @@
     }
   },
   {
+    "name": "market",
+    "display_name": "Market",
+    "role": "Trades wood, food, and stone for gold (and back)",
+    "requires": [],
+    "buildable": true,
+    "strong_against": [],
+    "weak_against": [
+      "ram"
+    ],
+    "sprite": "assets/sprites/Buildings/Market.png",
+    "size": [
+      1.5,
+      1.5
+    ],
+    "hp": 800,
+    "build_duration": 12,
+    "armor_type": "fortified",
+    "armor_value": 3,
+    "costs": {
+      "wood": 100
+    }
+  },
+  {
     "name": "watchtower",
     "display_name": "Watchtower",
     "role": "Static defense that controls territory",

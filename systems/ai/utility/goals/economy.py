@@ -25,6 +25,91 @@ class RebuildCastleGoal(Goal):
         return start_construction(ctx, "castle", ctx.game.ai_system.building_placer)
 
 
+class BuildMarketGoal(Goal):
+    """§8.9 market: build one when the stockpiles are lopsided — a big
+    non-gold surplus rotting (sell it) or gold banked with a resource
+    missing (buy it)."""
+    name = "build_market"
+    category = "economy"
+
+    def score(self, ctx):
+        if ctx.has_construction_in_progress("market") or ctx.buildings.get("market"):
+            return 0
+        if len(ctx.workers) < 4:
+            return 0
+        if not ctx.can_afford("market"):
+            return 0
+        res = ctx.resources
+        gold = res.get("gold", 0)
+        surplus = max(res.get("wood", 0), res.get("food", 0), res.get("stone", 0))
+        shortage = min(res.get("wood", 0), res.get("food", 0), res.get("stone", 0))
+        if surplus >= 400 or (gold >= 400 and shortage < 60):
+            return 55
+        return 0
+
+    def execute(self, ctx):
+        return start_construction(ctx, "market", ctx.game.ai_system.building_placer)
+
+
+class MarketTradeGoal(Goal):
+    """§8.9: use the market. Sell the biggest rotting surplus when gold is
+    the constraint; buy a missing resource when gold is banked. Conditions
+    recomputed in execute (goal instances are shared across players)."""
+    name = "market_trade"
+    category = "economy"
+
+    SELL_SURPLUS = 400   # a stockpile this big is doing nothing
+    SELL_GOLD_CAP = 200  # only sell while gold is actually short
+    BUY_GOLD_MIN = 400   # only buy from a comfortable bank
+    BUY_SHORTAGE = 60    # a stockpile this low is blocking something
+    TRADE_COOLDOWN_S = 10.0  # one trade per cooldown — a permanently-valid
+    # trade goal would otherwise win the tick every tick and starve
+    # AttackGoal (only one goal executes per tick): armies never left home
+    # and matches timed out in the first smoke run.
+
+    def __init__(self):
+        self._last_trade = {}  # player name -> sim time
+
+    def _off_cooldown(self, ctx):
+        now = getattr(ctx.game, "sim_time_elapsed", 0.0)
+        return now - self._last_trade.get(ctx.player.name, -1e9) >= self.TRADE_COOLDOWN_S
+
+    def _pick_trade(self, ctx):
+        from core.config import MARKET_TRADEABLE
+
+        res = ctx.resources
+        gold = res.get("gold", 0)
+        if gold >= self.BUY_GOLD_MIN:
+            for resource in MARKET_TRADEABLE:
+                if res.get(resource, 0) < self.BUY_SHORTAGE:
+                    return ("buy", resource)
+        if gold < self.SELL_GOLD_CAP:
+            biggest = max(MARKET_TRADEABLE, key=lambda r: res.get(r, 0))
+            if res.get(biggest, 0) >= self.SELL_SURPLUS:
+                return ("sell", biggest)
+        return None
+
+    def score(self, ctx):
+        if not ctx.buildings.get("market"):
+            return 0
+        if not self._off_cooldown(ctx):
+            return 0
+        return 60 if self._pick_trade(ctx) else 0
+
+    def execute(self, ctx):
+        from systems import market
+
+        trade = self._pick_trade(ctx)
+        if trade is None:
+            return False
+        direction, resource = trade
+        action = market.buy if direction == "buy" else market.sell
+        traded = action(ctx.player, resource)
+        if traded:
+            self._last_trade[ctx.player.name] = getattr(ctx.game, "sim_time_elapsed", 0.0)
+        return traded
+
+
 class TrainWorkerGoal(Goal):
     name = "train_worker"
     category = "economy"

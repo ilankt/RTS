@@ -4,8 +4,10 @@ from .economy import (
     BuildFarmGoal,
     BuildHouseGoal,
     BuildLumbermillGoal,
+    BuildMarketGoal,
     BuildMineGoal,
     BuildQuarryGoal,
+    MarketTradeGoal,
 )
 from .military import (
     BuildBarracksGoal,
@@ -58,10 +60,12 @@ ALL_GOALS = [
     ResearchSiegeEngineeringGoal,
     # Economy
     RebuildCastleGoal,
+    MarketTradeGoal,
     TrainWorkerGoal,
     BuildHouseGoal,
     BuildFarmGoal,
     BuildLumbermillGoal,
     BuildMineGoal,
     BuildQuarryGoal,
+    BuildMarketGoal,
 ]

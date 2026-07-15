@@ -200,23 +200,43 @@ class ProductionManager:
             self.game.pathfinder.issue_move(unit, point)
 
     def _find_spawn_position(self, building):
-        """Find a valid spawn position near the building"""
-        # Try positions in a circle around the building
-        spawn_distance = building.radius + 40  # Spawn a bit away from building
-        
-        for angle in range(0, 360, 45):  # Try 8 directions
-            angle_rad = math.radians(angle)
-            spawn_x = building.x + math.cos(angle_rad) * spawn_distance
-            spawn_y = building.y + math.sin(angle_rad) * spawn_distance
-            
-            # Check if position is valid (not colliding with other objects)
-            if self._is_valid_spawn_position(spawn_x, spawn_y):
-                return (spawn_x, spawn_y)
-        
-        # Fallback: spawn at building position (not ideal but prevents crashes)
-        return (building.x, building.y)
-    
-    def _is_valid_spawn_position(self, x, y):
+        """Find a valid spawn position near the building.
+
+        BUG FIX (user-reported): the old version tried 8 points on ONE ring
+        and then fell back to the BUILDING CENTER — when produced units
+        crowded the barracks (common now that armies mass at home), every
+        point failed and new units spawned INSIDE the building, stuck.
+        Now: widen the search over several rings; if still crowded, allow
+        overlapping UNITS (the separation pass shoves them apart) but never
+        statics; the building center is never returned."""
+        rings = (40, 72, 104, 136)
+        for ring in rings:
+            distance = building.radius + ring
+            for angle in range(0, 360, 30):
+                angle_rad = math.radians(angle)
+                spawn_x = building.x + math.cos(angle_rad) * distance
+                spawn_y = building.y + math.sin(angle_rad) * distance
+                if self._is_valid_spawn_position(spawn_x, spawn_y):
+                    return (spawn_x, spawn_y)
+        # Crowded by friendly units: overlap is fine, statics are not
+        for ring in rings[:3]:
+            distance = building.radius + ring
+            for angle in range(0, 360, 30):
+                angle_rad = math.radians(angle)
+                spawn_x = building.x + math.cos(angle_rad) * distance
+                spawn_y = building.y + math.sin(angle_rad) * distance
+                if self._is_valid_spawn_position(spawn_x, spawn_y, ignore_units=True):
+                    return (spawn_x, spawn_y)
+        # Walled in on every side: at least spawn OUTSIDE the building's own
+        # footprint so separation + the watchdog can recover the unit
+        map_cx = self.game.game_map.width * TILE_WIDTH / 2
+        map_cy = self.game.game_map.height * TILE_WIDTH / 2
+        angle_rad = math.atan2(map_cy - building.y, map_cx - building.x)
+        edge = building.radius + 24
+        return (building.x + math.cos(angle_rad) * edge,
+                building.y + math.sin(angle_rad) * edge)
+
+    def _is_valid_spawn_position(self, x, y, ignore_units=False):
         """Check if a spawn position is valid (no collisions)"""
         spawn_radius = 16  # Radius for unit being spawned
 
@@ -234,8 +254,9 @@ class ProductionManager:
 
         # Check collision with existing objects via the shared spatial index
         collision = self.game.collision_system
-        nearby = collision.query_nearby_static(x, y, spawn_radius)
-        nearby.extend(collision.query_nearby_units(x, y, spawn_radius))
+        nearby = list(collision.query_nearby_static(x, y, spawn_radius))
+        if not ignore_units:
+            nearby.extend(collision.query_nearby_units(x, y, spawn_radius))
         for obj in nearby:
             min_distance = spawn_radius + obj.radius
             if (x - obj.x) ** 2 + (y - obj.y) ** 2 < min_distance * min_distance:

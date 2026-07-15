@@ -227,19 +227,29 @@ class GoalContext:
         idle, gathering = [], []
         worker_tasks = getattr(self.game, "worker_task_system", None)
         for w in self.workers:
+            tasked_gatherer = False
             if worker_tasks:
                 task = worker_tasks.active_task(w)
                 if task and task.phase != "FAILED":
-                    continue
+                    # §8.9 regression fix: since worker auto-continuation
+                    # (§8.11) gatherers NEVER idle between nodes, and this
+                    # "skip any tasked worker" gate made the fallback below
+                    # unreachable — construction starved for minutes
+                    # (pop-locked armies; the market exposed it). A gather-
+                    # cycle worker carrying nothing may be pulled off the
+                    # line like in any RTS.
+                    if task.kind != "gather":
+                        continue
+                    tasked_gatherer = True
             if w.is_building or w.building_target:
                 continue
             if w.is_dropping_off or w.resource_amount > 0:
                 continue
             if any(s.builder is w for s in self.construction_sites):
                 continue
-            if w.status == "idle" and not w.destination and not w.path:
+            if not tasked_gatherer and w.status == "idle" and not w.destination and not w.path:
                 idle.append(w)
-            elif w.is_gathering or w.is_engaging or w.gathering_target:
+            elif tasked_gatherer or w.is_gathering or w.is_engaging or w.gathering_target:
                 gathering.append(w)
         if idle:
             return idle[0]

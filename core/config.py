@@ -191,6 +191,14 @@ WORKER_SATURATION_CAP = 3
 # entities/player.py and the §8.3 balance tooling.
 PLAYER_GATHERING_MULTIPLIER = 5.0
 
+# §8.9 market: all trades route through gold, always at a loss — the spread
+# makes the market a strategic release valve, never a money machine
+# (a full round trip keeps ~33% of the original resource).
+MARKET_TRADE_LOT = 100      # resources moved per trade
+MARKET_SELL_GOLD = 50       # gold received for selling one lot
+MARKET_BUY_GOLD = 150       # gold paid to buy one lot
+MARKET_TRADEABLE = ("wood", "food", "stone")
+
 # Combat counter model (§8.4, prototyped behind a flag): attackers deal bonus
 # damage to targets listed in their strong_against tags, making e.g.
 # spearman-vs-cavalry distinctly stronger than archer-vs-cavalry.

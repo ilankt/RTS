@@ -30,7 +30,7 @@ from systems.upgrade_effects import has_required_buildings
 
 
 # Castle listed last (§8.12): rebuildable after a loss — expensive comeback
-ECONOMY_BUILDINGS = ['farm', 'house', 'lumbermill', 'mine', 'quarry', 'castle']
+ECONOMY_BUILDINGS = ['farm', 'house', 'lumbermill', 'mine', 'quarry', 'market', 'castle']
 MILITARY_BUILDINGS = ['barracks', 'stable', 'blacksmith', 'siege_workshop',
                       'watchtower', 'wooden_wall', 'wall', 'gate']
 
@@ -146,6 +146,8 @@ class CommandCard:
             elif own_buildings:
                 if len(own_buildings) == 1 and getattr(own_buildings[0], 'is_gate', False):
                     self._fill_gate(content, own_buildings[0])
+                elif len(own_buildings) == 1 and own_buildings[0].name == 'market':
+                    self._fill_market(content, own_buildings[0], human)
                 else:
                     self._fill_production(content, own_buildings, human)
         return content
@@ -355,6 +357,39 @@ class CommandCard:
             'tooltip': ['Cancel construction', 'Remove the foundation and refund'
                         ' its cost.'],
         }
+
+    def _fill_market(self, content, market, human):
+        """§8.9 market: sell tiles down the left column, buy tiles down the
+        right. Shift-click trades a batch of 5 lots."""
+        from core.config import (MARKET_TRADE_LOT, MARKET_SELL_GOLD,
+                                 MARKET_BUY_GOLD, MARKET_TRADEABLE)
+        from systems import market as market_rules
+
+        content['context'] = 'market'
+        content['building'] = market
+        for row, resource in enumerate(MARKET_TRADEABLE):
+            can_sell = market_rules.can_sell(human, resource)
+            content['slots'][row * 2] = {
+                'kind': 'trade', 'direction': 'sell', 'resource': resource,
+                'label': f'Sell {MARKET_TRADE_LOT} {resource.title()}',
+                'icon': self._icon('building', 'market'),
+                'cost': f'+{MARKET_SELL_GOLD}G',
+                'enabled': can_sell,
+                'reason': 'Ready' if can_sell else f'Need {MARKET_TRADE_LOT} {resource}',
+                'tooltip': [f'Sell {MARKET_TRADE_LOT} {resource} for {MARKET_SELL_GOLD} gold',
+                            'Shift: trade 5 lots.'],
+            }
+            can_buy = market_rules.can_buy(human, resource)
+            content['slots'][row * 2 + 1] = {
+                'kind': 'trade', 'direction': 'buy', 'resource': resource,
+                'label': f'Buy {MARKET_TRADE_LOT} {resource.title()}',
+                'icon': self._icon('building', 'market'),
+                'cost': f'-{MARKET_BUY_GOLD}G',
+                'enabled': can_buy,
+                'reason': 'Ready' if can_buy else f'Need {MARKET_BUY_GOLD} gold',
+                'tooltip': [f'Buy {MARKET_TRADE_LOT} {resource} for {MARKET_BUY_GOLD} gold',
+                            'Shift: trade 5 lots.'],
+            }
 
     def _fill_gate(self, content, gate):
         content['context'] = 'gate'
@@ -779,6 +814,18 @@ class CommandCard:
             from systems import garrison
             garrison.eject_all(self.game, slot['building'])
             self._play(True)
+        elif kind == 'trade':
+            from systems import market as market_rules
+            human = self.game.players[0]
+            action = (market_rules.sell if slot['direction'] == 'sell'
+                      else market_rules.buy)
+            lots = 5 if self._shift_held() else 1
+            done = 0
+            for _ in range(lots):
+                if not action(human, slot['resource']):
+                    break
+                done += 1
+            self._play(done > 0)
         else:
             return False
         return True
