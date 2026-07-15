@@ -37,7 +37,7 @@ PRODUCES = {
     "castle": ["worker"], "barracks": ["warrior", "archer", "spearman"],
     "stable": ["cavalry"], "siege_workshop": ["ram"], "blacksmith": [],
 }
-RES_LABEL = {"gold": "G", "wood": "W", "stone": "S", "food": "F"}
+RES_NAME = {"gold": "Gold", "wood": "Wood", "stone": "Stone", "food": "Food"}
 
 
 # --------------------------------------------------------------------------- #
@@ -140,8 +140,7 @@ def _cost_chips(costs):
     chips = []
     for res in order:
         if costs.get(res):
-            chips.append(f'<span class="cost {res}">{costs[res]}'
-                         f'<em>{RES_LABEL[res]}</em></span>')
+            chips.append(f'<span class="cost {res}">{costs[res]} {RES_NAME[res]}</span>')
     return "".join(chips) or '<span class="cost free">Free</span>'
 
 
@@ -240,6 +239,17 @@ def build(output_path=None):
     building_cards = "\n".join(_building_card(b) for b in buildings)
     tech_rows = "\n".join(_tech_row(t) for t in techs)
 
+    fountain = _still("assets/sprites/Buildings/Fountain.png", box=(150, 120))
+    fountain_img = f'<img src="{fountain}" alt="Healing Fountain">' if fountain else ""
+    fountain_block = f'''<div class="panel fountain-note">
+      {fountain_img}
+      <div><h3>The Healing Fountain</h3>
+      <p>A neutral fountain stands near the center of every map — you don't
+      build it, and no one owns it. Any unit standing close slowly regains
+      health, so both armies want it and the middle becomes contested ground.
+      It's the ideal spot to regroup and mend a battered army mid-fight.</p></div>
+    </div>'''
+
     # Economy numbers, pulled live so they never drift from balance
     mult = getattr(config, "PLAYER_GATHERING_MULTIPLIER", 5.0)
     rates = config.GATHERING_RATES
@@ -285,6 +295,7 @@ def build(output_path=None):
         econ_rates=econ_rates,
         market=market,
         control_rows=control_rows,
+        fountain_block=fountain_block,
         css=_CSS,
         js=_JS,
     )
@@ -349,6 +360,10 @@ border-bottom:1px dotted #2c3040;padding:3px 0}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
 .panel h3{margin:0 0 10px;color:var(--gold);font-size:17px}
 .cols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.fountain-note{display:flex;gap:18px;align-items:center;margin-top:16px}
+.fountain-note img{width:140px;height:118px;object-fit:contain;flex:none;
+border-radius:8px;background:var(--card)}
+.fountain-note h3{margin:0 0 6px}
 .econ{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
@@ -413,6 +428,7 @@ _PAGE = """<!doctype html>
       on gold — it pays for almost every soldier. Expand to a second resource
       cluster once your first is crowded (3 workers per node is the sweet spot).</p></div>
   </div>
+  {fountain_block}
 </section>
 
 <section id="units">
@@ -426,7 +442,7 @@ _PAGE = """<!doctype html>
 <section id="buildings">
   <h2>Buildings</h2>
   <p class="lede">Your base. Production buildings train units; the blacksmith
-  researches upgrades; watchtowers and walls defend; the market trades resources.</p>
+  researches upgrades; watchtowers defend; the market trades resources.</p>
   <div class="grid">{building_cards}</div>
 </section>
 
@@ -437,7 +453,7 @@ _PAGE = """<!doctype html>
       <p><b>Gold</b> — the army currency: nearly every soldier costs it. Scarce
       and contested.<br>
       <b>Wood</b> — buildings and siege. Renewable and plentiful.<br>
-      <b>Stone</b> — defense and siege only (towers, walls, rams).<br>
+      <b>Stone</b> — defense and siege only (watchtowers and battering rams).<br>
       <b>Food</b> — labor: every unit needs it; farms produce it over time.</p></div>
     <div class="panel"><h3>Gathering</h3>
       <div class="econ">{econ_rates}</div>

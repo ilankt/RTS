@@ -52,7 +52,8 @@ def test_default_game_mode_is_human_1v1_and_spectator_is_preserved():
     human_game = Game()
     assert human_game.mode == "human_1v1"
     assert [p.human for p in human_game.players] == [True, False]
-    assert human_game.tree_regrowth_enabled is False
+    # Forests regrow in every mode now (§8.3 wood = renewable), incl. human
+    assert human_game.tree_regrowth_enabled is True
 
     spectator_game = Game(mode="ai_spectator", player_count=4)
     assert spectator_game.spectator_mode is True

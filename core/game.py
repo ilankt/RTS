@@ -154,7 +154,12 @@ class Game:
         
         # Game speed factor
         self.game_speed = DEFAULT_GAME_SPEED
-        self.tree_regrowth_enabled = mode != "human_1v1"
+        # Forests regrow (60 s per felled tree, never under a building) — wood
+        # is the renewable resource by design (§8.3). Enabled in ALL modes
+        # 2026-07-14 (user-reported): human matches used to be the odd one
+        # out with regrowth OFF, contradicting the design AND the balance
+        # sims (which all run with it on).
+        self.tree_regrowth_enabled = True
         
         # Game over state: None, "victory", or "defeat"
         self.game_over_state = None

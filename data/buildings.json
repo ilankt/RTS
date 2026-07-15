@@ -55,9 +55,7 @@
     "requires": [],
     "buildable": true,
     "strong_against": [],
-    "weak_against": [
-      "raiders"
-    ],
+    "weak_against": [],
     "sprite": "assets/sprites/Buildings/Farm.png",
     "size": [
       1,
@@ -78,9 +76,7 @@
     "requires": [],
     "buildable": true,
     "strong_against": [],
-    "weak_against": [
-      "raiders"
-    ],
+    "weak_against": [],
     "sprite": "assets/sprites/Buildings/House.png",
     "size": [
       1,
@@ -101,9 +97,7 @@
     "requires": [],
     "buildable": true,
     "strong_against": [],
-    "weak_against": [
-      "raiders"
-    ],
+    "weak_against": [],
     "sprite": "assets/sprites/Buildings/Lumbermill.png",
     "size": [
       1.5,
@@ -124,9 +118,7 @@
     "requires": [],
     "buildable": true,
     "strong_against": [],
-    "weak_against": [
-      "raiders"
-    ],
+    "weak_against": [],
     "sprite": "assets/sprites/Buildings/Mine.png",
     "size": [
       1.5,
@@ -147,9 +139,7 @@
     "requires": [],
     "buildable": true,
     "strong_against": [],
-    "weak_against": [
-      "raiders"
-    ],
+    "weak_against": [],
     "sprite": "assets/sprites/Buildings/quarry.png",
     "size": [
       1.5,
