@@ -1105,9 +1105,14 @@ class SelectionManager:
                     pygame.draw.circle(surface, (255, 0, 0), (int(target_screen_x), int(target_screen_y)), 5, 2)
     
     def draw_attack_targets(self, surface, camera):
-        """Draw red circles around units' attack targets"""
+        """Draw red circles around units' attack targets.
+
+        Skipped entirely in spectator mode (user request): with every AI
+        unit ringing its target the map filled with red circles."""
+        if getattr(self.game, "spectator_mode", False):
+            return
         drawn_targets = set()  # Avoid drawing multiple circles on same target
-        
+
         for unit in self.game.units:
             if unit.current_target and unit.current_target not in drawn_targets:
                 target = unit.current_target
