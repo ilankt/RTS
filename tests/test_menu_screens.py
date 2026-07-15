@@ -95,9 +95,11 @@ def test_pause_menu_click_actions(screen):
     game._handle_pause_menu_click(resume_rect.center)
     assert game.game_paused is False
 
-    # Quit row leaves the match loop
+    # Quit row leaves the match loop (found by action, not a fixed index)
     game.game_paused = True
-    quit_rect = game._pause_option_rect(2)
+    quit_index = next(i for i, (_l, a) in enumerate(game.PAUSE_OPTIONS)
+                      if a == "quit_to_menu")
+    quit_rect = game._pause_option_rect(quit_index)
     game._handle_pause_menu_click(quit_rect.center)
     assert game.running is False
     assert game.game_paused is False

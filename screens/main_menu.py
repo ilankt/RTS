@@ -23,6 +23,7 @@ class MainMenu:
             ("Spectate AI Battle", "spectate"),
             ("Load Game", "load"),
             ("Settings", "settings"),
+            ("Help", "help"),
             ("Exit", "exit")
         ]
         self.selected_index = 0

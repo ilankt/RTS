@@ -1235,6 +1235,18 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
   sprites, minimap, panels — picks it up; **remappable keys** via §8.6's
   `keybindings.json`; **UI scale** rides the §8.2 resolution setting
   (full DPI-independent scaling stays with the §8.2 rework item).
+- [x] **Help / Field Manual** *(med, user request)* — 2026-07-14: a
+  **Help** button in the main menu AND pause menu opens a self-contained
+  wiki-style HTML page (`help/index.html`) in the default browser
+  (`core/help_launcher.py`, regenerates if missing, never raises).
+  `tools/generate_help.py` builds it from the game's OWN data
+  (`data/*.json` + keybindings + config) so stats never drift — all
+  images inlined as data URIs (looping idle **GIFs** per buildable unit
+  sliced from the sprite sheets, matted building stills, tech icons),
+  inline CSS + a search/filter JS, no external requests. Four sections:
+  Getting Started, Units, Buildings, Economy & Tech, Controls & Strategy.
+  Regenerate with `python tools/generate_help.py`. Tests in
+  `tests/test_help_page.py`.
 - **✅ Verify:** finish a match and the summary shows real numbers; stats persist across
   runs; a new player can identify what to do from tooltips alone; colorblind mode
   visibly changes the palette.

@@ -165,6 +165,10 @@ def main():
 
             SettingsMenu(screen).run()
             settings.load()  # pick up what the screen saved
+        elif choice == "help":
+            from core.help_launcher import open_help
+
+            open_help()  # opens the field manual in the default browser
 
         # Reset the display in case the game or settings changed it
         # (also applies a fullscreen toggle made in the settings screen)

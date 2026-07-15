@@ -1104,6 +1104,7 @@ class Game:
     PAUSE_OPTIONS = [
         ("Resume", "resume"),
         ("Settings", "settings"),
+        ("Help", "help"),
         ("Quit to Menu", "quit_to_menu"),
     ]
 
@@ -1159,6 +1160,10 @@ class Game:
                 self.game_paused = False
             elif action == "settings":
                 self._open_settings_from_pause()
+            elif action == "help":
+                from core.help_launcher import open_help
+
+                open_help()  # field manual in the browser; game stays paused
             elif action == "quit_to_menu":
                 self.game_paused = False
                 self.running = False  # back to main.py's menu loop
