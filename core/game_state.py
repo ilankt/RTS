@@ -187,6 +187,48 @@ class GameState:
 
         # Instead of individual trees, create forest clusters (many more now)
         self._place_forest_clusters(extra_wood, spawn_locations)
+
+        # §8.9 neutral healing fountain at the map center — contested ground
+        self._place_fountain(spawn_locations)
+
+    def _place_fountain(self, spawn_locations):
+        """One healing fountain as near the map center as possible: open
+        walkable terrain, clear of objects, and at least 12 tiles from every
+        spawn so it's genuinely neutral ground."""
+        from entities.fountain import Fountain
+
+        game_map = self.game.game_map
+        center_r, center_c = game_map.height // 2, game_map.width // 2
+
+        def viable(r, c):
+            if not (3 <= r < game_map.height - 3 and 3 <= c < game_map.width - 3):
+                return False
+            if game_map.grid[r][c] not in ("grass", "plains", "dirt"):
+                return False
+            for spawn_r, spawn_c in spawn_locations:
+                if math.hypot(r - spawn_r, c - spawn_c) < 12:
+                    return False
+            x, y = game_map.grid_to_world(c, r)
+            if self._check_collision_with_objects(x, y, 48):
+                return False
+            return self._has_open_approach(x, y, ring=70.0, needed=5)
+
+        # Spiral out from the center until a viable tile is found
+        for radius in range(0, 18):
+            for dr in range(-radius, radius + 1):
+                for dc in range(-radius, radius + 1):
+                    if max(abs(dr), abs(dc)) != radius:
+                        continue  # ring cells only
+                    r, c = center_r + dr, center_c + dc
+                    if viable(r, c):
+                        x, y = game_map.grid_to_world(c, r)
+                        fountain = Fountain(x, y)
+                        self.game.fountains.append(fountain)
+                        self.game.pathfinder.notify_blocker_added(fountain)
+                        if getattr(self.game, "collision_system", None):
+                            self.game.collision_system.invalidate_static_index()
+                        return
+        # No viable center spot (extreme maps): the match plays without one
     
     def _place_resource_near_spawn(self, resource_type, spawn_r, spawn_c, min_dist, max_dist, count, amount_override=None):
         """Place a specific number of resources near a spawn location.

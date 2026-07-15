@@ -49,6 +49,7 @@ class CollisionSystem:
             tuple(id(obj) for obj in self.game.buildings),
             tuple(id(obj) for obj in self.game.construction_sites),
             tuple(id(obj) for obj in self.game.resources),
+            tuple(id(obj) for obj in getattr(self.game, "fountains", ())),
         )
 
     def _ensure_static_index(self):
@@ -69,6 +70,12 @@ class CollisionSystem:
             self._index_object(self._static_buckets, obj)
             self._static_kinds[id(obj)] = "site"
         for obj in self.game.resources:
+            self._index_object(self._static_buckets, obj)
+            self._static_kinds[id(obj)] = "resource"
+        # §8.9 fountains: indexed as "resource" on purpose — they block
+        # movement and placement, and every combat-targeting query filters
+        # resources out, so nothing ever tries to shoot the fountain.
+        for obj in getattr(self.game, "fountains", ()):
             self._index_object(self._static_buckets, obj)
             self._static_kinds[id(obj)] = "resource"
         self._static_signature = signature

@@ -25,6 +25,15 @@ class WorkerBrain:
         """Find all idle workers for this player and give them jobs."""
         from systems.ai.utility.personality import difficulty_mods
 
+        # §8.9 garrison: pop sheltered units back out once the coast is clear
+        # (buildings come from the ctx snapshot — blackboard-clean)
+        from systems import garrison
+
+        for name in ("castle", "watchtower"):
+            for building in ctx.buildings.get(name, []):
+                if getattr(building, "garrison", None) and ctx.threat_at(building.x, building.y) <= 0:
+                    garrison.eject_all(ctx.game, building)
+
         max_assignments = difficulty_mods(
             getattr(ctx.player, "ai_difficulty", "normal")
         ).get("worker_assignments", MAX_IDLE_WORKER_ASSIGNMENTS_PER_TICK)

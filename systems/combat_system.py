@@ -253,6 +253,8 @@ class CombatSystem:
                     and not unit.in_combat
                     and getattr(unit, "can_attack_flag", False)
                     and unit.stance in (STANCE_AGGRESSIVE, STANCE_DEFENSIVE)
+                    # §8.9: retreating units run — they don't turn and fight
+                    and self.game.frame_counter >= getattr(unit, "_retreating_until", 0)
                 ):
                     engaged = False
                     # (1) Hit while moving -> turn on the attacker (§8.11)
@@ -538,6 +540,10 @@ class CombatSystem:
     
     def handle_building_destruction(self, building):
         """Handle cleanup when a building is destroyed"""
+        # §8.9 garrison: survivors are ejected unharmed before the rubble
+        if getattr(building, "garrison", None):
+            from systems import garrison
+            garrison.eject_all(self.game, building)
         # Spawn death particles and sound
         if hasattr(self.game, 'particles') and self.game.particles:
             count = 12 if building.name == "castle" else 8

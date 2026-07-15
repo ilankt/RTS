@@ -30,7 +30,7 @@ def test_player_can_continue_rules():
     player = SimpleNamespace(name="P", human=False)
     other = SimpleNamespace(name="O", human=False)
     game = SimpleNamespace(
-        construction_sites=[], units=[],
+        construction_sites=[], units=[], buildings=[],
         _player_can_continue=Game._player_can_continue,
     )
 

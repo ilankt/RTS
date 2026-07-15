@@ -223,6 +223,7 @@ class RenderingSystem:
         visible = []
         for group in (
             self.game.resources,
+            getattr(self.game, "fountains", ()),
             self.game.buildings,
             self.game.units,
             self.game.construction_sites,
@@ -258,6 +259,10 @@ class RenderingSystem:
                         and frame >= getattr(obj, '_next_dust_frame', 0)):
                     obj._next_dust_frame = frame + 14 + (id(obj) % 8)
                     particles.spawn_move_dust(obj.x, obj.y + obj.radius * 0.5)
+                elif (obj.__class__.__name__ == "Fountain"
+                        and frame >= getattr(obj, '_next_sparkle_frame', 0)):
+                    obj._next_sparkle_frame = frame + 18
+                    particles.spawn_fountain_sparkles(obj.x, obj.y - 14)
     
     def _draw_object(self, obj, map_surface, camera):
         """Draw a single game object"""
@@ -313,10 +318,40 @@ class RenderingSystem:
             self._scaled_sprite_cache[akey] = ghost
         map_surface.blit(ghost, (draw_x - width / 2, draw_y - height / 2))
     
+    def _fountain_sprite(self):
+        """Healing-fountain visual (§8.9). Drop-in art convention: put
+        `assets/sprites/Buildings/Fountain.png` in place and it loads
+        automatically; until then a procedural stone-basin placeholder
+        draws. Cached either way."""
+        cached = getattr(self, "_fountain_surface", None)
+        if cached is not None:
+            return cached
+        try:
+            art = pygame.image.load("assets/sprites/Buildings/Fountain.png").convert_alpha()
+            self._fountain_surface = art
+            return art
+        except (pygame.error, FileNotFoundError):
+            pass
+        size = 96
+        surface = pygame.Surface((size, size), pygame.SRCALPHA)
+        cx = cy = size // 2
+        pygame.draw.ellipse(surface, (110, 110, 118), (6, 20, 84, 56))      # outer stone
+        pygame.draw.ellipse(surface, (140, 140, 150), (12, 24, 72, 48))     # rim
+        pygame.draw.ellipse(surface, (52, 120, 200), (20, 30, 56, 36))      # pool
+        pygame.draw.ellipse(surface, (110, 190, 255), (30, 36, 28, 16))     # shimmer
+        pygame.draw.ellipse(surface, (170, 225, 255), (40, 40, 12, 7))      # sparkle core
+        pygame.draw.ellipse(surface, (90, 90, 100), (38, 8, 20, 26))        # spout pillar
+        pygame.draw.ellipse(surface, (150, 210, 255), (43, 6, 10, 10))      # spout water
+        self._fountain_surface = surface
+        return surface
+
     def _get_object_sprite(self, obj):
         """Get the appropriate sprite for an object"""
         sprite_to_draw = None
-        
+
+        if obj.__class__.__name__ == "Fountain":
+            return self._fountain_sprite()
+
         if isinstance(obj, Building):
             player_index = self.game.players.index(obj.player)
             sprite_to_draw = self.sprite_manager.get_building_sprite(obj.name, player_index)

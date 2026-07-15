@@ -99,6 +99,7 @@ class Game:
         self.units = []
         self.resources = []
         self.construction_sites = []
+        self.fountains = []  # §8.9 neutral healing fountains
         self.debug_overlay = False
         self.frame_counter = 0
         
@@ -120,6 +121,8 @@ class Game:
         # Initialize new systems
         self.movement_system = MovementSystem(self)
         self.collision_system = CollisionSystem(self)
+        from systems.fountain_system import FountainSystem
+        self.fountain_system = FountainSystem(self)  # §8.9 healing fountain
         self.combat_system = CombatSystem(self)
         self.building_system = BuildingSystem(self)
         self.rendering_system = RenderingSystem(self)
@@ -566,6 +569,9 @@ class Game:
             
             # Update combat system (for both units and buildings)
             self.combat_system.update_combat_units(self.delta_time)
+
+            # §8.9 healing fountain regeneration
+            self.fountain_system.update(self.delta_time)
             
             # Update projectiles
             self.projectile_system.update(self.delta_time)
@@ -1003,6 +1009,12 @@ class Game:
         for unit in self.units:
             if unit.player is player and unit.name == "worker" and unit.hp > 0:
                 return True
+        # §8.9: garrisoned workers are out of game.units but still alive
+        for building in self.buildings:
+            if building.player is player:
+                for unit in getattr(building, "garrison", ()):
+                    if unit.name == "worker" and unit.hp > 0:
+                        return True
         return False
 
     def _check_victory_defeat(self):
@@ -1169,12 +1181,13 @@ class Game:
         self._stinger_played = False
         self._human_combat_until = 0.0
         self.worker_task_system = WorkerTaskSystem(self)
-        for obj in self.buildings + self.units + self.resources + self.construction_sites:
+        for obj in self.buildings + self.units + self.resources + self.construction_sites + self.fountains:
             obj.in_world = False
         self.buildings.clear()
         self.units.clear()
         self.resources.clear()
         self.construction_sites.clear()
+        self.fountains.clear()
         self.frame_counter = 0
         self.sim_time_elapsed = 0.0
         self.stats_units_trained = {}

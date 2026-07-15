@@ -375,7 +375,16 @@ class SelectionManager:
         if clicked_object:
             if clicked_object in self.game.resources and unit.name == "worker":
                 return ("gather", clicked_object)
-            if clicked_object in self.game.buildings and clicked_object.name == "farm" and unit.name == "worker":
+            if (
+                clicked_object in self.game.buildings
+                and clicked_object.player is unit.player
+                and clicked_object.name in ("castle", "watchtower")
+                and not (unit.name == "worker" and unit.resource_amount > 0
+                         and clicked_object.name == "castle")
+            ):
+                # §8.9 garrison: right-click own castle/watchtower shelters
+                # the unit (a carrying worker still drops off at the castle
+                # first — that rule is right below)
                 return ("garrison", clicked_object)
             if (
                 clicked_object in self.game.buildings
@@ -477,21 +486,29 @@ class SelectionManager:
                 else:
                     pathfinder.issue_interact(unit, payload, "build")
 
-    def _garrison_worker(self, unit, farm, pathfinder):
-        """Send a worker to garrison into a farm."""
-        if hasattr(self.game, "worker_task_system"):
+    def _garrison_worker(self, unit, building, pathfinder):
+        """Send a unit to garrison into a castle/watchtower (§8.9)."""
+        from systems import garrison
+
+        if not garrison.can_accept(building, unit):
+            return
+        if hasattr(self.game, "worker_task_system") and unit.name == "worker":
             self.game.worker_task_system.cancel(unit)
         unit.is_dropping_off = False
         unit.drop_off_timer = 0.0
         unit.drop_off_target = None
 
-        path = pathfinder.find_path((unit.x, unit.y), (farm.x, farm.y), unit.radius, unit)
+        # Already adjacent: step straight in
+        if garrison.try_enter(self.game, unit, building):
+            return
+
+        path = pathfinder.find_path((unit.x, unit.y), (building.x, building.y), unit.radius, unit)
         if path:
             unit.path = path
             unit.path_index = 0
             unit.path_target = path[-1]  # Use actual reachable position
             unit.destination = path[0] if path else None
-            unit.garrison_target = farm  # Mark for garrisoning
+            unit.garrison_target = building  # Mark for garrisoning
             unit.status = "run"
 
     def drain_command_queues(self):

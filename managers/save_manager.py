@@ -44,6 +44,7 @@ class SaveManager:
             "mutators": sorted(getattr(game, "mutators", ())),
             "fog_enabled": bool(getattr(getattr(game, "fog_of_war", None), "enabled", True)),
             "tree_regrowth": list(getattr(game, "_tree_regrowth", [])),
+            "fountains": [[f.x, f.y] for f in getattr(game, "fountains", ())],
             "stats_units_trained": {f"{k[0]}|{k[1]}": v for k, v in getattr(game, "stats_units_trained", {}).items()},
             "stats_buildings_built": {f"{k[0]}|{k[1]}": v for k, v in getattr(game, "stats_buildings_built", {}).items()},
             "stats_tower_damage": dict(getattr(game, "stats_tower_damage", {})),
@@ -85,9 +86,10 @@ class SaveManager:
                 "passable": bool(getattr(building, "passable", False)),
             })
         
-        # Save units
-        for unit in game.units:
-            unit_data = {
+        # Save units. Garrisoned units (§8.9) are OUT of game.units — they
+        # serialize like any unit plus the index of their host building.
+        def _unit_dict(unit, garrisoned_building=None):
+            return {
                 "name": unit.name,
                 "x": unit.x,
                 "y": unit.y,
@@ -97,8 +99,14 @@ class SaveManager:
                 "stance_home_position": list(unit.stance_home_position) if getattr(unit, "stance_home_position", None) else None,
                 "resource_type": getattr(unit, "resource_type", None),
                 "resource_amount": getattr(unit, "resource_amount", 0),
+                "garrisoned_building": garrisoned_building,
             }
-            state["units"].append(unit_data)
+
+        for unit in game.units:
+            state["units"].append(_unit_dict(unit))
+        for building_index, building in enumerate(game.buildings):
+            for unit in getattr(building, "garrison", ()):
+                state["units"].append(_unit_dict(unit, garrisoned_building=building_index))
         
         # Save resources
         for resource in game.resources:
@@ -347,8 +355,17 @@ class SaveManager:
                 sheet = game.sprite_manager.get_unit_animation_sheet(template.name, anim_name, player_idx)
                 animations[anim_name] = Animation(sheet, 192, 192, 100)
             unit.set_animations(animations)
-            
-            game.units.append(unit)
+
+            # §8.9: garrisoned units go back INSIDE their building, not the map
+            host_index = udata.get("garrisoned_building")
+            if host_index is not None and 0 <= host_index < len(game.buildings):
+                from systems.garrison import garrison_list
+
+                host = game.buildings[host_index]
+                unit.garrisoned_in = host
+                garrison_list(host).append(unit)
+            else:
+                game.units.append(unit)
         
         # Restore resources
         for rdata in state["resources"]:
@@ -428,6 +445,18 @@ class SaveManager:
         game.mutators = set(state.get("mutators", []))
         game.fog_of_war_enabled = state.get("fog_enabled", True)
         game._tree_regrowth = [tuple(entry) for entry in state.get("tree_regrowth", [])]
+
+        # §8.9 healing fountains (older saves simply have none)
+        from entities.fountain import Fountain
+
+        for fountain in getattr(game, "fountains", ()):
+            fountain.in_world = False
+            game.pathfinder.notify_blocker_removed(fountain)
+        game.fountains = []
+        for fx, fy in state.get("fountains", []):
+            fountain = Fountain(fx, fy)
+            game.fountains.append(fountain)
+            game.pathfinder.notify_blocker_added(fountain)
 
         def _unflatten(flat):
             out = {}

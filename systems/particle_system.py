@@ -125,3 +125,9 @@ class ParticleSystem:
         self._burst(x, y, count,
                     [(255, 220, 120), (255, 170, 60), (255, 255, 220)],
                     (40, 110), (0.12, 0.28), (2, 5))
+
+    def spawn_fountain_sparkles(self, x, y, count=2):
+        """Blue healing motes drifting up from a fountain (§8.9)."""
+        self._burst(x, y, count,
+                    [(120, 200, 255), (170, 225, 255), (90, 160, 240)],
+                    (8, 25), (0.5, 1.0), (1, 3), vy_bias=-22)

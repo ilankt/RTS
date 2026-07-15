@@ -189,12 +189,25 @@ class CommandCard:
         research_rows = []
         if len(buildings) == 1 and hasattr(self.game, 'research_manager'):
             research_rows = self.game.research_manager.available_for_building(buildings[0])
-        if not producers and not research_rows:
+        has_garrison = len(buildings) == 1 and bool(getattr(buildings[0], 'garrison', None))
+        if not producers and not research_rows and not has_garrison:
             return
 
         content['context'] = 'production'
         content['building'] = buildings[0]
         content['buildings'] = buildings
+
+        # §8.9 garrison: last slot empties a sheltering castle/watchtower
+        if len(buildings) == 1 and getattr(buildings[0], 'garrison', None):
+            count = len(buildings[0].garrison)
+            content['slots'][7] = {
+                'kind': 'ungarrison', 'building': buildings[0],
+                'label': f'Ungarrison ({count})',
+                'icon': self._icon('building', buildings[0].name), 'cost': '',
+                'enabled': True, 'reason': 'Ready',
+                'tooltip': [f'Ungarrison {count} unit(s)',
+                            'Sheltered units are safe; each one speeds tower fire.'],
+            }
         cost_lookup = self.game.game_data.get("costs", {})
         single = producers[0] if len(buildings) == 1 and producers else None
         production_info = (self.game.production_manager.get_production_info(single)
@@ -761,6 +774,10 @@ class CommandCard:
             self._play(True)
         elif kind == 'gate':
             self.game._toggle_selected_gates()
+            self._play(True)
+        elif kind == 'ungarrison':
+            from systems import garrison
+            garrison.eject_all(self.game, slot['building'])
             self._play(True)
         else:
             return False

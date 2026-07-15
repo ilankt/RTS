@@ -135,7 +135,9 @@ class Building(GameObject):
             damage = self.calculate_damage(self.current_target)
             self.current_target.hp -= damage
             self.last_attack_time = pygame.time.get_ticks() / 1000.0
-            self._attack_cooldown = 1.0 / self.attack_speed
+            # §8.9 garrison: each sheltered unit speeds tower fire +15%
+            speed = self.attack_speed * (1.0 + 0.15 * len(getattr(self, "garrison", ())))
+            self._attack_cooldown = 1.0 / speed
             
             # Check if target is destroyed
             if self.current_target.hp <= 0:

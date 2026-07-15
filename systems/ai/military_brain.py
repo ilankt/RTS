@@ -19,10 +19,23 @@ class MilitaryBrain:
     # §8.11 emergency defense: units fighting within this range of the castle
     # keep their targets during a full recall; everyone farther comes home.
     EMERGENCY_KEEP_FIGHT_RADIUS = 600
+    # §8.9 squad retreat & regroup: a fight is "lost" when local enemy
+    # strength exceeds ours by this factor — the army disengages, re-masses
+    # at home (or a scouted fountain), and re-engages when regrouped.
+    RETREAT_ODDS = 1.8
+    BATTLE_RADIUS = 400        # how far around the fight centroid to weigh
+    REGROUP_SECONDS = 20.0     # attack goals stay silent while re-massing
+    RETREAT_SUPPRESS_FRAMES = 120  # no retaliation/re-acquire while fleeing
 
     def __init__(self, game):
         self.game = game
         self._next_squad_index = {}  # player -> rotating squad cursor
+        self._regroup_until = {}     # player name -> sim time (§8.9 retreat)
+
+    def is_regrouping(self, player) -> bool:
+        """§8.9: is this player's army re-massing after a retreat?"""
+        until = self._regroup_until.get(getattr(player, "name", ""), 0.0)
+        return getattr(self.game, "sim_time_elapsed", 0.0) < until
 
     def update(self, ctx, should_attack: bool):
         """Run military logic for one AI player from the blackboard snapshot."""
@@ -78,11 +91,17 @@ class MilitaryBrain:
                 self._command_attack(unit, closest_enemy, ctx)
             return  # Defense takes priority over everything
 
+        # 1b. §8.9 squad retreat: a fight going badly ends NOW — disengage,
+        # re-mass, re-engage — instead of bleeding out piecemeal. Only when
+        # home isn't under attack (the emergency block above returns first).
+        if self._check_squad_retreat(ctx, military, castle):
+            return
+
         # 2b. Armed scouting (§8.11 fair perception): a standing army with NO
         # known enemy buildings can't attack — AttackGoal never fires. Send
         # one squad probing the likely spawn areas so the army finds the
         # fight instead of idling at home while the lone scout wanders.
-        if not ctx.enemy_buildings and len(military) >= 5:
+        if not ctx.enemy_buildings and len(military) >= 5 and not getattr(ctx, "regrouping", False):
             scout_brain = getattr(getattr(self.game, "ai_system", None), "scout_brain", None)
             if scout_brain is not None:
                 anchor = scout_brain.next_unexplored_anchor(ctx.player, (castle.x, castle.y))
@@ -115,6 +134,54 @@ class MilitaryBrain:
                         sent.append(unit)
                 if sent:
                     self._telegraph_attack(ctx, target, sent)
+
+    def _check_squad_retreat(self, ctx, military, castle) -> bool:
+        """§8.9: detect a losing fight and pull the army out. Returns True
+        when a retreat was ordered this tick."""
+        engaged = [u for u in military if u.in_combat or u.is_engaging]
+        if len(engaged) < 3:
+            return False
+        cx = sum(u.x for u in engaged) / len(engaged)
+        cy = sum(u.y for u in engaged) / len(engaged)
+        radius_sq = self.BATTLE_RADIUS ** 2
+
+        friendly = sum(u.hp for u in engaged
+                       if (u.x - cx) ** 2 + (u.y - cy) ** 2 <= radius_sq)
+        enemy = sum(e.hp for e in ctx.enemy_units
+                    if (e.x - cx) ** 2 + (e.y - cy) ** 2 <= radius_sq)
+        # Defensive buildings weigh in at half hp — they hurt but don't chase
+        enemy += sum(b.hp * 0.5 for b in ctx.enemy_buildings
+                     if b.name == "watchtower"
+                     and (b.x - cx) ** 2 + (b.y - cy) ** 2 <= radius_sq)
+        if friendly <= 0 or enemy <= friendly * self.RETREAT_ODDS:
+            return False
+
+        # Rally point: home castle, or a scouted fountain if it's nearer to
+        # the army and quiet (wounded units regroup AND heal there)
+        rally = (castle.x, castle.y)
+        for fountain in getattr(ctx, "fountains", ()):
+            if ctx.threat_at(fountain.x, fountain.y) > 0:
+                continue
+            if (math.hypot(fountain.x - cx, fountain.y - cy)
+                    < math.hypot(rally[0] - cx, rally[1] - cy)):
+                rally = (fountain.x + 90, fountain.y + 90)
+
+        frame = getattr(self.game, "frame_counter", 0)
+        for unit in engaged:
+            unit.clear_all_movement_state()
+            unit.current_target = None
+            unit.in_combat = False
+            unit.is_engaging = False
+            unit._retreating_until = frame + self.RETREAT_SUPPRESS_FRAMES
+            unit._next_target_scan_frame = frame + self.RETREAT_SUPPRESS_FRAMES
+            self.game.selection_manager._move_unit_to_position(unit, rally, self.game.pathfinder)
+
+        self._regroup_until[ctx.player.name] = (
+            getattr(self.game, "sim_time_elapsed", 0.0) + self.REGROUP_SECONDS)
+        debug_log.log(
+            f"AI {ctx.player.name}: RETREAT — outmatched {enemy:.0f} vs {friendly:.0f}, "
+            f"regrouping at ({rally[0]:.0f}, {rally[1]:.0f})", "AI")
+        return True
 
     def _last_stand(self, ctx):
         """§8.12 castle lost: guard the rebuild site if one exists, otherwise

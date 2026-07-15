@@ -40,6 +40,8 @@ class GoalContext:
     enemy_buildings: list = field(default_factory=list)
     enemies_near_base: list = field(default_factory=list)
     castle_under_attack: bool = False  # §8.11: castle hit in the last ~3s
+    fountains: list = field(default_factory=list)  # §8.9: explored fountains
+    regrouping: bool = False  # §8.9: army is re-massing after a retreat
     known_resources_by_type: Dict[str, list] = field(default_factory=dict)
     gatherers_by_resource: Dict[int, int] = field(default_factory=dict)
     gathering_counts_by_type: Dict[str, int] = field(default_factory=dict)
@@ -108,6 +110,11 @@ class GoalContext:
                 ctx.construction_sites.append(site)
                 ctx.site_types.add(site.building_name)
 
+        # §8.9 garrisoned units are out of game.units but still take pop
+        for group in ctx.buildings.values():
+            for building in group:
+                pop += len(getattr(building, "garrison", ()))
+
         ctx.pop_current = pop
         ctx.pop_max = 5 + 5 * len(ctx.buildings.get("house", []))
 
@@ -137,6 +144,16 @@ class GoalContext:
             if fog_on and not fog.is_explored(player, resource.x, resource.y):
                 continue
             ctx.known_resources_by_type.setdefault(resource.name, []).append(resource)
+
+        # §8.9 healing fountains the player has scouted
+        for fountain in getattr(game, "fountains", ()):
+            if not fog_on or fog.is_explored(player, fountain.x, fountain.y):
+                ctx.fountains.append(fountain)
+
+        # §8.9 squad regroup state (set by the military brain on retreat)
+        brain = getattr(getattr(game, "ai_system", None), "military_brain", None)
+        if brain is not None and hasattr(brain, "is_regrouping"):
+            ctx.regrouping = brain.is_regrouping(player)
 
         # Coarse enemy-strength influence map (Phase 4): combat units weigh
         # their hp, defensive buildings weigh double.

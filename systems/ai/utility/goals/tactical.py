@@ -42,6 +42,10 @@ class AttackGoal(Goal):
     def score(self, ctx):
         from systems.ai.utility.personality import attack_army_threshold, difficulty_mods
 
+        # §8.9 squad retreat: no new offensives while the army re-masses
+        if getattr(ctx, "regrouping", False):
+            return 0
+
         min_army = attack_army_threshold(getattr(ctx.player, "ai_personality", "balanced"))
         min_army = max(2, min_army + difficulty_mods(getattr(ctx.player, "ai_difficulty", "normal"))["attack_threshold_delta"])
         n = len(ctx.military)

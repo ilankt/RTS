@@ -745,9 +745,12 @@ class MovementSystem:
             if hasattr(unit, '_stuck_detector'):
                 unit._stuck_detector['stuck_timer'] = 0
             
-            # Check garrison target
+            # Check garrison target (§8.9: shelter in castle/watchtower —
+            # the old farm-garrison call pointed at a method that never
+            # existed and would have crashed on arrival)
             if hasattr(unit, 'garrison_target') and unit.garrison_target:
-                self.game.gathering_manager.garrison_worker_to_farm(unit, unit.garrison_target)
+                from systems import garrison
+                garrison.try_enter(self.game, unit, unit.garrison_target)
         else:
             unit.destination = None
             unit.path = None

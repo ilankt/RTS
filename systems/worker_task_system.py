@@ -216,7 +216,26 @@ class WorkerTaskSystem:
             if attacker is None or getattr(attacker, "hp", 0) <= 0:
                 continue
             worker._fleeing_until = frame + self.FLEE_COOLDOWN_FRAMES
-            self.assign_move(worker, self._find_refuge(worker, attacker))
+            # §8.9: shelter INSIDE the castle/tower when there's room —
+            # actual safety instead of loitering next to the walls
+            from systems import garrison
+
+            shelter = None
+            best_sq = 600.0 ** 2
+            for building in self.game.buildings:
+                if building.player is not worker.player:
+                    continue
+                if not garrison.can_accept(building, worker):
+                    continue
+                d_sq = (building.x - worker.x) ** 2 + (building.y - worker.y) ** 2
+                if d_sq < best_sq:
+                    shelter, best_sq = building, d_sq
+            if shelter is not None:
+                self.cancel(worker)
+                worker.garrison_target = shelter
+                self.game.pathfinder.issue_move(worker, (shelter.x, shelter.y))
+            else:
+                self.assign_move(worker, self._find_refuge(worker, attacker))
 
     def _find_refuge(self, worker, attacker):
         """Nearest own building (castle preferred), else straight away."""

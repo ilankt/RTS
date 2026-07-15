@@ -1283,6 +1283,53 @@ Cheap, huge payoff. Six `play_*` sound methods already exist but are **never cal
 Hero units + abilities/spells · garrison & transport · day-night / weather · neutral
 map objectives. Listed for completeness; revisit only after Tracks A–C land.
 
+**Depth round 3 (2026-07-14, user-selected from the depth recommendations):**
+
+- [x] **Healing fountain** *(med)* — landed 2026-07-14: neutral fountain
+  placed at the map center (spiral search: open walkable ground, ≥12 tiles
+  from every spawn, open-approach validated), heals any nearby unit
+  5 hp/s within 140 px. Blocks movement/placement; indexed as a "resource"
+  in the collision layer so no combat query ever targets it. Fog-gated in
+  the AI blackboard (`ctx.fountains` — must be scouted). Procedural
+  stone-basin visual with drop-in art convention
+  (`assets/sprites/Buildings/Fountain.png` — prompt given to the user);
+  blue healing motes already spawn; richer glow/heal-ring VFX planned when
+  the art lands. Saved/loaded.
+- [x] **Garrison** *(med)* — landed 2026-07-14: castle (cap 10) /
+  watchtower (cap 4) shelter own units — garrisoned units leave the world
+  (safe, untargetable), ejected unharmed on exit or building destruction;
+  each garrisoned unit speeds tower fire +15 %. Right-click own
+  castle/tower garrisons (replacing the vestigial farm-garrison path,
+  which called a method that never existed); command card gets an
+  "Ungarrison (N)" tile; **worker-flee now shelters INSIDE** when there's
+  room, and the AI pops workers back out when the threat clears.
+  Population/elimination/save-load all count garrisoned units.
+- [x] **Squad retreat & regroup** *(med)* — landed 2026-07-14: when local
+  enemy strength exceeds 1.8× the engaged army's (towers weigh half), the
+  whole squad disengages (retaliation suppressed while fleeing), re-masses
+  at home — or a scouted, quiet fountain, where it also HEALS — and attack
+  goals stay silent for 20 s of regrouping. Emergency castle defense
+  outranks retreat.
+  - **Validation (`tools/balance_12_depth3.json`, 4×3 slices):** win spread
+    UNCHANGED vs the pre-feature baseline (rusher 17 / balanced 29 /
+    turtle 50 / boomer 71 %), 2/12 timeouts, avg 849 sim s (+10 % — armies
+    that retreat live to fight again; warrior count +27 %). 347 tests
+    green incl. 9 new in `tests/test_depth3.py`.
+- [ ] **Market building** *(low–med, BLOCKED ON ART)* — trades
+  wood/stone/food ↔ gold at a losing rate; the instrumented matches proved
+  gold is the binding constraint while other stockpiles pool dead — this is
+  the macro release valve. Code is cheap once a sprite exists.
+- [ ] **Temple + healer activation** *(low, BLOCKED ON ART)* — healer logic
+  is done and tested; flipping `temple` to buildable + an AI
+  support-composition rule adds the sustain dimension to fights. Needs the
+  temple sprite (healer currently reuses archer sheets — its own sheet
+  wanted too).
+- [ ] **Unit active abilities** *(med–high, LATER)* — one ability per core
+  unit (cavalry charge, spearman brace, archer volley); micro depth, and a
+  natural difficulty-tier lever ("hard AI uses abilities well").
+- [ ] **Challenge presets** *(low, LATER)* — named mutator/victory/difficulty
+  combos with an achievement each; pure configuration over shipped systems.
+
 ### 8.10 Defensive play — watchtowers & walls *(added 2026-07-10 per playtest feedback)*
 
 **Watchtower state of the world (audited 2026-07-10):** towers DO auto-target and
