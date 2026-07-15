@@ -11,12 +11,12 @@ class Fountain(GameObject):
     def __init__(self, x, y):
         super().__init__(
             name="fountain",
-            size=[1.5, 1.5],
+            size=[3, 3],  # doubled 2026-07-14 (user request) — a landmark
             hp=1,  # unused — invulnerable; kept for duck-typed hp reads
-            sprite=None,  # procedural visual in the renderer until art exists
+            sprite=None,  # drop-in art via the renderer (Fountain.png)
             x=x,
             y=y,
-            radius=40,
+            radius=70,
             player=None,
         )
         self.invulnerable = True

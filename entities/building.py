@@ -90,9 +90,12 @@ class Building(GameObject):
         if target.player == self.player:
             return False
         
-        # Check range
+        # Check range — same radius courtesy units get (unit.can_attack adds
+        # the TARGET's radius): without it an archer plinking a fat tower
+        # out-reached the tower by the tower's own radius (user-reported;
+        # reach vs a big building = range + its radius, both directions)
         distance = ((self.x - target.x) ** 2 + (self.y - target.y) ** 2) ** 0.5
-        return distance <= effective_attack_range(self)
+        return distance <= effective_attack_range(self) + getattr(target, 'radius', 0)
     
     def calculate_damage(self, target):
         """Calculate damage dealt to target based on attack and armor types"""

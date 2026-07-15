@@ -116,9 +116,39 @@ def test_watchtower_load_preserves_combat_stats(tmp_path, monkeypatch):
     assert loaded_tower.max_damage == 18
     assert loaded_tower.attack_type == "pierce"
     assert loaded_tower.attack_speed == 1.5
-    # Towers out-range archers (230 vs 200/225 fletched) — a lone archer must
-    # never plink a tower down for free (user-reported 2026-07-14)
-    assert loaded_tower.attack_range == 230
+    # Towers out-range archers INCLUDING the radius-reach math (reach =
+    # range + target radius, so the archer gets the tower's fat radius for
+    # free): 255 + 16 > 200 + 64, fletching cancels — a lone archer must
+    # never plink a tower down for free (user-reported twice, 2026-07-14)
+    assert loaded_tower.attack_range == 255
+
+
+def test_tower_out_reaches_a_plinking_archer():
+    """The actual duel (user-reported twice): an archer standing at ITS
+    maximum reach against the tower (archer range + the tower's fat radius)
+    must be inside the tower's reach too — reach math is radius-aware on
+    both sides now."""
+    from types import SimpleNamespace
+    from entities.unit import Unit
+    from entities.building import Building
+
+    p1 = SimpleNamespace(name="P1", human=False, upgrades={}, upgrades_version=0)
+    p2 = SimpleNamespace(name="P2", human=False, upgrades={}, upgrades_version=0)
+    tower = Building(name="watchtower", size=[2, 2], hp=1500, sprite=None,
+                     build_duration=15, x=0, y=0, radius=64, player=p1,
+                     can_attack=True, min_damage=14, max_damage=18,
+                     attack_speed=1.5, attack_range=255)
+    archer = Unit(name="archer", size=[1, 1], hp=150, movement_speed=60,
+                  attack=7, animations={}, x=0, y=0, radius=16, player=p2,
+                  min_damage=12, max_damage=16, attack_speed=1.0,
+                  attack_range=200, can_attack=True)
+
+    # Place the archer at its maximum plink distance from the tower
+    max_plink = archer.attack_range + tower.radius
+    archer.x = max_plink
+    assert archer.can_attack(tower), "sanity: archer is at its own max reach"
+    assert tower.can_attack_target(archer), \
+        "the tower must reach a max-range plinking archer"
 
 
 def test_watchtower_construction_load_preserves_future_combat_stats(tmp_path, monkeypatch):
@@ -147,4 +177,4 @@ def test_watchtower_construction_load_preserves_future_combat_stats(tmp_path, mo
     assert loaded_site.building_data["max_damage"] == 18
     assert loaded_site.building_data["attack_type"] == "pierce"
     assert loaded_site.building_data["attack_speed"] == 1.5
-    assert loaded_site.building_data["attack_range"] == 230
+    assert loaded_site.building_data["attack_range"] == 255

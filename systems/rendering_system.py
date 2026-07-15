@@ -1,3 +1,4 @@
+import math
 import pygame
 from core.config import TILE_WIDTH, TOP_BAR_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
 from entities import Building, Unit, Resource, ConstructionSite
@@ -66,6 +67,9 @@ class RenderingSystem:
         
         # Draw map
         self.game.game_map.draw(map_surface, camera)
+
+        # §8.9: fountain healing auras lie under everything alive
+        self._draw_fountain_auras(map_surface, camera)
 
         # §8.5: fading corpses lie under the living
         self._draw_death_fades(map_surface, camera, delta_time)
@@ -164,6 +168,39 @@ class RenderingSystem:
                 radius, 2,
             )
         self.game.order_flashes = alive
+
+    def _draw_fountain_auras(self, map_surface, camera):
+        """§8.9 (user request): show the healing range — a soft pulsing blue
+        disc + rim at FOUNTAIN_HEAL_RADIUS. Surfaces cached per (size, pulse
+        step) so the per-frame cost is one blit per fountain."""
+        fountains = getattr(self.game, 'fountains', None)
+        if not fountains:
+            return
+        from systems.fountain_system import FOUNTAIN_HEAL_RADIUS
+
+        pulse_step = (self.game.frame_counter // 12) % 8  # ~0.2s per step
+        cache = getattr(self, '_aura_cache', None)
+        if cache is None:
+            cache = self._aura_cache = {}
+        for fountain in fountains:
+            radius_px = max(8, int(FOUNTAIN_HEAL_RADIUS * camera.zoom))
+            key = (radius_px, pulse_step)
+            aura = cache.get(key)
+            if aura is None:
+                if len(cache) > 64:
+                    cache.clear()
+                size = radius_px * 2 + 4
+                aura = pygame.Surface((size, size), pygame.SRCALPHA)
+                center = size // 2
+                pulse = 1.0 + 0.06 * math.sin(pulse_step / 8.0 * 2 * math.pi)
+                rim = max(6, int(radius_px * pulse) - 2)
+                pygame.draw.circle(aura, (90, 170, 255, 22), (center, center), radius_px)
+                pygame.draw.circle(aura, (130, 200, 255, 60), (center, center), rim, 2)
+                cache[key] = aura
+            screen_x = (fountain.x * camera.zoom) + camera.x
+            screen_y = (fountain.y * camera.zoom) + camera.y
+            map_surface.blit(aura, (screen_x - aura.get_width() / 2,
+                                    screen_y - aura.get_height() / 2))
 
     def add_death_fade(self, obj, sprite):
         """§8.5: register a just-died object's sprite to fade out in place."""

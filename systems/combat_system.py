@@ -383,28 +383,31 @@ class CombatSystem:
                     if frame >= next_scan:
                         building._next_target_scan_frame = frame + 15 + (id(building) % 16)
                         attack_range = effective_attack_range(building)
-                        range_sq = attack_range * attack_range
                         potential_targets = []
                         collision = self.game.collision_system
 
-                        # Check enemy units
-                        for unit in collision.query_nearby_units(building.x, building.y, attack_range):
+                        # Check enemy units (reach = range + target radius,
+                        # matching can_attack_target — an archer plinking
+                        # from max reach must be acquirable)
+                        for unit in collision.query_nearby_units(building.x, building.y, attack_range + 24):
                             if unit.player != building.player and unit.hp > 0:
                                 dist_sq = (building.x - unit.x) ** 2 + (building.y - unit.y) ** 2
-                                if dist_sq <= range_sq:
+                                reach = attack_range + getattr(unit, 'radius', 0)
+                                if dist_sq <= reach * reach:
                                     potential_targets.append((unit, dist_sq))
 
                         # Check enemy buildings
                         for other_building in collision.query_nearby_static(
                             building.x,
                             building.y,
-                            attack_range,
+                            attack_range + 96,
                             include_construction_sites=False,
                             include_resources=False,
                         ):
                             if other_building.player != building.player and other_building.hp > 0:
                                 dist_sq = (building.x - other_building.x) ** 2 + (building.y - other_building.y) ** 2
-                                if dist_sq <= range_sq:
+                                reach = attack_range + getattr(other_building, 'radius', 0)
+                                if dist_sq <= reach * reach:
                                     potential_targets.append((other_building, dist_sq))
 
                         # Sort by distance and engage closest

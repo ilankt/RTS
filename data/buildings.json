@@ -213,7 +213,7 @@
     "max_damage": 18,
     "attack_type": "pierce",
     "attack_speed": 1.5,
-    "attack_range": 230,
+    "attack_range": 255,
     "costs": {
       "wood": 75,
       "stone": 125

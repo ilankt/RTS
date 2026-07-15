@@ -6,7 +6,7 @@ every player — the fountain is a neutral objective, and holding the ground
 around it is the whole point.
 """
 
-FOUNTAIN_HEAL_RADIUS = 140.0   # world px around the fountain center
+FOUNTAIN_HEAL_RADIUS = 220.0   # world px around the fountain center
 FOUNTAIN_HEAL_RATE = 5.0       # hp per game-time second
 
 

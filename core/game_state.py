@@ -209,9 +209,9 @@ class GameState:
                 if math.hypot(r - spawn_r, c - spawn_c) < 12:
                     return False
             x, y = game_map.grid_to_world(c, r)
-            if self._check_collision_with_objects(x, y, 48):
+            if self._check_collision_with_objects(x, y, 80):  # radius 70 + pad
                 return False
-            return self._has_open_approach(x, y, ring=70.0, needed=5)
+            return self._has_open_approach(x, y, ring=100.0, needed=5)
 
         # Spiral out from the center until a viable tile is found
         for radius in range(0, 18):
