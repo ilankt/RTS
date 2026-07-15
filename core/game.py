@@ -880,6 +880,16 @@ class Game:
         for site in destroyed_sites:
             site.in_world = False
             self.pathfinder.notify_blocker_removed(site)
+            # Drop the razed foundation from anyone attacking it — unit and
+            # building deaths already do this; sites didn't, so attackers
+            # "engaged" a removed object forever (§8.11 frozen-target family).
+            for unit in self.units:
+                if getattr(unit, 'current_target', None) is site:
+                    unit.current_target = None
+                    unit.is_engaging = False
+                    unit.in_combat = False
+                    if unit.status in ("attack", "run") and not getattr(unit, 'destination', None):
+                        unit.status = "idle"
         if destroyed_sites:
             self.construction_sites = [site for site in self.construction_sites if site.hp > 0]
 

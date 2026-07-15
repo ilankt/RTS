@@ -62,6 +62,9 @@ def is_valid_attack_target(attacker, target) -> bool:
     # animation window (§8.11).
     if getattr(target, "hp", 0) <= 0 or not getattr(target, "in_world", True):
         return False
+    # Neutral map features (the healing fountain) are scenery, not targets
+    if getattr(target, "invulnerable", False):
+        return False
     if getattr(attacker, "building_only_attack", False) and not is_building_target(target):
         return False
     return True
@@ -79,6 +82,13 @@ def effective_attack_range(attacker) -> float:
 
 
 def effective_armor_value(target) -> int:
+    # Unarmored/soft targets simply have no armor. calculate_damage already
+    # reads armor_type defensively (getattr default "light"); armor_value used
+    # to be the one hard attribute access in the damage path, so any target
+    # missing it crashed the whole match mid-combat (user-reported: attacking
+    # a ConstructionSite). Same default posture as armor_type now.
+    if not hasattr(target, "armor_value"):
+        return 0
     return int(effective_stat(target, "armor_value"))
 
 

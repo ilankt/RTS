@@ -13,6 +13,15 @@ class ConstructionSite(GameObject):
         self.construction_duration = building_data['build_duration']
         self.builder = None  # The unit currently building this
         self.costs = building_data.get('costs', {})  # Resources spent on this construction
-        
+
         # Store the building type for identification
         self.building_type = building_name
+
+        # Combat: a foundation IS a legal target (razing an enemy's half-built
+        # castle is fair play) and the damage math reads these off the target.
+        # armor_value was missing entirely, so any attack on a site crashed the
+        # match (user-reported). A site is deliberately soft — "light" armor
+        # (what the damage math already defaulted to) and no armor value, so
+        # anything can raze a foundation quickly.
+        self.armor_type = "light"
+        self.armor_value = 0
