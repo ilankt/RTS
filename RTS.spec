@@ -22,6 +22,7 @@ a = Analysis(
     datas=[
         ("assets", "assets"),   # sprites, ui art, background music (.ogg)
         ("data", "data"),       # units.json, buildings.json, techs.json, ...
+        ("help", "help"),       # the Field Manual the Help button opens
     ],
     hiddenimports=["perlin_noise"],
     hookspath=[],
