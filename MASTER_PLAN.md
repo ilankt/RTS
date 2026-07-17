@@ -398,6 +398,26 @@ Phases 1–3 alone should clear the avg/p95/hitch targets; Phases 4–5 are what
     per-unit context steering at 200-unit scale. These are the genuine
     Phase 6 items; no cheaper structural win remains visible in the
     profile.
+  - **Status 2026-07-17 (queue-slice regression found + fixed):** fair-fog
+    spectating (§8.11, 2026-07-14) made benchmark AIs *scout*, so workers
+    started requesting corner-to-corner paths (~65–80 ms of JPS in one go).
+    The queue's escalating retry ladder (20/40/60/80 ms ceilings) re-ran each
+    such search *from scratch* per retry: frame_max 23→**93 ms**, ~12 s of
+    the 40 s benchmark's wall time burned on repeated capped searches, and
+    30 scout commands silently dropped. **Fix:** queue searches now
+    **suspend their frontier and resume** across flat time slices
+    (`_suspended_searches` in `systems/pathfinding.py`) — frontiers survive
+    incremental world changes (scans read the live grid; if the grid
+    revision moved, the finished cell chain is re-walked before being
+    trusted, and exhausted/no-path verdicts after a change re-verify fresh
+    instead of negative-caching). Expansion-capped searches leave an O(1)
+    tombstone (cleared on blocker removal, like the negative cache). The
+    whole drain now fits `PATHFINDING_QUEUE_FRAME_MS` (10 ms; slices shrink
+    to what remains), retries carry pre-check skips, and smoothing no longer
+    attempts >30-cell merge tests. Standard benchmark (120 s, 4p): avg
+    **1.9** / p95 **10.9** / max **18.2** / ai_max **8.0** / queue drops
+    **0** / teleports **0** — all §6 targets still met, and scout orders now
+    actually complete (gameplay fix, not just perf).
 
 ---
 
