@@ -601,6 +601,14 @@ re-tuning**.)
   lands. *(Natural fit with Track D's art work.)*
 - [ ] Live window resizing (resolution currently applies at startup) — noted in §8.2,
   deliberately out of scope there. Reconsider alongside §8.2.2's scale work.
+- [ ] **Combat visual feedback still leaks through fog** *(low, watch)* — floating
+  damage numbers and attack particles spawn for fights the human can't see
+  (`combat_system.py` damage-events loop: `add_damage_notification` +
+  `spawn_attack_particles`). The companion **audio** leak (hit/death SFX audible
+  through fog — user-reported) was fixed 2026-07-17 by gating on
+  `_audible_to_human` (= `fog.is_object_visible`); the visuals should use the same
+  gate. Left unfixed pending a report that the popups/sparks are actually visible
+  through fog — the numbers may already be clipped at render.
 
 ---
 

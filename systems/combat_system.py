@@ -31,7 +31,16 @@ class CombatSystem:
         self.game_map = game.game_map
         self.projectile_system = None  # Will be set after projectile system is created
         self.attack_trackers = {}  # Track last attack time for each attacker
-        
+
+    def _audible_to_human(self, obj):
+        """Whether combat SFX for `obj` should reach the human viewer. Gates
+        hit/death blips on fog so fights the player can't see stay silent
+        (own units, fog-off, and spectator-reveal all count as audible)."""
+        fog = getattr(self.game, 'fog_of_war', None)
+        if fog is None:
+            return True
+        return fog.is_object_visible(obj)
+
     def find_optimal_attack_position(self, unit, target, other_attackers):
         """Find optimal attack position for unit when multiple units are attacking the same target"""
         target_x, target_y = target.x, target.y
@@ -459,8 +468,9 @@ class CombatSystem:
                 # Spawn attack particles at target position
                 if hasattr(self.game, 'particles') and self.game.particles:
                     self.game.particles.spawn_attack_particles(target.x, target.y, count=2)
-                # Play hit sound
-                if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+                # Play hit sound (only for fights the human can actually see)
+                if (hasattr(self.game, 'sound_manager') and self.game.sound_manager
+                        and self._audible_to_human(target)):
                     self.game.sound_manager.play_hit()
 
         # Under-attack alert for the human player (§7.4): sound + minimap ping,
@@ -539,7 +549,8 @@ class CombatSystem:
         # Spawn death particles and sound
         if hasattr(self.game, 'particles') and self.game.particles:
             self.game.particles.spawn_death_particles(unit.x, unit.y, count=6)
-        if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+        if (hasattr(self.game, 'sound_manager') and self.game.sound_manager
+                and self._audible_to_human(unit)):
             self.game.sound_manager.play_death()
         # §8.5 death fade: the unit's last frame ghosts out in place
         renderer = getattr(self.game, 'rendering_system', None)
@@ -585,7 +596,8 @@ class CombatSystem:
         if hasattr(self.game, 'particles') and self.game.particles:
             count = 12 if building.name == "castle" else 8
             self.game.particles.spawn_death_particles(building.x, building.y, count=count)
-        if hasattr(self.game, 'sound_manager') and self.game.sound_manager:
+        if (hasattr(self.game, 'sound_manager') and self.game.sound_manager
+                and self._audible_to_human(building)):
             self.game.sound_manager.play_death()
         # §8.5 death fade for the building sprite
         renderer = getattr(self.game, 'rendering_system', None)

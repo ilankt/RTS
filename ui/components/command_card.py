@@ -624,7 +624,7 @@ class CommandCard:
                     label_color = (185, 210, 240)
                 else:
                     label_color = (235, 235, 220) if slot['enabled'] else (210, 140, 130)
-                self._draw_tile_scrim(surface, tile, 1)
+                self._draw_tile_scrim(surface, tile, 1, self.name_font.get_height())
                 text = self.name_font.render(label, True, label_color)
                 if text.get_width() > tile.width - 6:
                     text = pygame.transform.smoothscale(
