@@ -136,16 +136,19 @@ fog of war, formations, control groups, unit stances) works end to end. Content 
 7-unit / 13-building / 6-tech roster with a personality-driven utility AI.
 
 **The active, single source of truth for what's being worked on next is
-[MASTER_PLAN.md](MASTER_PLAN.md).** It covers, with measured profiling evidence:
-- Why the game stutters at scale (pathfinding ~48% of CPU, O(n²) target/LOS/collision scans, a
-  full nav-grid + path-cache rebuild on every world change, fog of war walking the full grid every
-  frame) and the phased fix (cheap local wins → incremental nav + JPS → local steering rework →
-  AI shared-perception/LOD/squads → flow fields for group orders).
-- The preserved non-performance backlog (healer healing, wall-as-gate, save/load completeness,
-  defensive-stance freeze bug, sound coverage, test coverage).
+[MASTER_PLAN.md](MASTER_PLAN.md)** — open work only (~4 tracks: A perf residue, B gameplay
+residue, C UI/systems, D world/art). Track A's phased perf fix (incremental nav + JPS, local
+steering, AI blackboard/LOD/squads, flow fields) has landed; the 200-unit acceptance gate has not.
 
-Do not maintain a second roadmap or changelog in this file — update MASTER_PLAN.md instead, and
-rely on `git log` for history.
+**[PLAN_ARCHIVE.md](PLAN_ARCHIVE.md) is completed work with its evidence** — split out
+2026-07-17 when the plan hit 1,898 lines / 134 done vs 15 open. It is frozen history, but it is
+**not redundant with `git log`**: it records *rationale and measured validation data*, especially
+**failed experiments** ("rusher threshold 4 lost same-seed validation, reverted"; "ram hp 280 made
+sieges fail"). **Read it before re-tuning anything it covers** — it exists to stop you confidently
+redoing something that already didn't work. Section numbers (§7.2, §8.10, §8.11…) resolve there.
+
+Do not maintain a second roadmap or changelog in this file — update MASTER_PLAN.md instead, archive
+completed work into PLAN_ARCHIVE.md with its evidence, and rely on `git log` for the rest.
 
 ## Known Gaps (stable, not currently being worked)
 - **Save/Load** is save format **v3** (`managers/save_manager.py`, still loads v1/v2):
@@ -157,3 +160,7 @@ rely on `git log` for history.
 - Units can still get stuck at tight spots between static obstacles in rare cases; the
   `unit_watchdog` recovers them (teleport-to-safe-position) after several seconds rather than
   routing around cleanly — see MASTER_PLAN.md's local-steering phase for the real fix.
+  This holds at water too since the §8.13.3 batch (2026-07-17): the watchdog probes terrain
+  at full unit radius, movement slides along shorelines and spiral-rescues wedged units
+  (`terrain_rescues` perf counter), and `tests/test_shoreline_movement.py` guards it —
+  see PLAN_ARCHIVE.md §8.13 for the root causes.

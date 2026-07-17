@@ -899,12 +899,22 @@ class Game:
             debug_log.log(f"Removing depleted {resource.name} resource at ({resource.x:.0f}, {resource.y:.0f})", "GENERAL")
             
             # Clear any workers still targeting this resource
+            worker_tasks = getattr(self, "worker_task_system", None)
             for unit in self.units:
                 targeting = (
                     getattr(unit, 'gathering_target', None) == resource or
                     getattr(unit, 'previous_gathering_target', None) == resource
                 )
                 if targeting:
+                    # §8.13.1: a worker the task system OWNS needs no rescue —
+                    # its task still holds kind="gather" + the depleted node,
+                    # and the drop-off completion path continues it onto a
+                    # nearby node. The cancel+reassign below laundered that
+                    # task into kind="dropoff"/resource=None, which is why
+                    # human workers idled after every depletion (the AI's
+                    # idle-scan re-tasked its own, hiding the bug).
+                    if worker_tasks and worker_tasks.owns(unit):
+                        continue
                     debug_log.log(f"  Clearing depleted resource from worker at ({unit.x:.0f}, {unit.y:.0f})", "GENERAL")
 
                     # Push worker away before clearing state
@@ -917,7 +927,6 @@ class Game:
                         unit.y += (dy / distance) * push_force
 
                     if getattr(unit, "resource_amount", 0) > 0 and getattr(unit, "resource_type", None):
-                        worker_tasks = getattr(self, "worker_task_system", None)
                         if worker_tasks:
                             worker_tasks.cancel(unit)
                         else:

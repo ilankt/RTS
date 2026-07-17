@@ -199,8 +199,10 @@ class UIManager:
         # Global build-queue strip (§8.2.1 Phase C), left map edge
         self.global_queue.draw(screen)
 
-        # Tooltip last so no other draw covers it
-        self.command_card.draw_tooltip(screen)
+        # NOTE: the hover tooltip is NOT drawn here — "last within
+        # draw_ui_panel" wasn't last at all: the ornate map border (drawn
+        # later in draw_frame) overpainted its right edge by 32 px (§8.2.2).
+        # rendering_system.draw_frame draws it after every other overlay.
 
     def draw_top_bar(self, screen):
         """Draw the top resource bar"""

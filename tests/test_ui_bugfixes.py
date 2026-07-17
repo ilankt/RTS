@@ -150,6 +150,103 @@ def test_minimap_masks_unexplored_terrain(game):
     assert minimap._fog_surface.get_at(enemy_mini)[3] == 0
 
 
+def test_enemy_float_does_not_spawn_in_unexplored_fog(game):
+    """§8.13.2 spawn gate: an enemy farm's +food float over never-explored
+    ground must not even be created (7 AI players' farms fire these)."""
+    human = game.players[0]
+    enemy_castle = next(b for b in game.buildings
+                        if b.player is not human and b.name == "castle")
+    assert not game.fog_of_war.is_explored(human, enemy_castle.x, enemy_castle.y)
+
+    game.floating_ui.notifications.clear()
+    game.floating_ui.add_resource_notification(enemy_castle, "food", 10)
+    assert game.floating_ui.notifications == [], \
+        "float spawned for a building the viewer has never seen"
+
+    # The human's own buildings always spawn floats, fog notwithstanding
+    own_castle = next(b for b in game.buildings
+                      if b.player is human and b.name == "castle")
+    game.floating_ui.add_resource_notification(own_castle, "food", 10)
+    assert len(game.floating_ui.notifications) == 1
+    game.floating_ui.notifications.clear()
+
+
+def test_enemy_float_never_renders_through_fog(game):
+    """§8.13.2 render gate: a float whose origin sits under fog draws no
+    pixels, even if it was spawned when the spot was visible (fog rebuilds
+    at 5 Hz while floats live ~1 s)."""
+    from ui.floating_ui import FloatingNotification
+
+    human = game.players[0]
+    enemy_castle = next(b for b in game.buildings
+                        if b.player is not human and b.name == "castle")
+    ui = game.floating_ui
+    ui.notifications.clear()
+    ui.notifications.append(FloatingNotification(
+        "+10", enemy_castle.x, enemy_castle.y - 60, (255, 255, 255),
+        owner=enemy_castle.player, origin=(enemy_castle.x, enemy_castle.y),
+    ))
+
+    background = (20, 80, 20)
+    surface = pygame.Surface((400, 400))
+    surface.fill(background)
+
+    class Cam:
+        zoom = 1.0
+        x = -enemy_castle.x + 200
+        y = -enemy_castle.y + 200
+
+    ui.draw_notifications(surface, Cam)
+    dirty = any(
+        surface.get_at((x, y))[:3] != background
+        for y in range(60, 220, 2) for x in range(100, 300, 2)
+    )
+    assert not dirty, "enemy float rendered over unexplored fog"
+
+    # Spectator reveal shows everything — same float, same camera
+    game.spectator_reveal_display = True
+    ui.draw_notifications(surface, Cam)
+    game.spectator_reveal_display = False
+    dirty = any(
+        surface.get_at((x, y))[:3] != background
+        for y in range(60, 220, 2) for x in range(100, 300, 2)
+    )
+    assert dirty, "spectator reveal must show the float"
+    ui.notifications.clear()
+
+
+def test_float_visibility_judged_by_origin_not_drifted_position(game):
+    """§8.13.2: update() drifts a float upward ~30 px/s; visibility must key
+    on the fixed spawn origin so it can't flicker across a fog border
+    mid-flight (own floats aside, which always pass)."""
+    from ui.floating_ui import FloatingNotification
+
+    human = game.players[0]
+    own_castle = next(b for b in game.buildings
+                      if b.player is human and b.name == "castle")
+    # A visible-tile origin, judged as an un-owned (neutral) float so the
+    # positional path is what's exercised.
+    note = FloatingNotification(
+        "+5", own_castle.x, own_castle.y - 60, (255, 255, 255),
+        owner=None, origin=(own_castle.x, own_castle.y),
+    )
+    assert game.floating_ui._notification_visible(note)
+    note.update(1.0)  # drifts 30 px up, across tile borders
+    assert note.origin == (own_castle.x, own_castle.y), "origin must not drift"
+    assert game.floating_ui._notification_visible(note), \
+        "visibility flipped because the drifted position was sampled"
+
+    # Own-player floats pass even when the origin is under fog
+    enemy_area = next(b for b in game.buildings
+                      if b.player is not human and b.name == "castle")
+    own_under_fog = FloatingNotification(
+        "+5", enemy_area.x, enemy_area.y, (255, 255, 255),
+        owner=human, origin=(enemy_area.x, enemy_area.y),
+    )
+    assert game.floating_ui._notification_visible(own_under_fog), \
+        "own floats must never vanish at fog edges"
+
+
 def test_full_frame_renders_with_all_fixes(game):
     """Smoke: a real frame with a selected unit + fresh site draws cleanly."""
     human = game.players[0]

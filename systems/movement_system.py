@@ -3,6 +3,7 @@ import pygame
 from systems.gathering_manager import get_gathering_distance, get_drop_off_distance
 from core.config import DEBUG_MOVEMENT
 from utils.debug_logger import debug_log
+from utils.perf_stats import perf_stats
 
 
 NUM_STEER_SLOTS = 16
@@ -956,6 +957,10 @@ class MovementSystem:
 
         last_slot = getattr(unit, "_steer_last_slot", None)
         terrain_probe = getattr(self.game_map, "nav_terrain_walkable", None)
+        # §8.13.3: probe with the SAME full-radius test the mover gates on —
+        # the old single center-point probe kept selecting shoreline slots the
+        # mover then rejected at ±radius, livelocking crowds at water.
+        terrain_check = getattr(collision, "_is_on_unwalkable_terrain", None)
         probe_distance = unit.radius * 2 + 12
         scored = []
         for i, (slot_x, slot_y) in enumerate(STEER_SLOT_DIRS):
@@ -970,35 +975,64 @@ class MovementSystem:
         for score, i, slot_x, slot_y in scored:
             # Never steer into blocked terrain: a wiped-out move order is far
             # worse than a slightly more crowded slot.
-            if terrain_probe is not None and not terrain_probe(
-                pos.x + slot_x * probe_distance, pos.y + slot_y * probe_distance
-            ):
+            probe_x = pos.x + slot_x * probe_distance
+            probe_y = pos.y + slot_y * probe_distance
+            if terrain_check is not None:
+                if terrain_check(probe_x, probe_y, unit.radius):
+                    continue
+            elif terrain_probe is not None and not terrain_probe(probe_x, probe_y):
                 continue
             unit._steer_last_slot = i
             return pygame.math.Vector2((slot_x, slot_y))
         return desired_dir
     
     def _check_terrain_and_update(self, unit, adjusted_pos):
-        """Check terrain and update unit position"""
-        # Check with full radius to ensure unit doesn't overlap water. If the
-        # unit is already on blocked terrain, let it move so it can escape.
+        """Terrain-gate a step; slide along shorelines instead of stalling."""
         collision = self.game.collision_system
-        can_move = not collision._is_on_unwalkable_terrain(
-            adjusted_pos.x, adjusted_pos.y, unit.radius
-        ) or collision._is_on_unwalkable_terrain(unit.x, unit.y, unit.radius)
-
-        if can_move:
+        if not collision._is_on_unwalkable_terrain(adjusted_pos.x, adjusted_pos.y, unit.radius):
             self._update_unit_position(unit, adjusted_pos)
-        else:
-            # Blocked by terrain this step: keep the move order (path and
-            # destination) - steering picks a different slot next frame, and
-            # the blocked-unit handler skips waypoints/repaths if it persists.
-            unit._needs_repath = True
-            if not hasattr(unit, '_movement_blocked_timer'):
-                unit._movement_blocked_timer = 0
-            unit._movement_blocked_timer += 1
-            if unit._movement_blocked_timer > 30:
-                self.game._handle_blocked_unit(unit)
+            return
+
+        # §8.13.3: already overlapping water (bad spawn, legacy push)? Snap to
+        # the nearest clear spot via the spiral rescue. The old escape hatch
+        # let such a unit move ANYWHERE — including deeper into the water.
+        if collision._is_on_unwalkable_terrain(unit.x, unit.y, unit.radius):
+            collision._ensure_unit_on_walkable_terrain(unit)
+            perf_stats.increment("terrain_rescues")
+            return
+
+        # §8.13.3 shoreline sliding: the full step enters water — keep the
+        # along-shore axis instead of killing the whole move (the atomic
+        # reject starved lakeside crowds into a steering livelock: nobody
+        # moved -> same danger field -> same rejected slot). Slide the FULL
+        # step length along the surviving axis: the raw projected component
+        # can be sub-epsilon (a near-horizontal path leg grazing the shore),
+        # which _update_unit_position would read as "blocked" and freeze.
+        dx = adjusted_pos.x - unit.x
+        dy = adjusted_pos.y - unit.y
+        step = math.hypot(dx, dy)
+        candidates = []
+        if dx:
+            candidates.append((unit.x + math.copysign(step, dx), unit.y))
+        if dy:
+            candidates.append((unit.x, unit.y + math.copysign(step, dy)))
+        if abs(dy) > abs(dx):
+            candidates.reverse()
+        for cand_x, cand_y in candidates:
+            if not collision._is_on_unwalkable_terrain(cand_x, cand_y, unit.radius):
+                self._update_unit_position(unit, pygame.math.Vector2(cand_x, cand_y))
+                return
+
+        # Blocked outright: keep the move order (path and destination), but
+        # drop the steering hysteresis so the +0.08 bonus can't re-pick the
+        # slot the mover just rejected (§8.13.3 livelock fuel).
+        unit._steer_last_slot = None
+        unit._needs_repath = True
+        if not hasattr(unit, '_movement_blocked_timer'):
+            unit._movement_blocked_timer = 0
+        unit._movement_blocked_timer += 1
+        if unit._movement_blocked_timer > 30:
+            self.game._handle_blocked_unit(unit)
     
     def _update_unit_position(self, unit, new_pos):
         """Update unit position and handle blocked movement more robustly"""

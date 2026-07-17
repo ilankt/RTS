@@ -58,6 +58,59 @@ Use this style guide for every asset unless an individual prompt overrides it.
 - Style: bold symbolic icon, dark navy or black silhouette with 1-3 accent colors, readable at 32x32.
 - Composition: one central symbol, no text.
 
+### HUD Cost Glyphs
+
+**This section deliberately overrides the UI Icons rules above — do not apply them here.**
+A UI icon is a framed plate that owns its own background. A glyph is a bare cut-out
+blitted straight onto whatever is behind it, at roughly **14x14 px**. Everything below
+follows from those two facts; the current `assets/ui/*_icon.png` set violates all of it
+(measured 2026-07-17: 1000-1024 px, alpha 255 on every single pixel, a rounded plate and
+bronze border baked in, corners ~RGB(32,20,8) — at 14 px on a tile they render as opaque
+dark-brown squares, and gold/lumber/stone blur into unidentifiable smears).
+
+- Output: transparent PNG with **true alpha**, not a keyed or matted background.
+- Size: 1024x1024 px.
+- Background: **fully transparent, alpha 0.** No plate, no rounded panel, no border, no
+  off-white fill, no drop shadow. Anything baked behind the subject becomes an opaque
+  square in-game.
+- Composition: **exactly ONE object**, centered, filling ~90 percent of the canvas with a
+  ~5 percent transparent margin. No piles, stacks, clusters, or paired props — at 14 px a
+  cluster averages into a blob. (This is the single most common failure: today's gold is
+  an ingot plus four coins, lumber is three logs plus two planks. Both are mush.)
+- Outline: uniform, very dark, **3-4 percent of canvas width (roughly 30-40 px at 1024)**.
+  A 2 px outline at 1024 is invisible at 14 px; a 6 percent one eats the tiny glyph's
+  bright core. The outline is for house-style consistency and internal definition — it is
+  **not** what separates the glyph from the background (see below).
+- **Every surface a glyph touches is dark.** This is the fact that drives the palette, and
+  it is easy to get wrong: the command card's tile fills are dark olive `(42,52,42)` when
+  affordable, `(45,42,32)` locked, `(50,38,38)` unaffordable, `(67,77,67)` hovered, and the
+  tooltip is near-black `(10,10,14)`. So a **bright, high-value fill** is what makes a glyph
+  readable — a dark outline on a dark tile just merges with it.
+- Fill values (measured 2026-07-17 against the real tile colors; WCAG contrast, ≥3.0
+  required on the worst surface, which is always the affordable-tile olive):
+
+  | Glyph | Fill | Worst-surface contrast |
+  |---|---|---|
+  | gold | bright yellow-gold `(245,200,60)` | 8.14 |
+  | wood | **light** warm brown `(196,142,92)` | 4.54 |
+  | stone | light cool gray `(185,190,196)` | 6.92 |
+  | food | **bright** warm red `(230,125,95)` | 4.60 |
+  | time | pale gray-blue `(170,196,214)` | 7.13 |
+
+  The two traps: a natural mid-brown log `(120,80,50)` scores **1.84** and a natural
+  roast-red `(120,45,40)` scores **1.36** — both are invisible on the tile. Wood and food
+  must be pushed lighter than the subject "wants" to be.
+- Detail budget: **at most 2 internal details**, two-step shading. No fine engraving, no
+  thin lines, no gradients, no texture noise.
+- Readability bar: **must be identifiable at 14x14 px.** Judge it by silhouette plus one
+  dominant hue — that is all that survives. If it needs its details to read, it fails.
+- Hue separation (**mandatory** — these glyphs sit side by side on one tile row): gold,
+  wood and food are all warm and blur into each other at 14 px (today's gold and lumber
+  icons are already indistinguishable there). Keep gold clearly yellow, wood clearly tan,
+  and food clearly red.
+- Avoid: text, numbers, watermark, background scenery, photorealism, and every framed-icon
+  convention from the UI Icons section.
+
 ## Required Now
 
 ### 1. Ram Unit Icon
@@ -468,6 +521,89 @@ Prompt:
 Create a 1024x1024 PNG UI icon for a medieval RTS siege workshop. Match the game's UI icon style: off-white background, thin gold square border, bold dark outlines, clean symbolic art. Show a battering ram under construction with a wheel, log ram, rope, and hammer. Centered, readable at small size, warm wood and gray metal. No text, no watermark, no landscape.
 ```
 
+## Required For The Command Card Cost Row (§8.2.2)
+
+User request: *"Mostly I want to see the cost (with icons, not text or abbreviation) and
+duration (also an icon)."* The card replaces its `"150G 100W"` text with icon+number pairs
+on each tile, and the hover tooltip gains a duration row.
+
+**These are new files, not replacements.** The existing `assets/ui/*_icon.png` set stays
+exactly as it is: those framed plates are drawn at 48 px onto the dark top banner, where
+they look correct and nobody has complained. Overwriting them to serve the cost row would
+restyle the top bar as a side effect. A framed plate in the banner and a bare glyph inline
+is a normal HUD split — keep both.
+
+Follow the **HUD Cost Glyphs** style guide above; it overrides the UI Icons rules.
+
+After generating, wire up: `ui/components/icon_loader.py` has no path to resource art at
+all (resource icons load ad hoc in `core/game.py:208-223`), so add a `_load_cost_glyphs`
+there and pin all five in `tools/verify_visual_assets.py`'s `EXPECTED_DIMS`.
+
+### 28. Gold Cost Glyph
+
+Target path:
+
+`assets/ui/Glyphs/gold_glyph.png`
+
+Prompt:
+
+```text
+Create a 1024x1024 transparent PNG inline HUD glyph representing the resource Gold in a stylized medieval RTS. This is a bare cut-out, NOT a framed icon: the background must be fully transparent alpha 0, with no plate, no rounded panel, no border, no off-white fill, and no drop shadow, because the glyph is drawn directly onto a dark olive tile and a dark wooden banner. Show exactly ONE single gold coin, face-on, as a bold simple disc with one small embossed crown mark in the center. Do not draw a pile, a stack, an ingot, or any cluster of coins: one object only. The coin fills about 90 percent of the canvas with a 5 percent transparent margin. Use one bright saturated yellow-gold fill, around RGB 245,200,60, with simple two-step shading: the glyph sits on dark backgrounds, so the bright fill is what makes it readable and it must not be dulled or darkened. Add a uniform very dark brown outline about 3 to 4 percent of the canvas width, roughly 30 to 40 px, for style consistency only. The glyph must stay instantly recognizable as money when scaled to 14x14 px, so keep the silhouette bold and use at most two internal details. Keep the hue clearly yellow so it cannot be confused with the tan wood glyph or the red food glyph it sits beside. No pile, no cluster, no fine engraving, no thin lines, no gradients, no text, no numbers, no watermark, no background scenery, no photorealism.
+```
+
+### 29. Wood Cost Glyph
+
+Target path:
+
+`assets/ui/Glyphs/wood_glyph.png`
+
+Prompt:
+
+```text
+Create a 1024x1024 transparent PNG inline HUD glyph representing the resource Wood in a stylized medieval RTS. This is a bare cut-out, NOT a framed icon: fully transparent background, alpha 0, no plate, no rounded panel, no border, no off-white fill, no drop shadow. Show exactly ONE single wooden log lying horizontally, turned slightly so one circular cut end is visible with two or three simple growth rings. Do not draw a stack of logs, planks, boards, a woodpile, or an axe: one log only. The log fills about 90 percent of the canvas with a 5 percent transparent margin. Use a LIGHT warm tan-brown fill, around RGB 196,142,92, with a slightly paler cut end and simple two-step shading. This is important and counterintuitive: do not use a natural mid or dark brown, because the glyph is drawn on a dark olive background where dark brown disappears completely. Err on the side of too light. Add a uniform very dark brown outline about 3 to 4 percent of the canvas width, roughly 30 to 40 px, for style consistency only. Keep the tan clearly less yellow than a gold coin glyph and clearly less red than a roast-meat glyph, since all three sit side by side and blur together at small size. The glyph must stay recognizable as timber at 14x14 px: bold horizontal silhouette, at most two internal details. No stack, no planks, no bark texture noise, no thin lines, no text, no numbers, no watermark, no background, no photorealism.
+```
+
+### 30. Stone Cost Glyph
+
+Target path:
+
+`assets/ui/Glyphs/stone_glyph.png`
+
+Prompt:
+
+```text
+Create a 1024x1024 transparent PNG inline HUD glyph representing the resource Stone in a stylized medieval RTS. This is a bare cut-out, NOT a framed icon: fully transparent background, alpha 0, no plate, no rounded panel, no border, no off-white fill, no drop shadow. Show exactly ONE single cut stone block, a chunky angular quarried cube seen in slight three-quarter view with clean chiseled faces. Do not draw a pile of rubble, scattered rocks, or a boulder cluster: one block only. The block fills about 90 percent of the canvas with a 5 percent transparent margin. Use a LIGHT cool gray fill, around RGB 185,190,196, with clear value contrast between the lit top face and the shaded side face. Do not use mid gray, dark gray, or charcoal: the glyph is drawn on dark backgrounds, where a dark stone vanishes entirely. Apply simple two-step shading and a uniform very dark outline about 3 to 4 percent of the canvas width, roughly 30 to 40 px, for style consistency only. The glyph must read as masonry at 14x14 px: strong blocky silhouette, at most two internal details. Its cool gray keeps it distinct from the warm gold, wood and food glyphs beside it, so do not warm it up with brown or tan tints. No rubble, no scattered rocks, no speckle texture, no cracks, no moss, no thin lines, no text, no numbers, no watermark, no background, no photorealism.
+```
+
+### 31. Food Cost Glyph
+
+Target path:
+
+`assets/ui/Glyphs/food_glyph.png`
+
+Prompt:
+
+```text
+Create a 1024x1024 transparent PNG inline HUD glyph representing the resource Food in a stylized medieval RTS. This is a bare cut-out, NOT a framed icon: fully transparent background, alpha 0, no plate, no rounded panel, no border, no off-white fill, no drop shadow. Show exactly ONE single roasted meat drumstick standing upright with the bone at the bottom, the classic bold game-food silhouette. Do not draw a platter, a plate, bread, fruit, or a group of items: one drumstick only. It fills about 90 percent of the canvas with a 5 percent transparent margin. Use a BRIGHT warm red roasted fill, around RGB 230,125,95, with an off-white bone. Two requirements pull the same way here: the glyph sits on a dark olive background, so a natural dark roast-brown would disappear, and it also sits beside a yellow gold glyph and a tan wood glyph, which it must not blur into. So push the meat clearly toward bright red and keep it well lit. The off-white bone is a useful bright anchor: keep it clearly visible. Apply simple two-step shading and a uniform very dark outline about 3 to 4 percent of the canvas width, roughly 30 to 40 px, for style consistency only. Must read as food at 14x14 px: bold vertical silhouette with the narrow bone clearly separated from the wide meat, at most two internal details. No plate, no garnish, no steam, no grill marks, no thin lines, no text, no numbers, no watermark, no background, no photorealism.
+```
+
+### 32. Duration/Time Glyph
+
+Target path:
+
+`assets/ui/Glyphs/time_glyph.png`
+
+Reason:
+
+No clock, hourglass, or duration art exists anywhere in the project. The tooltip's
+build/research duration row has nothing to draw.
+
+Prompt:
+
+```text
+Create a 1024x1024 transparent PNG inline HUD glyph representing Time or Duration in a stylized medieval RTS. This is a bare cut-out, NOT a framed icon: fully transparent background, alpha 0, no plate, no rounded panel, no border, no off-white fill, no drop shadow. Show exactly ONE single hourglass, front-on and symmetrical, with a heavy top and bottom cap, two chunky corner posts, and a clear pinched waist. Choose an hourglass rather than a clock face: it suits the medieval setting, and its narrow-waisted silhouette is the most readable shape available when tiny. The hourglass fills about 90 percent of the canvas with a 5 percent transparent margin. Use a LIGHT cool gray-blue fill, around RGB 170,196,214, for the frame, with pale white-blue sand in the lower bulb. Keep the whole glyph cool, light and desaturated: it is drawn on dark backgrounds, so it must stay bright, and it sits beside a warm yellow gold glyph, which it must never be mistaken for. Apply simple two-step shading and a uniform very dark outline about 3 to 4 percent of the canvas width, roughly 30 to 40 px, for style consistency only. Must read as elapsed time at 14x14 px: keep the two triangular bulbs and the pinched waist bold and obvious, at most two internal details. No falling sand stream, no numerals, no clock hands, no wings, no thin lines, no text, no numbers, no watermark, no background, no photorealism.
+```
+
 ## Post-Generation Verification Checklist
 
 After generating assets:
@@ -477,7 +613,22 @@ After generating assets:
    - Building sprites: 1000x1000 PNG, transparent background.
    - Unit icons and tech icons: 1024x1024 PNG.
    - Unit sprite sheets: width equals frame_count * 192, height equals 192.
+   - HUD cost glyphs: 1024x1024 PNG.
 3. Open each image against a dark and light background to catch bad alpha edges.
+3a. **HUD cost glyphs — run the checker, then look at what it draws:**
+
+```powershell
+python tools\preview_cost_glyphs.py
+```
+
+   It fails the batch on the two things a generator will silently get wrong — a painted
+   background instead of real alpha (`alpha_min=255`; exactly how the current
+   `assets/ui/*_icon.png` set became unusable), and a fill too dark for the tile — and it
+   writes `cost_glyph_preview.png`: every glyph at **14 px**, magnified, on all five real
+   surfaces. **Judge the glyphs there, never at full size.** If you cannot name the
+   resource from a 14 px cell, or gold/wood/food read as three similar warm blobs,
+   regenerate with a bolder silhouette and stronger hue separation. Run it with `--old` to
+   see the legacy icons fail, which is a useful calibration of what "too dark" looks like.
 4. Run:
 
 ```powershell

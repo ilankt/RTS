@@ -454,3 +454,66 @@ def test_consumes_key_only_for_occupied_slots(game, card):
     assert not card.consumes_key(key("s"))
     assert card.consumes_key(key("z"))
     game.units.remove(warrior)
+
+
+# --------------------------------------------------------------------- #
+# §8.2.2 tooltip correctness: draw order + word-wrap                     #
+# --------------------------------------------------------------------- #
+
+def test_tooltip_wraps_instead_of_truncating(game, card):
+    """The old `line[:34]` chopped gate/stable/fletching mid-word. Wrapping
+    must be lossless and every wrapped piece must fit the box."""
+    long_line = ("Wall segment your units can pass through freely "
+                 "but enemies cannot")
+    usable = card.TOOLTIP_WIDTH - 2 * card.TOOLTIP_PAD_X
+    pieces = card._wrap_tooltip_line(long_line, usable)
+
+    assert len(pieces) >= 2, "a 60+ char line must wrap"
+    assert " ".join(pieces) == long_line, "wrap must not drop characters"
+    for piece in pieces:
+        assert card.cost_font.size(piece)[0] <= usable
+
+    # Short lines pass through untouched
+    assert card._wrap_tooltip_line("Farm", usable) == ["Farm"]
+
+
+def test_tooltip_draws_over_map_border(game, card, monkeypatch):
+    """§8.2.2 occlusion regression: 'tooltip last' was only last within
+    draw_ui_panel — the ornate map border (drawn later in draw_frame)
+    overpainted its right edge. Drive a REAL frame with a hovered tile and
+    assert the tooltip's right-edge interior survives everything."""
+    select(game, own_worker(game))
+
+    # Frame 1 populates the slot rects, then aim the mouse at a real tile.
+    game.rendering_system.draw_frame(game.screen, game.map_surface,
+                                     game.camera, 1 / 60)
+    assert card._slot_rects, "worker selection must produce build tiles"
+    tile = card._slot_rects[0][1]
+    monkeypatch.setattr(pygame.mouse, "get_pos", lambda: tile.center)
+
+    game.rendering_system.draw_frame(game.screen, game.map_surface,
+                                     game.camera, 1 / 60)
+
+    assert card._hovered_slot is not None, "tile under mouse must hover"
+    # Sample inside the tooltip near its RIGHT edge — the 32 px band the
+    # border rail used to overpaint (rail spans ~[panel.x-24, panel.x]).
+    probe_x = card._panel_rect.x - 10
+    probe_y = min(max(6, tile.y), 100000) + 10
+    assert game.screen.get_at((probe_x, probe_y))[:3] == (10, 10, 14), \
+        "tooltip right edge was painted over (draw order regressed)"
+
+
+def test_draw_ui_panel_no_longer_owns_the_tooltip(game):
+    """Belt-and-braces for the order: the panel must not draw the tooltip
+    (it draws before the map border); draw_frame must, after the border."""
+    import inspect
+    from systems import rendering_system as rs_module
+    from ui import ui_manager as ui_module
+
+    panel_src = inspect.getsource(ui_module.UIManager.draw_ui_panel)
+    assert "draw_tooltip" not in panel_src
+
+    frame_src = inspect.getsource(rs_module.RenderingSystem.draw_frame)
+    border_at = frame_src.index("_draw_map_border")
+    tooltip_at = frame_src.index("draw_tooltip")
+    assert border_at < tooltip_at, "tooltip must draw after the map border"
