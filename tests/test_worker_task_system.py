@@ -131,12 +131,17 @@ class FakeGame:
 
 
 def tick(game, count=1, delta_time=0.1):
+    # Mirrors the real frame order (core/game.py): pre-move -> movement ->
+    # post-move -> cleanup. Cleanup MUST run here — §8.13.1 was certified by a
+    # tick that skipped it, so the test passed against a code path the real
+    # game never takes (cleanup re-tasked depleted-node workers same-frame).
     for _ in range(count):
         game.frame_counter += 1
         game.worker_task_system.update_pre_movement(delta_time)
         for unit in list(game.units):
             game.movement_system.update_unit_movement(unit, delta_time)
         game.worker_task_system.update_post_movement(delta_time)
+        Game._cleanup_destroyed_objects(game)
 
 
 def make_economy_game(worker_count=1):
@@ -233,6 +238,47 @@ def test_worker_continues_to_nearby_node_when_depleted():
     assert task.resource is nearby, "worker should continue on the close node"
     assert wood.amount_remaining <= 0
     assert player.resources["wood"] >= 6  # original node fully delivered
+
+
+def test_human_worker_continues_after_depletion_with_cargo():
+    """§8.13.1 regression: the dominant real-game path. The node runs dry
+    while the worker is CARRYING (gather tick returns "full", not
+    "depleted"), and same-frame cleanup removes the node. The worker must
+    deliver the cargo and then walk to the nearby node with no player input
+    — before the fix, cleanup laundered the task into kind="dropoff" and
+    the worker idled at the drop-off forever."""
+    game, player, _, wood = make_economy_game()
+    player.human = True
+    worker = game.units[0]
+    wood.amount_remaining = 3  # less than one carry: depletes mid-gather
+    nearby = FakeResource("wood", wood.x + 100, wood.y, amount=200)
+    game.resources.append(nearby)
+
+    assert game.worker_task_system.assign_gather(worker, wood)
+    tick(game, count=600, delta_time=0.1)
+
+    assert wood.amount_remaining <= 0 and wood not in game.resources
+    assert player.resources["wood"] >= 3, "carried cargo must be delivered"
+    task = game.worker_task_system.active_task(worker)
+    assert task is not None and task.kind == "gather" and task.resource is nearby, \
+        "worker must continue to the nearby node instead of idling"
+
+
+def test_worker_continues_when_node_vanishes_mid_walk():
+    """§8.13.1 sibling path: the target node is destroyed while the worker
+    is still walking to it — continue onto a nearby node, don't idle."""
+    game, _, _, wood = make_economy_game()
+    worker = game.units[0]
+    nearby = FakeResource("wood", wood.x + 100, wood.y + 30, amount=200)
+    game.resources.append(nearby)
+
+    assert game.worker_task_system.assign_gather(worker, wood)
+    tick(game, count=5, delta_time=0.1)  # en route, far from the node
+    wood.amount_remaining = 0            # someone else drained it
+    tick(game, count=300, delta_time=0.1)
+
+    task = game.worker_task_system.active_task(worker)
+    assert task is not None and task.kind == "gather" and task.resource is nearby
 
 
 def test_worker_idles_when_no_node_in_continue_radius():

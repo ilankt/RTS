@@ -89,7 +89,7 @@ class RenderingSystem:
 
         # HP/construction bars + floats go ABOVE the fog overlay so they are
         # never dimmed by a fog-tile edge (user-reported dark bars at max zoom)
-        self.floating_ui.draw_all_floating_ui(map_surface, camera, delta_time)
+        self.floating_ui.draw_all_floating_ui(map_surface, camera)
 
         # Instant command feedback rings (§7.4)
         self._draw_order_flashes(map_surface, camera)
@@ -109,6 +109,10 @@ class RenderingSystem:
         self.game.ui_manager.draw_alerts(screen)
         self.game.ui_manager.draw_event_log(screen)
         self.game.ai_debug_panel.draw(screen)
+        # The hover tooltip draws truly last (§8.2.2): it flies out over the
+        # map area, and the ornate map border used to overpaint its right
+        # edge because "last" was only last within draw_ui_panel.
+        self.game.ui_manager.command_card.draw_tooltip(screen)
 
     @staticmethod
     def _draw_beveled_frame(screen, rect):

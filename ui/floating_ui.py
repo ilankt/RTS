@@ -2,8 +2,8 @@ import pygame
 
 class FloatingNotification:
     """Represents a floating text notification that moves up and fades out"""
-    
-    def __init__(self, text, x, y, color, duration=1.0):
+
+    def __init__(self, text, x, y, color, duration=1.0, owner=None, origin=None):
         self.text = text
         self.x = x
         self.y = y
@@ -12,6 +12,13 @@ class FloatingNotification:
         self.duration = duration
         self.elapsed_time = 0.0
         self.alive = True
+        # §8.13.2 fog gating: who this float belongs to and where its SOURCE
+        # was at spawn. x/y are offset at spawn and drift upward ~30 px/s, so
+        # a fog check against them samples a tile up to ~90 px away and
+        # flickers across tile borders mid-flight — always judge visibility
+        # by the fixed origin instead.
+        self.owner = owner
+        self.origin = origin if origin is not None else (x, y)
         
     def update(self, delta_time):
         """Update notification position and fade"""
@@ -174,33 +181,45 @@ class FloatingUI:
     
     def add_resource_notification(self, building, resource_type, amount):
         """Add a floating resource notification above a building"""
+        # §8.13.2: don't even spawn floats the viewer can't see (every AI
+        # player's farms fire these — pure waste when fogged).
+        if not self._visible_through_fog(building):
+            return
         color = self.resource_colors.get(resource_type, (255, 255, 255))
         text = f"+{int(amount)}"
-        
+
         # Position above the building
         notification = FloatingNotification(
             text=text,
             x=building.x,
             y=building.y - 60,  # Start 60 pixels above building
             color=color,
-            duration=1.0
+            duration=1.0,
+            owner=getattr(building, 'player', None),
+            origin=(building.x, building.y),
         )
-        
+
         self.notifications.append(notification)
-    
+
     def add_buff_notification(self, target, text):
         """Gold float above a unit that just received an upgrade (§7.2)."""
+        if not self._visible_through_fog(target):
+            return
         self.notifications.append(FloatingNotification(
             text=text,
             x=target.x + (hash(id(target)) % 16 - 8),
             y=target.y - 40,
             color=(255, 215, 80),
             duration=1.4,
+            owner=getattr(target, 'player', None),
+            origin=(target.x, target.y),
         ))
 
     def add_heal_notification(self, target, heal_amount):
         """Green "+N" float above a freshly healed unit (§7.4 readability)."""
         if heal_amount <= 0:
+            return
+        if not self._visible_through_fog(target):
             return
         self.notifications.append(FloatingNotification(
             text=f"+{int(heal_amount)}",
@@ -208,11 +227,15 @@ class FloatingUI:
             y=target.y - 30,
             color=(90, 230, 110),
             duration=0.9,
+            owner=getattr(target, 'player', None),
+            origin=(target.x, target.y),
         ))
 
     def add_damage_notification(self, target, damage_amount, is_critical=False, is_resisted=False):
         """Add a floating damage number above a target"""
         if damage_amount <= 0:
+            return
+        if not self._visible_through_fog(target):
             return
 
         # Color based on damage type (§8.4 legibility: counter beats resisted)
@@ -225,15 +248,17 @@ class FloatingUI:
         else:
             color = (255, 200, 100)  # Orange-yellow for normal
             text = str(int(damage_amount))
-        
+
         notification = FloatingNotification(
             text=text,
             x=target.x + (hash(id(target)) % 20 - 10),  # Slight horizontal jitter
             y=target.y - 30,
             color=color,
-            duration=0.8
+            duration=0.8,
+            owner=getattr(target, 'player', None),
+            origin=(target.x, target.y),
         )
-        
+
         self.notifications.append(notification)
     
     def update_notifications(self, delta_time):
@@ -268,9 +293,32 @@ class FloatingUI:
         text_rect.centery = y
         surface.blit(text_surface, text_rect)
 
+    def _notification_visible(self, notification):
+        """§8.13.2: floats draw ABOVE the fog overlay (same as the bars), so
+        they must self-censor. Judged per-frame — fog rebuilds at 5 Hz while
+        floats live 0.8-1.4 s, so the source can slip into fog mid-float —
+        and always against the spawn-time owner/origin, mirroring
+        fog.is_object_visible (enabled + spectator reveal + own objects)."""
+        fog = getattr(self.game, 'fog_of_war', None)
+        if fog is None or not fog.enabled or fog.reveal_display:
+            return True
+        human = self.game.players[0] if self.game.players else None
+        if human is None:
+            return True
+        if notification.owner is not None and notification.owner == human:
+            return True
+        origin = notification.origin
+        if origin is None:
+            return True
+        return fog.is_visible(human, origin[0], origin[1])
+
     def draw_notifications(self, surface, camera):
         """Draw all floating notifications"""
         for notification in self.notifications:
+            # §8.13.2: never render a float over fogged/unexplored ground
+            if not self._notification_visible(notification):
+                continue
+
             # Calculate screen position
             screen_x = (notification.x * camera.zoom) + camera.x
             screen_y = (notification.y * camera.zoom) + camera.y
@@ -305,10 +353,11 @@ class FloatingUI:
             return True
         return fog.is_object_visible(obj)
 
-    def draw_all_floating_ui(self, surface, camera, delta_time=1/60.0):
+    def draw_all_floating_ui(self, surface, camera):
         """Draw all floating UI elements for visible objects"""
-        # Update notifications first
-        self.update_notifications(delta_time)
+        # Notification lifecycle (drift/fade/expiry) ticks in Game.update(),
+        # not here: headless runs (benchmark, balance sim) never draw, so a
+        # draw-side drain let self.notifications grow for the whole run.
 
         # Draw health bars for all fog-visible units and buildings
         for unit in self.game.units:

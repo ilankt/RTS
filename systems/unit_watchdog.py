@@ -165,23 +165,19 @@ class UnitWatchdog:
         return self._find_castle_position(unit)
 
     def _is_safe(self, x, y, radius):
-        """Position is walkable terrain and not overlapping buildings/resources."""
-        terrain_probe = getattr(self.game.game_map, "nav_terrain_walkable", None)
-        if terrain_probe is not None:
-            if not terrain_probe(x, y):
-                return False
-        else:
-            grid_pos = self.game.game_map.world_to_grid(x, y)
-            if not grid_pos:
-                return False
-            col, row = grid_pos
-            if row < 0 or row >= self.game.game_map.height or col < 0 or col >= self.game.game_map.width:
-                return False
-            if self.game.game_map.grid[row][col] in ("water", "lava"):
-                return False
+        """Position is walkable terrain and not overlapping buildings/resources.
+
+        §8.13.3: the terrain test must run at FULL unit radius — the old
+        single center-point probe was strictly weaker than the gate that
+        rejects movement, so a shore-wedged unit (center on land, body in
+        water) was judged "already safe", never nudged, and sat at the
+        water's edge forever once its resume allowance ran out."""
+        collision = self.game.collision_system
+        if collision._is_on_unwalkable_terrain(x, y, radius):
+            return False
 
         min_dist = radius + 5
-        for obj in self.game.collision_system.query_nearby_static(x, y, min_dist):
+        for obj in collision.query_nearby_static(x, y, min_dist):
             dist_limit = min_dist + obj.radius
             if (obj.x - x) ** 2 + (obj.y - y) ** 2 < dist_limit * dist_limit:
                 return False

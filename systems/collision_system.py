@@ -691,10 +691,32 @@ class CollisionSystem:
                         unit.path_index = 0
                         unit.destination = path[0] if path else None
                 else:
-                    # Has path but stuck - try skipping waypoint
+                    # Has path but stuck - try skipping waypoint. §8.13.3:
+                    # never skip onto a leg that crosses blocked terrain —
+                    # waypoints are sparse (greedy smoothing), so skipping
+                    # one around a lake discards the whole detour and aims
+                    # the unit straight across the bay.
+                    skipped = False
                     if unit.path_index < len(unit.path) - 1:
-                        unit.path_index += 1
-                        unit.destination = unit.path[unit.path_index]
+                        next_point = unit.path[unit.path_index + 1]
+                        if self.game.pathfinder.grid.segment_clear(
+                                (unit.x, unit.y), next_point, unit.radius):
+                            unit.path_index += 1
+                            unit.destination = next_point
+                            skipped = True
+                    if not skipped:
+                        # Out of skippable waypoints (or the skip would cross
+                        # water): re-plan the remaining leg from here. The old
+                        # code did NOTHING in this state, so a unit whose last
+                        # leg crossed a lake re-blocked every 0.5 s forever.
+                        goal = unit.path_target or unit.path[-1]
+                        fresh = self.game.pathfinder.find_path(
+                            (unit.x, unit.y), goal, unit.radius, unit)
+                        if fresh:
+                            unit.path = fresh
+                            unit.path_index = 0
+                            unit.destination = fresh[0]
+                            unit.path_target = goal
     def find_blocking_object(self, start, end, radius, unit=None):
         """Find the first object blocking a path between two points"""
         # Sample points along the line

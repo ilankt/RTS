@@ -262,7 +262,16 @@ class WorkerTaskSystem:
 
             if task.phase in MOVING_PHASES:
                 if not self._current_target_valid(task):
-                    self._set_failed(task, "target_invalid")
+                    # §8.13.1 sibling path: a gather node that vanished while
+                    # we walked to it continues onto a nearby node, exactly
+                    # like depletion at the node itself. Everything else
+                    # (razed dropoff/site) still fails for reassignment.
+                    if (task.kind == "gather"
+                            and task.phase in (MOVING_TO_RESOURCE, RETURNING_TO_RESOURCE)
+                            and task.resource is not None):
+                        self._continue_or_complete(task)
+                    else:
+                        self._set_failed(task, "target_invalid")
                     continue
                 if self._at_current_contact(task, arrival=True):
                     continue
@@ -812,6 +821,11 @@ class WorkerTaskSystem:
         if replacement is not None:
             # assign_gather natively handles a carrying worker (dropoff first)
             self.assign_gather(worker, replacement)
+        elif getattr(worker, "resource_amount", 0) > 0:
+            # No continuation node in range but cargo aboard — deliver it
+            # instead of idling with a full backpack (§8.13.1 sibling path:
+            # node drained by someone else mid-carry, nothing nearby).
+            self.assign_dropoff(worker)
 
     def _complete_task(self, task: WorkerTask) -> None:
         worker = task.worker

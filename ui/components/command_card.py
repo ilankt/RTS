@@ -495,6 +495,7 @@ class CommandCard:
         self._chip_rects = []
         self._slot_rects = []
         self._hovered_slot = None
+        self._hovered_rect = None
         if content['context'] is None:
             return
 
@@ -655,28 +656,57 @@ class CommandCard:
         revealed.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
         surface.blit(revealed, icon_rect)
 
+    TOOLTIP_WIDTH = 210
+    TOOLTIP_PAD_X = 8
+    TOOLTIP_PAD_Y = 6
+    TOOLTIP_LINE_STEP = 16
+
+    def _wrap_tooltip_line(self, text, max_width):
+        """Measured word-wrap. §8.2.2: the old blind `line[:34]` cap chopped
+        gate/stable/fletching/market mid-word ("Wall segment your units can
+        pass w") — wrap by pixel measurement instead, never drop characters."""
+        words = text.split()
+        lines = []
+        current = ""
+        for word in words:
+            candidate = f"{current} {word}" if current else word
+            if self.cost_font.size(candidate)[0] <= max_width or not current:
+                current = candidate
+            else:
+                lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        return lines
+
     def draw_tooltip(self, screen):
         """Rich hover tooltip as a flyout NEXT TO the hovered tile (the old
         screen-bottom box floated detached from the panel — read as a stray
-        overlapping box, user-reported)."""
+        overlapping box, user-reported). Content-sized: every line word-wraps
+        and the box grows to fit — no character caps, no line caps (§8.2.2)."""
         if self._hovered_slot is None:
             return
-        lines = [line for line in self._hovered_slot.get('tooltip', []) if line][:5]
-        if not lines:
+        raw_lines = [line for line in self._hovered_slot.get('tooltip', []) if line]
+        if not raw_lines:
             return
-        width = 210
-        height = 12 + 16 * len(lines)
+        width = self.TOOLTIP_WIDTH
+        usable = width - 2 * self.TOOLTIP_PAD_X
+        lines = []  # (text, is_title_row)
+        for index, raw in enumerate(raw_lines):
+            for piece in self._wrap_tooltip_line(raw, usable):
+                lines.append((piece, index == 0))
+        height = 2 * self.TOOLTIP_PAD_Y + self.TOOLTIP_LINE_STEP * len(lines)
         anchor = getattr(self, '_hovered_rect', None) or self._panel_rect
         y = min(max(6, anchor.y), SCREEN_HEIGHT - height - 6)
         tooltip_rect = pygame.Rect(self._panel_rect.x - width - 6, y, width, height)
         pygame.draw.rect(screen, (10, 10, 14), tooltip_rect, border_radius=6)
         pygame.draw.rect(screen, (150, 132, 80), tooltip_rect, 1, border_radius=6)
-        text_y = tooltip_rect.y + 6
-        for i, line in enumerate(lines):
-            color = (235, 220, 170) if i == 0 else (225, 225, 225)
-            text = self.cost_font.render(line[:34], True, color)
-            screen.blit(text, (tooltip_rect.x + 8, text_y))
-            text_y += 16
+        text_y = tooltip_rect.y + self.TOOLTIP_PAD_Y
+        for line, is_title in lines:
+            color = (235, 220, 170) if is_title else (225, 225, 225)
+            text = self.cost_font.render(line, True, color)
+            screen.blit(text, (tooltip_rect.x + self.TOOLTIP_PAD_X, text_y))
+            text_y += self.TOOLTIP_LINE_STEP
 
     # ------------------------------------------------------------------ #
     # input                                                              #
