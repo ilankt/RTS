@@ -2,19 +2,57 @@ import pygame
 import json
 
 
+# §8.2.2 HUD cost glyphs: bare transparent cut-outs drawn inline beside a
+# number, unlike the framed *_icon.png plates. Kept in a fixed order so the
+# eye learns each resource's position in a cost row.
+COST_GLYPH_ORDER = ('gold', 'wood', 'stone', 'food')
+GLYPH_NAMES = COST_GLYPH_ORDER + ('time',)
+
+
 class IconLoader:
     """Manages loading and caching of all game icons"""
-    
+
     def __init__(self):
         self.action_icons = {}
         self.building_icons = {}
         self.unit_production_icons = {}
-        
+
         # Load all icons
         self._load_action_icons()
         self._load_building_icons()
         self._load_unit_production_icons()
-    
+        self._load_cost_glyphs()
+
+    def _load_cost_glyphs(self):
+        """Load the inline cost/duration glyphs at full resolution.
+
+        These are scaled per use-site (the tile row wants ~12px, the tooltip
+        a little more), so keep the source and cache each requested size —
+        smoothscaling a 1024px source every frame would be absurd.
+        """
+        self._glyph_sources = {}
+        for name in GLYPH_NAMES:
+            try:
+                self._glyph_sources[name] = pygame.image.load(
+                    f'assets/ui/Glyphs/{name}_glyph.png').convert_alpha()
+            except Exception:
+                # Missing art is survivable: callers fall back to a letter,
+                # matching the drop-in convention used for fountain sprites.
+                self._glyph_sources[name] = None
+        self._glyph_cache = {}
+
+    def get_cost_glyph(self, name, size):
+        """Square `size`-px glyph for a resource ('gold'...) or 'time'."""
+        key = (name, size)
+        if key not in self._glyph_cache:
+            source = self._glyph_sources.get(name)
+            self._glyph_cache[key] = (
+                pygame.transform.smoothscale(source, (size, size))
+                if source is not None else None
+            )
+        return self._glyph_cache[key]
+
+
     def _load_action_icons(self):
         """Load action button icons"""
         action_icon_files = {

@@ -35,12 +35,20 @@ EXPECTED_DIMS = {
     "assets/sprites/Units/Ram/Ram_Run.png": (1152, 192),
     "assets/sprites/Units/Ram/Ram_Attack.png": (768, 192),
     "assets/sprites/Units/Ram/Ram_Guard.png": (1152, 192),
+    # §8.2.2 HUD cost glyphs — bare transparent cut-outs (not framed icons)
+    "assets/ui/Glyphs/gold_glyph.png": (1024, 1024),
+    "assets/ui/Glyphs/wood_glyph.png": (1024, 1024),
+    "assets/ui/Glyphs/stone_glyph.png": (1024, 1024),
+    "assets/ui/Glyphs/food_glyph.png": (1024, 1024),
+    "assets/ui/Glyphs/time_glyph.png": (1024, 1024),
 }
 
 
+# Assets that must have transparent corners: all sprite sheets, plus the HUD
+# cost glyphs (a baked background there renders as an opaque square in-game).
 TRANSPARENT_ASSETS = {
     path for path in EXPECTED_DIMS
-    if path.startswith("assets/sprites/")
+    if path.startswith("assets/sprites/") or path.startswith("assets/ui/Glyphs/")
 }
 
 

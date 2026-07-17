@@ -1,5 +1,6 @@
 import pygame
 from entities import ConstructionSite
+from ui import fonts as ui_fonts
 
 
 class UnitPanel:
@@ -11,15 +12,16 @@ class UnitPanel:
     """
 
     HEADER_HEIGHT = 118
+    PORTRAIT = 64          # §8.2.2: was 48 — "the icon is way too small"
 
     def __init__(self, game, icon_loader=None):
         self.game = game
         self.icon_loader = icon_loader
-        self.font = pygame.font.Font(None, 30)
-        self.small_font = pygame.font.Font(None, 20)
-        self.button_font = pygame.font.Font(None, 24)
-        self.stat_font = pygame.font.Font(None, 18)
-        self.dense_font = pygame.font.Font(None, 16)
+        # §8.2.2 shared fonts (clean system face, bigger than the old default)
+        self.name_font = ui_fonts.title()       # selection name
+        self.small_font = ui_fonts.body()        # multi-select title, misc
+        self.stat_font = ui_fonts.font(17)       # dense stat lines
+        self.dense_font = ui_fonts.bar_text()    # value inside the hp bar
         self._building_icon_cache = {}
         
         # Pre-load and cache unit panel icons for performance
@@ -27,40 +29,40 @@ class UnitPanel:
         self._load_unit_panel_icons()
         
     def _load_unit_panel_icons(self):
-        """Pre-load and cache unit panel icons at different sizes for performance"""
-        # Define the unit types and required sizes
+        """Load unit portrait sources; the header scales them on demand
+        (§8.2.2 portrait-centric header wants several sizes)."""
         unit_types = ['worker', 'warrior', 'archer', 'spearman', 'cavalry', 'ram', 'healer']
-        sizes = {
-            'single': 64,  # For single unit selection
-            'multi': 48,   # Single-selection portrait
-            'group': 40    # Multi-selection grouped icons
-        }
-        
+        sizes = {'single': 64, 'multi': 48, 'group': 40}
+        self._unit_icon_sources = {}
+        self._unit_icon_cache = {}
+
         for unit_type in unit_types:
             self.unit_panel_icons[unit_type] = {}
             icon_path = f"assets/ui/Units/{unit_type}_icon.png"
-            
             try:
-                # Load the original icon once
                 original_icon = pygame.image.load(icon_path).convert_alpha()
-                
-                # Pre-scale to both required sizes and cache them
+                self._unit_icon_sources[unit_type] = original_icon
                 for size_name, size_pixels in sizes.items():
-                    scaled_icon = pygame.transform.scale(original_icon, (size_pixels, size_pixels))
-                    self.unit_panel_icons[unit_type][size_name] = scaled_icon
-                
-            except:
-                # Create placeholder icons for missing files
+                    self.unit_panel_icons[unit_type][size_name] = \
+                        pygame.transform.smoothscale(original_icon, (size_pixels, size_pixels))
+            except Exception:
                 for size_name, size_pixels in sizes.items():
                     placeholder = pygame.Surface((size_pixels, size_pixels))
                     placeholder.fill((100, 100, 100))
                     pygame.draw.rect(placeholder, (150, 150, 150), (0, 0, size_pixels, size_pixels), 2)
-                    # Add text to indicate unit type
-                    font = pygame.font.Font(None, max(12, size_pixels // 4))
-                    text = font.render(unit_type[:4].upper(), True, (255, 255, 255))
-                    text_rect = text.get_rect(center=(size_pixels // 2, size_pixels // 2))
-                    placeholder.blit(text, text_rect)
                     self.unit_panel_icons[unit_type][size_name] = placeholder
+
+    def _unit_icon(self, name, size):
+        """A unit portrait scaled to `size` px, cached (§8.2.2)."""
+        key = (name, size)
+        cached = self._unit_icon_cache.get(key)
+        if cached is None:
+            source = self._unit_icon_sources.get(name)
+            if source is None:
+                return self.unit_panel_icons.get(name, {}).get('single')
+            cached = pygame.transform.smoothscale(source, (size, size))
+            self._unit_icon_cache[key] = cached
+        return cached
     
     def get_selected_objects(self):
         """Get all selected objects"""
@@ -131,53 +133,41 @@ class UnitPanel:
             panel_surface.blit(no_selection_text, (10, 14))
             return None, self.HEADER_HEIGHT
     
-    def _draw_portrait(self, panel_surface, icon):
-        """48px portrait at the top-left of the header."""
-        if icon is not None:
-            panel_surface.blit(icon, (8, 6))
-        else:
-            placeholder = pygame.Surface((48, 48))
-            placeholder.fill((80, 80, 90))
-            pygame.draw.rect(placeholder, (140, 140, 150), (0, 0, 48, 48), 2)
-            panel_surface.blit(placeholder, (8, 6))
-
-    def _draw_header_bar(self, panel_surface, current, maximum, y, color=None):
-        """Slim hp/progress bar right of the portrait, value text inside."""
-        bar = pygame.Rect(62, y, 110, 12)
+    def _draw_overlay_bar(self, panel_surface, current, maximum, rect, color=None):
+        """hp/progress bar drawn OVER the bottom of the sprite (§8.2.2: the
+        HP overlays the portrait at its base), value text centered inside."""
         fraction = (current / maximum) if maximum > 0 else 0
         fraction = max(0.0, min(1.0, fraction))
-        pygame.draw.rect(panel_surface, (55, 55, 55), bar)
+        backing = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+        backing.fill((0, 0, 0, 170))
+        panel_surface.blit(backing, rect.topleft)
         fill_color = color or self._get_health_color(fraction)
-        pygame.draw.rect(panel_surface, fill_color, (bar.x, bar.y, int(bar.width * fraction), bar.height))
-        pygame.draw.rect(panel_surface, (105, 105, 105), bar, 1)
+        pygame.draw.rect(panel_surface, fill_color,
+                         (rect.x, rect.y, int(rect.width * fraction), rect.height))
+        pygame.draw.rect(panel_surface, (30, 30, 30), rect, 1)
         text = self.dense_font.render(f"{int(current)}/{int(maximum)}", True, (255, 255, 255))
-        panel_surface.blit(text, (bar.centerx - text.get_width() // 2,
-                                  bar.centery - text.get_height() // 2))
+        panel_surface.blit(text, (rect.centerx - text.get_width() // 2,
+                                  rect.centery - text.get_height() // 2))
 
-    def _draw_stat_lines(self, panel_surface, lines, start_y=60, pitch=14):
-        for text, color in lines[:4]:
-            rendered = self.dense_font.render(text[:30], True, color)
-            panel_surface.blit(rendered, (8, start_y))
+    def _draw_stat_lines(self, panel_surface, lines, start_y, pitch=15, max_lines=3):
+        for text, color in lines[:max_lines]:
+            rendered = self.stat_font.render(text, True, color)
+            if rendered.get_width() > 178:
+                rendered = pygame.transform.smoothscale(
+                    rendered, (178, rendered.get_height()))
+            panel_surface.blit(rendered, (6, start_y))
             start_y += pitch
 
-    def _draw_single_selection(self, panel_surface, ui_width, selected_info):
-        """Compact single-selection header: portrait row + dense stat lines."""
-        if not selected_info:
-            return None, self.HEADER_HEIGHT
-
+    def _single_selection_model(self, selected_info):
+        """Return (portrait_icon, hp_tuple_or_None, stat_lines) for the
+        current single selection. hp_tuple = (current, maximum, color)."""
         obj = selected_info["object"]
-        name_color = selected_info["player_color"] if selected_info["owner"] != "Neutral" \
-            else (220, 220, 220)
-        name_text = self.small_font.render(selected_info["name"][:16], True, name_color)
-        panel_surface.blit(name_text, (62, 8))
-
+        stype = selected_info["type"]
         lines = []
-        if selected_info["type"] == "Unit":
-            icon = self.unit_panel_icons.get(obj.name, {}).get('multi')
-            self._draw_portrait(panel_surface, icon)
-            self._draw_header_bar(panel_surface, obj.hp, self._get_unit_max_hp(obj), 30)
 
-            if hasattr(obj, 'can_attack') and obj.can_attack and obj.name != 'worker':
+        if stype == "Unit":
+            hp = (obj.hp, self._get_unit_max_hp(obj), None)
+            if getattr(obj, 'can_attack', False) and obj.name != 'worker':
                 lines.append((
                     f"DMG {obj.get_effective_min_damage()}-{obj.get_effective_max_damage()}"
                     f" {obj.attack_type.title()}  RNG {int(obj.get_effective_attack_range())}",
@@ -187,40 +177,100 @@ class UnitPanel:
                 + (f"  SPD {obj.attack_speed:.1f}/s" if getattr(obj, 'can_attack', False)
                    and obj.name != 'worker' else ""),
                 (200, 200, 200)))
-            strong = [t for t in getattr(obj, 'strong_against', ()) or () if t]
-            weak = [t for t in getattr(obj, 'weak_against', ()) or () if t]
-            if strong:
-                lines.append(("Strong: " + ", ".join(
-                    t.replace('_', ' ').title() for t in strong), (120, 230, 120)))
-            if weak:
-                lines.append(("Weak: " + ", ".join(
-                    t.replace('_', ' ').title() for t in weak), (235, 140, 110)))
+            strong = [t.replace('_', ' ').title()
+                      for t in getattr(obj, 'strong_against', ()) or () if t]
+            weak = [t.replace('_', ' ').title()
+                    for t in getattr(obj, 'weak_against', ()) or () if t]
+            if strong or weak:
+                parts = []
+                if strong:
+                    parts.append("Str " + "/".join(strong[:2]))
+                if weak:
+                    parts.append("Wk " + "/".join(weak[:2]))
+                lines.append(("  ".join(parts), (150, 210, 150)))
             if obj.name == "worker" and getattr(obj, 'resource_amount', 0) > 0:
-                resource = (obj.resource_type or 'unknown').replace('_', ' ').title()
-                lines.append((f"Carrying: {int(obj.resource_amount)} {resource}",
-                              (255, 200, 100)))
-        elif selected_info["type"] == "Construction":
-            self._draw_portrait(panel_surface, None)
+                res = (obj.resource_type or 'unknown').replace('_', ' ').title()
+                lines.append((f"Carrying: {int(obj.resource_amount)} {res}", (255, 200, 100)))
+            return 'unit', hp, lines  # caller resolves the icon at the sprite size
+
+        if stype == "Construction":
+            hp = None
             if isinstance(obj, ConstructionSite):
                 progress = obj.construction_progress / obj.construction_duration
-                self._draw_header_bar(panel_surface, progress * 100, 100, 30,
-                                      color=(80, 130, 220))
+                hp = (progress * 100, 100, (80, 130, 220))
                 lines.append((f"Building... {int(progress * 100)}%", (180, 200, 240)))
-        else:
-            self._draw_portrait(panel_surface, self._get_building_icon(obj))
-            if hasattr(obj, 'hp'):
-                self._draw_header_bar(panel_surface, obj.hp, self._get_object_max_hp(obj), 30)
-            if selected_info["type"] == "Building" and getattr(obj, 'can_attack', False):
-                lines.append((
-                    f"DMG {obj.get_effective_min_damage()}-{obj.get_effective_max_damage()}"
-                    f" {obj.attack_type.title()}  RNG {int(obj.get_effective_attack_range())}",
-                    (255, 200, 100)))
-                lines.append((f"ARM {obj.get_effective_armor_value()} {obj.armor_type.title()}"
-                              f"  SPD {obj.attack_speed:.1f}/s", (200, 200, 200)))
-            if selected_info["type"] == "Resource":
-                lines.append((f"Remaining: {int(obj.amount_remaining)}", (100, 255, 100)))
+            return None, hp, lines
 
-        self._draw_stat_lines(panel_surface, lines)
+        # Building or resource
+        hp = (obj.hp, self._get_object_max_hp(obj), None) if hasattr(obj, 'hp') else None
+        if stype == "Building" and getattr(obj, 'can_attack', False):
+            lines.append((
+                f"DMG {obj.get_effective_min_damage()}-{obj.get_effective_max_damage()}"
+                f" {obj.attack_type.title()}  RNG {int(obj.get_effective_attack_range())}",
+                (255, 200, 100)))
+            lines.append((f"ARM {obj.get_effective_armor_value()} {obj.armor_type.title()}"
+                          f"  SPD {obj.attack_speed:.1f}/s", (200, 200, 200)))
+        if stype == "Resource":
+            lines.append((f"Remaining: {int(obj.amount_remaining)}", (100, 255, 100)))
+        return ('building' if stype == "Building" else None), hp, lines
+
+    def _draw_single_selection(self, panel_surface, ui_width, selected_info):
+        """§8.2.2 portrait-centric header: name on top, a big centered sprite
+        below it, the HP bar overlaid at the base of the sprite, and any stat
+        lines beneath. The sprite shrinks a little when there are stats so
+        everything stays inside the fixed header height."""
+        if not selected_info:
+            return None, self.HEADER_HEIGHT
+
+        obj = selected_info["object"]
+        stype = selected_info["type"]
+        cx = ui_width // 2
+
+        icon_kind, hp, lines = self._single_selection_model(selected_info)
+
+        # Name centered at the top.
+        name_color = selected_info["player_color"] if selected_info["owner"] != "Neutral" \
+            else (225, 225, 225)
+        name_text = self.name_font.render(selected_info["name"][:18], True, name_color)
+        if name_text.get_width() > ui_width - 8:
+            name_text = pygame.transform.smoothscale(
+                name_text, (ui_width - 8, name_text.get_height()))
+        panel_surface.blit(name_text, (cx - name_text.get_width() // 2, 2))
+        sprite_top = 2 + name_text.get_height() + 2
+
+        # Sprite size: big with no stats, a touch smaller when stats follow.
+        avail = self.HEADER_HEIGHT - sprite_top - 2
+        sprite = min(84, avail) if not lines else min(64, avail - 2 * 15)
+        sprite = max(40, sprite)
+
+        # Resolve the portrait icon at the chosen size.
+        if stype == "Unit":
+            icon = self._unit_icon(obj.name, sprite)
+        elif icon_kind == 'building':
+            icon = self._get_building_icon(obj, sprite)
+        elif stype != "Construction":
+            icon = self._get_building_icon(obj, sprite)  # resource: no icon -> None
+        else:
+            icon = None
+
+        sprite_rect = pygame.Rect(cx - sprite // 2, sprite_top, sprite, sprite)
+        if icon is not None:
+            panel_surface.blit(icon, sprite_rect.topleft)
+        else:
+            placeholder = pygame.Surface((sprite, sprite))
+            placeholder.fill((80, 80, 90))
+            pygame.draw.rect(placeholder, (140, 140, 150), (0, 0, sprite, sprite), 2)
+            panel_surface.blit(placeholder, sprite_rect.topleft)
+
+        # HP overlaid across the base of the sprite.
+        if hp is not None:
+            bar_h = 15
+            bar_rect = pygame.Rect(sprite_rect.x, sprite_rect.bottom - bar_h,
+                                   sprite_rect.width, bar_h)
+            self._draw_overlay_bar(panel_surface, hp[0], hp[1], bar_rect, hp[2])
+
+        if lines:
+            self._draw_stat_lines(panel_surface, lines, start_y=sprite_rect.bottom + 3)
         return selected_info, self.HEADER_HEIGHT
 
     def _draw_multi_selection(self, panel_surface, selected_objects):
@@ -296,7 +346,7 @@ class UnitPanel:
                 groups.setdefault(obj.name, []).append(obj)
         return sorted(groups.items(), key=lambda item: -len(item[1]))
     
-    def _get_building_icon(self, obj, size=48):
+    def _get_building_icon(self, obj, size=PORTRAIT):
         """Building portrait via the shared icon loader (cached per size)."""
         name = getattr(obj, 'name', None)
         if name is None or self.icon_loader is None:

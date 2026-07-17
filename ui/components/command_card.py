@@ -27,6 +27,8 @@ import pygame
 
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
 from systems.upgrade_effects import has_required_buildings
+from ui.components.icon_loader import COST_GLYPH_ORDER
+from ui import fonts as ui_fonts
 
 
 # Castle listed last (§8.12): rebuildable after a loss — expensive comeback
@@ -34,6 +36,8 @@ ECONOMY_BUILDINGS = ['farm', 'house', 'lumbermill', 'mine', 'quarry', 'market', 
 MILITARY_BUILDINGS = ['barracks', 'stable', 'blacksmith', 'siege_workshop', 'temple',
                       'watchtower', 'wooden_wall', 'wall', 'gate']
 
+# §8.2.2: only a fallback now — costs render as glyph+number pairs. Kept so a
+# missing glyph degrades to the old abbreviation instead of showing nothing.
 RESOURCE_LETTER = {"gold": "G", "wood": "W", "stone": "S", "food": "F"}
 
 
@@ -46,7 +50,12 @@ class CommandCard:
     TILE_W = 86
     TILE_H = 74
     TILE_GAP = 4
-    TILE_ICON = 28
+    TILE_ICON = 28        # base action-icon size (kept for compatibility)
+    # §8.2.2 icon-first anatomy: the name moved to the hover tooltip, so the
+    # icon fills (near) the whole tile — a square capped by the 74px tile
+    # height. Cost/label overlay a dark scrim at the bottom.
+    TILE_ICON_FILL = 70
+    COST_GLYPH = 11       # inline resource glyph px — compact so 3 fit one row
     CHIPS_TOP = 122      # tab chips row (build context only)
     CHIP_H = 22
     GRID_TOP = 150       # same y for every context: fixed anatomy
@@ -57,10 +66,14 @@ class CommandCard:
     def __init__(self, game, icon_loader):
         self.game = game
         self.icon_loader = icon_loader
-        self.name_font = pygame.font.Font(None, 16)
-        self.cost_font = pygame.font.Font(None, 15)
-        self.key_font = pygame.font.Font(None, 14)
-        self.small_font = pygame.font.Font(None, 20)
+        # §8.2.2 shared fonts: a clean system face, larger than the old
+        # default-font literals (which read small and uneven at these sizes).
+        self.name_font = ui_fonts.label()       # chip + action-tile labels
+        self.cost_font = ui_fonts.body()        # tooltip text + measurement
+        self.tile_num_font = ui_fonts.font(15)     # 1-2 resource tile cost
+        self.tile_num_font_sm = ui_fonts.font(11)  # 3-resource tile cost (compact)
+        self.tip_title_font = ui_fonts.font(21, True)  # tooltip title row
+        self.key_font = ui_fonts.badge()        # hotkey / queue badges
 
         self.active_tab = 'economy'   # remembered across selections
         self._content = None          # rebuilt every draw / on demand
@@ -87,8 +100,9 @@ class CommandCard:
                         continue
                     try:
                         icon = pygame.image.load(icon_path).convert_alpha()
+                        # Tech tiles are always cost-bearing → large icon
                         self.tech_icons[tech["id"]] = pygame.transform.smoothscale(
-                            icon, (self.TILE_ICON, self.TILE_ICON))
+                            icon, (self.TILE_ICON_FILL, self.TILE_ICON_FILL))
                     except Exception:
                         continue
         except (OSError, ValueError):
@@ -164,9 +178,9 @@ class CommandCard:
                 continue
             enabled, reason = self._availability(human, building)
             display = building.get('display_name', name.replace('_', ' ').title())
+            costs = building.get('costs', {})
             tooltip = [display, building.get('role', ''),
-                       self._cost_line(building.get('costs', {}),
-                                       building.get('build_duration'))]
+                       self._cost_row(costs, building.get('build_duration'))]
             if building.get('strong_against'):
                 tooltip.append("Strong: " + ", ".join(
                     x.title() for x in building['strong_against'][:2]))
@@ -176,8 +190,9 @@ class CommandCard:
             tooltip.append(reason)
             content['slots'][i] = {
                 'kind': 'build', 'name': name, 'data': building,
-                'label': display, 'icon': self._icon('building', name),
-                'cost': self._compact_costs(building.get('costs', {})),
+                'label': display,
+                'icon': self._icon('building', name),
+                'costs': costs,
                 'enabled': enabled, 'reason': reason, 'tooltip': tooltip,
             }
 
@@ -230,8 +245,13 @@ class CommandCard:
             can_afford = all(human.resources.get(r, 0) >= a for r, a in costs.items())
             template = self.game.game_data.get("units", {}).get(unit_type)
             display = getattr(template, "display_name", unit_type.title())
+            # build_time lives in the raw JSON (production_manager.units_data),
+            # not on the Unit template object — so the tooltip clock needs it
+            # from there (the old text tooltip silently showed no unit time).
+            build_time = self.game.production_manager.units_data.get(
+                unit_type, {}).get('build_time')
             tooltip = [display, getattr(template, "role", ""),
-                       self._cost_line(costs, getattr(template, "build_time", None))]
+                       self._cost_row(costs, build_time)]
             if getattr(template, "strong_against", None):
                 tooltip.append("Strong: " + ", ".join(
                     x.title() for x in template.strong_against[:2]))
@@ -244,8 +264,9 @@ class CommandCard:
             content['slots'][slot] = {
                 'kind': 'unit', 'unit_type': unit_type,
                 'building': type_producers[0], 'producers': type_producers,
-                'label': display, 'icon': self._icon('unit', unit_type),
-                'cost': self._compact_costs(costs),
+                'label': display,
+                'icon': self._icon('unit', unit_type),
+                'costs': costs,
                 'enabled': can_afford,
                 'reason': "Ready" if can_afford else "Insufficient resources",
                 'tooltip': tooltip,
@@ -263,14 +284,14 @@ class CommandCard:
             state = 'done' if reason == "Already researched" else (
                 'queued' if reason in ("Already in progress", "Already queued") else None)
             tooltip = [display, tech.get("tooltip", ""),
-                       self._cost_line(tech.get("costs", {}), tech.get("research_time")),
+                       self._cost_row(tech.get("costs", {}), tech.get("research_time")),
                        reason]
             research_info = self.game.research_manager.get_research_info(building)
             in_progress = research_info and research_info['tech_id'] == tech['id']
             content['slots'][slot] = {
                 'kind': 'tech', 'tech_id': tech['id'], 'building': building,
                 'label': display, 'icon': self.tech_icons.get(tech['id']),
-                'cost': self._compact_costs(tech.get('costs', {})),
+                'costs': tech.get('costs', {}),
                 'enabled': can_research, 'reason': reason, 'tooltip': tooltip,
                 'state': state,
                 'progress': research_info['progress'] if in_progress else None,
@@ -407,8 +428,9 @@ class CommandCard:
     # shared helpers                                                     #
     # ------------------------------------------------------------------ #
 
-    def _icon(self, kind, name):
-        key = (kind, name)
+    def _icon(self, kind, name, size=None):
+        size = size or self.TILE_ICON_FILL
+        key = (kind, name, size)
         cached = self._icon_cache.get(key)
         if cached is not None:
             return cached
@@ -421,7 +443,7 @@ class CommandCard:
             source = self.icon_loader.action_icons.get(name)
         if source is None:
             return None
-        icon = pygame.transform.smoothscale(source, (self.TILE_ICON, self.TILE_ICON))
+        icon = pygame.transform.smoothscale(source, (size, size))
         self._icon_cache[key] = icon
         return icon
 
@@ -454,21 +476,14 @@ class CommandCard:
                          for resource, amount in costs.items() if amount > 0)
 
     @staticmethod
-    def _compact_costs(costs):
-        """"150G 75W" — short enough to never clip a tile."""
-        return " ".join(
-            f"{amount}{RESOURCE_LETTER.get(resource, resource[0].upper())}"
-            for resource, amount in costs.items() if amount > 0
-        )
+    def _cost_row(costs, seconds=None):
+        """A tooltip/tile cost entry: rendered as glyph+number pairs, not text.
 
-    @staticmethod
-    def _cost_line(costs, seconds):
-        parts = [f"{amount} {resource.title()}"
-                 for resource, amount in costs.items() if amount > 0]
-        line = "Cost: " + ", ".join(parts) if parts else ""
-        if seconds:
-            line = (line + f" - {seconds:.0f}s") if line else f"Time: {seconds:.0f}s"
-        return line
+        Returned as a dict so it can sit inline in a tooltip line list and be
+        told apart from the plain strings around it.
+        """
+        return {'costs': {r: a for r, a in (costs or {}).items() if a > 0},
+                'duration': seconds}
 
     def _wrap_name(self, name, max_width):
         words = name.split()
@@ -582,54 +597,136 @@ class CommandCard:
             border = (240, 240, 240)
 
         pygame.draw.rect(surface, fill, tile, border_radius=4)
-        pygame.draw.rect(surface, border, tile, 2, border_radius=4)
 
+        # §8.2.2 icon-first anatomy: the icon fills (near) the whole tile — the
+        # name lives in the hover tooltip. Cost/label overlay a scrim below.
         icon = slot.get('icon')
         if icon is not None:
             if not slot['enabled'] and state is None:
                 icon = icon.copy()
                 icon.fill((110, 110, 110, 255), special_flags=pygame.BLEND_RGBA_MULT)
-            icon_rect = icon.get_rect(midtop=(tile.centerx, tile.y + 4))
+            icon_rect = icon.get_rect(center=(tile.centerx, tile.centery))
             progress = slot.get('progress')
             if progress is not None and progress < 1.0:
                 self._draw_icon_with_radial_progress(surface, icon, icon_rect, progress)
             else:
                 surface.blit(icon, icon_rect)
 
-        # Position-mapped hotkey badge, top-left corner
+        # Bottom overlay: glyph cost row (cost tiles) or the state label
+        # (action tiles), on a dark scrim so it reads over the icon.
+        costs = slot.get('costs')
+        if costs:
+            self._draw_tile_cost_glyphs(surface, tile, costs, slot['enabled'])
+        else:
+            label = slot.get('cost') or slot.get('label') or ''
+            if label:
+                if slot['kind'] in ('stance', 'formation'):
+                    label_color = (185, 210, 240)
+                else:
+                    label_color = (235, 235, 220) if slot['enabled'] else (210, 140, 130)
+                self._draw_tile_scrim(surface, tile, 1)
+                text = self.name_font.render(label, True, label_color)
+                if text.get_width() > tile.width - 6:
+                    text = pygame.transform.smoothscale(
+                        text, (tile.width - 6, text.get_height()))
+                surface.blit(text, (tile.centerx - text.get_width() // 2,
+                                    tile.bottom - text.get_height() - 3))
+
+        # Border frames the filled icon; badges sit on top of everything.
+        pygame.draw.rect(surface, border, tile, 2, border_radius=4)
+
         key_name = self._slot_key_name(index)
         if key_name:
-            badge = pygame.Rect(tile.x + 2, tile.y + 2, 13, 13)
+            badge = pygame.Rect(tile.x + 2, tile.y + 2, 16, 16)
             pygame.draw.rect(surface, (15, 15, 18), badge, border_radius=3)
-            key_text = self.key_font.render(key_name.upper()[:1], True, (210, 200, 140))
+            pygame.draw.rect(surface, (90, 90, 80), badge, 1, border_radius=3)
+            key_text = self.key_font.render(key_name.upper()[:1], True, (225, 215, 150))
             surface.blit(key_text, (badge.centerx - key_text.get_width() // 2,
                                     badge.centery - key_text.get_height() // 2))
 
-        # Queue-depth badge, top-right corner
         badge_count = slot.get('badge') or 0
         if badge_count > 1:
-            center = (tile.right - 11, tile.y + 11)
-            pygame.draw.circle(surface, (200, 50, 50), center, 9)
-            pygame.draw.circle(surface, (255, 255, 255), center, 9, 1)
+            center = (tile.right - 12, tile.y + 12)
+            pygame.draw.circle(surface, (200, 50, 50), center, 10)
+            pygame.draw.circle(surface, (255, 255, 255), center, 10, 1)
             count_text = self.key_font.render(str(badge_count), True, (255, 255, 255))
             surface.blit(count_text, (center[0] - count_text.get_width() // 2,
                                       center[1] - count_text.get_height() // 2))
 
-        name_y = tile.y + 4 + self.TILE_ICON + 2
-        for line in self._wrap_name(slot['label'], tile.width - 8)[:2]:
-            text = self.name_font.render(line, True, name_color)
-            surface.blit(text, (tile.centerx - text.get_width() // 2, name_y))
-            name_y += 11
+    # Bright number colors so the glyph carries the hue and the digits stay
+    # legible on the dark tile; red when the player can't afford it (§8.2.2).
+    _COST_NUM_OK = (228, 228, 208)
+    _COST_NUM_NO = (208, 128, 118)
+    # Only used to tint the letter fallback when a glyph asset is missing, so
+    # the abbreviation still reads as its resource (matches the glyph hues).
+    _RESOURCE_TINT = {'gold': (245, 200, 60), 'wood': (196, 142, 92),
+                      'stone': (185, 190, 196), 'food': (230, 125, 95)}
 
-        cost_line = slot.get('cost') or ''
-        if cost_line:
-            if slot['kind'] in ('stance', 'formation'):
-                cost_color = (170, 200, 230)
+    def _draw_tile_scrim(self, surface, tile, rows, row_h):
+        """Dark scrim behind the bottom `rows` of overlay text so numbers stay
+        legible over a full-bleed icon (§8.2.2)."""
+        height = min(tile.height - 4, rows * row_h + 4)
+        scrim = pygame.Surface((tile.width - 4, height), pygame.SRCALPHA)
+        scrim.fill((0, 0, 0, 150))
+        surface.blit(scrim, (tile.x + 2, tile.bottom - 2 - height))
+
+    def _draw_tile_cost_glyphs(self, surface, tile, costs, enabled):
+        """Cost as glyph+number pairs, packed centered and bottom-aligned on a
+        scrim. The size adapts to the resource count: readable for the common
+        1-2 resource case, compact for the rare 3-resource one so it stays a
+        single thin row instead of a fat block over the icon (the archer,
+        75/50/40, was the complaint). Only the castle's 3x3-digit cost still
+        wraps to two rows — unavoidable in an 86px tile, measured."""
+        num_color = self._COST_NUM_OK if enabled else self._COST_NUM_NO
+        three = sum(1 for r in COST_GLYPH_ORDER if costs.get(r, 0) > 0) >= 3
+        glyph_px = 10 if three else 14
+        num_font = self.tile_num_font_sm if three else self.tile_num_font
+        gap, pair_gap = 1, (2 if three else 4)
+        row_h = glyph_px + 4
+
+        # Build renderables in the fixed resource order so a cost's layout is
+        # stable regardless of dict order.
+        pairs = []
+        for resource in COST_GLYPH_ORDER:
+            amount = costs.get(resource, 0)
+            if amount <= 0:
+                continue
+            glyph = self.icon_loader.get_cost_glyph(resource, glyph_px)
+            number = num_font.render(str(amount), True, num_color)
+            fallback = None
+            if glyph is None:
+                fallback = num_font.render(
+                    RESOURCE_LETTER.get(resource, resource[0].upper()),
+                    True, self._RESOURCE_TINT.get(resource, num_color))
+            width = (glyph_px if glyph is not None else fallback.get_width()) + gap + number.get_width()
+            pairs.append((glyph, fallback, number, width))
+
+        usable = tile.width - 6
+        rows, current, current_w = [], [], 0
+        for pair in pairs:
+            add = pair[3] + (pair_gap if current else 0)
+            if current and current_w + add > usable:
+                rows.append((current, current_w))
+                current, current_w = [pair], pair[3]
             else:
-                cost_color = (200, 200, 160) if slot['enabled'] else (200, 120, 110)
-            text = self.cost_font.render(cost_line, True, cost_color)
-            surface.blit(text, (tile.centerx - text.get_width() // 2,
-                                tile.bottom - 13))
+                current.append(pair)
+                current_w += add
+        if current:
+            rows.append((current, current_w))
+        rows = rows[:2]  # two rows is the ceiling; three resources max
+
+        self._draw_tile_scrim(surface, tile, len(rows), row_h)
+        total_h = len(rows) * row_h
+        y = tile.bottom - 4 - total_h
+        for row_pairs, row_w in rows:
+            x = tile.centerx - row_w // 2
+            for glyph, fallback, number, width in row_pairs:
+                mark = glyph if glyph is not None else fallback
+                surface.blit(mark, (x, y + (row_h - mark.get_height()) // 2 - 1))
+                x += (glyph_px if glyph is not None else fallback.get_width()) + gap
+                surface.blit(number, (x, y + (row_h - number.get_height()) // 2 - 1))
+                x += number.get_width() + pair_gap
+            y += row_h
 
     def _draw_icon_with_radial_progress(self, surface, icon, icon_rect, progress):
         darkened = icon.copy()
@@ -656,10 +753,14 @@ class CommandCard:
         revealed.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
         surface.blit(revealed, icon_rect)
 
-    TOOLTIP_WIDTH = 210
-    TOOLTIP_PAD_X = 8
-    TOOLTIP_PAD_Y = 6
-    TOOLTIP_LINE_STEP = 16
+    TOOLTIP_WIDTH = 236
+    TOOLTIP_PAD_X = 11
+    TOOLTIP_PAD_Y = 9
+    TOOLTIP_GLYPH = 16
+    TOOLTIP_LINE_STEP = 16  # kept for tests; body line height is TIP_BODY_STEP
+    TIP_BODY_STEP = 21
+    TIP_COST_H = 24
+    TIP_RULE_H = 9
 
     def _wrap_tooltip_line(self, text, max_width):
         """Measured word-wrap. §8.2.2: the old blind `line[:34]` cap chopped
@@ -680,33 +781,82 @@ class CommandCard:
         return lines
 
     def draw_tooltip(self, screen):
-        """Rich hover tooltip as a flyout NEXT TO the hovered tile (the old
-        screen-bottom box floated detached from the panel — read as a stray
-        overlapping box, user-reported). Content-sized: every line word-wraps
-        and the box grows to fit — no character caps, no line caps (§8.2.2)."""
+        """Rich hover flyout beside the hovered tile (§8.2.2): a bold title, a
+        divider rule, then the body — role, a glyph cost+duration row, and any
+        counters — with real line spacing. Content-sized, no character caps."""
         if self._hovered_slot is None:
             return
         raw_lines = [line for line in self._hovered_slot.get('tooltip', []) if line]
         if not raw_lines:
             return
+        title_font = self.tip_title_font
         width = self.TOOLTIP_WIDTH
         usable = width - 2 * self.TOOLTIP_PAD_X
-        lines = []  # (text, is_title_row)
+
+        # Typed, measured rows: (kind, payload, height).
+        rows = []
         for index, raw in enumerate(raw_lines):
-            for piece in self._wrap_tooltip_line(raw, usable):
-                lines.append((piece, index == 0))
-        height = 2 * self.TOOLTIP_PAD_Y + self.TOOLTIP_LINE_STEP * len(lines)
+            if index == 0:  # title + divider
+                rows.append(('title', str(raw), title_font.get_height() + 4))
+                rows.append(('rule', None, self.TIP_RULE_H))
+            elif isinstance(raw, dict):
+                if raw.get('costs') or raw.get('duration'):
+                    rows.append(('costs', (raw.get('costs') or {}, raw.get('duration')),
+                                 self.TIP_COST_H))
+            else:
+                for piece in self._wrap_tooltip_line(raw, usable):
+                    rows.append(('text', piece, self.TIP_BODY_STEP))
+
+        height = 2 * self.TOOLTIP_PAD_Y + sum(h for _k, _p, h in rows)
         anchor = getattr(self, '_hovered_rect', None) or self._panel_rect
         y = min(max(6, anchor.y), SCREEN_HEIGHT - height - 6)
-        tooltip_rect = pygame.Rect(self._panel_rect.x - width - 6, y, width, height)
-        pygame.draw.rect(screen, (10, 10, 14), tooltip_rect, border_radius=6)
-        pygame.draw.rect(screen, (150, 132, 80), tooltip_rect, 1, border_radius=6)
-        text_y = tooltip_rect.y + self.TOOLTIP_PAD_Y
-        for line, is_title in lines:
-            color = (235, 220, 170) if is_title else (225, 225, 225)
-            text = self.cost_font.render(line, True, color)
-            screen.blit(text, (tooltip_rect.x + self.TOOLTIP_PAD_X, text_y))
-            text_y += self.TOOLTIP_LINE_STEP
+        rect = pygame.Rect(self._panel_rect.x - width - 8, y, width, height)
+        pygame.draw.rect(screen, (18, 18, 24), rect, border_radius=7)
+        pygame.draw.rect(screen, (150, 132, 80), rect, 2, border_radius=7)
+
+        x = rect.x + self.TOOLTIP_PAD_X
+        ty = rect.y + self.TOOLTIP_PAD_Y
+        for kind, payload, h in rows:
+            if kind == 'title':
+                screen.blit(title_font.render(payload, True, (245, 238, 215)), (x, ty))
+            elif kind == 'rule':
+                pygame.draw.line(screen, (90, 82, 60),
+                                 (x, ty + 2), (rect.right - self.TOOLTIP_PAD_X, ty + 2))
+            elif kind == 'costs':
+                self._draw_tooltip_cost_row(screen, x, ty, payload[0], payload[1])
+            else:
+                screen.blit(self.cost_font.render(payload, True, (222, 222, 226)), (x, ty))
+            ty += h
+
+    def _draw_tooltip_cost_row(self, screen, x, y, costs, seconds):
+        """Cost as glyph+number pairs then a clock+seconds, on one line — the
+        tooltip is wide enough that even the castle's three resources fit."""
+        glyph_px = self.TOOLTIP_GLYPH
+        num_color = (232, 232, 236)
+        mid = y + self.TIP_COST_H // 2
+
+        def blit_pair(glyph_name, text, label, tint):
+            nonlocal x
+            glyph = self.icon_loader.get_cost_glyph(glyph_name, glyph_px)
+            if glyph is not None:
+                screen.blit(glyph, (x, mid - glyph_px // 2))
+                x += glyph_px + 3
+            else:
+                mark = self.cost_font.render(label, True, tint)
+                screen.blit(mark, (x, mid - mark.get_height() // 2))
+                x += mark.get_width() + 3
+            number = self.cost_font.render(text, True, num_color)
+            screen.blit(number, (x, mid - number.get_height() // 2))
+            x += number.get_width() + 12
+
+        for resource in COST_GLYPH_ORDER:
+            amount = costs.get(resource, 0)
+            if amount > 0:
+                blit_pair(resource, str(amount),
+                          RESOURCE_LETTER.get(resource, resource[0].upper()),
+                          self._RESOURCE_TINT.get(resource, num_color))
+        if seconds:
+            blit_pair('time', f"{seconds:.0f}s", "T", (170, 196, 214))
 
     # ------------------------------------------------------------------ #
     # input                                                              #

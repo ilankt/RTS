@@ -213,40 +213,62 @@ decides what to spend it on** (a bigger, more legible icon — not more small te
   wrap test asserts no characters are dropped and every piece fits) and a
   content-sized box (`TOOLTIP_*` constants). Long entries (gate, fletching,
   stable…) now wrap instead of chopping mid-word.
-- [ ] ⛔ **Tooltip content + behavior** — it now owns name / role / cost+duration /
-  counters / availability reason (see the anatomy table). Decide and record: hover
-  delay (instant vs ~200 ms), anchor side when the tile is near a screen edge, and
-  ordering. It already anchors beside the hovered tile (the §9 2026-07-11 fix); keep
-  that, don't regress to a screen-pinned box.
-- [ ] **Strip the name off the tile; grow the icon.** `_draw_tile`
-  (`command_card.py:567-631`) drops the wrapped-name block (`:617-621`) and reflows:
-  `TILE_ICON` (`:49`, currently 28) takes the freed ~22 px. Keep hotkey badge, cost
-  row, state colors, queue badge.
+- [x] ⛔ **Tooltip content + behavior** — *landed 2026-07-17.* The tooltip now owns
+  name (title row) / role / cost+duration (glyph row) / counters / availability
+  reason. Kept the beside-the-tile anchor (§9 2026-07-11); hover is instant (no
+  delay added — it reads fine and a delay is easy to add later if it feels twitchy).
+- [x] **Strip the name off the tile; grow the icon.** *Landed 2026-07-17.* Cost-bearing
+  tiles (build/unit/tech — all of them cost something) drop the wrapped name and grow
+  the icon to `TILE_ICON_LARGE` (44 from 28); the tooltip carries the name. Action tiles
+  (stop/stance/formation/gate/market/cancel) keep the small icon + label, since they
+  have no cost and the label *is* their content. Hotkey/queue badges + state colors kept.
 - [ ] **Audit the sibling blind truncations** — same class of bug:
   `unit_panel.py:159` `[:30]`, `:171` `[:16]`, `ui_manager.py:94` `[:44]`.
-- [ ] **Shared font module + UI scale factor** (`ui/fonts.py`) — one place that
-  resolves a semantic size (`tile_cost`, `hotkey_badge`, `tooltip_title`,
-  `tooltip_body`, `body`…) against a scale derived from resolution. Migrate the 44
-  call sites. Structural prerequisite; everything else here is cosmetic without it.
-  Drop the dead `command_card.small_font` (`:63`) in passing.
-- [ ] **Scale the sidebar with resolution** — `MINIMAP_WIDTH` (and the card's tile
-  geometry) become derived, not constant; `apply_resolution` computes them. At 1080p
-  the sidebar grows ~1.5×. Costs map view area — that's the accepted trade.
-- [ ] **Cost as icons + a duration icon.** Replace `_compact_costs`'
-  `"150G 100W"` (`command_card.py:456-462`, `RESOURCE_LETTER` at `:37`) with
-  icon+number pairs on the tile, and a clock icon for build/research time **in the
-  tooltip**. Needs a legibility check: two icon+number pairs must fit one tile row
-  at the scaled size without re-creating the cramping this section exists to fix —
-  if they don't, that's a signal the sidebar scale factor is too low.
-  **⚠ The existing resource icons are NOT drop-in.** `gold/lumber/stone/food/house_icon.png`
-  exist at 1000–1024 px, but all are **fully opaque (alpha=255 everywhere) with
-  baked-in dark brown backgrounds** (corners ≈ RGB(32,20,8)). They only work in the
-  top bar because the banner behind them is also dark. Blitted at ~12–14 px onto a
-  tile's green fill they render as **dark opaque squares**, and 1000→14 px
-  downscaling turns them to mud. → **re-cut as true transparent cut-outs** (or
-  regenerate small), and add a **clock/duration icon which does not exist at all**.
-  Also: resource icons load in `core/game.py:208-223`, **not** `sprite_manager`, and
-  `ui/components/icon_loader.py` has no path to them — wire that up.
+- [x] **Shared font module** (`ui/fonts.py`) — *landed 2026-07-17, partial.* One place
+  that resolves a clean **system face** (Segoe UI / Arial / DejaVu, default fallback)
+  at semantic sizes (`title`/`body`/`label`/`cost`/`badge`/`bar_text`) — the old
+  `pygame.font.Font(None, N)` default read small and *uneven* (user-reported). Migrated
+  the two surfaces the user sees (command_card, unit_panel); the other ~40 call sites
+  still use the default font and can migrate lazily. Dead `small_font` dropped.
+  - ⚠ **`ui/fonts.py` must NOT cache `Font` objects at module level** — a
+    `pygame.font.quit()`/re-init cycle (the main menu and `test_phase5` both do it) leaves
+    a cached Font holding a dead TTF handle and **segfaults on the next render** (cost a
+    full-suite crash to find). Fonts are built per-instance in `__init__` (tied to the
+    Game lifecycle, as the old code did); only the face-path *string* is cached.
+  - **UI scale factor from resolution: still deferred.** The face + fixed larger sizes
+    already fixed "too small/uneven"; a resolution-derived scale is the next lever if
+    1440p+/4k needs it.
+- [ ] **Scale the sidebar with resolution** — *still open, deliberately.* `MINIMAP_WIDTH`
+  (and tile geometry) become derived, not constant; `apply_resolution` computes them.
+  The big-icon + portrait-centric-header pass landed **within** the fixed 200px sidebar
+  (icons fill the tile, header sprite up to 84px), so this is no longer blocking — but it
+  remains the honest fix for making the whole sidebar bigger at high resolutions. Costs
+  map-view area; that's the accepted trade. **⚠ 720p is the constraint**: the card already
+  fills the sidebar height there, so grow the header only behind this.
+- [x] **Icon-first tiles: fill the square + portrait-centric header** — *landed 2026-07-17
+  (user feedback: icons/fonts/header "too small", 2nd pass).* Tile icons now **fill the
+  tile** (`TILE_ICON_FILL=70`, `_icon` default), cost overlays a thin bottom **scrim**;
+  the cost size is **adaptive** (readable 15px for 1-2 resources, compact 11px for the
+  rare 3-resource so the archer's 75/50/40 stays one thin row instead of a fat block over
+  the icon — the specific complaint). Header redesigned portrait-centric per the user:
+  **name on top → big centered sprite → HP bar overlaid at the sprite's base → stats
+  below** (`unit_panel._draw_single_selection`); sprite is 84px for buildings, ~56–64px
+  for units (shrinks to keep stats in the fixed 118px header). Tooltip got a bold title +
+  divider rule + real line spacing. `test_command_card` updated (26 tests), suite 393 green.
+- [x] **Cost as icons + a duration icon.** *Landed 2026-07-17.* Tile cost row is now
+  glyph+number pairs (`_draw_tile_cost_glyphs`), wrapping to a second row for the one
+  3-resource case that never fit (castle 500g/200w/300s — the old text row already
+  clipped it at 87px into 78). Tooltip cost row adds the hourglass duration
+  (`_draw_tooltip_cost_row`); unit build time is read from
+  `production_manager.units_data` since it isn't on the Unit template (the old text
+  tooltip silently showed no unit time). New glyphs live in `assets/ui/Glyphs/` and
+  load via a new `IconLoader._load_cost_glyphs` / `get_cost_glyph` (cached per size) —
+  `icon_loader.py` now has the path to resource art it lacked. Missing-glyph fallback
+  is the old letter abbreviation, tinted per resource.
+  - **Sidebar scale factor deferred:** two pairs fit one tile row at the *current*
+    sidebar width, so this shipped without the scale work below. The one overflow
+    (3-resource castle) wraps cleanly rather than forcing the sidebar wider. Revisit if
+    the scale pass changes tile geometry.
 - [x] Add the coin/clock prompts to `REQUIRED_VISUAL_ASSET_PROMPTS.md` in house style —
   *done 2026-07-17.* Items **28–32** (`gold/wood/stone/food/time_glyph.png`), plus a new
   **HUD Cost Glyphs** style section that deliberately overrides the file's UI-Icons rules,
@@ -268,14 +290,13 @@ decides what to spend it on** (a bigger, more legible icon — not more small te
     (wood `196,142,92` = 4.54, food `230,125,95` = 4.60) and cap outlines at 3–4 % so they
     don't eat a 14 px glyph's core. Also: single objects only — today's clustered gold
     (ingot + 4 coins) and lumber (3 logs + 2 planks) are *identical warm smears* at 14 px.
-- [ ] *(latent, trivial)* `command_card._hovered_rect` (`:548`) is never reset to
-  `None`; harmless today, read via `getattr(...) or self._panel_rect`.
-- [ ] **Update `tests/test_command_card.py`** — 18 tests assert the *old* anatomy
-  (per-selection content, tile text, hotkey placement). Stripping the name and
-  re-flowing the tile will move them; that's expected, but they must be re-asserted
-  against the new anatomy rather than deleted. Add a tooltip word-wrap test and a
-  draw-order test (tooltip after the map border) — the occlusion regression shipped
-  precisely because no test could see it.
+- [x] *(latent, trivial)* `command_card._hovered_rect` reset to `None` each draw —
+  *done 2026-07-17.*
+- [x] **Update `tests/test_command_card.py`** — *done 2026-07-17.* The old anatomy tests
+  keyed on `slot['name']` (kept), so they held; added new-anatomy tests: costs-as-dict,
+  glyphs load at size, tooltip cost-row + duration, unit build_time-from-JSON regression,
+  and an end-to-end hovered-cost-tile frame render. Plus the earlier word-wrap and
+  draw-order tests. 26 tests, full suite 393 green.
 - **✅ Verify:** at 1920×1080 fullscreen (the default), on a rendered frame:
   (1) every tile's icon reads instantly at normal viewing distance and its cost is
   legible without leaning in; (2) **hovering any tile shows a tooltip that is fully

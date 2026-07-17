@@ -457,8 +457,76 @@ def test_consumes_key_only_for_occupied_slots(game, card):
 
 
 # --------------------------------------------------------------------- #
-# §8.2.2 tooltip correctness: draw order + word-wrap                     #
+# §8.2.2 icon-first anatomy: glyph costs, name/duration in the tooltip   #
 # --------------------------------------------------------------------- #
+
+def test_cost_bearing_tiles_carry_a_costs_dict(game, card):
+    """The tile cost row is glyph+number pairs now, so slots carry a real
+    costs dict, not the old pre-joined "500G 200W" string."""
+    select(game, own_worker(game))
+    card.active_tab = 'economy'
+    content = card.refresh()
+    castle = next(s for s in content['slots'] if s and s['name'] == 'castle')
+    assert isinstance(castle['costs'], dict)
+    assert castle['costs'] == {'gold': 500, 'wood': 200, 'stone': 300}
+    assert 'cost' not in castle, "old pre-joined cost string must be gone"
+    # The name left the tile — it must survive as the tooltip's title row.
+    assert castle['tooltip'][0] == castle['label']
+
+
+def test_cost_glyphs_load_at_requested_size(game):
+    """All five glyphs (4 resources + duration) load as square surfaces —
+    if any is missing the tile silently falls back to a letter."""
+    loader = game.ui_manager.command_card.icon_loader
+    for name in ('gold', 'wood', 'stone', 'food', 'time'):
+        glyph = loader.get_cost_glyph(name, 13)
+        assert glyph is not None, f"{name} glyph did not load"
+        assert glyph.get_size() == (13, 13)
+
+
+def test_tooltip_carries_a_cost_row_with_duration(game, card):
+    """Tooltip owns cost (glyphs) + build time (clock) per the anatomy."""
+    select(game, own_worker(game))
+    card.active_tab = 'economy'
+    content = card.refresh()
+    castle = next(s for s in content['slots'] if s and s['name'] == 'castle')
+    cost_rows = [x for x in castle['tooltip'] if isinstance(x, dict)]
+    assert len(cost_rows) == 1
+    assert cost_rows[0]['costs'] == {'gold': 500, 'wood': 200, 'stone': 300}
+    assert cost_rows[0]['duration'], "castle tooltip must show a build duration"
+
+
+def test_unit_tooltip_shows_build_time_from_json(game, card):
+    """Regression: build_time lives in the raw JSON, not the Unit template
+    object, so the tooltip must read it from production_manager.units_data.
+    The old text tooltip silently showed no unit duration."""
+    barracks = build_own_building(game, 'barracks',
+                                  own_castle(game).x + 200, own_castle(game).y)
+    barracks.can_produce = ['warrior']
+    select(game, barracks)
+    content = card.refresh()
+    warrior = next(s for s in content['slots']
+                   if s and s.get('unit_type') == 'warrior')
+    cost_rows = [x for x in warrior['tooltip'] if isinstance(x, dict)]
+    assert cost_rows and cost_rows[0]['duration'] == 8  # units.json warrior
+    game.buildings.remove(barracks)
+
+
+def test_frame_with_hovered_cost_tile_renders(game, card, monkeypatch):
+    """End-to-end: a real frame with a cost tile hovered draws the glyph
+    cost row and the glyph tooltip without raising (the preview confirmed
+    it visually; this guards against a blit/scale regression)."""
+    select(game, own_worker(game))
+    card.active_tab = 'economy'
+    game.rendering_system.draw_frame(game.screen, game.map_surface, game.camera, 1/60)
+    castle_rect = next(r for i, r in card._slot_rects
+                       if card._content['slots'][i]
+                       and card._content['slots'][i].get('name') == 'castle')
+    monkeypatch.setattr(pygame.mouse, "get_pos", lambda: castle_rect.center)
+    game.rendering_system.draw_frame(game.screen, game.map_surface, game.camera, 1/60)
+    assert card._hovered_slot is not None
+    assert card._hovered_slot.get('name') == 'castle'
+
 
 def test_tooltip_wraps_instead_of_truncating(game, card):
     """The old `line[:34]` chopped gate/stable/fletching mid-word. Wrapping
@@ -495,11 +563,12 @@ def test_tooltip_draws_over_map_border(game, card, monkeypatch):
                                      game.camera, 1 / 60)
 
     assert card._hovered_slot is not None, "tile under mouse must hover"
-    # Sample inside the tooltip near its RIGHT edge — the 32 px band the
-    # border rail used to overpaint (rail spans ~[panel.x-24, panel.x]).
-    probe_x = card._panel_rect.x - 10
-    probe_y = min(max(6, tile.y), 100000) + 10
-    assert game.screen.get_at((probe_x, probe_y))[:3] == (10, 10, 14), \
+    # Sample inside the tooltip, within the band the ornate border rail
+    # overpaints (rail spans ~[panel.x-24, panel.x]); the tooltip fill must
+    # win there because it draws after the border (§8.2.2).
+    probe_x = card._panel_rect.x - 16
+    probe_y = min(max(6, tile.y), 100000) + 12
+    assert game.screen.get_at((probe_x, probe_y))[:3] == (18, 18, 24), \
         "tooltip right edge was painted over (draw order regressed)"
 
 
