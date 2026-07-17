@@ -37,13 +37,15 @@ def test_strategy_data_loads_ram_siege_and_tech_costs():
     assert "siege_workshop" in data["buildings"]
     assert "improved_tools" in data["techs"]
     assert data["costs"]["siege_engineering"]["stone"] == 80
-    assert data["units"]["healer"].buildable is False
+    # Healer + temple enabled 2026-07-17: the temple is buildable (military tab)
+    # and trains the healer, whose heal logic was already implemented and tested.
+    assert data["units"]["healer"].buildable is True
     # Walls deferred 2026-07-12 (§8.10): mechanics are done but disabled via
     # buildable:false pending orientation-aware sprites — flip to re-enable.
     assert data["buildings"]["wall"].buildable is False
     assert data["buildings"]["wooden_wall"].buildable is False
     assert data["buildings"]["gate"].buildable is False
-    assert data["buildings"]["temple"].buildable is False  # still content-gated
+    assert data["buildings"]["temple"].buildable is True
 
 
 def test_default_game_mode_is_human_1v1_and_spectator_is_preserved():

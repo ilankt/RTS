@@ -242,12 +242,12 @@
     "requires": [
       "barracks"
     ],
-    "buildable": false,
+    "buildable": true,
     "strong_against": [],
     "weak_against": [
       "ram"
     ],
-    "sprite": "assets/sprites/Buildings/House.png",
+    "sprite": "assets/sprites/Buildings/Temple.png",
     "size": [
       1.5,
       1.5

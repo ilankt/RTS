@@ -266,7 +266,7 @@
     "requires": [
       "temple"
     ],
-    "buildable": false,
+    "buildable": true,
     "strong_against": [],
     "weak_against": [
       "cavalry",
@@ -281,7 +281,7 @@
     "attack": 0,
     "can_attack": false,
     "build_time": 8,
-    "icon": "assets/ui/Units/archer_icon.png",
+    "icon": "assets/ui/Units/healer_icon.png",
     "costs": {
       "gold": 100,
       "food": 50
@@ -294,9 +294,9 @@
     "attack_speed": 0,
     "attack_range": 0,
     "animations": {
-      "idle": "assets/sprites/Units/Archer/Archer_Idle.png",
-      "run": "assets/sprites/Units/Archer/Archer_Run.png",
-      "shoot": "assets/sprites/Units/Archer/Archer_Shoot.png"
+      "idle": "assets/sprites/Units/Healer/Idle.png",
+      "run": "assets/sprites/Units/Healer/Run.png",
+      "attack": "assets/sprites/Units/Healer/Heal.png"
     }
   }
 ]

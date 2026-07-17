@@ -31,7 +31,7 @@ from systems.upgrade_effects import has_required_buildings
 
 # Castle listed last (§8.12): rebuildable after a loss — expensive comeback
 ECONOMY_BUILDINGS = ['farm', 'house', 'lumbermill', 'mine', 'quarry', 'market', 'castle']
-MILITARY_BUILDINGS = ['barracks', 'stable', 'blacksmith', 'siege_workshop',
+MILITARY_BUILDINGS = ['barracks', 'stable', 'blacksmith', 'siege_workshop', 'temple',
                       'watchtower', 'wooden_wall', 'wall', 'gate']
 
 RESOURCE_LETTER = {"gold": "G", "wood": "W", "stone": "S", "food": "F"}
