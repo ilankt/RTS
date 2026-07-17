@@ -30,6 +30,12 @@ debug.dat
 screenshots/
 tmp/
 
+# Sprite pipeline scratch: raw generated sheets, tint checks, preview
+# strips/GIFs, and processed intermediates. Keep these locally — the raw
+# sources are the pipeline's INPUT and are not regenerable — but only the
+# adopted sheet alongside them belongs in the repo.
+_gen/
+
 # Test cache
 .pytest_cache/
 
