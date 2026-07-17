@@ -18,6 +18,11 @@ class CombatSystem:
     # blind beyond 48 px — even idle armies let enemies stroll past. Stances
     # still gate the response (stand-ground never chases, defensive leashes).
     AGGRO_RANGE = 200
+    # §9 blind-march fix: MARCHING aggressive AI units scan wider than idle
+    # ones — at 200 px (~3 tiles) armies whose routes ran 250-400 px apart
+    # passed each other in mutual blindness (measured). Idle defenders keep
+    # the tighter radius so they aren't pulled off their posts.
+    MOVE_AGGRO_RANGE = 300
 
     """Handles combat targeting, attack positioning, and combat logic"""
     
@@ -103,10 +108,14 @@ class CombatSystem:
 
         return best_position
     
-    def evaluate_combat_targets(self, unit):
-        """Evaluate potential combat targets for a unit (spatial-index query)"""
+    def evaluate_combat_targets(self, unit, search_range=None, units_only=False):
+        """Evaluate potential combat targets for a unit (spatial-index query).
+
+        units_only skips the static-index sweep for callers that discard
+        buildings anyway (the on-the-move §8.12 scan)."""
         potential_targets = []
-        search_range = max(unit.get_effective_attack_range("search"), self.AGGRO_RANGE)
+        if search_range is None:
+            search_range = max(unit.get_effective_attack_range("search"), self.AGGRO_RANGE)
         collision = self.game.collision_system
 
         for other_unit in collision.query_nearby_units(unit.x, unit.y, search_range, exclude=unit):
@@ -115,7 +124,7 @@ class CombatSystem:
                 if distance <= search_range and is_valid_attack_target(unit, other_unit):
                     potential_targets.append((other_unit, distance))
 
-        for building in collision.query_nearby_static(
+        for building in [] if units_only else collision.query_nearby_static(
             unit.x, unit.y, search_range, include_construction_sites=False, include_resources=False
         ):
             if building.player != unit.player and building.hp > 0:
@@ -146,7 +155,19 @@ class CombatSystem:
         # Need to move closer
         unit.is_engaging = True
         return False
-    
+
+    def _marching_past_gate(self, unit):
+        """Should the on-the-move scan be allowed to (re)target this unit?
+        Yes when it has no target, is marching on a building, or — §9
+        blind-march fix — is chasing a UNIT farther than the scan radius:
+        focus-fire squads used to march through enemy armies at 41-156 px
+        without retargeting because any unit-target blocked the rescan."""
+        target = unit.current_target
+        if target is None or is_building_target(target):
+            return True
+        return ((target.x - unit.x) ** 2 + (target.y - unit.y) ** 2
+                > self.MOVE_AGGRO_RANGE ** 2)
+
     def check_for_attacks_and_spawn_projectiles(self):
         """Check all units and buildings for recent attacks and spawn projectiles"""
         if not self.projectile_system:
@@ -216,6 +237,14 @@ class CombatSystem:
                         and getattr(unit, "can_attack_flag", False)):
                     if unit.stance == STANCE_NO_ATTACK:
                         pass  # Never auto-attack
+                    elif (getattr(unit, "flow_slot_target", None) is not None
+                            and getattr(unit, "flow_field", None) is None):
+                        # §9: parked waiter for a flow-field build — the
+                        # player's group move owns this unit for the few
+                        # build frames; _attach re-stamps it. Without this,
+                        # waiters idle-acquired adjacent enemies and fell
+                        # out of the ordered move.
+                        pass
                     elif self.game.frame_counter < getattr(unit, "_next_target_scan_frame", 0):
                         pass  # Recently scanned and found nothing
                     else:
@@ -271,8 +300,7 @@ class CombatSystem:
                         ):
                             dist_sq = (attacker.x - unit.x) ** 2 + (attacker.y - unit.y) ** 2
                             if dist_sq <= unit.stance_chase_distance ** 2:
-                                unit.current_target = attacker
-                                unit.is_engaging = True
+                                unit.divert_to_target(attacker)
                                 engaged = True
                     # (2) §8.12 battlefield awareness: AI units on the move
                     # engage enemy UNITS that come within reach — armies no
@@ -284,18 +312,17 @@ class CombatSystem:
                         and unit.stance == STANCE_AGGRESSIVE
                         and not getattr(unit.player, "human", True)
                         and not getattr(unit, "building_only_attack", False)
-                        and (unit.current_target is None
-                             or is_building_target(unit.current_target))
+                        # frame throttle BEFORE the gate helper — this chain
+                        # runs per frame per marching unit; the helper does
+                        # attribute loads + a distance compute
                         and self.game.frame_counter >= getattr(unit, "_next_target_scan_frame", 0)
+                        and self._marching_past_gate(unit)
                     ):
                         unit._next_target_scan_frame = self.game.frame_counter + 15 + (id(unit) % 16)
-                        for target, distance in self.evaluate_combat_targets(unit):
-                            if is_building_target(target):
-                                continue
-                            if distance <= self.AGGRO_RANGE:
-                                unit.current_target = target
-                                unit.is_engaging = True
-                            break  # nearest unit target decides either way
+                        for target, _distance in self.evaluate_combat_targets(
+                                unit, self.MOVE_AGGRO_RANGE, units_only=True):
+                            unit.divert_to_target(target)
+                            break  # nearest unit decides
 
                 # §8.12 no tunnel vision: a unit hammering a BUILDING while a
                 # live enemy UNIT hits it switches to the guard — the building
@@ -338,7 +365,14 @@ class CombatSystem:
                     if (unit.x - home_x) ** 2 + (unit.y - home_y) ** 2 > leash * leash:
                         self.game.pathfinder.issue_move(unit, unit.stance_home_position)
                         # Suppress instant re-acquisition so the walk home wins.
-                        unit._next_target_scan_frame = self.game.frame_counter + 60
+                        # §9: retaliation reads _retreating_until, not the scan
+                        # frame — with only the scan gate, a unit under fire at
+                        # the leash boundary re-acquired its attacker every
+                        # frame and dithered in place forever (measured: 918
+                        # walk-home orders in 30 s from one unit).
+                        frame = self.game.frame_counter
+                        unit._next_target_scan_frame = frame + 60
+                        unit._retreating_until = max(getattr(unit, "_retreating_until", 0), frame + 60)
 
                 # Handle ongoing engagements
                 if unit.is_engaging and unit.current_target:

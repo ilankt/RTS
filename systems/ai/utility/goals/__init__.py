@@ -12,6 +12,7 @@ from .economy import (
 from .military import (
     BuildBarracksGoal,
     BuildStableGoal,
+    BuildTempleGoal,
     BuildBlacksmithGoal,
     BuildSiegeWorkshopGoal,
     BuildWatchtowerGoal,
@@ -20,6 +21,7 @@ from .military import (
     TrainArcherGoal,
     TrainSpearmanGoal,
     TrainCavalryGoal,
+    TrainHealerGoal,
     TrainRamGoal,
     ResearchImprovedToolsGoal,
     ResearchForgedBladesGoal,
@@ -43,6 +45,7 @@ ALL_GOALS = [
     # Military structures and training
     BuildBarracksGoal,
     BuildStableGoal,
+    BuildTempleGoal,
     BuildBlacksmithGoal,
     BuildSiegeWorkshopGoal,
     BuildWatchtowerGoal,
@@ -51,6 +54,7 @@ ALL_GOALS = [
     TrainArcherGoal,
     TrainSpearmanGoal,
     TrainCavalryGoal,
+    TrainHealerGoal,
     TrainRamGoal,
     ResearchImprovedToolsGoal,
     ResearchForgedBladesGoal,

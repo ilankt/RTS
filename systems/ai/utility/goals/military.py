@@ -40,10 +40,43 @@ class BuildStableGoal(Goal):
         # Once a core army exists cavalry adds raid/counter value — outrank
         # the flat train goals so the stable actually gets built (it never
         # did under the lean economy at a flat 50).
-        return 70 if len(ctx.military) >= 3 else 45
+        # §9 re-tune (2026-07-17): 70 STILL never built one — it exactly tied
+        # AttackGoal's always-succeeding floor (70 + 8/unit, tactical.py) and
+        # lost every tie on goal registration order (measured: 557/560 scored
+        # ticks lost to attack), with blacksmith (80) and siege workshop
+        # (75/100) outranking it earlier. 85 wins the window around the
+        # attack threshold; attack reclaims the tick ~2 units past its
+        # threshold, but the stable only needs to win once.
+        return 85 if len(ctx.military) >= 3 else 45
 
     def execute(self, ctx):
         return start_construction(ctx, "stable", ctx.game.ai_system.building_placer)
+
+
+class BuildTempleGoal(Goal):
+    """§9 healer enablement (2026-07-17): the temple unlocks the healer.
+    Category "support" so turtle (1.5x) and boomer (1.2x) reach for it and
+    rusher (0.5x) mostly skips it — sustain fits the defensive identities."""
+    name = "build_temple"
+    category = "support"
+
+    def score(self, ctx):
+        template = ctx.game.game_data.get("buildings", {}).get("temple")
+        if template is not None and not getattr(template, "buildable", True):
+            return 0  # content-gated
+        if ctx.has_building_or_site("temple"):
+            return 0
+        if not ctx.buildings.get("barracks"):
+            return 0
+        if len(ctx.workers) < 4:
+            return 0
+        if not ctx.can_afford("temple"):
+            return 0
+        # A temple pays off once there is an army worth keeping alive.
+        return 70 if len(ctx.military) >= 4 else 0
+
+    def execute(self, ctx):
+        return start_construction(ctx, "temple", ctx.game.ai_system.building_placer)
 
 
 class BuildBlacksmithGoal(Goal):
@@ -176,8 +209,13 @@ class BuildWallGoal(Goal):
 
 
 def _military_fraction(ctx, name):
-    total = max(1, len(ctx.military))
-    count = sum(1 for u in ctx.military if u.name == name)
+    # §9: composition targets describe the FIGHTING army — healers in the
+    # denominator diluted every fraction once temples went live.
+    from systems.ai.utility.context import combatants_of
+
+    combatants = combatants_of(ctx.military)
+    total = max(1, len(combatants))
+    count = sum(1 for u in combatants if u.name == name)
     return count / total
 
 
@@ -267,6 +305,55 @@ class TrainCavalryGoal(_TrainCompositionUnitGoal):
     name = "train_cavalry"
     unit_name = "cavalry"
     production_building = "stable"
+
+    # §9 (2026-07-17): cavalry's composition targets are only 0.05-0.15, so
+    # the shared formula caps its score at 50 + 15 = 65 — permanently below
+    # AttackGoal's always-succeeding floor of 70 (measured: 279/281 scored
+    # ticks lost, ZERO cavalry trained with an idle stable standing). Low-
+    # target unit types need a kicker while under target or the stable
+    # investment is dead weight; the boost vanishes at the composition
+    # target, so it cannot flood the army with cavalry.
+    UNDER_TARGET_KICKER = 20
+
+    def score(self, ctx):
+        base = super().score(ctx)
+        if base <= 0 or not ctx.military:
+            return base
+        if _military_fraction(ctx, self.unit_name) < self._target_fraction(ctx):
+            return base + self.UNDER_TARGET_KICKER
+        return base
+
+
+class TrainHealerGoal(Goal):
+    """§9 healer enablement (2026-07-17): healers scale with the army they
+    keep standing — one per ARMY_PER_HEALER fighters, hard-capped. Not a
+    composition goal: healers aren't in COMPOSITION_TARGETS and must never
+    crowd out fighters."""
+    name = "train_healer"
+    category = "support"
+
+    ARMY_PER_HEALER = 6
+    CAP = 3
+
+    def score(self, ctx):
+        if not ctx.has_pop_space():
+            return 0
+        if not ctx.can_afford("healer"):
+            return 0
+        if not ctx.find_idle_production_building("temple"):
+            return 0
+        from systems.ai.utility.context import combatants_of
+
+        fighters = len(combatants_of(ctx.military))
+        healers = ctx.count_units("healer")  # includes queued/in production
+        target = min(self.CAP, fighters // self.ARMY_PER_HEALER)
+        if healers >= target:
+            return 0
+        return 60 + (target - healers) * 10
+
+    def execute(self, ctx):
+        building = ctx.find_idle_production_building("temple")
+        return queue_unit(ctx, building, "healer")
 
 
 class TrainRamGoal(Goal):

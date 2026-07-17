@@ -1,7 +1,7 @@
 """Simple building placement for AI - ring search around castle or resources."""
 import math
 from typing import Optional, Tuple
-from core.config import TILE_WIDTH, TILE_HEIGHT
+from core.config import GRID_SIZE, TILE_WIDTH, TILE_HEIGHT
 from systems.ai.economy_helpers import best_resource_for_dropoff
 from utils.debug_logger import debug_log
 
@@ -16,8 +16,31 @@ class BuildingPlacer:
         "quarry": "stone",
     }
 
+    # §9 placement-starvation fix: the 72-candidate castle ring saturates
+    # after ~6 buildings plus terrain (measured: stable 580/596 placement
+    # attempts failed across 600 sim-s; houses/markets/blacksmiths starved
+    # too). When it exhausts, fall back to an exhaustive nearest-first
+    # lattice scan (_fallback_grid_search), capped PER BUILDING so base
+    # structures never straddle the §8.10 wall line: candidate distance
+    # <= WALL_DISTANCE − wall-piece radius − the building's own radius
+    # (a single hand-derived cap drifted immediately — 340 was right for
+    # the radius-48 stable but violated the invariant for the radius-64
+    # watchtower).
+    # A base with no room stays that way for a while — don't burn the full
+    # lattice scan every 0.5 s tick forever once it has come up empty.
+    FALLBACK_RETRY_SECONDS = 10.0
+
     def __init__(self, game):
         self.game = game
+        # player name -> (retry sim time, smallest radius that found no slot)
+        self._fallback_backoff = {}
+
+    def _fallback_cap(self, building_radius: float) -> float:
+        """Max distance from the castle for fallback placements (§8.10
+        wall-line invariant, see class comment)."""
+        wall = self.game.game_data.get("buildings", {}).get("wooden_wall")
+        wall_radius = wall.radius if wall is not None else 32
+        return self.WALL_DISTANCE - wall_radius - building_radius
 
     def find_position(self, building_type: str, ctx) -> Optional[Tuple[float, float]]:
         """Find a valid position for the given building type."""
@@ -147,7 +170,71 @@ class BuildingPlacer:
             if self._is_valid_position(x, y, building_type, ctx):
                 return (x, y)
 
+        # §9 placement-starvation fix: the classic ring is full — try the
+        # exhaustive lattice. Failure backoff is per player and radius-aware:
+        # a scan that found nothing for radius r proves failure for any
+        # radius >= r, while a SMALLER building may still fit and scans
+        # anyway.
+        template = self.game.game_data["buildings"].get(building_type)
+        radius = template.radius if template is not None else 0
+        key = getattr(ctx.player, "name", "")
+        now = getattr(self.game, "sim_time_elapsed", 0.0)
+        retry_at, failed_radius = self._fallback_backoff.get(key, (0.0, float("inf")))
+        if now >= retry_at or radius < failed_radius:
+            position = self._fallback_grid_search(building_type, ctx, anchor_x, anchor_y)
+            if position is not None:
+                return position
+            if now < retry_at:
+                failed_radius = min(failed_radius, radius)
+            else:
+                failed_radius = radius
+            self._fallback_backoff[key] = (now + self.FALLBACK_RETRY_SECONDS, failed_radius)
+
         debug_log.log(f"AI BuildingPlacer: No valid position found for {building_type} near castle", "AI")
+        return None
+
+    # Lattice offsets, nearest-first, built once at the widest possible cap
+    # (WALL_DISTANCE 420 − wall radius 32 − smallest building radius 32 =
+    # 356); each search breaks at its own per-building cap. Step matches the
+    # nav grid: ~1000 candidate points.
+    _FALLBACK_LATTICE = None
+    _FALLBACK_LATTICE_RADIUS = 356
+
+    @classmethod
+    def _fallback_lattice(cls):
+        if cls._FALLBACK_LATTICE is None:
+            cap, step = cls._FALLBACK_LATTICE_RADIUS, GRID_SIZE
+            offsets = [
+                (dx, dy)
+                for dx in range(-cap, cap + 1, step)
+                for dy in range(-cap, cap + 1, step)
+                if dx * dx + dy * dy <= cap * cap
+            ]
+            offsets.sort(key=lambda o: o[0] * o[0] + o[1] * o[1])
+            cls._FALLBACK_LATTICE = offsets
+        return cls._FALLBACK_LATTICE
+
+    def _fallback_grid_search(self, building_type: str, ctx,
+                              castle_x: float, castle_y: float) -> Optional[Tuple[float, float]]:
+        """§9: exhaustive nearest-first lattice scan around the castle,
+        capped per building by the §8.10 wall-line invariant (_fallback_cap).
+
+        A denser RING search is not enough: adjacent 15° ring points sit up
+        to ~89 px apart at the outer radii, and late-game bases keep exactly
+        pocket-sized holes — measured on seed 12345: 465/465 ring-fallback
+        failures had a valid slot that a 20 px lattice found. Cost on the
+        failure path is bounded by the radius-aware FALLBACK_RETRY_SECONDS
+        backoff."""
+        template = self.game.game_data["buildings"].get(building_type)
+        if template is None:
+            return None
+        cap_sq = self._fallback_cap(template.radius) ** 2
+        for dx, dy in self._fallback_lattice():
+            if dx * dx + dy * dy > cap_sq:
+                break  # offsets are sorted nearest-first
+            x, y = castle_x + dx, castle_y + dy
+            if self._is_valid_position(x, y, building_type, ctx):
+                return (x, y)
         return None
 
     # --- §8.10 AI walling -------------------------------------------------

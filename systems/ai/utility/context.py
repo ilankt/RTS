@@ -14,6 +14,26 @@ from typing import Dict, Optional
 DEFENSE_RADIUS = 300  # enemies within this range of the castle are "at the gates"
 MILITARY_NAMES = ("warrior", "archer", "spearman", "cavalry", "ram", "healer")
 
+# §8.11: "castle under attack" = the castle took a hit in the last ~3 s.
+# Shared by the blackboard build and military_brain's micro stand-down so
+# the two can never disagree about whether an emergency is live.
+CASTLE_HIT_WINDOW_FRAMES = 180
+
+
+def is_castle_under_attack(castle, frame) -> bool:
+    last_hit = getattr(castle, "_last_damage_frame", None) if castle else None
+    return last_hit is not None and last_hit >= frame - CASTLE_HIT_WINDOW_FRAMES
+
+
+def combatants_of(military) -> list:
+    """Military that can actually fight — support units (healer: can_attack
+    false) excluded. Army-size thresholds tuned on fighting strength
+    (AttackGoal, raid sizing, composition fractions) must count these, not
+    all of `military`, or healers pad the numbers into under-strength
+    pushes (§9). A plain function over the military list so mock contexts
+    in tests keep working."""
+    return [u for u in military if getattr(u, "can_attack_flag", True)]
+
 
 @dataclass
 class GoalContext:
@@ -132,11 +152,8 @@ class GoalContext:
             ]
             # §8.11 emergency defense: the castle took a hit within the last
             # ~3 sim-seconds (combat stamps _last_damage_frame on victims).
-            last_hit = getattr(ctx.castle, "_last_damage_frame", None)
-            ctx.castle_under_attack = (
-                last_hit is not None
-                and last_hit >= getattr(game, "frame_counter", 0) - 180
-            )
+            ctx.castle_under_attack = is_castle_under_attack(
+                ctx.castle, getattr(game, "frame_counter", 0))
 
         for resource in getattr(game, "resources", []):
             if getattr(resource, "amount_remaining", 0) <= 0:
@@ -169,6 +186,11 @@ class GoalContext:
                 threat[key] = threat.get(key, 0.0) + enemy.hp * 2.0
 
         return ctx
+
+    @property
+    def combatants(self) -> list:
+        """Convenience view over `military` — see combatants_of()."""
+        return combatants_of(self.military)
 
     def threat_at(self, x: float, y: float) -> float:
         """Enemy strength in the 3x3 coarse cells around a point."""

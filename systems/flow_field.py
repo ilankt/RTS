@@ -186,6 +186,12 @@ class FlowFieldManager:
         for unit, slot in units_with_slots:
             if getattr(unit, "hp", 1) <= 0 or not getattr(unit, "in_world", True):
                 continue
+            # §9 blind-march fix: a waiter that picked up a fight while the
+            # field was building (idle auto-acquire runs during the wait)
+            # keeps its fight — re-stamping would drag it away mid-combat.
+            if getattr(unit, "in_combat", False) or getattr(unit, "is_engaging", False):
+                unit.flow_slot_target = None
+                continue
             unit.flow_field = field
             unit.flow_slot_target = slot
             unit.last_task = {"type": "move", "target": slot}

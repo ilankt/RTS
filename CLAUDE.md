@@ -63,10 +63,12 @@ tools/          - benchmark_ai_spectator.py (headless perf benchmark), sprite pi
 ## Content
 
 - **Units** (`data/units.json`): worker, warrior, archer, spearman, cavalry, ram, healer.
-  `healer` (requires `temple`) and `temple` (`buildable: false`) are intentionally deferred —
-  data exists, gameplay logic does not yet (see MASTER_PLAN.md backlog).
+  `healer` (requires `temple`) is fully live: it auto-heals the most-wounded nearby ally
+  (`combat_system._update_healer`); the AI trains it via `TrainHealerGoal` and keeps it
+  trailing the army, never in combat commands (`military_brain`).
 - **Buildings** (`data/buildings.json`): castle, barracks, farm, house, lumbermill, mine, quarry,
-  watchtower, stable, blacksmith, siege_workshop. `temple` is deferred (data only).
+  watchtower, stable, blacksmith, siege_workshop, temple (trains the healer; the AI builds
+  it via `BuildTempleGoal`, category "support").
   `wall`/`wooden_wall`/`gate` are **fully implemented** (drag-line placement, AI walling, gate
   toggle, nav sealing) but currently **disabled via `buildable: false`** pending
   orientation-aware sprites — flip the flags to re-enable (see MASTER_PLAN §8.10).

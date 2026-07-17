@@ -48,7 +48,11 @@ class AttackGoal(Goal):
 
         min_army = attack_army_threshold(getattr(ctx.player, "ai_personality", "balanced"))
         min_army = max(2, min_army + difficulty_mods(getattr(ctx.player, "ai_difficulty", "normal"))["attack_threshold_delta"])
-        n = len(ctx.military)
+        # §9: thresholds were tuned on FIGHTING strength — healers don't count
+        # (4 fighters + 2 healers is not a 6-unit army)
+        from systems.ai.utility.context import combatants_of
+
+        n = len(combatants_of(ctx.military))
         if n < min_army:
             return 0
         # Need a target to attack, otherwise pointless

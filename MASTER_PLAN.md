@@ -1656,6 +1656,79 @@ recommended next batch:
 Do **not** lose these; they are unrelated to the perf work. Trackable, but
 unsequenced — pull them in where they fit.
 
+- [x] **Three user-reported AI bugs, batch 2026-07-17** (each diagnosed with
+  instrumented headless repros before fixing; scripts patterned on
+  `tools/benchmark_ai_spectator.py`):
+  1. **Stable/cavalry never happen** — three stacked causes. (a) The
+     72-candidate castle ring in `building_placer` saturates after ~6
+     buildings (stable placement failed 580/596 attempts in a 600 s sim;
+     houses/markets/blacksmiths starved too — this was depressing every AI
+     economy). Fixed with `_fallback_grid_search`: an exhaustive
+     nearest-first GRID_SIZE lattice around the castle, capped PER BUILDING
+     at wall line 420 − wall radius − the building's own radius (so the
+     §8.10 invariant holds for every footprint), behind a 10 s radius-aware
+     per-player backoff. A denser
+     *ring* was measurably not enough — 465/465 ring-fallback failures had a
+     valid slot the lattice found (ring points sit up to ~89 px apart).
+     (b) `BuildStableGoal` at 70 exactly tied always-succeeding
+     `AttackGoal`'s floor and lost every tie on registration order (557/560
+     ticks) → raised to 85. (c) `TrainCavalryGoal`'s composition ceiling
+     (50 + target 5-15 = 55-65) sat permanently below AttackGoal's 70 →
+     +20 kicker while under composition target (measured before fix: 279/281
+     scored ticks lost, 0 cavalry with an idle stable standing; after: 6
+     cavalry in one 600 s run). Residual truth: cramped lakeshore spawns can
+     genuinely have no radius-48 slot within 340 px — those AIs skip the
+     stable (verified by exhaustive-scan census: 358/900 lattice points
+     water, rest blanketed by own base).
+  2. **Flee/attack oscillation** — the per-unit HP retreat in
+     `military_brain._apply_micro` never set `_retreating_until` (unlike the
+     §8.9 squad retreat), so combat_system's retaliation/awareness blocks
+     re-engaged the fleer within 0-15 frames and the next tick re-fled it:
+     58 retreat orders / 30 s for one unit, net escape ~50 px. Even the squad
+     retreat's one-shot 120-frame window only covers ~100 px of flight.
+     Fixed with **whole-flight commitment**: `_flee_rally` per unit,
+     suppression refreshed every tick until arrival (150 px), lost flee
+     orders re-issued (watchdog/queue-drop safe via `_pending_path_seq`),
+     commitment dropped + suppression lifted on arrival so the unit defends
+     home. The HP retreat also stands down during a castle emergency
+     (§8.11 conscription used to produce a retreat+attack order pair every
+     tick — measured 23+23 in 12 s) and never re-fires within the home
+     radius. Post-fix repro: 1 retreat order, one clean 563 px flight,
+     committed home defense. The DEFENSIVE-leash walk-home now also sets
+     `_retreating_until` (retaliation never read the scan-frame gate the
+     leash set — a unit under fire at the leash boundary dithered forever:
+     918 walk-home orders / 30 s, now 1).
+  3. **Armies marching past each other blindly** — three real causes, none
+     the obvious one (AI path-marchers were already redirected fine by the
+     §8.12 awareness block). (a) **Flow-field group moves (8+ units) were
+     combat-uninterruptible**: nothing cleared `unit.flow_field` on target
+     acquisition or even explicit attack orders, so the field kept dragging
+     units past (and through) enemies while they were being shot. Fixed:
+     `Unit.start_attack`, both combat_system acquisition sites (via
+     `_divert_to_target`, which also releases destination/path so the
+     movement system repaths), and `pathfinding._clear_task_state_for_attack`
+     all clear flow state; `flow_field._attach` no longer re-stamps waiters
+     that acquired a fight during the field build. (b) AI squads chasing a
+     **unit** target (focus-fire) never rescanned — passed enemy armies at
+     41-156 px with 0 retargets; the awareness gate now also rescans when
+     the current unit-target is farther than the scan radius (measured
+     after: 5/5 retarget). (c) `AGGRO_RANGE` 200 px (~3 tiles) left parallel
+     marches 250-400 px apart mutually blind — marching aggressive AI units
+     now scan at `MOVE_AGGRO_RANGE` 300 px; idle units keep 200 px so
+     defenders aren't pulled off posts. *Human move orders stay literal by
+     design (§8.12) — an attack-move command remains the open design
+     question.* Balance note: the 200→300 move-scan widening re-touches the
+     §8.11 raid-interception tuning; validated with the same-seed 12-match
+     battery on 2026-07-17.
+- [x] **Temple + healer enabled** (2026-07-17, user content decision): temple
+  `buildable: true` with its own sprite, healer on dedicated sheets (stale
+  cyan shared-sheet tint removed). AI wiring: `BuildTempleGoal` +
+  `TrainHealerGoal` (category "support" — turtle/boomer lean in, rusher
+  mostly skips; one healer per 6 fighters, cap 3), and `military_brain`
+  treats healers as support — excluded from every combat command
+  (defense/squads/last-stand/armed scouting), they trail the fighters'
+  centroid (`_manage_healers`, 120 px leash), retreat with a collapsing
+  squad, and flee-commit like any wounded unit.
 - [x] **AI completeness**: verified empirically 2026-07-10 via the §8.8 balance
   sim — across 6 matches the AI trained every trainable unit (worker 67,
   warrior 35, ram 43, spearman 32, archer 28, cavalry 21) and built every
@@ -1669,8 +1742,9 @@ unsequenced — pull them in where they fit.
 - [x] **Healer doesn't heal**: fixed 2026-07-10 — healers mend the most-wounded
   friendly unit in range (6 hp/s cadence on game time, spatial-index query,
   clamped at max hp, cast animation + particles); unit tests in
-  `tests/test_healer.py`. Note: healers stay effectively unreachable in play
-  until `temple` becomes buildable — a content decision left open on purpose.
+  `tests/test_healer.py`. Note: healers stayed effectively unreachable in play
+  until `temple` became buildable — closed 2026-07-17 (see the temple + healer
+  enablement entry above).
 - [x] **Wall is a 1×1 building**: no gate, thin profile, or special placement.
   (→ **§8.10** — expanded 2026-07-10 into wooden→stone walls + gates + AI
   walling, all landed; drag-placement lays sealed 56 px lines, gates toggle,

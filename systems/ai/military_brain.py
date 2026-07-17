@@ -5,6 +5,7 @@ squad per tick (rotating), so a big army never issues all its paths in a
 single tick (the C1 spike).
 """
 import math
+from systems.ai.utility.context import combatants_of, is_castle_under_attack
 from systems.ai.utility.personality import raid_army_limit
 from systems.combat_rules import is_building_target
 from utils.debug_logger import debug_log
@@ -26,6 +27,23 @@ class MilitaryBrain:
     BATTLE_RADIUS = 400        # how far around the fight centroid to weigh
     REGROUP_SECONDS = 20.0     # attack goals stay silent while re-massing
     RETREAT_SUPPRESS_FRAMES = 120  # no retaliation/re-acquire while fleeing
+    # §9 flee commitment: a retreat is maintained until ARRIVAL, not for one
+    # fixed window — 120 frames covers ~100 px of flight (warrior 50 px/s),
+    # so units on a multi-hundred-px trip home turned to fight every ~2 s,
+    # endlessly (user-reported flee/attack oscillation). While a flight is
+    # live, _apply_micro refreshes the suppression every tick.
+    # FLEE_REFRESH_FRAMES must outlive the LONGEST tick gap or the fleer is
+    # re-acquirable between ticks: easy difficulty ticks at 1.0 s (~60
+    # frames) and covert DDA stretches that 1.5x (~90) — 150 covers both
+    # with margin. Within FLEE_HOME_RADIUS of the rally the unit counts as
+    # arrived: the commitment drops, suppression lifts, and it defends
+    # normally. A flight whose move order keeps dying (unreachable rally,
+    # e.g. a fountain offset landing in water) is abandoned after
+    # FLEE_MAX_REISSUES re-commits — fighting where you stand beats
+    # standing suppressed forever.
+    FLEE_HOME_RADIUS = 150
+    FLEE_REFRESH_FRAMES = 150
+    FLEE_MAX_REISSUES = 4
 
     def __init__(self, game):
         self.game = game
@@ -54,11 +72,18 @@ class MilitaryBrain:
         for unit in military:
             max_hp_cache[unit] = self._get_unit_max_hp(unit)
 
+        # §9 healers (2026-07-17): support units (can_attack false) never
+        # take combat commands — an attack order just walks them into the
+        # enemy. They trail the army; combat_system heals automatically.
+        combatants = combatants_of(military)
+        healers = [u for u in military if not getattr(u, "can_attack_flag", True)]
+
         # 0a. Gates (§8.10): open for the economy, slam shut under threat
         self._manage_gates(ctx)
 
         # 0. Micro: retreat damaged units, kite with archers
         self._apply_micro(military, castle, max_hp_cache)
+        self._manage_healers(healers, combatants, castle, max_hp_cache)
 
         # 1. Emergency defense - all hands, defense outranks squad pacing.
         # §8.11: when the CASTLE itself is being hit, this escalates to a
@@ -71,7 +96,7 @@ class MilitaryBrain:
                 f"{'CASTLE UNDER ATTACK - full recall.' if emergency else 'Defending.'}",
                 "AI",
             )
-            for unit in military:
+            for unit in combatants:
                 if unit.in_combat or unit.is_engaging:
                     if not emergency:
                         continue  # normal defense never interrupts fights
@@ -88,6 +113,9 @@ class MilitaryBrain:
                 elif not emergency and self._should_retreat(unit, max_hp_cache.get(unit, unit.hp)):
                     continue
                 closest_enemy = min(enemies_near_base, key=lambda e: math.hypot(unit.x - e.x, unit.y - e.y))
+                # §9: defense conscription overrides an in-progress flight —
+                # drop the commitment and its suppression so the unit fights.
+                self._release_flight(unit)
                 self._command_attack(unit, closest_enemy, ctx)
             return  # Defense takes priority over everything
 
@@ -101,12 +129,12 @@ class MilitaryBrain:
         # known enemy buildings can't attack — AttackGoal never fires. Send
         # one squad probing the likely spawn areas so the army finds the
         # fight instead of idling at home while the lone scout wanders.
-        if not ctx.enemy_buildings and len(military) >= 5 and not getattr(ctx, "regrouping", False):
+        if not ctx.enemy_buildings and len(combatants) >= 5 and not getattr(ctx, "regrouping", False):
             scout_brain = getattr(getattr(self.game, "ai_system", None), "scout_brain", None)
             if scout_brain is not None:
                 anchor = scout_brain.next_unexplored_anchor(ctx.player, (castle.x, castle.y))
                 if anchor is not None:
-                    squad = self._next_squad(ctx.player, military)
+                    squad = self._next_squad(ctx.player, combatants)
                     for unit in squad:
                         if self._is_idle_military(unit):
                             self.game.selection_manager._move_unit_to_position(
@@ -117,10 +145,10 @@ class MilitaryBrain:
         if should_attack:
             target = self._find_attack_target(ctx)
             if target:
-                focus_target = self._find_focus_fire_target(ctx, military)
+                focus_target = self._find_focus_fire_target(ctx, combatants)
                 if focus_target:
                     target = focus_target
-                squad = self._next_squad(ctx.player, military)
+                squad = self._next_squad(ctx.player, combatants)
                 sent = []
                 for unit in squad:
                     if self._is_idle_military(unit):
@@ -168,13 +196,16 @@ class MilitaryBrain:
 
         frame = getattr(self.game, "frame_counter", 0)
         for unit in engaged:
-            unit.clear_all_movement_state()
-            unit.current_target = None
-            unit.in_combat = False
-            unit.is_engaging = False
-            unit._retreating_until = frame + self.RETREAT_SUPPRESS_FRAMES
-            unit._next_target_scan_frame = frame + self.RETREAT_SUPPRESS_FRAMES
-            self.game.selection_manager._move_unit_to_position(unit, rally, self.game.pathfinder)
+            self._commit_flee(unit, rally, frame)
+
+        # §9 healers: support units near the collapsing fight retreat with
+        # the army (they can never be "engaged", so the loop above misses them)
+        for unit in military:
+            if getattr(unit, "can_attack_flag", True):
+                continue
+            if (unit.x - cx) ** 2 + (unit.y - cy) ** 2 > radius_sq:
+                continue
+            self._commit_flee(unit, rally, frame)
 
         self._regroup_until[ctx.player.name] = (
             getattr(self.game, "sim_time_elapsed", 0.0) + self.REGROUP_SECONDS)
@@ -203,10 +234,13 @@ class MilitaryBrain:
             for unit in military:
                 if unit.in_combat or unit.is_engaging:
                     continue
-                if defenders_needed:
+                # §9: healers guard the site by standing near it, never charge
+                if defenders_needed and getattr(unit, "can_attack_flag", True):
                     closest = min(
                         ctx.enemy_units,
                         key=lambda e: (unit.x - e.x) ** 2 + (unit.y - e.y) ** 2)
+                    # conscription overrides any stale flight commitment
+                    self._release_flight(unit)
                     self._command_attack(unit, closest, ctx)
                 elif (unit.x - rebuild_site.x) ** 2 + (unit.y - rebuild_site.y) ** 2 > 400 ** 2:
                     self.game.selection_manager._move_unit_to_position(
@@ -218,7 +252,11 @@ class MilitaryBrain:
         if target is None:
             return
         for unit in military:
+            if not getattr(unit, "can_attack_flag", True):
+                continue  # §9: healers follow the fight, they don't lead it
             if not unit.in_combat and not unit.is_engaging:
+                # conscription overrides any stale flight commitment
+                self._release_flight(unit)
                 self._command_attack(unit, target, ctx)
 
     def _telegraph_attack(self, ctx, target, squad):
@@ -299,23 +337,115 @@ class MilitaryBrain:
         start = cursor * self.SQUAD_SIZE
         return interleaved[start:start + self.SQUAD_SIZE]
 
+    # §9 healers: how close a healer stays to the army's center of mass
+    # (HEALER_HEAL_RANGE covers the rest — this is a follow leash, not a
+    # heal trigger).
+    HEALER_FOLLOW_DISTANCE = 120
+
+    def _manage_healers(self, healers, combatants, castle, max_hp_cache):
+        """§9 healers (2026-07-17): keep support units trailing the fighters.
+        Healing itself is automatic (combat_system._update_healer); the brain
+        only handles positioning. Anchors on the NEAREST fighter, not the
+        army centroid — a split army's centroid is a militarily meaningless
+        midpoint healers would cross the map alone to reach. Committed
+        flights and wounded healers (the HP retreat owns those) are left
+        alone."""
+        for healer in healers:
+            if getattr(healer, "_flee_rally", None) is not None:
+                continue  # committed flight — don't interrupt
+            if self._should_retreat(healer, max_hp_cache.get(healer, healer.hp)):
+                continue  # wounded: never send it back toward the fight
+            if not self._is_idle_military(healer):
+                continue  # already moving, or mid-heal (cast pose)
+            if combatants:
+                nearest = min(combatants,
+                              key=lambda u: (u.x - healer.x) ** 2 + (u.y - healer.y) ** 2)
+                anchor_x, anchor_y = nearest.x, nearest.y
+            elif castle is not None:
+                anchor_x, anchor_y = castle.x + 60, castle.y + 60
+            else:
+                continue
+            if math.hypot(healer.x - anchor_x, healer.y - anchor_y) > self.HEALER_FOLLOW_DISTANCE:
+                self.game.selection_manager._move_unit_to_position(
+                    healer, (anchor_x, anchor_y), self.game.pathfinder)
+
+    def _commit_flee(self, unit, rally, frame, suppress_frames=None):
+        """§9 flee commitment: the ONE protocol for starting or re-issuing a
+        flight — disengage (clear_all_movement_state drops targets and
+        engagement), mark the rally, suppress re-acquisition, order the
+        move. _apply_micro maintains the commitment every tick until
+        arrival, so every flee path MUST come through here."""
+        if suppress_frames is None:
+            suppress_frames = self.RETREAT_SUPPRESS_FRAMES
+        unit.clear_all_movement_state()
+        unit._flee_rally = rally
+        unit._retreating_until = frame + suppress_frames
+        unit._next_target_scan_frame = frame + suppress_frames
+        self.game.selection_manager._move_unit_to_position(unit, rally, self.game.pathfinder)
+
+    def _release_flight(self, unit):
+        """§9: end a flight commitment and lift its suppression immediately
+        (arrival, conscription, or an abandoned unreachable flight) — a
+        leftover window would leave the unit standing acquisition-blind."""
+        unit._flee_rally = None
+        unit._flee_reissues = 0
+        unit._retreating_until = 0
+        unit._next_target_scan_frame = 0
+
     def _apply_micro(self, military, castle, max_hp_cache):
-        """Apply micro-management: retreat, kiting"""
+        """Apply micro-management: retreat (whole-flight committed), kiting"""
+        frame = getattr(self.game, "frame_counter", 0)
+        # §8.11: while the castle itself is being hit, hurt units fight — the
+        # HP retreat stands down entirely (the emergency block in update()
+        # would conscript them right back, and that retreat/attack pair every
+        # tick was the §9 oscillation at its worst: 23 flee + 23 attack
+        # orders measured on one unit in 12 s).
+        emergency = is_castle_under_attack(castle, frame)
+
         for unit in military:
             max_hp = max_hp_cache.get(unit, unit.hp)
 
-            # Retreat if heavily damaged
+            # §9 flee commitment: maintain an in-progress flight every tick.
+            rally = getattr(unit, "_flee_rally", None)
+            if rally is not None:
+                if emergency or math.hypot(unit.x - rally[0], unit.y - rally[1]) <= self.FLEE_HOME_RADIUS:
+                    self._release_flight(unit)
+                elif (unit.in_combat or unit.is_engaging
+                        or (not unit.destination and not unit.path
+                            and getattr(unit, "_pending_path_seq", None) is None)):
+                    # The flee order died en route (dropped queue command,
+                    # watchdog teleport) or a gate-bypassing path re-engaged
+                    # the unit — re-commit the flight, but give up on a
+                    # rally that keeps proving unreachable. A command still
+                    # waiting in the cross-frame path queue
+                    # (_pending_path_seq) is en route, not lost.
+                    reissues = getattr(unit, "_flee_reissues", 0) + 1
+                    if reissues > self.FLEE_MAX_REISSUES:
+                        self._release_flight(unit)
+                    else:
+                        unit._flee_reissues = reissues
+                        self._commit_flee(unit, rally, frame, self.FLEE_REFRESH_FRAMES)
+                else:
+                    unit._flee_reissues = 0
+                    unit._retreating_until = frame + self.FLEE_REFRESH_FRAMES
+                    unit._next_target_scan_frame = frame + self.FLEE_REFRESH_FRAMES
+                continue
+
+            # Retreat if heavily damaged — order once, then commit (above).
+            # Support units (healers) qualify WITHOUT being engaged: nothing
+            # ever engages them, but focus fire still kills them (§9).
+            # No re-order when already home: the guard measures against the
+            # RALLY point — the same predicate the arrival check uses — or
+            # units bounced in the ring where "far enough from the castle"
+            # and "arrived at the rally" overlapped.
             if self._should_retreat(unit, max_hp):
-                if unit.is_engaging or unit.in_combat:
+                rally = (castle.x + 30, castle.y + 30)
+                threatened = (unit.is_engaging or unit.in_combat
+                              or not getattr(unit, "can_attack_flag", True))
+                if (not emergency and threatened
+                        and math.hypot(unit.x - rally[0], unit.y - rally[1]) > self.FLEE_HOME_RADIUS):
                     debug_log.log(f"AI: {unit.name} retreating to castle at {unit.hp}/{max_hp} HP", "AI")
-                    unit.clear_all_movement_state()
-                    unit.current_target = None
-                    unit.in_combat = False
-                    unit.is_engaging = False
-                    # Move to castle
-                    self.game.selection_manager._move_unit_to_position(
-                        unit, (castle.x + 30, castle.y + 30), self.game.pathfinder
-                    )
+                    self._commit_flee(unit, rally, frame)
                 continue
 
             # Archer kiting: if engaged and enemy melee is close, move away
@@ -409,7 +539,8 @@ class MilitaryBrain:
 
         castles = [b for b in ctx.enemy_buildings if b.name == "castle"]
 
-        if castles and len(ctx.military) <= raid_army_limit(getattr(ctx.player, "ai_personality", "balanced")):
+        # §9: raid sizing counts FIGHTERS — healers don't make an army raid-proof
+        if castles and len(combatants_of(ctx.military)) <= raid_army_limit(getattr(ctx.player, "ai_personality", "balanced")):
             econ = [b for b in ctx.enemy_buildings if b.name in self.ECONOMY_RAID_TARGETS]
             if econ:
                 best_econ = min(econ, key=score)

@@ -133,14 +133,23 @@ class Unit(GameObject):
             return self.animations[animation_status].get_current_frame()
         return None
     
-    def stop(self):
-        """Stop the unit from moving or performing actions"""
+    def release_movement(self):
+        """Clear every field that can drive this unit's movement — path
+        following, direct destination, and group-move flow following. Any
+        code that points a unit somewhere new MUST release all of these
+        (§9: a stale flow_field silently overrides combat approach — that
+        was the armies-march-past-blindly bug). Status, targets, and nav
+        metadata stay with the caller."""
         self.destination = None
         self.path = None
         self.path_index = 0
         self.path_target = None
         self.flow_field = None
         self.flow_slot_target = None
+
+    def stop(self):
+        """Stop the unit from moving or performing actions"""
+        self.release_movement()
         self.command_queue = []
         self._clear_navigation_metadata()
         self.status = "idle"
@@ -163,12 +172,7 @@ class Unit(GameObject):
                 self.gathering_target.gatherers.remove(self)
 
         # Movement state
-        self.destination = None
-        self.path = None
-        self.path_index = 0
-        self.path_target = None
-        self.flow_field = None
-        self.flow_slot_target = None
+        self.release_movement()
         self._clear_navigation_metadata()
         self.status = "idle"
 
@@ -361,11 +365,21 @@ class Unit(GameObject):
         if abs(target.x - self.x) > 1:
             self.facing_left = target.x < self.x
         
-        # Stop movement when attacking
-        self.destination = None
-        self.path = None
-        self.path_index = 0
-        self.path_target = None
+        # Stop movement when attacking — including a group-move flow field
+        # (§9 blind-march fix: flow followers could acquire a target yet be
+        # dragged onward because nothing here released the field)
+        self.release_movement()
+
+    def divert_to_target(self, target):
+        """§9 blind-march fix: point a MOVING unit at a combat target and
+        release whatever movement was driving it (path march or group-move
+        flow field) so the movement system's combat approach takes over.
+        Also drops interact-path metadata — a stale path_target_object
+        would steer re-paths back toward the old march goal."""
+        self.current_target = target
+        self.is_engaging = True
+        self.release_movement()
+        self._clear_navigation_metadata()
     
     def update_combat(self, delta_time):
         """Handle attack timing and execution"""

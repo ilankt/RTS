@@ -1390,6 +1390,11 @@ class Pathfinding:
 
     def _clear_task_state_for_attack(self, unit):
         self._unlink_gatherer(unit)
+        # §9 blind-march fix: an attack order must release a group-move flow
+        # field (mirrors _clear_task_state_for_move) or the field keeps
+        # dragging the unit and the order is silently swallowed.
+        unit.flow_field = None
+        unit.flow_slot_target = None
         unit.is_gathering = False
         unit.gathering_target = None
         unit.is_dropping_off = False

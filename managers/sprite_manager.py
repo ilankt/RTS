@@ -74,9 +74,8 @@ UNIT_TYPE_TINTS = {
     # Multiplicative RGB tint applied after player tint, so units that SHARE
     # a sprite sheet read distinct at a glance. Spearman/cavalry/ram got
     # dedicated sheets (sprite pipeline, 2026) — tinting those only washed
-    # out their colors and made them read small/feeble. Healer still reuses
-    # the archer sheet, so it keeps its tint.
-    "healer": (200, 230, 240),  # cool cyan - support
+    # out their colors and made them read small/feeble. Healer got its own
+    # sheet 2026-07-17 (temple/healer enablement), so its tint is gone too.
 }
 
 
