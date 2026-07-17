@@ -27,7 +27,9 @@ python tools/benchmark_ai_spectator.py --seconds 300 --speed 5
   (`notify_blocker_added/removed`; `mark_dirty()` is the bulk fallback); a static terrain
   bitmap + connected-components reject unreachable goals O(1). Tight budgets
   (`PATHFINDING_FRAME_BUDGET_MS=10`, `PATHFINDING_MAX_REQUEST_MS=12`) with a **cross-frame
-  command queue** (over-budget commands defer, never silently fail). Group moves of 8+ units
+  command queue** (over-budget commands defer, never silently fail); a queued search that
+  outruns its time slice **suspends its frontier and resumes** next retry, so cross-map
+  paths complete over several frames without any single frame paying for the whole search. Group moves of 8+ units
   ride one shared **flow field** (`systems/flow_field.py`). Unit-unit avoidance is context
   steering + right-of-way in the collision/movement systems, not baked into the search.
 - **Combat**: Type effectiveness via `strong_against`/`weak_against` tags + Slash/Pierce/Siege
@@ -116,8 +118,10 @@ TILE_WIDTH = 64; TILE_HEIGHT = 56
 
 GRID_SIZE = 20                          # nav-grid cell size, world units
 PATHFINDING_MAX_EXPANSIONS = 12000
-PATHFINDING_MAX_REQUEST_MS = 150        # ceiling for a single path request
-PATHFINDING_FRAME_BUDGET_MS = 180       # ceiling for all pathfinding in one frame
+PATHFINDING_MAX_REQUEST_MS = 12         # ceiling for one inline path request
+PATHFINDING_FRAME_BUDGET_MS = 10        # ceiling for inline pathfinding per frame
+PATHFINDING_QUEUE_FRAME_MS = 10         # ceiling for the queue drain per frame;
+                                        # over-budget searches suspend + resume
 PATH_CACHE_MAX_ENTRIES = 4096
 
 GATHERING_RATES = {"gold": 1, "stone": 1, "wood": 2, "food": 3}

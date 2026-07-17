@@ -21,9 +21,10 @@ from core.config import (
     PATHFINDING_FRAME_BUDGET_MS,
     PATHFINDING_MAX_EXPANSIONS,
     PATHFINDING_MAX_REQUEST_MS,
+    PATHFINDING_QUEUE_FRAME_MS,
     PATHFINDING_QUEUE_MAX_PER_FRAME,
     PATHFINDING_QUEUE_MAX_RETRIES,
-    PATHFINDING_QUEUE_REQUEST_MAX_MS,
+    PATHFINDING_QUEUE_MIN_SLICE_MS,
     PATHFINDING_QUEUE_REQUEST_MS,
     PATH_CACHE_MAX_ENTRIES,
     TILE_HEIGHT,
@@ -475,6 +476,18 @@ class Pathfinding:
         self._pending_low = deque()
         self._pending_seq = 0
         self._request_budget_override: Optional[float] = None
+        # perf_counter stamp of when the current queue entry began — search
+        # budgets deduct time the entry already spent on pre-checks, so one
+        # entry (pre-checks + search slice + smoothing) never much exceeds
+        # its slice.
+        self._request_budget_started: Optional[float] = None
+        # Frontiers of searches that ran out of budget mid-way, keyed by
+        # (start_cell, goal_cell, radius). A retry with the same key resumes
+        # instead of restarting, so retries add progress rather than redoing
+        # the same expansions. Frontiers deliberately survive incremental
+        # world changes — completed chains are revalidated in _astar when the
+        # grid revision moved.
+        self._suspended_searches: OrderedDict[Tuple, dict] = OrderedDict()
         # When True (AI ticks), every search fast-fails as too_expensive so
         # commands land in the queue instead of burning the tick's wall time.
         self._defer_paths = False
@@ -487,6 +500,7 @@ class Pathfinding:
         self.grid.mark_dirty()
         self._path_cache.clear()
         self._negative_path_keys.clear()
+        self._suspended_searches.clear()
         self.flow_fields.invalidate()
 
     def rebuild_terrain(self):
@@ -497,6 +511,9 @@ class Pathfinding:
         self.grid.rebuild_terrain()
         self._path_cache.clear()
         self._negative_path_keys.clear()
+        # Terrain changes bypass the notify hooks that normally drop affected
+        # suspended frontiers — clear them all explicitly.
+        self._suspended_searches.clear()
         self.flow_fields.invalidate()
 
     def notify_blocker_added(self, obj):
@@ -514,6 +531,7 @@ class Pathfinding:
             perf_stats.increment("path_incremental_updates")
             # A removal can make previously unreachable goals reachable.
             self._drop_negative_path_entries()
+            self._drop_capped_suspended()
             self._invalidate_paths_in_bbox(bbox)
             self.flow_fields.invalidate()
 
@@ -540,6 +558,23 @@ class Pathfinding:
         for key in self._negative_path_keys:
             self._path_cache.pop(key, None)
         self._negative_path_keys.clear()
+
+    @staticmethod
+    def _search_key(start_cell: Cell, goal_cell: Cell, unit_radius: float):
+        """Identity of one search for the suspended-frontier store."""
+        return (start_cell, goal_cell, round(unit_radius, 2))
+
+    def _drop_capped_suspended(self):
+        """Drop expansion-cap tombstones — a blocker removal can open the way
+        for a search that previously flooded to the cap, so its next attempt
+        should actually run (same rule as the negative path cache)."""
+        stale = [
+            key
+            for key, state in self._suspended_searches.items()
+            if state.get("capped")
+        ]
+        for key in stale:
+            del self._suspended_searches[key]
 
     def _invalidate_paths_in_bbox(self, bbox):
         """Drop cached paths whose polyline crosses the changed region."""
@@ -649,26 +684,32 @@ class Pathfinding:
 
         Called once per frame (before the AI issues new commands) so that an
         AI tick handing out a whole army's worth of orders spreads its path
-        cost across the following frames instead of spiking one."""
+        cost across the following frames instead of spiking one. The whole
+        drain fits PATHFINDING_QUEUE_FRAME_MS: each entry's slice shrinks to
+        what is left of it, and the drain stops once less than a useful slice
+        remains."""
         self.flow_fields.process()
         if not self._pending_high and not self._pending_low:
             return
         processed = 0
-        self._request_budget_override = PATHFINDING_QUEUE_REQUEST_MS
+        drain_start = time.perf_counter()
         try:
             while processed < PATHFINDING_QUEUE_MAX_PER_FRAME:
-                if self._remaining_path_frame_budget() < PATHFINDING_FRAME_BUDGET_MS * 0.25:
+                spent_ms = (time.perf_counter() - drain_start) * 1000.0
+                slice_ms = min(PATHFINDING_QUEUE_REQUEST_MS, PATHFINDING_QUEUE_FRAME_MS - spent_ms)
+                if slice_ms < PATHFINDING_QUEUE_MIN_SLICE_MS:
                     break
                 queue = self._pending_high if self._pending_high else self._pending_low
                 if not queue:
                     break
                 entry = queue.popleft()
                 processed += 1
-                self._process_pending_entry(entry)
+                self._process_pending_entry(entry, slice_ms)
         finally:
             self._request_budget_override = None
+            self._request_budget_started = None
 
-    def _process_pending_entry(self, entry):
+    def _process_pending_entry(self, entry, slice_ms):
         kind, unit, payload, mode, preferred_point, seq, retries = entry
         if getattr(unit, "hp", 1) <= 0 or not getattr(unit, "in_world", True):
             return
@@ -676,12 +717,12 @@ class Pathfinding:
             return  # superseded by a newer command
         unit._pending_path_seq = None
         self._requeue_retries = retries
-        # Escalate the budget per retry so genuinely long paths (e.g. a
-        # cross-map army order) always complete eventually instead of burning
-        # every retry against the same too-small ceiling.
-        self._request_budget_override = min(
-            PATHFINDING_QUEUE_REQUEST_MAX_MS, PATHFINDING_QUEUE_REQUEST_MS * max(1, retries)
-        )
+        # Bounded time slice per retry: an over-budget search suspends its
+        # frontier (_suspended_searches) and the next retry resumes it, so a
+        # genuinely long path (e.g. a cross-map scout order) completes across
+        # several slices without any single frame paying for the whole search.
+        self._request_budget_override = slice_ms
+        self._request_budget_started = time.perf_counter()
         try:
             if kind == "move":
                 ok = self.issue_move(unit, payload)
@@ -836,45 +877,52 @@ class Pathfinding:
         target,
     ) -> NavigationResult:
         cache_key = (start_cell, goal_cell, round(unit_radius, 2), mode, id(target))
-        cached = self._path_cache.get(cache_key)
-        if cached is not None:
-            if cached.ok and self.grid.segment_clear(start, cached.waypoints[0], unit_radius):
-                self.cache_hits += 1
-                perf_stats.increment("path_cache_hits")
-                self._path_cache.move_to_end(cache_key)
-                return NavigationResult("ok", cached.waypoints[:], cached.final_point, mode=mode, target=target, revision=self.grid.revision)
-            if not cached.ok and cached.failure_reason == "no_path":
-                # Negative cache: adding blockers can't open a path, and any
-                # blocker removal drops these entries.
-                self.cache_hits += 1
-                perf_stats.increment("path_cache_hits")
-                return self._failed(mode, "no_path", target=target)
+        # A suspended frontier means an earlier slice already ran every
+        # pre-check below (cache, straight shot, component, pocket) for this
+        # exact search and it is mid-flight — go straight back into it. The
+        # straight-shot segment test alone costs ~half a slice on a cross-map
+        # request, and would otherwise be re-paid on every retry.
+        if self._search_key(start_cell, goal_cell, unit_radius) not in self._suspended_searches:
+            cached = self._path_cache.get(cache_key)
+            if cached is not None:
+                if cached.ok and self.grid.segment_clear(start, cached.waypoints[0], unit_radius):
+                    self.cache_hits += 1
+                    perf_stats.increment("path_cache_hits")
+                    self._path_cache.move_to_end(cache_key)
+                    return NavigationResult("ok", cached.waypoints[:], cached.final_point, mode=mode, target=target, revision=self.grid.revision)
+                if not cached.ok and cached.failure_reason == "no_path":
+                    # Negative cache: adding blockers can't open a path, and any
+                    # blocker removal drops these entries.
+                    self.cache_hits += 1
+                    perf_stats.increment("path_cache_hits")
+                    return self._failed(mode, "no_path", target=target)
 
-        self.cache_misses += 1
-        perf_stats.increment("path_cache_misses")
-        if self.grid.segment_clear(start, final_point, unit_radius):
-            waypoints = [final_point]
-            result = NavigationResult("ok", waypoints, final_point, mode=mode, target=target, revision=self.grid.revision)
-            self._cache_result(cache_key, result)
-            return result
+            self.cache_misses += 1
+            perf_stats.increment("path_cache_misses")
+            if self.grid.segment_clear(start, final_point, unit_radius):
+                waypoints = [final_point]
+                result = NavigationResult("ok", waypoints, final_point, mode=mode, target=target, revision=self.grid.revision)
+                self._cache_result(cache_key, result)
+                return result
 
-        # O(1) rejection of goals on terrain islands — the worst-case searches
-        # otherwise flood the whole free region before hitting the deadline.
-        if not self.grid.terrain_connected(start_cell, goal_cell):
-            perf_stats.increment("astar_component_rejects")
-            failure = self._failed(mode, "no_path", target=target)
-            self._cache_result(cache_key, failure)
-            self._negative_path_keys.add(cache_key)
-            return failure
+            # O(1) rejection of goals on terrain islands — the worst-case
+            # searches otherwise flood the whole free region before hitting
+            # the deadline.
+            if not self.grid.terrain_connected(start_cell, goal_cell):
+                perf_stats.increment("astar_component_rejects")
+                failure = self._failed(mode, "no_path", target=target)
+                self._cache_result(cache_key, failure)
+                self._negative_path_keys.add(cache_key)
+                return failure
 
-        # Bounded reverse flood fill: goals walled into a small pocket by
-        # objects/radius are proven unreachable in a few hundred probes.
-        if self._goal_pocket_reachable(start_cell, goal_cell, unit_radius) is False:
-            perf_stats.increment("astar_pocket_rejects")
-            failure = self._failed(mode, "no_path", target=target)
-            self._cache_result(cache_key, failure)
-            self._negative_path_keys.add(cache_key)
-            return failure
+            # Bounded reverse flood fill: goals walled into a small pocket by
+            # objects/radius are proven unreachable in a few hundred probes.
+            if self._goal_pocket_reachable(start_cell, goal_cell, unit_radius) is False:
+                perf_stats.increment("astar_pocket_rejects")
+                failure = self._failed(mode, "no_path", target=target)
+                self._cache_result(cache_key, failure)
+                self._negative_path_keys.add(cache_key)
+                return failure
 
         cells = self._astar(start_cell, goal_cell, unit_radius)
         if cells == "too_expensive":
@@ -905,6 +953,11 @@ class Pathfinding:
         perf_stats.increment("astar_calls")
         if self._request_budget_override is not None:
             request_budget_ms = self._request_budget_override
+            if self._request_budget_started is not None:
+                # Time this queue entry already spent (pre-checks, earlier
+                # interaction candidates) comes out of the slice.
+                elapsed_ms = (time.perf_counter() - self._request_budget_started) * 1000.0
+                request_budget_ms = max(1.0, request_budget_ms - elapsed_ms)
         else:
             remaining_budget_ms = self._remaining_astar_frame_budget()
             if remaining_budget_ms <= 0:
@@ -927,8 +980,10 @@ class Pathfinding:
             return cached
 
         # Shared scan-step counter for deadline checks inside line scans; the
-        # counter stays a cheap local-int bump, time is polled every 2048 steps.
-        scan_state = {"steps": 0, "next_check": 2048}
+        # counter stays a cheap local-int bump, time is polled every 1024
+        # steps so a slice overshoots its deadline by well under a
+        # millisecond even on cache-cold cells.
+        scan_state = {"steps": 0, "next_check": 1024}
 
         class _Expensive(Exception):
             pass
@@ -936,7 +991,7 @@ class Pathfinding:
         def check_budget():
             steps = scan_state["steps"] = scan_state["steps"] + 1
             if steps >= scan_state["next_check"]:
-                scan_state["next_check"] = steps + 2048
+                scan_state["next_check"] = steps + 1024
                 if time.perf_counter() >= deadline:
                     raise _Expensive
 
@@ -1034,31 +1089,116 @@ class Pathfinding:
                     dirs.append((-1, 0))
             return dirs
 
-        open_heap = []
-        counter = 0
-        g_score: Dict[Cell, float] = {start: 0.0}
-        parent: Dict[Cell, Cell] = {}
-        heapq.heappush(open_heap, (self._heuristic(start, goal), counter, start))
-        closed = set()
+        # Resume the suspended frontier of this exact search if one exists.
+        # This is what makes the queue's flat retry slices additive instead of
+        # redoing prior expansions. Frontiers deliberately survive incremental
+        # world changes (a cross-map search would otherwise restart every time
+        # anyone anywhere placed a farm): scans always read the live grid, and
+        # if the grid revision moved since the search began, the finished cell
+        # chain is re-walked against the live grid before it is trusted.
+        resume_key = self._search_key(start, goal, unit_radius)
+        state = self._suspended_searches.pop(resume_key, None)
+        if state is not None and state.get("capped"):
+            # Terminal verdict from a prior slice: this search already burned
+            # the expansion cap, so retrying cannot succeed. Keep the
+            # tombstone (retries stay O(1) until the command is dropped); a
+            # blocker removal clears it and allows a fresh attempt.
+            self._suspended_searches[resume_key] = state
+            self.astar_capped += 1
+            perf_stats.increment("astar_capped")
+            return "too_expensive"
+        if state is None:
+            open_heap = []
+            counter = 0
+            g_score: Dict[Cell, float] = {start: 0.0}
+            parent: Dict[Cell, Cell] = {}
+            heapq.heappush(open_heap, (self._heuristic(start, goal), counter, start))
+            closed = set()
+            start_revision = grid.revision
+        else:
+            open_heap = state["open_heap"]
+            counter = state["counter"]
+            g_score = state["g_score"]
+            parent = state["parent"]
+            closed = state["closed"]
+            start_revision = state["revision"]
+        expanded_at_entry = len(closed)
+
+        def chain_walkable(cells) -> bool:
+            """Re-walk a finished cell chain against the live grid. Consecutive
+            chain cells are endpoints of straight or perfectly diagonal runs,
+            so stepping them reproduces exactly what the scans checked."""
+            for (ax, ay), (bx, by) in zip(cells, cells[1:]):
+                dx = (bx > ax) - (bx < ax)
+                dy = (by > ay) - (by < ay)
+                x, y = ax, ay
+                for _ in range(max(abs(bx - ax), abs(by - ay))):
+                    if dx != 0 and dy != 0 and not (
+                        walkable(x + dx, y) and walkable(x, y + dy)
+                    ):
+                        return False  # no-corner-cutting rule
+                    x += dx
+                    y += dy
+                    if not walkable(x, y):
+                        return False
+                if (x, y) != (bx, by):
+                    return False  # misaligned chain — never valid
+            return True
 
         def finish_counters():
-            self.astar_expanded_cells += len(closed)
-            perf_stats.increment("astar_expanded_cells", len(closed))
+            new_expansions = len(closed) - expanded_at_entry
+            self.astar_expanded_cells += new_expansions
+            perf_stats.increment("astar_expanded_cells", new_expansions)
             perf_stats.increment("astar_scan_steps", scan_state["steps"])
 
+        def suspend(requeue_cell, requeue_priority, capped=False):
+            """Keep the frontier for the next retry slice. The interrupted
+            expansion is un-closed and re-queued so it redoes its scans in
+            full; successors it already pushed are harmless duplicates. At the
+            expansion cap only a tombstone is kept — the verdict is terminal
+            and the multi-MB frontier would just sit in the LRU."""
+            nonlocal counter
+            if capped:
+                entry = {"capped": True}
+            else:
+                if requeue_cell is not None:
+                    closed.discard(requeue_cell)
+                    counter += 1
+                    heapq.heappush(open_heap, (requeue_priority, counter, requeue_cell))
+                entry = {
+                    "open_heap": open_heap,
+                    "counter": counter,
+                    "g_score": g_score,
+                    "parent": parent,
+                    "closed": closed,
+                    "revision": start_revision,
+                }
+            self._suspended_searches[resume_key] = entry
+            while len(self._suspended_searches) > self.SUSPENDED_SEARCH_MAX:
+                self._suspended_searches.popitem(last=False)
+            self.astar_capped += 1
+            perf_stats.increment("astar_capped")
+            finish_counters()
+
+        current = None
+        current_priority = 0.0
         try:
             while open_heap:
-                _, _, current = heapq.heappop(open_heap)
+                current_priority, _, current = heapq.heappop(open_heap)
                 if current in closed:
                     continue
                 if len(closed) >= PATHFINDING_MAX_EXPANSIONS:
-                    self.astar_capped += 1
-                    perf_stats.increment("astar_capped")
-                    finish_counters()
+                    suspend(None, 0.0, capped=True)
                     return "too_expensive"
                 if current == goal:
                     finish_counters()
-                    return self._reconstruct_cells(current, parent)
+                    cells = self._reconstruct_cells(current, parent)
+                    if start_revision != grid.revision and not chain_walkable(cells):
+                        # A blocker landed on a segment this search committed
+                        # to before the change. Discard and let the queue
+                        # retry fresh (sliced, so still never a frame spike).
+                        return "too_expensive"
+                    return cells
                 closed.add(current)
 
                 x, y = current
@@ -1089,15 +1229,22 @@ class Pathfinding:
                     priority = tentative + self._heuristic(jump_point, goal)
                     heapq.heappush(open_heap, (priority, counter, jump_point))
             finish_counters()
+            if start_revision != grid.revision:
+                # Frontier exhausted, but the grid changed underway — a
+                # removal could have opened a route the stale frontier never
+                # explored. Don't let this be cached as no_path; a fresh
+                # retry delivers the real verdict.
+                return "too_expensive"
             return None
         except _Expensive:
-            self.astar_capped += 1
-            perf_stats.increment("astar_capped")
-            finish_counters()
+            suspend(current, current_priority)
             return "too_expensive"
         finally:
             self._add_astar_frame_spent((time.perf_counter() - started) * 1000.0)
 
+    # Bound on concurrently suspended frontiers; evicting one only costs a
+    # restart-from-scratch on that search's next retry slice.
+    SUSPENDED_SEARCH_MAX = 32
     GOAL_POCKET_SCAN_CAP = 2048
     POCKET_MEMO_MAX = 512
 
@@ -1215,16 +1362,26 @@ class Pathfinding:
         cells.reverse()
         return cells
 
+    # Smoothing never attempts merges longer than this: a failed long test
+    # costs hundreds of point samples (segment_clear samples every half cell),
+    # and _build_path already proved the full straight shot is blocked before
+    # searching — so on a cross-map path the far candidates are all doomed.
+    SMOOTH_MAX_SEGMENT = NAV_CELL_SIZE * 30
+
     def _smooth_path(self, start: Point, raw_points: List[Point], unit_radius: float) -> List[Point]:
         if not raw_points:
             return []
         smoothed = []
         anchor = start
         index = 0
+        max_seg = self.SMOOTH_MAX_SEGMENT
         while index < len(raw_points):
             farthest = index
             for candidate in range(len(raw_points) - 1, index - 1, -1):
-                if self.grid.segment_clear(anchor, raw_points[candidate], unit_radius):
+                point = raw_points[candidate]
+                if abs(point[0] - anchor[0]) > max_seg or abs(point[1] - anchor[1]) > max_seg:
+                    continue
+                if self.grid.segment_clear(anchor, point, unit_radius):
                     farthest = candidate
                     break
             waypoint = raw_points[farthest]

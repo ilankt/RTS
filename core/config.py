@@ -81,10 +81,22 @@ PATHFINDING_MAX_EXPANSIONS = 12000
 # Pathfinding.process_pending), never silently rejected.
 PATHFINDING_MAX_REQUEST_MS = 12
 PATHFINDING_FRAME_BUDGET_MS = 10
-PATHFINDING_QUEUE_REQUEST_MS = 20   # base ceiling when drained from the queue; escalates per retry
-PATHFINDING_QUEUE_REQUEST_MAX_MS = 80  # hard ceiling for the final retries of a long path
+# Time slice per queue-drained attempt. An over-budget search suspends its
+# frontier and resumes on the next retry, so a genuinely long path (cross-map
+# scout/army order) completes across several slices without any single frame
+# ever paying more than one slice for it.
+PATHFINDING_QUEUE_REQUEST_MS = 20
 PATHFINDING_QUEUE_MAX_PER_FRAME = 8
-PATHFINDING_QUEUE_MAX_RETRIES = 6
+# Ceiling for ALL queue work in one frame: slices shrink to fit what is left
+# of it, and the drain stops once less than the minimum useful slice remains.
+# Sized so drain + a worst-case AI tick (~11 ms) still fits a ~23 ms frame.
+PATHFINDING_QUEUE_FRAME_MS = 10
+PATHFINDING_QUEUE_MIN_SLICE_MS = 5
+# Cumulative capacity = inline attempt + retries * slice — covers the worst
+# corner-to-corner search on a 70x70 map (~80 ms of JPS). Even past the
+# ladder the suspended frontier survives the drop, so a reissued command
+# resumes instead of starting over.
+PATHFINDING_QUEUE_MAX_RETRIES = 10
 PATH_CACHE_MAX_ENTRIES = 4096
 
 # Resource Gathering Configuration

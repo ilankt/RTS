@@ -48,9 +48,9 @@ max 23 / 0 teleports). The **200-unit acceptance gate is not met** — see §6.
 
 *(The §8.13 bug batch — the old priority 1 — landed 2026-07-17; see §2 for the
 residue: a live-play observation pass and the gated planner-erosion deferral,
-plus §8.13.4. An early-game benchmark `frame_max` spike (~84 ms, was 23 on
-07-13) was measured and shown to PRE-date the batch — it's from a commit
-between 07-13 and b33e701 and is tracked as its own investigation.)*
+plus §8.13.4. The early-game benchmark `frame_max` spike (~84 ms) was
+root-caused the same day — the path queue's retry ladder restarting cross-map
+scout searches — and fixed; queued searches now suspend + resume. See §6.)*
 
 ---
 
@@ -515,11 +515,24 @@ Measured on the headless benchmark. The bar is to hold these at **200 units**.
   - **Status 2026-07-17 (post-§8.13.3):** standard benchmark: avg **3.0** / p95
     **12.0** / teleports **0** / recoveries 0 / `terrain_rescues` 1 (new counter —
     the movement-side wedge rescue firing). avg/p95 within wall-clock noise of the
-    07-13 line. ⚠ **frame_max ~84 ms is NOT met and NOT from the batch** — a clean
-    `git archive` HEAD baseline shows **93.5 ms** on the same seed, vs 23 recorded
-    07-13: some commit between 07-13 and b33e701 added a deterministic early-game
-    hitch (first ~10 sim-seconds, survives the 30-frame warmup). Tracked as its own
-    investigation; profile before touching.
+    07-13 line.
+  - **Status 2026-07-17 (frame_max spike root-caused + fixed):** the ~84–93 ms
+    early-game hitch was **not** a lazy init — fair-fog spectating (§8.11, 07-14)
+    made benchmark AIs *scout*, and a corner-to-corner worker path costs
+    ~65–80 ms of JPS; the queue's escalating retry ladder (20/40/60/80 ms)
+    re-ran each such search *from scratch* per retry, then dropped 30 of the
+    commands anyway. **Fix:** queued searches now **suspend their frontier and
+    resume** across ~10 ms slices (`_suspended_searches` in
+    `systems/pathfinding.py`). Frontiers survive incremental world changes
+    (scans read the live grid; finished chains are re-walked if the grid
+    revision moved; post-change no-path verdicts re-verify fresh instead of
+    negative-caching; expansion caps leave an O(1) tombstone cleared on
+    removals). The drain fits `PATHFINDING_QUEUE_FRAME_MS`, retries skip
+    already-run pre-checks, and smoothing skips >30-cell merge tests.
+    Standard benchmark: frame_max **18.2 ms** — target met again. 300 s
+    vs same-HEAD baseline: max 94.5→**29.2** / p95 38.3→**12.3** / avg
+    14.3→**3.1** / watchdog recoveries 79→**9** / queue drops **0**. Scout
+    orders now complete instead of silently dropping (gameplay fix too).
   - The 07-13 teleport-figure caveat is **resolved**: the watchdog now tests terrain
     at full radius and movement self-rescues wedges (§8.13.3), so shoreline stalls
     can no longer hide outside the counters. Teleports stayed 0 with the fixes in.
