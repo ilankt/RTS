@@ -542,6 +542,8 @@ class Game:
                 # Still update animations and particles for visual appeal
                 if hasattr(self, 'particles') and self.particles:
                     self.particles.update(self.delta_time)
+                if getattr(self, 'floating_ui', None):
+                    self.floating_ui.update_notifications(self.delta_time)
                 return
             
             # Apply game speed to delta time
@@ -594,7 +596,11 @@ class Game:
             
             # Update particles
             self.particles.update(self.delta_time)
-            
+
+            # Expire floating notifications sim-side: draw used to own this,
+            # so headless runs (benchmark, balance sim) never drained the list
+            self.floating_ui.update_notifications(self.delta_time)
+
             # Remove destroyed objects
             self._cleanup_destroyed_objects()
             

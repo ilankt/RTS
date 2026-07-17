@@ -89,7 +89,7 @@ class RenderingSystem:
 
         # HP/construction bars + floats go ABOVE the fog overlay so they are
         # never dimmed by a fog-tile edge (user-reported dark bars at max zoom)
-        self.floating_ui.draw_all_floating_ui(map_surface, camera, delta_time)
+        self.floating_ui.draw_all_floating_ui(map_surface, camera)
 
         # Instant command feedback rings (§7.4)
         self._draw_order_flashes(map_surface, camera)
