@@ -305,10 +305,11 @@ class FloatingUI:
             return True
         return fog.is_object_visible(obj)
 
-    def draw_all_floating_ui(self, surface, camera, delta_time=1/60.0):
+    def draw_all_floating_ui(self, surface, camera):
         """Draw all floating UI elements for visible objects"""
-        # Update notifications first
-        self.update_notifications(delta_time)
+        # Notification lifecycle (drift/fade/expiry) ticks in Game.update(),
+        # not here: headless runs (benchmark, balance sim) never draw, so a
+        # draw-side drain let self.notifications grow for the whole run.
 
         # Draw health bars for all fog-visible units and buildings
         for unit in self.game.units:
