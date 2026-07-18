@@ -2,7 +2,7 @@
 import math
 from typing import Optional, Tuple
 from core.config import GRID_SIZE, TILE_WIDTH, TILE_HEIGHT
-from systems.ai.economy_helpers import best_resource_for_dropoff
+from systems.ai.economy_helpers import ranked_resources_for_dropoff
 from utils.debug_logger import debug_log
 
 
@@ -34,13 +34,27 @@ class BuildingPlacer:
         self.game = game
         # player name -> (retry sim time, smallest radius that found no slot)
         self._fallback_backoff = {}
+        # (player name, building type) -> retry sim time (§7 P1 resource path)
+        self._resource_backoff = {}
 
-    def _fallback_cap(self, building_radius: float) -> float:
-        """Max distance from the castle for fallback placements (§8.10
-        wall-line invariant, see class comment)."""
+    def _fallback_cap(self, building_radius: float, ctx) -> float:
+        """Max distance from the castle for fallback placements.
+
+        The §8.10 wall-line invariant (structures must not straddle the
+        planned wall) only binds when a wall line can actually exist: walls
+        enabled as content AND this personality maintains segments. Otherwise
+        the cap starved placement outright (§7 P1: temple 162/162 failures on
+        one seed — a congested base exhausts the 356 px disc permanently), so
+        the search may use the full lattice radius."""
         wall = self.game.game_data.get("buildings", {}).get("wooden_wall")
-        wall_radius = wall.radius if wall is not None else 32
-        return self.WALL_DISTANCE - wall_radius - building_radius
+        walls_live = wall is not None and getattr(wall, "buildable", True)
+        if walls_live:
+            from systems.ai.utility.personality import wall_segments
+
+            if wall_segments(getattr(ctx.player, "ai_personality", "balanced")) > 0:
+                wall_radius = wall.radius if wall is not None else 32
+                return self.WALL_DISTANCE - wall_radius - building_radius
+        return self._FALLBACK_LATTICE_RADIUS - building_radius
 
     def find_position(self, building_type: str, ctx) -> Optional[Tuple[float, float]]:
         """Find a valid position for the given building type."""
@@ -49,28 +63,53 @@ class BuildingPlacer:
         else:
             return self._find_near_castle(building_type, ctx)
 
+    # §7 P1: a dropoff must stay within RESOURCE_SERVICE_RADIUS (280) of the
+    # cluster it serves — cap the lattice fallback below that so a rescued
+    # placement still counts as servicing the node.
+    RESOURCE_FALLBACK_CAP = 260
+
     def _find_near_resource(self, building_type: str, ctx) -> Optional[Tuple[float, float]]:
-        """Ring search around the closest matching resource."""
+        """Ring search around the best unserved resource clusters (§7 P1:
+        several candidates, not one — a cluster whose surroundings can't fit
+        the building no longer blocks placement forever), with a lattice
+        fallback around each before moving to the next cluster."""
         resource_name = self.RESOURCE_BUILDINGS[building_type]
         if not ctx.castle:
             return None
 
-        # Prefer the best known, unserved resource cluster over the closest
-        # resource to the castle.
-        best_resource = best_resource_for_dropoff(ctx, building_type)
-        if not best_resource:
+        # Failure backoff: when every candidate cluster came up empty, the
+        # ground won't change within a tick — skip the scan for a while.
+        key = (getattr(ctx.player, "name", ""), building_type)
+        now = getattr(self.game, "sim_time_elapsed", 0.0)
+        if now < self._resource_backoff.get(key, 0.0):
+            return None
+
+        # limit 5: dense forest interiors are unbuildable terrain — more
+        # distinct clusters means some candidate sits near open ground.
+        candidates = ranked_resources_for_dropoff(ctx, building_type, limit=5)
+        if not candidates:
             debug_log.log(f"AI BuildingPlacer: No unserved known {resource_name} resource found for {building_type}", "AI")
             return None
 
-        # Ring search around that resource
-        for distance in range(80, 220, 40):
-            for angle_deg in range(0, 360, 30):
-                angle = math.radians(angle_deg)
-                x = best_resource.x + distance * math.cos(angle)
-                y = best_resource.y + distance * math.sin(angle)
+        for resource in candidates:
+            for distance in range(80, 220, 40):
+                for angle_deg in range(0, 360, 30):
+                    angle = math.radians(angle_deg)
+                    x = resource.x + distance * math.cos(angle)
+                    y = resource.y + distance * math.sin(angle)
+                    if self._is_valid_position(x, y, building_type, ctx):
+                        return (x, y)
+            # Ring saturated (pocket-sized holes, terrain) — 20 px lattice
+            # around the cluster before giving up on it.
+            cap_sq = self.RESOURCE_FALLBACK_CAP ** 2
+            for dx, dy in self._fallback_lattice():
+                if dx * dx + dy * dy > cap_sq:
+                    break  # offsets are sorted nearest-first
+                x, y = resource.x + dx, resource.y + dy
                 if self._is_valid_position(x, y, building_type, ctx):
                     return (x, y)
 
+        self._resource_backoff[key] = now + self.FALLBACK_RETRY_SECONDS
         debug_log.log(f"AI BuildingPlacer: No valid position found for {building_type} near {resource_name}", "AI")
         return None
 
@@ -193,12 +232,13 @@ class BuildingPlacer:
         debug_log.log(f"AI BuildingPlacer: No valid position found for {building_type} near castle", "AI")
         return None
 
-    # Lattice offsets, nearest-first, built once at the widest possible cap
-    # (WALL_DISTANCE 420 − wall radius 32 − smallest building radius 32 =
-    # 356); each search breaks at its own per-building cap. Step matches the
-    # nav grid: ~1000 candidate points.
+    # Lattice offsets, nearest-first, built once at the widest cap any search
+    # may use (§7 P1: 600 px — the wall-line cap of ~356 only applies while a
+    # wall line can exist, see _fallback_cap); each search breaks at its own
+    # per-building cap. Step matches the nav grid: ~2800 candidate points,
+    # scan cost bounded by the FALLBACK_RETRY_SECONDS backoff.
     _FALLBACK_LATTICE = None
-    _FALLBACK_LATTICE_RADIUS = 356
+    _FALLBACK_LATTICE_RADIUS = 600
 
     @classmethod
     def _fallback_lattice(cls):
@@ -228,13 +268,79 @@ class BuildingPlacer:
         template = self.game.game_data["buildings"].get(building_type)
         if template is None:
             return None
-        cap_sq = self._fallback_cap(template.radius) ** 2
+        cap_sq = self._fallback_cap(template.radius, ctx) ** 2
         for dx, dy in self._fallback_lattice():
             if dx * dx + dy * dy > cap_sq:
                 break  # offsets are sorted nearest-first
             x, y = castle_x + dx, castle_y + dy
             if self._is_valid_position(x, y, building_type, ctx):
                 return (x, y)
+        return None
+
+    # --- §7 P5 expansion --------------------------------------------------
+
+    EXPANSION_MIN_DISTANCE = 700   # a real second base, not a castle-ring annex
+    EXPANSION_MAX_DISTANCE = 2200  # not a suicide island across the map either
+    EXPANSION_MAX_THREAT = 300     # don't plant a base in the enemy's lap
+
+    def find_expansion_anchor(self, ctx):
+        """Best far, unserved, quiet resource to expand toward, or None.
+
+        The castle is a universal dropoff (DROP_OFF_BUILDINGS), so planting
+        one on a rich distant cluster instantly serves it. Cheap: reuses the
+        per-tick cluster counts, one pass over known resources."""
+        castle = ctx.castle
+        if castle is None:
+            return None
+        from systems.ai.economy_helpers import (
+            _cluster_counts, find_nearest_dropoff_ctx, RESOURCE_SERVICE_RADIUS)
+
+        best, best_score = None, 0.0
+        for resource_type in ("gold", "stone", "wood"):
+            resources = ctx.known_resources(resource_type)
+            if not resources:
+                continue
+            counts = _cluster_counts(ctx, resource_type, resources)
+            for resource in resources:
+                dist = math.hypot(resource.x - castle.x, resource.y - castle.y)
+                if not (self.EXPANSION_MIN_DISTANCE <= dist <= self.EXPANSION_MAX_DISTANCE):
+                    continue
+                if ctx.threat_at(resource.x, resource.y) > self.EXPANSION_MAX_THREAT:
+                    continue
+                _, nearest = find_nearest_dropoff_ctx(
+                    ctx, resource_type, (resource.x, resource.y), include_pending=True)
+                if nearest <= RESOURCE_SERVICE_RADIUS:
+                    continue  # already served — nothing to gain by moving in
+                # Rich clusters win; gold (the chronic bottleneck) counts double
+                score = counts.get(id(resource), 0) * (2.0 if resource_type == "gold" else 1.0)
+                if score > best_score:
+                    best, best_score = resource, score
+        return best
+
+    def find_expansion_position(self, ctx) -> Optional[Tuple[float, float]]:
+        """A castle slot near the expansion anchor (ring, then lattice)."""
+        anchor = self.find_expansion_anchor(ctx)
+        if anchor is None:
+            return None
+        key = (getattr(ctx.player, "name", ""), "castle_expansion")
+        now = getattr(self.game, "sim_time_elapsed", 0.0)
+        if now < self._resource_backoff.get(key, 0.0):
+            return None
+        for distance in range(140, 320, 40):
+            for angle_deg in range(0, 360, 30):
+                angle = math.radians(angle_deg)
+                x = anchor.x + distance * math.cos(angle)
+                y = anchor.y + distance * math.sin(angle)
+                if self._is_valid_position(x, y, "castle", ctx):
+                    return (x, y)
+        cap_sq = 340 ** 2
+        for dx, dy in self._fallback_lattice():
+            if dx * dx + dy * dy > cap_sq:
+                break
+            x, y = anchor.x + dx, anchor.y + dy
+            if self._is_valid_position(x, y, "castle", ctx):
+                return (x, y)
+        self._resource_backoff[key] = now + self.FALLBACK_RETRY_SECONDS
         return None
 
     # --- §8.10 AI walling -------------------------------------------------

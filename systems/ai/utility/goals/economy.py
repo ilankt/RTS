@@ -25,6 +25,52 @@ class RebuildCastleGoal(Goal):
         return start_construction(ctx, "castle", ctx.game.ai_system.building_placer)
 
 
+class ExpandCastleGoal(Goal):
+    """§7 P5 expansion: a second castle on a rich distant cluster once the
+    bank comfortably covers it (battery: 0/30 players ever expanded — no
+    goal existed). The castle is a universal dropoff, so the expansion pays
+    immediately; boomer's economy weight makes it the natural expander, and
+    §7.3 raid targeting finally gets a real target to punish."""
+    name = "expand_castle"
+    category = "economy"
+
+    CASTLE_CAP = 2
+    MIN_WORKERS = 6
+    BANK_MARGIN = 1.2  # bank must cover the castle cost with headroom —
+    # an expansion should never bankrupt army production outright.
+    # NOTE (2026-07-18 battery): AI-vs-AI gold banks rarely exceed ~100 in
+    # the post-P2 aggressive meta, so this fires mostly in slow games (vs
+    # passive humans, big maps, walls). Making the AI expand *proactively*
+    # needs an income-reservation mechanism, not a lower threshold — see
+    # MASTER_PLAN §7 watch-items before tuning this number.
+
+    def score(self, ctx):
+        if ctx.castle is None:
+            return 0  # the rebuild goal owns the no-castle case
+        if ctx.has_construction_in_progress("castle"):
+            return 0
+        if len(ctx.buildings.get("castle", [])) >= self.CASTLE_CAP:
+            return 0
+        if len(ctx.workers) < self.MIN_WORKERS:
+            return 0
+        costs = ctx.cost_data.get("castle", {})
+        if not costs:
+            return 0
+        for resource, amount in costs.items():
+            if ctx.resources.get(resource, 0) < amount * self.BANK_MARGIN:
+                return 0
+        if ctx.game.ai_system.building_placer.find_expansion_anchor(ctx) is None:
+            return 0
+        return 65
+
+    def execute(self, ctx):
+        placer = ctx.game.ai_system.building_placer
+        position = placer.find_expansion_position(ctx)
+        if position is None:
+            return False
+        return start_construction(ctx, "castle", placer, position=position)
+
+
 class BuildMarketGoal(Goal):
     """§8.9 market: build one when the stockpiles are lopsided — a big
     non-gold surplus rotting (sell it) or gold banked with a resource
@@ -119,7 +165,9 @@ class TrainWorkerGoal(Goal):
             return 0
         if not ctx.has_pop_space():
             return 0
-        if ctx.castle.current_production:
+        # §7 P5: any idle castle may train (an expansion castle works too);
+        # max_queue=1 keeps the old semantics of no worker queueing.
+        if not ctx.find_idle_production_building("castle", max_queue=1):
             return 0
         if not ctx.can_afford("worker"):
             return 0
@@ -135,7 +183,8 @@ class TrainWorkerGoal(Goal):
         return 30 + (target - in_play) * 20
 
     def execute(self, ctx):
-        return queue_unit(ctx, ctx.castle, "worker")
+        castle = ctx.find_idle_production_building("castle", max_queue=1)
+        return queue_unit(ctx, castle, "worker")
 
 
 class BuildFarmGoal(Goal):
@@ -145,6 +194,10 @@ class BuildFarmGoal(Goal):
     def score(self, ctx):
         if ctx.has_construction_in_progress("farm"):
             return 0
+        if not ctx.workers:
+            return 0  # §7: nobody to build it — silence beats topping the
+            # action lane every tick of a workerless endgame (measured 2886
+            # wasted top slots in one match)
         if not ctx.can_afford("farm"):
             return 0
         farms = len(ctx.buildings.get("farm", []))
@@ -170,6 +223,8 @@ class BuildHouseGoal(Goal):
     def score(self, ctx):
         if ctx.has_construction_in_progress("house"):
             return 0
+        if not ctx.workers:
+            return 0  # §7: see BuildFarmGoal — no builder, no goal
         if not ctx.can_afford("house"):
             return 0
         slack = ctx.pop_max - ctx.pop_current

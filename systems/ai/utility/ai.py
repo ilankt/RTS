@@ -50,6 +50,9 @@ class UtilityAISystem:
         }
         self.last_chosen = {p: None for p in self.ai_players}
         self.last_scores = {p: [] for p in self.ai_players}  # [(weighted, base, name), ...]
+        # §7 P2 two-lane selection: the mode goal and the spend goal per tick
+        self.last_chosen_behavior = {p: None for p in self.ai_players}
+        self.last_chosen_action = {p: None for p in self.ai_players}
         self._tick_counter = {p: 0 for p in self.ai_players}
 
     # --- Public interface (called by core/game.py and ui/ai_debug_panel.py) ---
@@ -126,8 +129,10 @@ class UtilityAISystem:
 
         priority_resource = min(ctx.resources, key=ctx.resources.get) if ctx.resources else "None"
 
-        chosen = self.last_chosen.get(player)
-        chosen_name = chosen.name if chosen else "—"
+        behavior = self.last_chosen_behavior.get(player)
+        action = self.last_chosen_action.get(player)
+        chosen_name = " + ".join(
+            g.name for g in (behavior, action) if g is not None) or "—"
         top_goals = self.last_scores.get(player, [])[:5]
         goals_summary = ", ".join(f"{name}:{score:.0f}" for score, _, name in top_goals)
 
@@ -180,18 +185,37 @@ class UtilityAISystem:
         scored.sort(key=lambda x: x[0], reverse=True)
         self.last_scores[player] = [(w, b, g.name) for w, b, g in scored]
 
-        # 2) Execute top-scoring goal that succeeds
-        chosen = None
+        # 2) Two lanes (§7 P2): the best behavior goal (defend/attack/scout)
+        # sets the army's mode, and — independently — the best action goal
+        # that succeeds spends the economy. Pre-split, one slot per tick meant
+        # AttackGoal's always-succeeding floor starved build/train goals
+        # (stable lost 557/560 scored ticks; battery showed it was systemic).
+        chosen_behavior = None
+        chosen_action = None
         for weighted, base, goal in scored:
+            lane_is_behavior = getattr(goal, "kind", "action") == "behavior"
+            if lane_is_behavior:
+                if chosen_behavior is not None:
+                    continue
+            elif chosen_action is not None:
+                continue
             try:
                 if goal.execute(ctx):
-                    chosen = goal
-                    break
+                    if lane_is_behavior:
+                        chosen_behavior = goal
+                    else:
+                        chosen_action = goal
             except Exception as e:
                 debug_log.log(
                     f"AI {player.name}: goal {goal.name}.execute raised: {e}\n{traceback.format_exc()}",
                     "AI",
                 )
+            if chosen_behavior is not None and chosen_action is not None:
+                break
+        self.last_chosen_behavior[player] = chosen_behavior
+        self.last_chosen_action[player] = chosen_action
+        # Panel/back-compat "the" chosen goal: the spend if one fired, else the mode
+        chosen = chosen_action or chosen_behavior
         self.last_chosen[player] = chosen
 
         # 3) Sub-brains run regardless, reading the same snapshot. Each in its
@@ -217,7 +241,7 @@ class UtilityAISystem:
             )
 
         try:
-            should_attack = isinstance(chosen, AttackGoal)
+            should_attack = isinstance(chosen_behavior, AttackGoal)
             self.military_brain.update(ctx, should_attack=should_attack)
         except Exception as e:
             debug_log.log(

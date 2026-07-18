@@ -258,6 +258,29 @@ class _TrainCompositionUnitGoal(Goal):
         base = composition_target(getattr(ctx.player, "ai_personality", "balanced"), self.unit_name)
         return min(self.TARGET_FRACTION_CAP, base + self._counter_boost(ctx))
 
+    def _starved_sibling_exists(self, ctx):
+        """§7 P6 composition under scarcity: is another composition unit
+        under its target but currently unaffordable, with its production
+        building standing? If so, filler purchases of THIS type would eat
+        the resources the army actually needs — the battery showed every
+        personality collapsing to the cheapest-gold unit (spearman 33-34 %,
+        signature comps never realized) precisely through this leak."""
+        from systems.ai.utility.personality import COMPOSITION_TARGETS, composition_target
+
+        personality = getattr(ctx.player, "ai_personality", "balanced")
+        table = COMPOSITION_TARGETS.get(personality, COMPOSITION_TARGETS["balanced"])
+        for name in table:
+            if name == self.unit_name:
+                continue
+            if ctx.can_afford(name):
+                continue
+            producer = "stable" if name == "cavalry" else "barracks"
+            if not ctx.buildings.get(producer):
+                continue  # can't train it anyway — banking would be pointless
+            if _military_fraction(ctx, name) < composition_target(personality, name):
+                return True
+        return False
+
     def score(self, ctx):
         if not ctx.has_pop_space():
             return 0
@@ -272,6 +295,10 @@ class _TrainCompositionUnitGoal(Goal):
         # whichever type is under-represented.
         frac = _military_fraction(ctx, self.unit_name) if ctx.military else target_fraction
         if frac >= target_fraction:
+            # §7 P6: no filler while a sibling type is starving for the same
+            # resources — bank for the composition the personality wants.
+            if self._starved_sibling_exists(ctx):
+                return 0
             return 25  # still produce sometimes for filler
         return 50 + (target_fraction - frac) * 100
 

@@ -1,8 +1,12 @@
 """Base Goal class for the utility AI.
 
 Each tick the orchestrator scores every goal against a snapshot of the game
-state. The highest-scoring goal whose `execute` succeeds is the AI's action
-for that tick.
+state, then fires up to one goal per LANE (§7 P2): the best-scoring
+`kind="behavior"` goal sets the army's mode (defend/attack/scout), and the
+best-scoring `kind="action"` goal that succeeds spends the economy (build/
+train/research/trade). Splitting the lanes ended the score war where
+AttackGoal's always-succeeding floor starved production (stable lost 557/560
+scored ticks to it pre-split).
 
 Goals are stateless — their score is recomputed fresh from `ctx` each tick.
 Anything that needs to persist (in-progress construction, queued production)
@@ -15,6 +19,7 @@ class Goal:
 
     name = "<unset>"
     category = "economy"  # economy | military | tactical | support
+    kind = "action"       # action (spends economy) | behavior (sets army mode)
 
     def score(self, ctx) -> float:
         """Return urgency in [0, +inf). 0 means do not run.

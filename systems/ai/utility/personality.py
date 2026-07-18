@@ -102,6 +102,20 @@ def composition_target(personality: str, unit_name: str) -> float:
     return table.get(unit_name, 0.33)
 
 
+# §7 P4 fountain control: how many fighters each personality posts at the
+# healing fountain once its army can spare them. 0 = never holds mid.
+FOUNTAIN_GUARD_TARGETS = {
+    "turtle": 3,
+    "boomer": 3,
+    "balanced": 2,
+    "rusher": 0,
+}
+
+
+def fountain_guard_target(personality: str) -> int:
+    return FOUNTAIN_GUARD_TARGETS.get(personality, 2)
+
+
 # §8.10: how many watchtowers each personality is willing to maintain.
 # +1 across the board (2026-07-14 batch 3): tower #2 now guards the forward
 # economy, so a second tower is useful map play, not spam.

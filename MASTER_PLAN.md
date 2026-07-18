@@ -560,30 +560,157 @@ Measured on the headless benchmark. The bar is to hold these at **200 units**.
 
 ---
 
-## 7. §8.12 — AI depth candidates
+## 7. §8.12/§9 — AI depth: behavior diagnosis (2026-07-17) & improvement plan
 
-Ordered by feel-per-effort; top three are the recommended next batch. (Landed
-§8.12 work — mutual awareness, no-tunnel-vision, castle rebuild, aggression
-re-tune — is in the archive, **including the failed tunings; read them before
-re-tuning**.)
+**Evidence base:** 12-match instrumented behavior battery, 2026-07-17 — varied
+maps (50×50–90×90), 2–4 players, forced personality matchups. Dataset:
+`tools/behavior_battery_2026-07-17/`; harness: `tools/instrumented_match.py`
+(per-tick chosen-goal histograms + 30 sim-s tactical samples),
+`tools/launch_behavior_battery.py`, `tools/analyze_behavior_battery.py`.
+11/12 completed, avg 1130 sim-s. Wins: boomer 5/8, turtle 4/8, rusher 1/7,
+balanced 1/7 (matchup-bias caveat applies). User-reported complaints (no
+healers, few cavalry, no formations/ram protection, no mid control, no
+expansion) **all reproduced**, plus two structural defects underneath them.
 
-- [ ] **Reactive counters vs fortifications** *(low–med)* — reactive production reads
-  only the enemy's *units*; a tower/castle-heavy turtle should visibly pull ram/siege.
-  Cheap: include defensive buildings in the counter signal.
+### Measured defects, ranked by leverage
+
+1. **Placement starvation** *(structural — the biggest single lever)*. Probe on
+   seed 2001: `BuildingPlacer.find_position` returned None **180/180** times for
+   mine, 171/172 quarry, **162/162 temple**, 40/43 house for the turtle player —
+   whole minutes wanting a building it can never place. Two causes
+   (`systems/ai/building_placer.py`): (a) `_find_near_resource` ring-searches
+   80–220 px around ONE chosen cluster with no lattice fallback and no
+   next-best-cluster retry; (b) `_find_near_castle`'s fallback lattice is capped
+   at ~356 px (`_fallback_cap`) to respect the §8.10 wall-line invariant — for
+   **walls that are currently `buildable:false`**. A congested base exhausts the
+   disc permanently. Downstream: 15/30 players never built a stable, temples
+   missing in 17/30, `build_*` goals topped-but-failed thousands of ticks
+   (rusher `build_farm` 4451, boomer `build_stable` 1457, boomer `build_temple`
+   664 across the battery).
+2. **One-action-per-tick contention.** Only one goal executes per tick, and
+   `AttackGoal`'s always-succeeding floor (70 + 8/unit) crowds out build/train
+   goals — already documented per-goal in code comments (stable "lost 557/560
+   ticks", cavalry "279/281"); the battery shows it is systemic, not per-goal.
+3. **Composition collapse.** Every personality converges to the same army:
+   spearman 33–34 %, ram 24–31 %, warrior 14–19 % — signature targets (rusher
+   warrior 0.45, turtle archer 0.40) never realized. Cause: `can_afford` zeroes
+   the score, so under chronic gold scarcity the cheapest-gold unit (spearman
+   60 g) or gold-free unit (ram) wins the tick — affordability overrides
+   composition (the 2026-07-14 instrumented finding, still unfixed).
+4. **Rams march alone.** 70 % of 2372 ram-samples had the ram >150 px from the
+   nearest friendly fighter (mean 557 px, max 3213 px). §8.12's squad
+   interleaving mixes the *order commands go out*, but speed difference splits
+   the march and nothing re-binds escorts to rams.
+5. **No commanded formation.** Archers ended up behind melee in only 64 % of
+   engaged samples, mean separation just ~56 px — an emergent side-effect of
+   range+kiting, not positioning. No front/back lines, no counter-targeting in
+   engagements (spearman doesn't seek cavalry; `strong_against` affects
+   training and damage, never target selection).
+6. **No mid/fountain play.** Fountain presence 7–22 % of samples (peaks are
+   transient retreat rallies — the only fountain logic is the §8.9 regroup
+   rally). Nobody *holds* the healing fountain.
+7. **No expansion.** **0/30** players built a second castle; no goal exists
+   (`RebuildCastleGoal` only fires after castle loss).
+8. **Healers half-landed.** The §9 enablement works where support weight is
+   high and the game runs long: 12/30 players trained healers (boomer up to 8,
+   turtle 7). Rusher/balanced almost never (weighted temple 35/70 vs attack
+   floor 70+); 5 players built the temple then trained 0 healers.
+
+### Improvement plan — **P1–P6 LANDED 2026-07-18** (evidence below)
+
+Validation: full test suite 380 passed (+1 fixture updated for the new
+farm worker-gate); same-seed §8.8 balance battery
+(`tools/balance_12_2026-07-18_after_ai_depth.json`); behavior battery
+"after" dataset `tools/behavior_battery_2026-07-18_after/` vs the
+2026-07-17 baseline.
+
+- [x] **P1 — Placement starvation fix**: dropoffs ring-search up to 5 ranked
+  clusters (`ranked_resources_for_dropoff`) with a lattice fallback + 10 s
+  backoff; the castle-ring lattice cap lifts to 600 px when no wall line can
+  exist (walls disabled or `wall_segments==0`). Probe on the baseline's worst
+  seed: temple went 162/162 failures → places first try; mine/quarry 100 % →
+  0 failures. Residual `build_mine` fallthrough (~600-800/battery) is bounded
+  backoff retries where no gold cluster has buildable ground.
+- [x] **P2 — Two-lane goal selection** (`Goal.kind` behavior|action):
+  defend/attack/scout claim the mode, build/train/research/trade claim the
+  spend — one of each per tick. Games turned decisive: balance battery 12/12
+  completed (0 timeouts, avg 514 sim-s) with the win spread collapsing to
+  0.43-0.57 across all four personalities (was 0.33/0.43/0.57/0.75 in
+  `balance_12_final2.json`). **Meta is faster and deadlier — watch human-game
+  difficulty.**
+- [x] **P3 — Roles, escorts, counters** (`military_brain`): counter-weighted
+  target selection in defense and attack (`strong_against`, 260 px bonus,
+  400 px anchor radius); ram escort contract (2 fighters per working ram,
+  and a ram never advances beyond its escort — it falls back to the nearest
+  fighter instead); archer back-line leash (follow the front at 110 px with a
+  90 px standoff behind it, support-fire the front's target once engaged).
+  Ram-alone samples: 70 % → 36 %, mean alone distance 557 → 347 px.
+  **Formation caveat:** the crude "archers farther than melee" proxy went
+  64 % → 46 % — counter-targeting now marches archers *at* enemy melee, which
+  the proxy reads as "in front". Needs an eyeball pass in a real game (F4)
+  before believing either number.
+- [x] **P4 — Fountain control** (`ControlFountainGoal`, support/behavior lane
+  + `post_fountain_guards`/`_maintain_fountain_guards`, per-personality
+  `FOUNTAIN_GUARD_TARGETS` turtle 3 / boomer 3 / balanced 2 / rusher 0):
+  fountain presence turtle 45 %, boomer 38 %, balanced 25 %, rusher 10 % of
+  samples (baseline 14/22/7/8 — and those were transient retreats).
+- [x] **P5 — Expansion** (`ExpandCastleGoal` + placer
+  `find_expansion_anchor/position`, castle cap 2, first castle stays the
+  ctx.castle anchor, any idle castle trains workers): implemented and fired
+  in one battery game, but the post-P2 meta keeps AI gold banks ~100 — the
+  1.2× bank gate mostly won't trigger in AI-vs-AI. Expect it vs passive
+  humans/big maps; see watch-items before tuning the threshold.
+- [x] **P6 — Composition under scarcity**: filler training goes silent while
+  a sibling composition unit is under target, unaffordable, and trainable
+  (bank for the right unit). Signature comps re-emerged: rusher warrior-led
+  33 % (was 18 %), turtle/boomer archer 24 % / low warrior; the spearman
+  monoculture (33-34 % for every personality) is gone. Cavalry 3-5 %
+  everywhere (was 0 for 17/30 players); healers trained by 12/30 players
+  incl. balanced (baseline: turtle/boomer only).
+
+### Standing candidates (pre-battery list, still valid)
+
 - [ ] **Timing pushes on power spikes** *(low)* — attack commitment bonus for ~30 s
   after a combat tech lands; sharpens personality timing identity.
 - [ ] **Coordinated multi-prong attacks** *(med–high)* — main push + simultaneous
   cavalry economy raid from another bearing. Squad layer exists; needs a second
-  command channel. **This is the aggression side's structural fix** — the archive is
-  explicit that more parameter knobs won't do it.
-- [ ] **Map control / expansion denial** *(med)* — guard posted at contested rich nodes.
+  command channel. Natural extension of P3's role tags (flank role = raid channel).
+- [ ] **Map control / expansion denial** *(med)* — guard posted at contested rich
+  nodes; generalizes P4.
 - [ ] **Tower-aware army pathing** *(med)* — route around known tower coverage using the
   existing threat map (flow-field + threat infra already in place).
-- **⚠ Standing balance watch-items:** `balanced` is chronically mildest (~29–43 %) and
-  needs an identity pass or acceptance as the "teaching" opponent; rusher yo-yos 0–2
-  wins per battery. Per-personality rates carry **matchup bias** (the fixed seed schedule
-  pits rusher vs boomer in 4 of 6 matches) — the true spread is tighter than it looks.
-- **✅ Verify:** §8.8 balance sim shows no single personality/tier dominating.
+- [x] **Reactive counters vs fortifications** — landed for rams (`TrainRamGoal`
+  counts enemy fortifications since §8.12 batch 3); battery confirms rams pull
+  toward towered enemies. Generalize only if P3's counter-targeting leaves a gap.
+- **⚠ Watch-items after the 2026-07-18 pass:**
+  - **Meta speed**: two-lane selection made AI games fast and decisive (avg
+    514 sim-s, 0 timeouts in the balance battery). Against humans this is a
+    sharper early game — if playtests feel oppressive, the lever is
+    personality attack thresholds, NOT re-coupling the lanes.
+  - **Formation proxy vs reality**: the archers-behind metric dropped while
+    commanded positioning was added (see P3 note). Verify by eye (F4 debug
+    panel, a spectator game) before any tuning; the proxy conflates
+    counter-charges with bad formation.
+  - **Expansion reachability**: `ExpandCastleGoal` needs ~600 banked gold;
+    the aggressive meta never banks that in AI-vs-AI. If expansions should
+    appear there, build an income-reservation mechanism (boomer saves toward
+    a chosen expansion) — do not just lower the threshold, it will bankrupt
+    army production.
+  - **Cavalry share** (3-5 % trained vs 10-15 % targets for rusher/balanced)
+    — stables now get built (P1) and banking helps (P6), but stable timing is
+    late in short games. Revisit only with same-seed evidence.
+  - **FFA mop-up tails**: 90×90 4-player games can stalemate at the 2400 s
+    cap with crippled survivors scattered (seed 2010). A "finish the map"
+    endgame push for the last standing army would close it.
+  - Per-personality win rates still carry **matchup bias** — check
+    matches_detail before concluding.
+- **✅ Verify (P1-P6, done 2026-07-18):** 380 tests pass; balance battery
+  12/12 decisive with win spread 0.43-0.57 (no personality dominating);
+  behavior battery: action-lane fallthrough noise ~10× down (worst residue is
+  bounded mine-placement backoff), ram-alone 70 %→36 %, fountain presence up
+  for every holder personality, signature compositions restored, healers
+  trained by 3 of 4 personalities. Formation and expansion remain
+  watch-items above.
 
 ---
 

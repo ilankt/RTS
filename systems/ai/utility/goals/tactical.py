@@ -11,6 +11,7 @@ from systems.ai.utility.goal import Goal
 class DefendBaseGoal(Goal):
     name = "defend_base"
     category = "tactical"
+    kind = "behavior"
 
     def score(self, ctx):
         if not ctx.castle:
@@ -36,6 +37,7 @@ class DefendBaseGoal(Goal):
 class AttackGoal(Goal):
     name = "attack"
     category = "tactical"
+    kind = "behavior"
 
     SCALE = 8  # +SCALE per extra unit beyond the personality's threshold
 
@@ -67,9 +69,37 @@ class AttackGoal(Goal):
         return True
 
 
+class ControlFountainGoal(Goal):
+    """§7 P4 'protect the middle': post a small guard detail at a scouted
+    healing fountain. Category support — turtle/boomer identities hold
+    ground, rusher mostly ignores it. Behavior lane on purpose: holding mid
+    is an army-posture choice that competes with attacking, never with
+    building/training."""
+    name = "control_fountain"
+    category = "support"
+    kind = "behavior"
+
+    def score(self, ctx):
+        brain = getattr(ctx.game.ai_system, "military_brain", None)
+        if brain is None or not hasattr(brain, "fountain_guard_shortfall"):
+            return 0
+        if getattr(ctx, "regrouping", False):
+            return 0
+        fountain, needed = brain.fountain_guard_shortfall(ctx)
+        if fountain is None or needed <= 0:
+            return 0
+        # An enemy presence at the fountain makes taking it back urgent
+        contested = ctx.threat_at(fountain.x, fountain.y) > 0
+        return 55 + (15 if contested else 0)
+
+    def execute(self, ctx):
+        return ctx.game.ai_system.military_brain.post_fountain_guards(ctx)
+
+
 class ScoutGoal(Goal):
     name = "scout"
     category = "tactical"
+    kind = "behavior"
 
     def score(self, ctx):
         scout_brain = getattr(ctx.game.ai_system, "scout_brain", None)

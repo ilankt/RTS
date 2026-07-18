@@ -148,18 +148,23 @@ def _cluster_counts(ctx, resource_type: str, resources) -> dict:
     return counts
 
 
-def best_resource_for_dropoff(ctx, building_type: str):
+def ranked_resources_for_dropoff(ctx, building_type: str, limit: int = 3) -> list:
+    """Unserved candidate resources, best-first, at most one per cluster.
+
+    §7 P1 placement-starvation fix: the placer used to get exactly ONE
+    candidate — when the ground around that cluster couldn't fit the
+    building, placement failed forever (measured: 180/180 mine attempts on
+    one seed). Ranking gives it fallback clusters to try."""
     resource_type = resource_type_for_dropoff(building_type)
     if not resource_type:
-        return None
+        return []
 
     resources = ctx.known_resources(resource_type)
     if not resources:
-        return None
+        return []
 
     cluster_counts = _cluster_counts(ctx, resource_type, resources)
-    best = None
-    best_score = float("-inf")
+    scored = []
     for resource in resources:
         _, nearest_dist = find_nearest_dropoff_ctx(
             ctx, resource_type, (resource.x, resource.y), include_pending=True
@@ -172,11 +177,25 @@ def best_resource_for_dropoff(ctx, building_type: str):
         cluster_count = cluster_counts.get(id(resource), 0)
         remaining = getattr(resource, "amount_remaining", 0)
         score = (nearest_dist - RESOURCE_SERVICE_RADIUS) + cluster_count * 90 + remaining * 0.05
-        if score > best_score:
-            best_score = score
-            best = resource
+        scored.append((score, resource))
 
-    return best
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    picked = []
+    for _, resource in scored:
+        if any(
+            math.hypot(resource.x - p.x, resource.y - p.y) <= RESOURCE_CLUSTER_RADIUS
+            for p in picked
+        ):
+            continue  # same cluster as a better candidate — trying it again would fail the same way
+        picked.append(resource)
+        if len(picked) >= limit:
+            break
+    return picked
+
+
+def best_resource_for_dropoff(ctx, building_type: str):
+    candidates = ranked_resources_for_dropoff(ctx, building_type, limit=1)
+    return candidates[0] if candidates else None
 
 
 def score_dropoff_building_need(ctx, building_type: str) -> float:

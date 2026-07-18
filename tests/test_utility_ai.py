@@ -211,8 +211,15 @@ class TestBuildFarmGoal:
     def test_high_score_with_no_farm(self):
         p = FakePlayer()
         castle = FakeBuilding("castle", p)
-        ctx = _ctx_with(p, buildings=[castle])
+        # §7: farm goal needs at least one worker alive to score
+        ctx = _ctx_with(p, buildings=[castle], units=[FakeUnit("worker", p)])
         assert BuildFarmGoal().score(ctx) == 80
+
+    def test_zero_without_workers(self):
+        p = FakePlayer()
+        castle = FakeBuilding("castle", p)
+        ctx = _ctx_with(p, buildings=[castle])
+        assert BuildFarmGoal().score(ctx) == 0
 
     def test_zero_when_farm_in_progress(self):
         p = FakePlayer()

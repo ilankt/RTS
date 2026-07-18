@@ -88,7 +88,9 @@ class GoalContext:
 
         for building in game.buildings:
             if building.player is player:
-                if building.name == "castle":
+                # §7 P5: with expansions, the FIRST castle stays the main
+                # base anchor (defense radius, threat bearing, retreat rally)
+                if building.name == "castle" and ctx.castle is None:
                     ctx.castle = building
                 ctx.buildings.setdefault(building.name, []).append(building)
                 current = getattr(building, "current_research", None)

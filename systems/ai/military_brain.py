@@ -17,6 +17,36 @@ class MilitaryBrain:
     RETREAT_HP_PERCENT = 0.30  # Retreat when below 30% HP
     ARCHER_KITE_DISTANCE = 80  # Minimum distance archers try to maintain from melee
     SQUAD_SIZE = 10            # Units per squad; one squad is commanded per tick
+
+    # §7 P3 army roles: the front line soaks, the back line shoots over it,
+    # siege gets escorted, flankers hunt what they counter.
+    ROLE_FRONT = ("warrior", "spearman")
+    ROLE_BACK = ("archer",)
+    ROLE_SIEGE = ("ram",)
+
+    # §7 P3 counter-targeting: how many px of extra distance a countered
+    # target is worth in target selection (spearman walks past a warrior to
+    # reach the cavalry), and how far around the squad target the army will
+    # look for counter-targets without splitting.
+    COUNTER_DISTANCE_BONUS = 260
+    COUNTER_TARGET_RADIUS = 400
+
+    # §7 P3 ram escort contract: keep this many fighters within escort range
+    # of every ram that is out working (battery: 70 % of ram-samples had the
+    # ram >150 px from ANY fighter — interleaved send order alone doesn't
+    # survive the speed difference on the march).
+    RAM_ESCORT_DISTANCE = 150
+    ESCORTS_PER_RAM = 2
+
+    # §7 P3 back-line march discipline: archers leash to the nearest front
+    # fighter while approaching (like healers do) and open fire when the
+    # front engages within support range. The leash point sits BEHIND the
+    # fighter relative to its threat — on it, archers stood in the melee
+    # line (first battery after P3: mean archer-front gap shrank to 34 px).
+    BACKLINE_FOLLOW_DISTANCE = 110
+    BACKLINE_STANDOFF = 90
+    BACKLINE_SUPPORT_RANGE = 320
+    BACKLINE_RELEASE_RANGE = 400  # front this close to the target frees the back line
     # §8.11 emergency defense: units fighting within this range of the castle
     # keep their targets during a full recall; everyone farther comes home.
     EMERGENCY_KEEP_FIGHT_RADIUS = 600
@@ -112,11 +142,15 @@ class MilitaryBrain:
                 # more than any single soldier.
                 elif not emergency and self._should_retreat(unit, max_hp_cache.get(unit, unit.hp)):
                     continue
-                closest_enemy = min(enemies_near_base, key=lambda e: math.hypot(unit.x - e.x, unit.y - e.y))
+                # §7 P3 counter-targeting: prefer the threat this unit is
+                # strong against (spearman meets the cavalry, not the warrior)
+                defense_target = self._pick_engagement_target(unit, enemies_near_base)
                 # §9: defense conscription overrides an in-progress flight —
                 # drop the commitment and its suppression so the unit fights.
+                # §7 P4: it dissolves guard duty too — home outranks the mid.
+                unit._guard_post = None
                 self._release_flight(unit)
-                self._command_attack(unit, closest_enemy, ctx)
+                self._command_attack(unit, defense_target, ctx)
             return  # Defense takes priority over everything
 
         # 1b. §8.9 squad retreat: a fight going badly ends NOW — disengage,
@@ -124,6 +158,13 @@ class MilitaryBrain:
         # home isn't under attack (the emergency block above returns first).
         if self._check_squad_retreat(ctx, military, castle):
             return
+
+        # 1c. §7 P3/P4 standing discipline (every tick, not just attack ticks):
+        # rams keep their escorts, the back line keeps a front to stand
+        # behind, the fountain detail stays on station.
+        self._maintain_ram_escorts(ctx, combatants)
+        self._maintain_backline(ctx, combatants)
+        self._maintain_fountain_guards(ctx, combatants)
 
         # 2b. Armed scouting (§8.11 fair perception): a standing army with NO
         # known enemy buildings can't attack — AttackGoal never fires. Send
@@ -136,7 +177,7 @@ class MilitaryBrain:
                 if anchor is not None:
                     squad = self._next_squad(ctx.player, combatants)
                     for unit in squad:
-                        if self._is_idle_military(unit):
+                        if self._is_idle_military(unit) and not getattr(unit, "_guard_post", None):
                             self.game.selection_manager._move_unit_to_position(
                                 unit, anchor, self.game.pathfinder)
                     return
@@ -149,16 +190,32 @@ class MilitaryBrain:
                 if focus_target:
                     target = focus_target
                 squad = self._next_squad(ctx.player, combatants)
+                # §7 P3: the back line holds until a front fighter has closed
+                # on the target (or there is no front line to wait for) —
+                # _maintain_backline walks the archers with the fighters.
+                fronts = [u for u in combatants if u.name in self.ROLE_FRONT]
+                front_released = not fronts or any(
+                    u.in_combat or u.is_engaging
+                    or math.hypot(u.x - target.x, u.y - target.y) <= self.BACKLINE_RELEASE_RANGE
+                    for u in fronts)
                 sent = []
                 for unit in squad:
                     if self._is_idle_military(unit):
+                        if getattr(unit, "_guard_post", None):
+                            continue  # §7 P4: the fountain detail stays home
                         if self._should_retreat(unit, max_hp_cache.get(unit, unit.hp)):
                             continue
+                        if unit.name in self.ROLE_BACK and not front_released:
+                            continue
+                        # §7 P3 counter-targeting: near the squad target,
+                        # each unit prefers what it's strong against
+                        # (cavalry hunts archers/workers, spearman cavalry)
+                        per_target = self._counter_target_for(unit, ctx, target.x, target.y) or target
                         debug_log.log(
-                            f"AI {ctx.player.name}: Sending {unit.name} to attack {target.name} at ({target.x:.0f}, {target.y:.0f})",
+                            f"AI {ctx.player.name}: Sending {unit.name} to attack {per_target.name} at ({per_target.x:.0f}, {per_target.y:.0f})",
                             "AI",
                         )
-                        self._command_attack(unit, target, ctx)
+                        self._command_attack(unit, per_target, ctx)
                         sent.append(unit)
                 if sent:
                     self._telegraph_attack(ctx, target, sent)
@@ -369,6 +426,241 @@ class MilitaryBrain:
                 self.game.selection_manager._move_unit_to_position(
                     healer, (anchor_x, anchor_y), self.game.pathfinder)
 
+    # --- §7 P3: roles, counters, escorts ---------------------------------
+
+    def _strong_tags(self, unit) -> set:
+        """This unit's strong_against tags from the data templates."""
+        template = self.game.game_data["units"].get(unit.name)
+        return set(getattr(template, "strong_against", ()) or ())
+
+    def _pick_engagement_target(self, unit, candidates):
+        """Nearest candidate, counter-weighted: a target this unit is strong
+        against is worth COUNTER_DISTANCE_BONUS px of detour."""
+        tags = self._strong_tags(unit)
+
+        def cost(enemy):
+            d = math.hypot(unit.x - enemy.x, unit.y - enemy.y)
+            if getattr(enemy, "name", None) in tags:
+                d -= self.COUNTER_DISTANCE_BONUS
+            return d
+
+        return min(candidates, key=cost)
+
+    def _counter_target_for(self, unit, ctx, anchor_x, anchor_y):
+        """A visible enemy UNIT near the squad target that this unit counters,
+        or None. Radius-bounded so counter-hunting never splits the army."""
+        tags = self._strong_tags(unit) - {"building", "watchtower", "castle"}
+        if not tags:
+            return None
+        best, best_d = None, float("inf")
+        for enemy in ctx.enemy_units:
+            if enemy.name not in tags or enemy.hp <= 0:
+                continue
+            if math.hypot(enemy.x - anchor_x, enemy.y - anchor_y) > self.COUNTER_TARGET_RADIUS:
+                continue
+            d = math.hypot(enemy.x - unit.x, enemy.y - unit.y)
+            if d < best_d:
+                best, best_d = enemy, d
+        return best
+
+    def _maintain_ram_escorts(self, ctx, combatants):
+        """§7 P3 ram escort contract: every ram that is out working keeps
+        ESCORTS_PER_RAM fighters within escort range. Fighters that outran
+        their ram on the march get pulled back to it; fighters mid-fight or
+        mid-flight are never conscripted."""
+        rams = [u for u in combatants if u.name in self.ROLE_SIEGE]
+        if not rams:
+            return
+        fighters = [u for u in combatants if u.name not in self.ROLE_SIEGE]
+        if not fighters:
+            return
+        taken = set()
+        for ram in rams:
+            working = (ram.destination or ram.path or ram.in_combat or ram.is_engaging
+                       or getattr(ram, "_pending_path_seq", None) is not None)
+            if not working:
+                continue  # a ram parked at home needs no escort detail
+            # A ram never presses on beyond its escort: while not actually
+            # swinging (in_combat), a ram whose nearest fighter is far drops
+            # its march/attack order and closes on that fighter instead —
+            # toward the front when the army is ahead, back home when the
+            # army died. Attack approaches set is_engaging the moment the
+            # order is issued (pathfinding issue_interact), so gate on
+            # in_combat only. Ram-side only by design: yanking marching
+            # fighters back would re-open the §9 order-oscillation class.
+            if not ram.in_combat:
+                nearest_f = min(
+                    fighters, key=lambda u: (u.x - ram.x) ** 2 + (u.y - ram.y) ** 2)
+                if math.hypot(nearest_f.x - ram.x, nearest_f.y - ram.y) > self.RAM_ESCORT_DISTANCE * 2:
+                    dest = getattr(ram, "destination", None)
+                    already_falling_back = dest and math.hypot(
+                        dest[0] - nearest_f.x, dest[1] - nearest_f.y) <= self.RAM_ESCORT_DISTANCE * 2
+                    if not already_falling_back:
+                        ram.clear_all_movement_state()
+                        ram.current_target = None
+                        ram.is_engaging = False
+                        self.game.selection_manager._move_unit_to_position(
+                            ram, (nearest_f.x + 40, nearest_f.y + 40), self.game.pathfinder)
+            covered = 0
+            for f in sorted(fighters,
+                            key=lambda u: (u.x - ram.x) ** 2 + (u.y - ram.y) ** 2):
+                if covered >= self.ESCORTS_PER_RAM:
+                    break
+                if id(f) in taken:
+                    continue
+                if math.hypot(f.x - ram.x, f.y - ram.y) <= self.RAM_ESCORT_DISTANCE:
+                    taken.add(id(f))
+                    covered += 1
+                    continue
+                if f.in_combat or f.is_engaging:
+                    continue  # never yank a fighter out of a fight to babysit
+                if getattr(f, "_flee_rally", None) is not None:
+                    continue  # committed flights own the unit
+                if getattr(f, "_guard_post", None):
+                    continue  # §7 P4: the fountain detail holds its ground
+                dest = getattr(f, "destination", None)
+                if dest and math.hypot(dest[0] - ram.x, dest[1] - ram.y) <= self.RAM_ESCORT_DISTANCE:
+                    taken.add(id(f))
+                    covered += 1
+                    continue  # already on its way — don't spam re-orders
+                self.game.selection_manager._move_unit_to_position(
+                    f, (ram.x + 40, ram.y + 40), self.game.pathfinder)
+                taken.add(id(f))
+                covered += 1
+
+    def _maintain_backline(self, ctx, combatants):
+        """§7 P3 back-line discipline: archers leash to the nearest front
+        fighter on the march (the healer-follow pattern) and open fire on the
+        front's target once it engages within support range. With no front
+        line alive, archers fight unleashed — the attack phase commands them
+        directly."""
+        backline = [u for u in combatants if u.name in self.ROLE_BACK]
+        if not backline:
+            return
+        fronts = [u for u in combatants if u.name in self.ROLE_FRONT]
+        if not fronts:
+            return
+        for archer in backline:
+            if archer.in_combat or archer.is_engaging:
+                continue
+            if getattr(archer, "_flee_rally", None) is not None:
+                continue
+            if getattr(archer, "_guard_post", None):
+                continue  # §7 P4: posted at the fountain, not in the line
+            nearest = min(fronts,
+                          key=lambda u: (u.x - archer.x) ** 2 + (u.y - archer.y) ** 2)
+            dist = math.hypot(archer.x - nearest.x, archer.y - nearest.y)
+            # Front engaged nearby: join from behind (support fire)
+            if ((nearest.in_combat or nearest.is_engaging)
+                    and nearest.current_target is not None
+                    and getattr(nearest.current_target, "hp", 0) > 0
+                    and dist <= self.BACKLINE_SUPPORT_RANGE):
+                self._command_attack(archer, nearest.current_target, ctx)
+                continue
+            if not self._is_idle_military(archer):
+                continue  # marching under an earlier order
+            if dist > self.BACKLINE_FOLLOW_DISTANCE:
+                # Leash point: BACKLINE_STANDOFF behind the fighter, away
+                # from its threat (its target, else the nearest enemy).
+                threat = nearest.current_target
+                if threat is None or getattr(threat, "hp", 0) <= 0:
+                    threat = min(
+                        ctx.enemy_units,
+                        key=lambda e: (e.x - nearest.x) ** 2 + (e.y - nearest.y) ** 2,
+                        default=None)
+                px, py = nearest.x, nearest.y
+                if threat is not None:
+                    away_x, away_y = nearest.x - threat.x, nearest.y - threat.y
+                    away_len = math.hypot(away_x, away_y)
+                    if away_len > 1:
+                        px += away_x / away_len * self.BACKLINE_STANDOFF
+                        py += away_y / away_len * self.BACKLINE_STANDOFF
+                self.game.selection_manager._move_unit_to_position(
+                    archer, (px, py), self.game.pathfinder)
+
+    # --- §7 P4 fountain control ------------------------------------------
+
+    FOUNTAIN_GUARD_RADIUS = 250   # a fighter this close counts as holding it
+    FOUNTAIN_POST_RADIUS = 120    # guard posts ring the fountain (radius 70 blocks center)
+    FOUNTAIN_ARMY_SPARE = 2       # army must exceed the detail by this many fighters
+
+    def fountain_guard_shortfall(self, ctx):
+        """(fountain, fighters still needed) for the guard detail, or
+        (None, 0) when no detail should exist: nothing scouted, army too
+        small to spare one, or the enemy holds the ground in real force."""
+        from systems.ai.utility.personality import fountain_guard_target
+
+        target = fountain_guard_target(getattr(ctx.player, "ai_personality", "balanced"))
+        if target <= 0 or not ctx.castle:
+            return (None, 0)
+        fountains = getattr(ctx, "fountains", ())
+        if not fountains:
+            return (None, 0)
+        combatants = combatants_of(ctx.military)
+        if len(combatants) < target + self.FOUNTAIN_ARMY_SPARE:
+            return (None, 0)
+        castle = ctx.castle
+        fountain = min(fountains,
+                       key=lambda f: (f.x - castle.x) ** 2 + (f.y - castle.y) ** 2)
+        # Contest light presence, don't feed a held position: the detail
+        # only deploys while enemy strength there is below ~60 % of the army
+        army_hp = sum(u.hp for u in combatants)
+        if ctx.threat_at(fountain.x, fountain.y) > army_hp * 0.6:
+            return (None, 0)
+        present = sum(
+            1 for u in combatants
+            if math.hypot(u.x - fountain.x, u.y - fountain.y) <= self.FOUNTAIN_GUARD_RADIUS)
+        return (fountain, max(0, target - present))
+
+    def post_fountain_guards(self, ctx) -> bool:
+        """Order idle fighters onto ring posts around the fountain. Returns
+        True when at least one new guard was posted (the goal's execute)."""
+        fountain, needed = self.fountain_guard_shortfall(ctx)
+        if fountain is None or needed <= 0:
+            return False
+        candidates = [
+            u for u in combatants_of(ctx.military)
+            if not u.in_combat and not u.is_engaging
+            and getattr(u, "_flee_rally", None) is None
+            and not getattr(u, "_guard_post", None)
+            and u.name not in self.ROLE_SIEGE
+        ]
+        candidates.sort(key=lambda u: (u.x - fountain.x) ** 2 + (u.y - fountain.y) ** 2)
+        posted = 0
+        for i, unit in enumerate(candidates[:needed]):
+            angle = 2 * math.pi * i / max(1, needed)
+            post = (fountain.x + self.FOUNTAIN_POST_RADIUS * math.cos(angle),
+                    fountain.y + self.FOUNTAIN_POST_RADIUS * math.sin(angle))
+            unit._guard_post = post
+            self.game.selection_manager._move_unit_to_position(
+                unit, post, self.game.pathfinder)
+            posted += 1
+        return posted > 0
+
+    def _maintain_fountain_guards(self, ctx, combatants):
+        """Keep posted guards on station; dissolve the detail when the army
+        can no longer justify it (fountain_guard_shortfall says None)."""
+        posted = [u for u in combatants if getattr(u, "_guard_post", None)]
+        if not posted:
+            return
+        fountain, _ = self.fountain_guard_shortfall(ctx)
+        if fountain is None:
+            for unit in posted:
+                unit._guard_post = None
+            return
+        for unit in posted:
+            if unit.in_combat or unit.is_engaging:
+                continue  # fighting at the post — that's the job
+            if getattr(unit, "_flee_rally", None) is not None:
+                unit._guard_post = None
+                continue
+            if not self._is_idle_military(unit):
+                continue  # still walking to the post
+            post = unit._guard_post
+            if math.hypot(unit.x - post[0], unit.y - post[1]) > 60:
+                self.game.selection_manager._move_unit_to_position(
+                    unit, post, self.game.pathfinder)
+
     def _commit_flee(self, unit, rally, frame, suppress_frames=None):
         """§9 flee commitment: the ONE protocol for starting or re-issuing a
         flight — disengage (clear_all_movement_state drops targets and
@@ -377,6 +669,7 @@ class MilitaryBrain:
         arrival, so every flee path MUST come through here."""
         if suppress_frames is None:
             suppress_frames = self.RETREAT_SUPPRESS_FRAMES
+        unit._guard_post = None  # §7 P4: a flight dissolves the guard duty
         unit.clear_all_movement_state()
         unit._flee_rally = rally
         unit._retreating_until = frame + suppress_frames

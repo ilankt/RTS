@@ -1,5 +1,6 @@
 from .economy import (
     RebuildCastleGoal,
+    ExpandCastleGoal,
     TrainWorkerGoal,
     BuildFarmGoal,
     BuildHouseGoal,
@@ -33,6 +34,7 @@ from .military import (
 from .tactical import (
     DefendBaseGoal,
     AttackGoal,
+    ControlFountainGoal,
     ScoutGoal,
 )
 
@@ -41,6 +43,7 @@ ALL_GOALS = [
     # Tactical first — DefendBase has the highest possible scores
     DefendBaseGoal,
     AttackGoal,
+    ControlFountainGoal,
     ScoutGoal,
     # Military structures and training
     BuildBarracksGoal,
@@ -64,6 +67,7 @@ ALL_GOALS = [
     ResearchSiegeEngineeringGoal,
     # Economy
     RebuildCastleGoal,
+    ExpandCastleGoal,
     MarketTradeGoal,
     TrainWorkerGoal,
     BuildHouseGoal,
