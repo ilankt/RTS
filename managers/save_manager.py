@@ -29,6 +29,9 @@ class SaveManager:
             "timestamp": datetime.now().isoformat(),
             "map_size": ([game.game_map.width, game.game_map.height]
                          if getattr(game, "game_map", None) else None),
+            # §8.14.12: the loader must rebuild THIS match — its mode and
+            # its full player roster — not whatever Game() defaults to
+            "mode": getattr(game, "mode", "human_1v1"),
             "players": [],
             "buildings": [],
             "units": [],
@@ -64,8 +67,19 @@ class SaveManager:
                 "color": player.color,
                 "resources": dict(player.resources),
                 "upgrades": list(getattr(player, "upgrades", {}).keys()),
+                # §8.14.12: the AI's identity is part of the match state —
+                # a reloaded rusher must come back a rusher
+                "ai_personality": getattr(player, "ai_personality", None),
+                "ai_difficulty": getattr(player, "ai_difficulty", "normal"),
             })
         
+        # Object -> save-index maps; every cross-reference below (rally
+        # resources, worker tasks, control groups, command queues) speaks
+        # in these indices
+        resource_index = {res: i for i, res in enumerate(game.resources)}
+        site_index = {site: i for i, site in enumerate(game.construction_sites)}
+        building_save_index = {b: i for i, b in enumerate(game.buildings)}
+
         # Save buildings
         for building in game.buildings:
             state["buildings"].append({
@@ -86,6 +100,10 @@ class SaveManager:
                 } if getattr(building, "current_production", None) else None,
                 "production_queue": list(getattr(building, "production_queue", [])),
                 "rally_point": list(building.rally_point) if getattr(building, "rally_point", None) else None,
+                # §8.14.13: rally-onto-a-resource (spawned workers gather it)
+                # and the farm's food-cycle progress survive the save too
+                "rally_resource": resource_index.get(getattr(building, "rally_resource", None)),
+                "food_timer": float(getattr(building, "food_timer", 0.0)),
                 "passable": bool(getattr(building, "passable", False)),
             })
         
@@ -93,9 +111,6 @@ class SaveManager:
         # serialize like any unit plus the index of their host building.
         # v4: workers carry their active task (kind + target index) so they
         # resume gathering/building after a load instead of idling.
-        resource_index = {res: i for i, res in enumerate(game.resources)}
-        site_index = {site: i for i, site in enumerate(game.construction_sites)}
-
         def _worker_task_dict(unit):
             system = getattr(game, "worker_task_system", None)
             task = system.tasks.get(unit) if system else None
@@ -139,8 +154,39 @@ class SaveManager:
                 unit_save_index[unit] = len(state["units"])
                 state["units"].append(_unit_dict(unit, garrisoned_building=building_index))
 
+        # §8.14.13: shift-queued commands (§7.4) survive the save. Post-pass
+        # on purpose — an "attack" payload may point at a unit serialized
+        # LATER than its owner, so the full unit index must exist first.
+        def _queued_spec_entry(spec):
+            try:
+                kind, payload = spec
+            except (TypeError, ValueError):
+                return None
+            if kind == "move" and payload is not None:
+                return ["move", [payload[0], payload[1]]]
+            if kind == "gather" and payload in resource_index:
+                return ["gather", resource_index[payload]]
+            if kind == "attack":
+                if payload in unit_save_index:
+                    return ["attack_unit", unit_save_index[payload]]
+                if payload in building_save_index:
+                    return ["attack_building", building_save_index[payload]]
+                return None
+            if kind in ("dropoff", "garrison") and payload in building_save_index:
+                return [kind, building_save_index[payload]]
+            if kind == "build" and payload in site_index:
+                return ["build", site_index[payload]]
+            return None
+
+        for unit, saved_index in unit_save_index.items():
+            queue = getattr(unit, "command_queue", None)
+            if not queue:
+                continue
+            entries = [e for e in (_queued_spec_entry(s) for s in queue) if e]
+            if entries:
+                state["units"][saved_index]["command_queue"] = entries
+
         # v4: control groups (Ctrl+1..9) as unit/building save indices
-        building_save_index = {b: i for i, b in enumerate(game.buildings)}
         control_groups = {}
         selection = getattr(game, "selection_manager", None)
         for number, members in getattr(selection, "control_groups", {}).items():
@@ -282,15 +328,35 @@ class SaveManager:
     def peek_map_size(cls, slot=0):
         """The save's map dimensions (w, h), so the loader can construct a
         matching Game before restoring objects. None when unknown."""
+        return cls.peek_header(slot).get("map_size")
+
+    @classmethod
+    def peek_header(cls, slot=0):
+        """Everything the loader needs to construct a MATCHING Game before
+        restoring objects: map size, mode, and player count (§8.14.12 —
+        the old loader built a default 2-player Game, so a 4-player save
+        silently dropped AI 2/3 and everything they owned). Mode falls
+        back to the roster's shape for saves written before it was stored.
+        Values are None when unknown."""
+        header = {"map_size": None, "mode": None, "player_count": None}
         filepath = os.path.join(cls.SAVE_DIR, f"save_{slot}.json")
         try:
             with open(filepath, "r") as f:
-                size = json.load(f).get("map_size")
-            if size and len(size) == 2:
-                return int(size[0]), int(size[1])
-        except (OSError, ValueError, TypeError):
-            pass
-        return None
+                state = json.load(f)
+        except (OSError, ValueError):
+            return header
+        size = state.get("map_size")
+        if size and len(size) == 2:
+            try:
+                header["map_size"] = (int(size[0]), int(size[1]))
+            except (ValueError, TypeError):
+                pass
+        players = state.get("players") or []
+        if players:
+            header["player_count"] = len(players)
+            header["mode"] = state.get("mode") or (
+                "human_1v1" if any(p.get("human") for p in players) else "ai_spectator")
+        return header
 
     @classmethod
     def load_game(cls, game, slot=0):
@@ -325,6 +391,53 @@ class SaveManager:
         # (v1 saves have no terrain — they keep the generated map, as before.)
         cls._restore_terrain(game, state.get("terrain"))
 
+        # §8.14.12 (user-reported: "everyone else disappeared after load"):
+        # the loaded Game must field the SAVE's roster, not its own. The
+        # main-menu path used to build a default 2-player Game, so every
+        # object owned by AI 2+ of a bigger save failed its player lookup
+        # and was silently skipped. Reshape game.players to the save, then
+        # rebuild everything keyed per player: team-colored sprite sheets,
+        # fog grids, and the AI system's cached roster.
+        saved_players = sorted(state["players"], key=lambda p: p.get("index", 0))
+        roster_changed = False
+        while len(game.players) > len(saved_players):
+            game.players.pop()
+            roster_changed = True
+        if len(game.players) < len(saved_players):
+            import random as _random
+            from entities.player import Player
+
+            personalities = ["rusher", "boomer", "turtle", "balanced"]
+            while len(game.players) < len(saved_players):
+                pdata = saved_players[len(game.players)]
+                player = Player(pdata.get("name", f"AI {len(game.players)}"),
+                                human=bool(pdata.get("human")),
+                                color=tuple(pdata.get("color", (255, 255, 255))))
+                if not player.human:
+                    player.ai_personality = (pdata.get("ai_personality")
+                                             or _random.choice(personalities))
+                    player.ai_difficulty = pdata.get("ai_difficulty") or "normal"
+                game.players.append(player)
+                roster_changed = True
+        if roster_changed:
+            from core.config import SPECTATOR_REVEALED_DISPLAY
+            from managers.sprite_manager import SpriteManager
+
+            # Team-colored sheets exist per player index — rebuild for the
+            # new roster BEFORE units fetch their animations below
+            game.sprite_manager = SpriteManager(game.game_data, game.players)
+            fog = getattr(game, "fog_of_war", None)
+            if fog is not None:
+                for player in game.players:
+                    if player not in fog.visibility_grid:
+                        fog._init_player_grid(player)
+            ai_system = getattr(game, "ai_system", None)
+            if ai_system is not None and hasattr(ai_system, "refresh_players"):
+                ai_system.refresh_players()
+            game.spectator_mode = not any(p.human for p in game.players)
+            game.spectator_reveal_display = (game.spectator_mode
+                                             and SPECTATOR_REVEALED_DISPLAY)
+
         # Restore players
         player_map = {}
         for player_data in state["players"]:
@@ -341,6 +454,12 @@ class SaveManager:
                     if tech_id in game.game_data.get("techs", {})
                 }
                 player.upgrades_version = getattr(player, "upgrades_version", 0) + 1
+                # §8.14.12: the AI's identity reloads with the match
+                if not player.human:
+                    if player_data.get("ai_personality"):
+                        player.ai_personality = player_data["ai_personality"]
+                    if player_data.get("ai_difficulty"):
+                        player.ai_difficulty = player_data["ai_difficulty"]
                 player_map[idx] = player
         
         # Restore buildings. The restored_* lists run parallel to the save's
@@ -419,6 +538,7 @@ class SaveManager:
             ]
             rally = bdata.get("rally_point")
             building.rally_point = tuple(rally) if rally else None
+            building.food_timer = float(bdata.get("food_timer", 0.0))
             building.passable = bool(bdata.get("passable", False))
             game.buildings.append(building)
             restored_buildings.append(building)
@@ -687,6 +807,47 @@ class SaveManager:
                         worker_tasks.assign_build(unit, site)
                 elif kind == "dropoff" and getattr(unit, "resource_amount", 0) > 0:
                     worker_tasks.assign_dropoff(unit)
+
+        # §8.14.13: rally-onto-a-resource resolves once resources exist —
+        # buildings restore before resources, so this must run afterwards
+        for bdata, building in zip(state["buildings"], restored_buildings):
+            if building is None:
+                continue
+            rally_res = bdata.get("rally_resource")
+            building.rally_resource = (
+                restored_resources[rally_res]
+                if rally_res is not None and 0 <= rally_res < len(restored_resources)
+                else None)
+
+        # §8.14.13: shift-queued commands (§7.4) reload against the restored
+        # objects; entries whose target didn't survive are simply dropped
+        for udata, unit in zip(state["units"], restored_units):
+            entries = udata.get("command_queue")
+            if not entries or unit is None:
+                continue
+            queue = []
+            for entry in entries:
+                if not isinstance(entry, list) or len(entry) != 2:
+                    continue
+                kind, payload = entry
+                if kind == "move" and payload:
+                    queue.append(("move", (payload[0], payload[1])))
+                    continue
+                pool = {"gather": restored_resources,
+                        "attack_unit": restored_units,
+                        "attack_building": restored_buildings,
+                        "dropoff": restored_buildings,
+                        "garrison": restored_buildings,
+                        "build": restored_sites}.get(kind)
+                if pool is None or not isinstance(payload, int):
+                    continue
+                target = pool[payload] if 0 <= payload < len(pool) else None
+                if target is not None:
+                    spec_kind = ("attack" if kind in ("attack_unit", "attack_building")
+                                 else kind)
+                    queue.append((spec_kind, target))
+            if queue:
+                unit.command_queue = queue
 
         return True, "Game loaded successfully"
     

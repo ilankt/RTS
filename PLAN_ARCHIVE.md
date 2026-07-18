@@ -1899,6 +1899,39 @@ hex-shaped fog.
   2.8 fog-off at 720p — the overlay costs ~1 ms. Verified visually at
   both alphas (unexplored 255, explored 150).
 
+- [x] **8.14.12 Load dropped every AI player beyond the first (HOTFIX).**
+  User-reported the same day, and a real miss of 8.14.5's "completeness"
+  pass: the SAVE recorded everyone, but the main-menu loader constructed a
+  default `Game()` — **hardcoded 2 players** — so in a 4-player save every
+  object owned by AI 2+ failed its `player_map` lookup and was silently
+  skipped ("no wonder I was thriving"). Two accomplices: `Game(mode=...)`
+  was never stored (spectator saves would reload as 1v1), and
+  `UtilityAISystem.__init__` caches `ai_players` — players patched in
+  later would exist but never think. Fix: saves store `mode` +
+  per-player `ai_personality`/`ai_difficulty`; `peek_header` exposes
+  map size / mode / player count and `main.py` constructs the Game from
+  it; `load_game` **reshapes `game.players` to the save's roster** as a
+  belt-and-suspenders (covers pause-menu loads into a different match
+  size), rebuilding what's keyed per player: team sprite sheets, fog
+  grids, AI roster (`refresh_players`), spectator flags. A reloaded
+  rusher comes back a rusher. Regression test:
+  `test_four_player_save_survives_load_into_default_game` — 4p save into
+  a 2p Game, asserts all 4 castles/units/AI-roster/personality survive
+  and the sim keeps running.
+
+- [x] **8.14.13 Save completeness follow-through** (user: "nothing gets
+  lost?"). Audit found three more real losses, all closed: **shift-queued
+  commands** (§7.4) now serialize as typed (kind, target-index) entries —
+  saved in a post-pass because an "attack" payload can point at a unit
+  serialized later, restored in a post-pass against the restored_* lists
+  with dead targets dropped; **rally-onto-a-resource** (spawned workers
+  auto-gather) resolves via resource index after resources restore; and
+  **farm food-cycle timers** persist instead of restarting the 10 s cycle.
+  Knowingly NOT saved, by design (each re-derives in seconds): plain-move
+  in-flight paths (unit stops; stances take over), active combat targets
+  (re-acquired next scan), AI brain plans (re-planned within one 0.5 s
+  tick), projectiles mid-flight, camera bookmarks.
+
 ---
 
 ## 9. Preserved backlog (non-perf, carried over from the deleted plans)

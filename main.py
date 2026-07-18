@@ -172,9 +172,15 @@ def main():
             slot = SaveLoadScreen(screen).run()  # load-only from the main menu
             if slot is not None:
                 draw_splash(screen, "Loading...")
-                # Build the Game at the save's map size; load_game then puts
-                # the saved terrain back over the freshly generated one.
-                game = Game(map_size=SaveManager.peek_map_size(slot=slot))
+                # Build the Game to the save's HEADER — map size, mode, and
+                # player count (§8.14.12: the old default-constructed Game
+                # had 2 players, so bigger saves silently dropped AI 2+ and
+                # everything they owned); load_game then restores the state
+                # over it.
+                header = SaveManager.peek_header(slot=slot)
+                game = Game(mode=header.get("mode") or "human_1v1",
+                            player_count=header.get("player_count") or 2,
+                            map_size=header.get("map_size"))
                 settings.apply_to_game(game)  # before load: the save's speed wins
                 success, msg = SaveManager.load_game(game, slot=slot)
                 if success:

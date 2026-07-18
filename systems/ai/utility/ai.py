@@ -57,6 +57,28 @@ class UtilityAISystem:
 
     # --- Public interface (called by core/game.py and ui/ai_debug_panel.py) ---
 
+    def refresh_players(self):
+        """Re-sync the cached AI roster with game.players (§8.14.12:
+        loading a save can add or remove players mid-session, and this
+        cache otherwise never sees them — appended AIs would simply never
+        think). Existing per-player state survives; new players get fresh
+        staggered timers; departed players are pruned."""
+        self.ai_players = [p for p in self.game.players if not p.human]
+        player_count = max(1, len(self.ai_players))
+        for index, player in enumerate(self.ai_players):
+            self.tick_timer.setdefault(player, index * self.TICK_INTERVAL / player_count)
+            self.last_chosen.setdefault(player, None)
+            self.last_scores.setdefault(player, [])
+            self.last_chosen_behavior.setdefault(player, None)
+            self.last_chosen_action.setdefault(player, None)
+            self._tick_counter.setdefault(player, 0)
+        current = set(self.ai_players)
+        for mapping in (self.tick_timer, self.last_chosen, self.last_scores,
+                        self.last_chosen_behavior, self.last_chosen_action,
+                        self._tick_counter):
+            for player in [p for p in mapping if p not in current]:
+                del mapping[player]
+
     def update(self, delta_time: float):
         from .personality import difficulty_mods
 
