@@ -31,9 +31,14 @@ BLACK = (0, 0, 0)
 
 CAMERA_SPEED = 10
 
-MIN_ZOOM = 0.5
-MAX_ZOOM = 2.5
+# Zoom range tightened + higher start (2026-07-18 playtest): 1.0 felt too
+# far out as an opener, 0.5 showed half the map, and 2.5 was closer than
+# anyone ever plays. DEFAULT_ZOOM is the human match opener; the spectator
+# start below stays its own (wider) setting.
+MIN_ZOOM = 0.75
+MAX_ZOOM = 2.0
 ZOOM_STEP = 0.25
+DEFAULT_ZOOM = 1.25
 
 # Minimap
 MINIMAP_WIDTH = 200
@@ -46,7 +51,7 @@ AI_ONLY_PLAYER_COUNT = 4
 # like anyone else); this only controls whether the spectator's DISPLAY
 # reveals the whole map (True) or watches through player 1's fog (False).
 SPECTATOR_REVEALED_DISPLAY = True
-SPECTATOR_START_ZOOM = 0.5
+SPECTATOR_START_ZOOM = 0.75  # never below MIN_ZOOM or zooming can't recover
 NUM_PLAYERS = 4  # Configurable number of players (minimum 2)
 PLAYER_COLORS = [
     (0, 100, 255),    # Blue (Human player)

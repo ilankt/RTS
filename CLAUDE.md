@@ -92,8 +92,10 @@ tools/          - benchmark_ai_spectator.py (headless perf benchmark), sprite pi
 3. Execute goals top-down until one succeeds (a goal may no-op and fall through, e.g. no idle
    worker available).
 4. Always run the sub-brains: `scout_brain` (exploration), `worker_brain` (idle worker
-   assignment), `military_brain` (defense/micro/attack commands — attacks only if the chosen
-   goal was `AttackGoal`).
+   assignment), `military_brain` (defense/micro/attack commands — an `AttackGoal` tick opens
+   a **muster** that gathers idle fighters at a forward rally; the wave launches together
+   once formed, on timeout, or under threat — §8.14. Rams never march without a fighter
+   escort unless fielding one has become impossible).
 
 Per-goal and per-brain calls are individually wrapped in try/except so one broken goal can't take
 the rest of the tick down — failures log to `debug.dat` under category `AI`.
@@ -155,12 +157,14 @@ Do not maintain a second roadmap or changelog in this file — update MASTER_PLA
 completed work into PLAN_ARCHIVE.md with its evidence, and rely on `git log` for the rest.
 
 ## Known Gaps (stable, not currently being worked)
-- **Save/Load** is save format **v3** (`managers/save_manager.py`, still loads v1/v2):
+- **Save/Load** is save format **v4** (`managers/save_manager.py`, still loads v1-v3):
   terrain, units, buildings, construction sites, resources, production/research queues,
-  rally points, gates, stances, fog (explored), sim clock, stats, and tree timers all
-  persist. Reachable from the pause menu, the main menu (multi-slot screen), and F5/F9
-  (slot 0). Deliberately **not** saved — each self-heals within an AI tick of resuming:
-  AI brain state, worker task/gather targets, combat targets, in-flight paths.
+  rally points, gates, stances, fog (explored + resource ghosts), control groups,
+  worker tasks (reassigned through `worker_task_system` on load), sim clock, stats,
+  and tree timers all persist. Reachable from the pause menu (Save/Load tabs,
+  click-slot acts directly), the main menu (load only), and F5/F9 (slot 0).
+  Deliberately **not** saved — each self-heals within an AI tick of resuming:
+  AI brain state, combat targets, in-flight paths.
 - Units can still get stuck at tight spots between static obstacles in rare cases; the
   `unit_watchdog` recovers them (teleport-to-safe-position) after several seconds rather than
   routing around cleanly — see MASTER_PLAN.md's local-steering phase for the real fix.

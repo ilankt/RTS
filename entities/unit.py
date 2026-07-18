@@ -52,6 +52,11 @@ class Unit(GameObject):
         self.stance = STANCE_AGGRESSIVE  # Default stance
         self.stance_chase_distance = 300  # How far DEFENSIVE units will chase
         self.stance_home_position = None  # Position to return to for STAND_GROUND
+
+        # §8.14 attack-move: ordered destination that auto-engages enemies
+        # sighted on the way; combat_system resumes the march after each
+        # fight and clears it on arrival. None = no attack-move order.
+        self.attack_move_target = None
         
         # Combat state
         self.current_target = None
@@ -151,6 +156,7 @@ class Unit(GameObject):
         """Stop the unit from moving or performing actions"""
         self.release_movement()
         self.command_queue = []
+        self.attack_move_target = None  # §8.14: Stop cancels an attack-move
         self._clear_navigation_metadata()
         self.status = "idle"
         self.is_gathering = False

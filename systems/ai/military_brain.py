@@ -38,6 +38,23 @@ class MilitaryBrain:
     RAM_ESCORT_DISTANCE = 150
     ESCORTS_PER_RAM = 2
 
+    # §8.14 (user-reported): rams NEVER march alone. With zero live fighters
+    # a working ram falls back home and waits — unless fielding a fighter has
+    # become impossible (none queued, and no live/under-construction trainer
+    # or nothing affordable), which sanctions the desperate all-in.
+    ESCORT_CAPABLE = ("warrior", "spearman", "archer", "cavalry")
+    FIGHTER_TRAINERS = ("barracks", "stable")
+    RAM_HOME_RADIUS = 300  # a waiting ram parks within this range of the castle
+
+    # §8.14 group musters (user-reported: units trickled at the enemy one by
+    # one as they finished training and died piecemeal). Attack ticks now
+    # gather idle fighters at a forward rally first; the wave launches when
+    # enough are formed up, when the group has waited long enough (send
+    # whoever showed up), or when the rally point itself comes under threat.
+    MUSTER_RADIUS = 170
+    MUSTER_WAVE_SIZE = 5
+    MUSTER_TIMEOUT_S = 25.0
+
     # §7 P3 back-line march discipline: archers leash to the nearest front
     # fighter while approaching (like healers do) and open fire when the
     # front engages within support range. The leash point sits BEHIND the
@@ -79,6 +96,7 @@ class MilitaryBrain:
         self.game = game
         self._next_squad_index = {}  # player -> rotating squad cursor
         self._regroup_until = {}     # player name -> sim time (§8.9 retreat)
+        self._musters = {}           # player name -> {"point", "since"} (§8.14)
 
     def is_regrouping(self, player) -> bool:
         """§8.9: is this player's army re-massing after a retreat?"""
@@ -120,6 +138,9 @@ class MilitaryBrain:
         # full recall — units marching/fighting far away abort and come home
         # (losing the castle loses the game; there is nothing better to do).
         if enemies_near_base:
+            # §8.14: home defense dissolves any gathering muster — its units
+            # are being conscripted below anyway
+            self._musters.pop(ctx.player.name, None)
             emergency = getattr(ctx, "castle_under_attack", False)
             debug_log.log(
                 f"AI {ctx.player.name}: {len(enemies_near_base)} enemies near base! "
@@ -165,6 +186,10 @@ class MilitaryBrain:
         self._maintain_ram_escorts(ctx, combatants)
         self._maintain_backline(ctx, combatants)
         self._maintain_fountain_guards(ctx, combatants)
+        # §8.14: an in-progress muster advances every tick (gathers
+        # stragglers, launches when the wave is formed) even on ticks where
+        # AttackGoal wasn't the chosen goal.
+        self._advance_muster(ctx, combatants)
 
         # 2b. Armed scouting (§8.11 fair perception): a standing army with NO
         # known enemy buildings can't attack — AttackGoal never fires. Send
@@ -182,43 +207,15 @@ class MilitaryBrain:
                                 unit, anchor, self.game.pathfinder)
                     return
 
-        # 2. Attack phase: send ONE squad of idle military per tick
-        if should_attack:
+        # 2. Attack phase (§8.14): instead of firing every ready unit at the
+        # enemy the moment the goal picks (units trickled in one by one and
+        # died piecemeal), an attack tick opens a MUSTER — idle fighters
+        # rally at the forwardmost member and launch together as a wave
+        # (_advance_muster above runs the gathering and the launch).
+        if should_attack and ctx.player.name not in self._musters:
             target = self._find_attack_target(ctx)
             if target:
-                focus_target = self._find_focus_fire_target(ctx, combatants)
-                if focus_target:
-                    target = focus_target
-                squad = self._next_squad(ctx.player, combatants)
-                # §7 P3: the back line holds until a front fighter has closed
-                # on the target (or there is no front line to wait for) —
-                # _maintain_backline walks the archers with the fighters.
-                fronts = [u for u in combatants if u.name in self.ROLE_FRONT]
-                front_released = not fronts or any(
-                    u.in_combat or u.is_engaging
-                    or math.hypot(u.x - target.x, u.y - target.y) <= self.BACKLINE_RELEASE_RANGE
-                    for u in fronts)
-                sent = []
-                for unit in squad:
-                    if self._is_idle_military(unit):
-                        if getattr(unit, "_guard_post", None):
-                            continue  # §7 P4: the fountain detail stays home
-                        if self._should_retreat(unit, max_hp_cache.get(unit, unit.hp)):
-                            continue
-                        if unit.name in self.ROLE_BACK and not front_released:
-                            continue
-                        # §7 P3 counter-targeting: near the squad target,
-                        # each unit prefers what it's strong against
-                        # (cavalry hunts archers/workers, spearman cavalry)
-                        per_target = self._counter_target_for(unit, ctx, target.x, target.y) or target
-                        debug_log.log(
-                            f"AI {ctx.player.name}: Sending {unit.name} to attack {per_target.name} at ({per_target.x:.0f}, {per_target.y:.0f})",
-                            "AI",
-                        )
-                        self._command_attack(unit, per_target, ctx)
-                        sent.append(unit)
-                if sent:
-                    self._telegraph_attack(ctx, target, sent)
+                self._create_muster(ctx, combatants, target)
 
     def _check_squad_retreat(self, ctx, military, castle) -> bool:
         """§8.9: detect a losing fight and pull the army out. Returns True
@@ -264,6 +261,7 @@ class MilitaryBrain:
                 continue
             self._commit_flee(unit, rally, frame)
 
+        self._musters.pop(ctx.player.name, None)  # §8.14: re-mass at the rally instead
         self._regroup_until[ctx.player.name] = (
             getattr(self.game, "sim_time_elapsed", 0.0) + self.REGROUP_SECONDS)
         debug_log.log(
@@ -275,6 +273,7 @@ class MilitaryBrain:
         """§8.12 castle lost: guard the rebuild site if one exists, otherwise
         take the fight to the enemy with everything left. No castle does not
         mean no teeth."""
+        self._musters.pop(ctx.player.name, None)  # §8.14: no staging in a last stand
         military = ctx.military
         if not military:
             return
@@ -394,6 +393,129 @@ class MilitaryBrain:
         start = cursor * self.SQUAD_SIZE
         return interleaved[start:start + self.SQUAD_SIZE]
 
+    # --- §8.14: attack musters (group waves, not trickles) ----------------
+
+    def _create_muster(self, ctx, combatants, target):
+        """Open a muster: this tick's squad rallies at its forwardmost
+        member (toward the target) instead of charging in singly."""
+        squad = self._next_squad(ctx.player, combatants)
+        members = [
+            u for u in squad
+            if self._is_idle_military(u)
+            and not getattr(u, "_guard_post", None)
+            and getattr(u, "_flee_rally", None) is None
+        ]
+        if not members:
+            return
+        anchor = min(members, key=lambda u: math.hypot(u.x - target.x, u.y - target.y))
+        point = (anchor.x, anchor.y)
+        self._musters[ctx.player.name] = {
+            "point": point,
+            "since": getattr(self.game, "sim_time_elapsed", 0.0),
+        }
+        self._rally_to_muster(members, point)
+        debug_log.log(
+            f"AI {ctx.player.name}: mustering {len(members)} units at "
+            f"({point[0]:.0f}, {point[1]:.0f})", "AI")
+
+    def _advance_muster(self, ctx, combatants):
+        """Gather stragglers at the rally point; launch the wave when enough
+        are formed up, the wait runs out, or the point comes under threat.
+        Membership is dynamic — freshly trained units join the gathering
+        instead of marching off alone (the whole point, §8.14)."""
+        state = self._musters.get(ctx.player.name)
+        if state is None:
+            return
+        point = state["point"]
+        eligible = [
+            u for u in combatants
+            if not getattr(u, "_guard_post", None)
+            and getattr(u, "_flee_rally", None) is None
+            and not u.in_combat and not u.is_engaging
+        ]
+        if not eligible:
+            self._musters.pop(ctx.player.name, None)
+            return
+        formed = [u for u in eligible
+                  if math.hypot(u.x - point[0], u.y - point[1]) <= self.MUSTER_RADIUS]
+        waited = (getattr(self.game, "sim_time_elapsed", 0.0) - state["since"]
+                  >= self.MUSTER_TIMEOUT_S)
+        threatened = ctx.threat_at(point[0], point[1]) > 0
+        wave_target = min(self.MUSTER_WAVE_SIZE, len(eligible))
+        if len(formed) >= wave_target or waited or threatened:
+            self._musters.pop(ctx.player.name, None)
+            self._launch_wave(ctx, formed if formed else eligible)
+            return
+        self._rally_to_muster(
+            [u for u in eligible if self._is_idle_military(u)], point)
+
+    def _rally_to_muster(self, units, point):
+        """Walk units to ringed spots around the rally point. Capped at
+        SQUAD_SIZE orders per call (path pacing — the rest get called on a
+        later tick); units already there or already en route are left be."""
+        ordered = 0
+        for i, unit in enumerate(units):
+            if ordered >= self.SQUAD_SIZE:
+                break
+            if math.hypot(unit.x - point[0], unit.y - point[1]) <= self.MUSTER_RADIUS:
+                continue
+            dest = getattr(unit, "destination", None)
+            if dest and math.hypot(dest[0] - point[0], dest[1] - point[1]) <= self.MUSTER_RADIUS + 60:
+                continue
+            angle = (i % 8) * (math.pi / 4)
+            offset = 30 + 18 * (i // 8)
+            self.game.selection_manager._move_unit_to_position(
+                unit, (point[0] + math.cos(angle) * offset,
+                       point[1] + math.sin(angle) * offset),
+                self.game.pathfinder)
+            ordered += 1
+
+    def _launch_wave(self, ctx, wave):
+        """Send a mustered wave at the current best target — the pre-§8.14
+        per-squad send rules intact: back line waits for a front, per-unit
+        counter-targets near the anchor, telegraph on human-bound pushes,
+        and (§8.14) rams only leave with fighters in the field."""
+        target = self._find_attack_target(ctx)
+        if target is None:
+            return
+        focus_target = self._find_focus_fire_target(ctx, wave)
+        if focus_target:
+            target = focus_target
+        combatants = combatants_of(ctx.military)
+        fighters_alive = any(u.name not in self.ROLE_SIEGE for u in combatants)
+        # §7 P3: the back line holds until a front fighter has closed on the
+        # target (or there is no front line to wait for).
+        fronts = [u for u in combatants if u.name in self.ROLE_FRONT]
+        front_released = not fronts or any(
+            u.in_combat or u.is_engaging
+            or math.hypot(u.x - target.x, u.y - target.y) <= self.BACKLINE_RELEASE_RANGE
+            for u in fronts)
+        sent = []
+        for unit in wave:
+            if not self._is_idle_military(unit):
+                continue
+            if getattr(unit, "_guard_post", None):
+                continue  # §7 P4: the fountain detail stays home
+            if self._should_retreat(unit, self._get_unit_max_hp(unit)):
+                continue
+            if unit.name in self.ROLE_BACK and not front_released:
+                continue
+            if (unit.name in self.ROLE_SIEGE and not fighters_alive
+                    and self._fighters_incoming(ctx)):
+                continue  # §8.14: a ram never marches alone while escorts can exist
+            # §7 P3 counter-targeting: near the squad target, each unit
+            # prefers what it's strong against (cavalry hunts archers,
+            # spearman meets the cavalry)
+            per_target = self._counter_target_for(unit, ctx, target.x, target.y) or target
+            debug_log.log(
+                f"AI {ctx.player.name}: Sending {unit.name} to attack {per_target.name} at ({per_target.x:.0f}, {per_target.y:.0f})",
+                "AI",
+            )
+            self._command_attack(unit, per_target, ctx)
+            sent.append(unit)
+        if sent:
+            self._telegraph_attack(ctx, target, sent)
+
     # §9 healers: how close a healer stays to the army's center of mass
     # (HEALER_HEAL_RANGE covers the rest — this is a follow leash, not a
     # heal trigger).
@@ -473,6 +595,12 @@ class MilitaryBrain:
             return
         fighters = [u for u in combatants if u.name not in self.ROLE_SIEGE]
         if not fighters:
+            # §8.14: no escort exists AT ALL — the old early-return let a
+            # ram whose escorts died march on alone. Unless fielding a
+            # fighter has become impossible (the desperate all-in), working
+            # rams abort and wait at home for the escort to exist.
+            if self._fighters_incoming(ctx):
+                self._recall_unescorted_rams(ctx, rams)
             return
         taken = set()
         for ram in rams:
@@ -527,6 +655,60 @@ class MilitaryBrain:
                     f, (ram.x + 40, ram.y + 40), self.game.pathfinder)
                 taken.add(id(f))
                 covered += 1
+
+    def _fighters_incoming(self, ctx) -> bool:
+        """Can this player still field a fighter escort? True while one is
+        queued/producing, or a trainer is alive (or under construction) and
+        some fighter type is affordable right now. False = §8.14 desperation:
+        rams are released to fight alone because nothing better can exist."""
+        for name in self.ESCORT_CAPABLE:
+            if ctx.count_units(name) > 0:  # none are alive here -> queued/producing
+                return True
+        has_trainer = any(
+            getattr(b, "hp", 0) > 0
+            for name in self.FIGHTER_TRAINERS
+            for b in ctx.buildings.get(name, []))
+        if not has_trainer and not any(
+                s.building_name in self.FIGHTER_TRAINERS
+                for s in ctx.construction_sites):
+            return False
+        units_data = self.game.game_data["units"]
+        resources = getattr(ctx.player, "resources", {}) or {}
+        for name in self.ESCORT_CAPABLE:
+            template = units_data.get(name)
+            if template is None:
+                continue
+            costs = getattr(template, "costs", {}) or {}
+            if all(resources.get(res, 0) >= amount for res, amount in costs.items()):
+                return True
+        return False
+
+    def _recall_unescorted_rams(self, ctx, rams):
+        """§8.14: pull escortless rams back to the castle to wait. Rams
+        already swinging (in_combat) finish their work — a lone ram
+        retreating across the map dies anyway."""
+        castle = ctx.castle
+        if castle is None:
+            return
+        home = (castle.x + 60, castle.y + 60)
+        for ram in rams:
+            if ram.in_combat:
+                continue
+            near_home = math.hypot(ram.x - home[0], ram.y - home[1]) <= self.RAM_HOME_RADIUS
+            working = (ram.destination or ram.path or ram.is_engaging
+                       or getattr(ram, "_pending_path_seq", None) is not None)
+            if near_home and not working:
+                continue  # parked and waiting, as ordered
+            dest = getattr(ram, "destination", None)
+            if dest and math.hypot(dest[0] - home[0], dest[1] - home[1]) <= self.RAM_HOME_RADIUS:
+                continue  # already falling back — don't spam re-orders
+            ram.clear_all_movement_state()
+            ram.current_target = None
+            ram.is_engaging = False
+            self.game.selection_manager._move_unit_to_position(
+                ram, home, self.game.pathfinder)
+            debug_log.log(
+                f"AI {ctx.player.name}: unescorted ram recalled home", "AI")
 
     def _maintain_backline(self, ctx, combatants):
         """§7 P3 back-line discipline: archers leash to the nearest front

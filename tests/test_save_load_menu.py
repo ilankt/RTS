@@ -40,44 +40,55 @@ def test_slot_meta_empty_and_occupied(saves, game):
     assert SaveManager.slot_meta(1) is None
 
 
-def test_load_only_screen_buttons_and_empty_slot(saves):
+def test_load_only_screen_has_no_tabs_and_warns_on_empty(saves):
     pygame.display.set_mode((320, 240))
     from screens.save_load_menu import SaveLoadScreen
 
     screen = SaveLoadScreen(screen=pygame.display.get_surface(), game=None)
     assert screen.can_save is False
-    assert list(screen._button_rects().keys()) == ["Load", "Back"]
+    assert screen.mode == "load"
+    assert screen._tab_rects() == {}
 
-    # Loading an empty slot doesn't return — it just warns
-    screen.selected = 0
-    screen._do_load()
+    # Activating an empty slot doesn't return — it just warns
+    screen._activate_slot(0)
     assert screen.result is None and screen.running is True
     assert screen._toast is not None
 
 
-def test_load_returns_selected_occupied_slot(saves, game):
+def test_load_returns_activated_occupied_slot(saves, game):
     SaveManager.save_game(game, slot=3)
     pygame.display.set_mode((320, 240))
     from screens.save_load_menu import SaveLoadScreen
 
     screen = SaveLoadScreen(screen=pygame.display.get_surface(), game=None)
-    screen.selected = 3
-    screen._do_load()
+    screen._activate_slot(3)  # one click loads directly
     assert screen.result == 3 and screen.running is False
 
 
-def test_in_game_save_writes_slot(saves, game):
+def test_in_game_defaults_to_save_tab_and_click_saves(saves, game):
     pygame.display.set_mode((320, 240))
     from screens.save_load_menu import SaveLoadScreen
 
     screen = SaveLoadScreen(screen=pygame.display.get_surface(), game=game)
     assert screen.can_save is True
-    assert list(screen._button_rects().keys()) == ["Save", "Load", "Back"]
+    assert screen.mode == "save"                      # loading needs a tab switch
+    assert set(screen._tab_rects().keys()) == {"save", "load"}
 
     assert SaveManager.slot_meta(4) is None
-    screen.selected = 4
-    screen._do_save()
+    screen._activate_slot(4)                          # one click writes the slot
     assert SaveManager.slot_meta(4) is not None       # written
     assert screen._meta[4] is not None                # UI refreshed
     assert "Saved to Slot 5" in screen._toast[0]
-    assert screen.result is None                       # save doesn't exit
+    assert screen.result is None                      # save doesn't exit
+
+    # Switch to the Load tab: the same click now loads the slot
+    screen._set_mode("load")
+    screen._activate_slot(4)
+    assert screen.result == 4 and screen.running is False
+
+
+def test_slot_meta_has_date_and_time(saves, game):
+    SaveManager.save_game(game, slot=2)
+    meta = SaveManager.slot_meta(2)
+    assert meta["date"] and meta["time"]
+    assert meta["time"] in meta["when"]

@@ -45,6 +45,7 @@ class MusicPlayer:
 
     DUCK_FACTOR = 0.35     # music volume multiplier while ducked
     DUCK_RECOVER_S = 0.8   # ramp back to full over this many seconds
+    FADEOUT_MS = 900       # crossfade: old track fades out before the next fades in
 
     def __init__(self):
         self.menu_track = None
@@ -61,6 +62,11 @@ class MusicPlayer:
         # the seeded map gen / AI rolls depend on
         self._rng = random.Random()
         self._last_game_index = None  # last game track played, ever
+        # Shuffle bag: every track plays once before any repeats
+        self._shuffle_bag = []
+        self._bag_count = 0
+        # Track queued behind a fadeout (crossfade second half)
+        self._pending_track = None
         self._duck_until = 0.0
         self._applied_volume = None
         self._ambient_channel = None
@@ -173,20 +179,22 @@ class MusicPlayer:
 
     def set_mood(self, mood):
         """'combat' during active fighting, 'peace' otherwise. Switching
-        crossfades to a track from the new pool — but only when the new
-        mood actually has its own tracks (no pointless track hops)."""
+        crossfades to a track from the new pool — but ONLY when the mood
+        change actually changes which pool is playing. Without dedicated
+        combat tracks both moods resolve to the same pool, and the old
+        check restarted a random peace track every time combat ENDED
+        (user-reported: songs never finish, replaced mid-song)."""
         if mood not in ('peace', 'combat') or mood == self.mood:
             return
+        pool_before = self._active_game_playlist()
         self.mood = mood
         if self.mode != 'game':
             return
-        target_pool = self.combat_playlist if mood == 'combat' else self.peace_playlist
-        if not target_pool:
-            return  # nothing dedicated to switch to; keep playing
-        playlist = self._active_game_playlist()
-        self.index = self._pick_game_index(len(playlist))
-        if self._play(playlist[self.index]):
-            self._last_game_index = self.index
+        pool_after = self._active_game_playlist()
+        if pool_after is pool_before or not pool_after:
+            return  # same pool either way — let the current track finish
+        self.index = self._pick_game_index(len(pool_after))
+        self._crossfade_to(pool_after[self.index])
 
     def play_menu(self):
         """Loop the dedicated menu theme (safe no-op without tracks/mixer)."""
@@ -202,12 +210,20 @@ class MusicPlayer:
             self.mode = 'menu'
 
     def _pick_game_index(self, count):
-        """A random track index, never the one that played last (repeats
-        only when a single track exists)."""
+        """Shuffle-bag pick: random order, but every track plays once
+        before any repeats, and never the same track twice in a row
+        (repeats only when a single track exists)."""
         if count <= 1:
             return 0
-        choices = [i for i in range(count) if i != self._last_game_index]
-        return self._rng.choice(choices)
+        if self._bag_count != count or not self._shuffle_bag:
+            indices = list(range(count))
+            self._rng.shuffle(indices)
+            # A fresh bag must not open with the track that just played
+            if indices[0] == self._last_game_index:
+                indices.append(indices.pop(0))
+            self._shuffle_bag = indices
+            self._bag_count = count
+        return self._shuffle_bag.pop(0)
 
     def play_game(self):
         """Start (or keep) the in-match playlist, shuffled."""
@@ -239,6 +255,25 @@ class MusicPlayer:
             return True
         return False
 
+    def _crossfade_to(self, path):
+        """Fade the current track out; update() starts `path` (fading in)
+        once the fadeout completes. Starts immediately when nothing is
+        actually playing (or the mixer is down)."""
+        self._pending_track = path
+        try:
+            if pygame.mixer.music.get_busy():
+                pygame.mixer.music.fadeout(self.FADEOUT_MS)
+                return
+        except Exception:
+            pass
+        self._start_pending()
+
+    def _start_pending(self):
+        path = self._pending_track
+        self._pending_track = None
+        if path is not None and self._play(path):
+            self._last_game_index = self.index
+
     def _start_ambient(self):
         """Low looping bed on its own channel, if ambient.ogg exists."""
         if self.ambient_track is None:
@@ -261,6 +296,7 @@ class MusicPlayer:
 
     def stop(self):
         self._stop_ambient()
+        self._pending_track = None
         if self.mode is None:
             return
         try:
@@ -288,6 +324,10 @@ class MusicPlayer:
                 return
         except Exception:
             return
+        if self._pending_track is not None:
+            # Crossfade second half: the fadeout finished, fade the new one in
+            self._start_pending()
+            return
         playlist = self._active_game_playlist()
         if not playlist:
             return
@@ -296,6 +336,8 @@ class MusicPlayer:
             self._last_game_index = self.index
 
     def _play(self, path, loops=0, fade_ms=1500):
+        # Whatever plays now supersedes any queued crossfade target
+        self._pending_track = None
         try:
             pygame.mixer.music.load(path)
             self._apply_volume(force=True)

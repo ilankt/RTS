@@ -23,7 +23,9 @@ class SaveManager:
         
         # Build serializable state
         state = {
-            "version": 3,  # v3 adds terrain; v1/v2 still load (map regenerates)
+            # v4 adds control groups, worker tasks, fog resource ghosts;
+            # v3 added terrain; v1-v3 still load (missing fields default)
+            "version": 4,
             "timestamp": datetime.now().isoformat(),
             "map_size": ([game.game_map.width, game.game_map.height]
                          if getattr(game, "game_map", None) else None),
@@ -89,6 +91,29 @@ class SaveManager:
         
         # Save units. Garrisoned units (§8.9) are OUT of game.units — they
         # serialize like any unit plus the index of their host building.
+        # v4: workers carry their active task (kind + target index) so they
+        # resume gathering/building after a load instead of idling.
+        resource_index = {res: i for i, res in enumerate(game.resources)}
+        site_index = {site: i for i, site in enumerate(game.construction_sites)}
+
+        def _worker_task_dict(unit):
+            system = getattr(game, "worker_task_system", None)
+            task = system.tasks.get(unit) if system else None
+            if task is None or task.phase in ("IDLE", "FAILED"):
+                return None
+            if task.kind == "gather":
+                index = resource_index.get(task.resource)
+                if index is not None:
+                    return {"kind": "gather", "resource": index}
+                # node already gone — worth saving only if cargo needs a home
+                return {"kind": "dropoff"} if getattr(unit, "resource_amount", 0) > 0 else None
+            if task.kind == "build":
+                index = site_index.get(task.construction_site)
+                return {"kind": "build", "site": index} if index is not None else None
+            if task.kind == "dropoff":
+                return {"kind": "dropoff"}
+            return None
+
         def _unit_dict(unit, garrisoned_building=None):
             return {
                 "name": unit.name,
@@ -98,16 +123,43 @@ class SaveManager:
                 "player_index": game.players.index(unit.player) if unit.player in game.players else -1,
                 "stance": getattr(unit, "stance", "aggressive"),
                 "stance_home_position": list(unit.stance_home_position) if getattr(unit, "stance_home_position", None) else None,
+                "attack_move_target": list(unit.attack_move_target) if getattr(unit, "attack_move_target", None) else None,
                 "resource_type": getattr(unit, "resource_type", None),
                 "resource_amount": getattr(unit, "resource_amount", 0),
                 "garrisoned_building": garrisoned_building,
+                "task": _worker_task_dict(unit) if garrisoned_building is None else None,
             }
 
+        unit_save_index = {}  # unit object -> index in state["units"]
         for unit in game.units:
+            unit_save_index[unit] = len(state["units"])
             state["units"].append(_unit_dict(unit))
         for building_index, building in enumerate(game.buildings):
             for unit in getattr(building, "garrison", ()):
+                unit_save_index[unit] = len(state["units"])
                 state["units"].append(_unit_dict(unit, garrisoned_building=building_index))
+
+        # v4: control groups (Ctrl+1..9) as unit/building save indices
+        building_save_index = {b: i for i, b in enumerate(game.buildings)}
+        control_groups = {}
+        selection = getattr(game, "selection_manager", None)
+        for number, members in getattr(selection, "control_groups", {}).items():
+            entries = []
+            for member in members:
+                if member in unit_save_index:
+                    entries.append(["unit", unit_save_index[member]])
+                elif member in building_save_index:
+                    entries.append(["building", building_save_index[member]])
+            if entries:
+                control_groups[str(number)] = entries
+        state["control_groups"] = control_groups
+
+        # v4: fog ghosts of resources depleted out of the viewer's sight
+        fog = getattr(game, "fog_of_war", None)
+        state["resource_ghosts"] = [
+            [key[0], key[1], ghost["name"], ghost["x"], ghost["y"]]
+            for key, ghost in getattr(fog, "resource_ghosts", {}).items()
+        ]
         
         # Save resources
         for resource in game.resources:
@@ -252,7 +304,7 @@ class SaveManager:
         
         # Validate version (older saves load with newer fields defaulting —
         # v1/v2 simply keep the generated terrain, as they always did)
-        if state.get("version") not in (1, 2, 3):
+        if state.get("version") not in (1, 2, 3, 4):
             return False, "Unsupported save version"
         
         # Clear existing state (mark old objects dead so stale references fail
@@ -291,17 +343,23 @@ class SaveManager:
                 player.upgrades_version = getattr(player, "upgrades_version", 0) + 1
                 player_map[idx] = player
         
-        # Restore buildings
+        # Restore buildings. The restored_* lists run parallel to the save's
+        # arrays (None where an entry was skipped) so index references —
+        # garrison hosts, control groups, worker tasks — resolve correctly
+        # even when templates/players have vanished between versions.
+        restored_buildings = []
         for bdata in state["buildings"]:
             player_idx = bdata["player_index"]
             player = player_map.get(player_idx)
             if player is None:
+                restored_buildings.append(None)
                 continue
-            
+
             template = game.game_data["buildings"].get(bdata["name"])
             if template is None:
+                restored_buildings.append(None)
                 continue
-            
+
             from entities import Building
             building = Building(
                 name=template.name,
@@ -363,18 +421,22 @@ class SaveManager:
             building.rally_point = tuple(rally) if rally else None
             building.passable = bool(bdata.get("passable", False))
             game.buildings.append(building)
-        
+            restored_buildings.append(building)
+
         # Restore units
+        restored_units = []
         for udata in state["units"]:
             player_idx = udata["player_index"]
             player = player_map.get(player_idx)
             if player is None:
+                restored_units.append(None)
                 continue
-            
+
             template = game.game_data["units"].get(udata["name"])
             if template is None:
+                restored_units.append(None)
                 continue
-            
+
             from entities import Unit
             from systems.animation import Animation
             unit = Unit(
@@ -408,6 +470,10 @@ class SaveManager:
             unit.stance = udata.get("stance", "aggressive")
             home = udata.get("stance_home_position")
             unit.stance_home_position = tuple(home) if home else None
+            # §8.14: a standing attack-move survives the load — the combat
+            # system's resume lifecycle re-paths it on the first frames
+            amove = udata.get("attack_move_target")
+            unit.attack_move_target = tuple(amove) if amove else None
             unit.resource_type = udata.get("resource_type")
             unit.resource_amount = udata.get("resource_amount", 0)
             
@@ -419,23 +485,30 @@ class SaveManager:
                 animations[anim_name] = Animation(sheet, 192, 192, 100)
             unit.set_animations(animations)
 
-            # §8.9: garrisoned units go back INSIDE their building, not the map
+            # §8.9: garrisoned units go back INSIDE their building, not the
+            # map. Host index resolves through restored_buildings, which maps
+            # save indices even when other buildings were skipped.
             host_index = udata.get("garrisoned_building")
-            if host_index is not None and 0 <= host_index < len(game.buildings):
+            host = (restored_buildings[host_index]
+                    if host_index is not None and 0 <= host_index < len(restored_buildings)
+                    else None)
+            if host is not None:
                 from systems.garrison import garrison_list
 
-                host = game.buildings[host_index]
                 unit.garrisoned_in = host
                 garrison_list(host).append(unit)
             else:
                 game.units.append(unit)
-        
+            restored_units.append(unit)
+
         # Restore resources
+        restored_resources = []
         for rdata in state["resources"]:
             template = game.game_data["resources"].get(rdata["name"])
             if template is None:
+                restored_resources.append(None)
                 continue
-            
+
             from entities import Resource
             resource = Resource(
                 name=template.name,
@@ -446,18 +519,22 @@ class SaveManager:
             resource.y = rdata["y"]
             resource.amount_remaining = rdata.get("amount_remaining", 1000)
             game.resources.append(resource)
-        
+            restored_resources.append(resource)
+
         # Restore construction sites
+        restored_sites = []
         for cdata in state["construction_sites"]:
             player_idx = cdata["player_index"]
             player = player_map.get(player_idx)
             if player is None:
+                restored_sites.append(None)
                 continue
-            
+
             template = game.game_data["buildings"].get(cdata["building_name"])
             if template is None:
+                restored_sites.append(None)
                 continue
-            
+
             from entities import ConstructionSite
             building_data = {
                 "name": cdata["building_name"],
@@ -493,13 +570,32 @@ class SaveManager:
             site.construction_progress = cdata.get("construction_progress", 0)
             site.construction_duration = cdata.get("construction_duration", template.build_duration)
             game.construction_sites.append(site)
-        
-        # Restore camera
+            restored_sites.append(site)
+
+        # Restore camera. Zoom clamps to the CURRENT allowed range (older
+        # saves may hold values the range no longer permits), and the tile
+        # cache re-scales to it — load_game used to skip that, so tiles drew
+        # at the pre-load zoom until the player nudged the wheel
+        # (user-reported "tiny tiles after load").
+        from core.config import MIN_ZOOM, MAX_ZOOM
+
         camera_data = state.get("camera", {})
         game.camera.x = camera_data.get("x", game.camera.x)
         game.camera.y = camera_data.get("y", game.camera.y)
-        game.camera.zoom = camera_data.get("zoom", game.camera.zoom)
+        game.camera.zoom = max(MIN_ZOOM, min(MAX_ZOOM, camera_data.get("zoom", game.camera.zoom)))
+        game_map = getattr(game, "game_map", None)
+        if game_map is not None and hasattr(game_map, "scale_tiles"):
+            game_map.scale_tiles(game.camera.zoom)
         game.game_speed = state.get("game_speed", 1.0)
+
+        # A load is a fresh start for match-outcome state: loading over a
+        # finished match (F9 on the defeat screen) must clear the overlay
+        # and let the profile record the reloaded match's real outcome.
+        game.game_over_state = None
+        game.winning_player = None
+        game._stinger_played = False
+        game._profile_recorded = False
+        game.income_events = {}
 
         # v2 (§9 save/load completeness): clock, victory mode, stats,
         # tree regrowth, fog exploration
@@ -534,9 +630,63 @@ class SaveManager:
         game.stats_resources_gathered = dict(state.get("stats_resources_gathered", {}))
         cls._restore_fog(game, state.get("fog_explored", {}))
 
+        # v4: fog ghosts of resources depleted out of the viewer's sight
+        fog = getattr(game, "fog_of_war", None)
+        if fog is not None and hasattr(fog, "resource_ghosts"):
+            fog.resource_ghosts = {
+                (entry[0], entry[1], entry[2]): {"name": entry[2], "x": entry[3], "y": entry[4]}
+                for entry in state.get("resource_ghosts", [])
+                if len(entry) == 5
+            }
+
+        # v4: control groups (older saves simply reset them)
+        selection = getattr(game, "selection_manager", None)
+        if selection is not None and hasattr(selection, "control_groups"):
+            selection.control_groups = {i: [] for i in range(1, 10)}
+            for number_str, entries in state.get("control_groups", {}).items():
+                try:
+                    number = int(number_str)
+                except ValueError:
+                    continue
+                if not 1 <= number <= 9:
+                    continue
+                members = []
+                for kind, index in entries:
+                    pool = restored_units if kind == "unit" else restored_buildings
+                    if 0 <= index < len(pool) and pool[index] is not None:
+                        members.append(pool[index])
+                selection.control_groups[number] = members
+
         # Rebuild pathfinding spatial grid (open gates stay passable — the
         # rebuild respects the restored `passable` flags)
         game.pathfinder.mark_dirty()
+
+        # v4: hand workers their saved tasks back (after the nav grid is
+        # current — assignment paths to the target immediately). Workers
+        # whose target didn't survive the load fall back cleanly: carrying
+        # workers deliver, the rest idle for the F1 badge / AI re-scan.
+        worker_tasks = getattr(game, "worker_task_system", None)
+        if worker_tasks is not None:
+            for udata, unit in zip(state["units"], restored_units):
+                task = udata.get("task")
+                if not task or unit is None or getattr(unit, "garrisoned_in", None) is not None:
+                    continue
+                kind = task.get("kind")
+                if kind == "gather":
+                    index = task.get("resource", -1)
+                    resource = (restored_resources[index]
+                                if 0 <= index < len(restored_resources) else None)
+                    if resource is not None:
+                        worker_tasks.assign_gather(unit, resource)
+                    elif getattr(unit, "resource_amount", 0) > 0:
+                        worker_tasks.assign_dropoff(unit)
+                elif kind == "build":
+                    index = task.get("site", -1)
+                    site = restored_sites[index] if 0 <= index < len(restored_sites) else None
+                    if site is not None:
+                        worker_tasks.assign_build(unit, site)
+                elif kind == "dropoff" and getattr(unit, "resource_amount", 0) > 0:
+                    worker_tasks.assign_dropoff(unit)
 
         return True, "Game loaded successfully"
     
@@ -576,13 +726,16 @@ class SaveManager:
         except (OSError, ValueError):
             return None
 
-        # When the save was written -> "Jul 14, 15:32"
+        # When the save was written -> "Jul 18, 2026" + "15:32"
         stamp = data.get("timestamp", "")
-        when = "Unknown time"
+        date_text, time_text = "Unknown date", ""
         try:
-            when = datetime.fromisoformat(stamp).strftime("%b %d, %H:%M")
+            written = datetime.fromisoformat(stamp)
+            date_text = written.strftime("%b %d, %Y")
+            time_text = written.strftime("%H:%M")
         except (ValueError, TypeError):
             pass
+        when = f"{date_text} · {time_text}" if time_text else date_text
 
         players = data.get("players", [])
         humans = sum(1 for p in players if p.get("human"))
@@ -592,4 +745,5 @@ class SaveManager:
         secs = int(data.get("sim_time_elapsed", 0))
         clock = f"{secs // 60}:{secs % 60:02d}"
         summary = f"{kind} · {size[0]}×{size[1]} · {clock} played"
-        return {"when": when, "summary": summary}
+        return {"when": when, "date": date_text, "time": time_text,
+                "summary": summary}

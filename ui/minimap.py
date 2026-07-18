@@ -82,6 +82,14 @@ class Minimap:
             color = RESOURCE_COLORS.get(resource.name, (200, 200, 120))
             pygame.draw.rect(self._dots_surface, color, (mini_x, mini_y, 2, 2))
 
+        # Ghosts of resources depleted out of sight: the player still
+        # believes they're there, so the dot stays until the spot is revealed
+        if fog_on and human and not getattr(fog, "reveal_display", False):
+            for ghost in getattr(fog, "resource_ghosts", {}).values():
+                mini_x, mini_y = self.world_to_mini(ghost["x"], ghost["y"])
+                color = RESOURCE_COLORS.get(ghost["name"], (200, 200, 120))
+                pygame.draw.rect(self._dots_surface, color, (mini_x, mini_y, 2, 2))
+
         # Buildings: owner color, larger than units; enemies only when their
         # tile has been explored (they don't move). Thin DARK outline for
         # contrast — the old 1px white frame on a 4x4 marker ate 3/4 of the

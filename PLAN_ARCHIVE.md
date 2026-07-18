@@ -1774,6 +1774,131 @@ dangerous than the bug.)
   safe-terrain area check makes it safe today, and moving the returned point
   re-baselines every seeded map, which must never ride along in a bug batch.
 
+### 8.14 Bug batch 2026-07-18 — user-reported from live play *(landed 2026-07-18)*
+
+Two rounds in one day (+ a follow-up). Round 1: camera zoom feel,
+fog-of-war resource memory, a save/load overhaul (UI + completeness),
+background-music behavior. Round 2: Tab-driven build tabs, ram escort
+discipline, mustered attack waves, a player attack-move command, and
+hex-shaped fog.
+
+- [x] **8.14.1 Zoom: start closer, tighter range.** `DEFAULT_ZOOM = 1.25`
+  opener (was 1.0), range narrowed 0.5–2.5 → **0.75–2.0**
+  (`core/config.py`); `SPECTATOR_START_ZOOM` raised to the new floor so
+  zooming can always recover. Camera centering already zoom-aware.
+
+- [x] **8.14.2 Resources draw through fog + depletion ghosts.** The main
+  view fog-culled resources with the unit rule (current LOS) while the
+  minimap already used the explored rule — static neutrals (resources,
+  fountains) now draw once EXPLORED, dimmed by the fog overlay. A resource
+  depleted OUT of the viewer's sight leaves a translucent **ghost**
+  (main view alpha 130 + minimap dot) keyed by the fog's own tile — pruned
+  the moment the tile is actually revealed, or when a regrown tree makes
+  the memory true again. Ghost keys use `fog._world_to_tile`
+  (`world_to_grid_fast`), NOT the exact hex conversion — they disagree by
+  a column at tile seams and the keys must match the fog's view. Ghosts
+  persist in saves (v4). Tests: `tests/test_resource_ghosts.py` (created
+  out-of-sight, pruned on reveal, no ghost when watched/never-explored).
+
+- [x] **8.14.3 Save/Load screen redesign.** Old flow (hover slot, then hunt
+  for the Save/Load button) replaced: **Save / Load tabs** in-game (Save
+  default — loading throws away the match, so it takes a deliberate
+  switch), main menu stays load-only, and **one click on a slot performs
+  the action**. Rows show date ("Jul 18, 2026") + time right-aligned and
+  the match summary elided with "…" against the date column so nothing
+  overflows the frame art. `slot_meta` gained `date`/`time` fields.
+  Headless screenshots verified all three states; tests updated
+  (`test_save_load_menu.py`).
+
+- [x] **8.14.4 Tiny tiles after load.** `load_game` restored `camera.zoom`
+  but never rescaled `Map.scaled_tile_images` — tile art stayed at the
+  pre-load zoom until a manual wheel nudge. Fix: `scale_tiles(zoom)` after
+  camera restore, zoom clamped to the current MIN/MAX (older saves may
+  hold now-invalid values).
+
+- [x] **8.14.5 Save v4 — control groups + worker tasks + hygiene.**
+  Ctrl+1..9 groups serialize as unit/building save indices; workers save
+  their active task (gather node / build site / dropoff) and get it
+  **reassigned through `worker_task_system` after the nav grid is
+  current**, so human workers resume instead of idling (AI self-healed,
+  humans didn't — same asymmetry as §8.13.1). Restore resolves references
+  through restored_* lists that run parallel to the save arrays (None
+  where skipped) — this also fixed a latent garrison bug where host
+  indices pointed at `game.buildings` positions that shift when an entry
+  is skipped. Loading now clears game-over/stinger/profile-recorded state
+  (F9 on the defeat screen used to keep the overlay) and income events.
+  v1–v3 still load. Test: `test_save_load_roundtrip_v4_fields`.
+
+- [x] **8.14.6 Music replaced mid-song.** Root cause: with no `combat_*`
+  files on disk, entering combat mood was a no-op (empty target pool) but
+  **leaving combat restarted a random peace track** — the pool check was
+  asymmetric, so every skirmish + 10 s linger cut the song. `set_mood` now
+  compares the *effective* pool before/after (list identity) and only
+  switches when the pool actually changes; real mood switches **crossfade**
+  (fadeout 900 ms → pending track fades in from `update()`) instead of hard
+  cutting. Track picks upgraded to a **shuffle bag** (every track once
+  before any repeat, never twice in a row). Tests: `test_audio.py` /
+  `test_music.py` cover both mood paths and the shuffle contract.
+
+- [x] **8.14.7 Tab swaps the build tabs.** `card_tab_swap` default moved
+  space → **Tab** (nobody found Space). Deliberately the same key as
+  `cycle_army`: the command card consumes Tab FIRST and only while the
+  build chips are on screen (worker selected), so the key is contextual —
+  builder menu open: swap tabs; otherwise: cycle army. The chips row's
+  key badge derives from the binding and now reads TAB.
+
+- [x] **8.14.8 Rams never march unescorted.** §7 P3's escort contract had
+  a hole: `_maintain_ram_escorts` early-returned when ZERO fighters were
+  alive — exactly when a ram needed holding most. Now escortless working
+  rams abort and wait at the castle (`RAM_HOME_RADIUS`), and
+  `_launch_wave` won't send them, **unless** `_fighters_incoming` says
+  fielding a fighter has become impossible (none queued, and no live or
+  under-construction barracks/stable, or nothing affordable) — the
+  sanctioned desperate all-in ("avoid it unless there are no resources",
+  user's words). In-combat rams finish their swing: a lone ram retreating
+  across the map dies anyway. Tests: `test_ram_escort_muster.py`.
+
+- [x] **8.14.9 Attack musters — waves, not trickles.** The attack phase
+  used to fire every idle unit at the enemy the moment AttackGoal picked;
+  freshly trained units marched alone and died piecemeal (user-reported).
+  An attack tick now opens a **muster**: the squad rallies at its
+  forwardmost member; membership is dynamic (fresh units join the
+  gathering); the wave launches together when `MUSTER_WAVE_SIZE` (5) are
+  formed, after `MUSTER_TIMEOUT_S` (25 s — send who showed up), or when
+  the rally point comes under threat. Home defense, squad retreat, and
+  last stand all dissolve the muster. The old per-squad send rules moved
+  intact into `_launch_wave` (back-line release, counter-targets,
+  telegraph). Probe (20-min headless 2-AI match, seed 4242): 184 musters,
+  169 waves, avg wave 4.5 / max 25, match completes. Tests:
+  `test_ram_escort_muster.py`.
+
+- [x] **8.14.10 Attack-move for the player.** The §8.12-archived open
+  design item, now real: **V** on the army card (or the Attack Move tile)
+  arms an `attack_move` command mode — click ground and the units march
+  there, auto-engaging enemy UNITS sighted within `MOVE_AGGRO_RANGE` en
+  route (the §8.12 AI battlefield-awareness scan, which human orders
+  opted out of — attack-move is the explicit opt-in). After each fight
+  the combat system resumes the march (`attack_move_target` + capped
+  re-paths for crowd blockage); arrival clears the order; plain move /
+  explicit attack / Stop cancel it; clicking an enemy in the mode is a
+  plain attack. Combat units only (healers/workers excluded); rams walk
+  but don't get distracted (`building_only_attack`). Persists in saves
+  (v4) — the resume lifecycle re-paths it after load. Tests:
+  `test_attack_move.py` (engage en route, resume-after-kill + arrival
+  clear, cancellation, unit filtering).
+
+- [x] **8.14.11 Fog draws as hexes, not boxes.** The overlay blitted
+  0.75-width RECTANGLES per tile over a hex map (user screenshot: boxy
+  fog, seams, gaps). Now each fogged tile draws the same flat-top hex as
+  the tile art onto ONE shared SRCALPHA canvas via `pygame.draw.polygon`
+  — draw functions write pixels directly (no blending), so neighbors with
+  lattice-exact shared edges can't double-darken a seam and rounding
+  can't open a gap; the canvas composites onto the map in a single blit.
+  Killed the old special-cased oversized last-row/column rects (hexes
+  cover their own overhang). Measured: whole draw 3.7 ms/frame fog-on vs
+  2.8 fog-off at 720p — the overlay costs ~1 ms. Verified visually at
+  both alphas (unexplored 255, explored 150).
+
 ---
 
 ## 9. Preserved backlog (non-perf, carried over from the deleted plans)

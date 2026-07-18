@@ -426,6 +426,10 @@ class GatheringManager:
                     tree.y = y
                     self.game.resources.append(tree)
                     self.game.pathfinder.notify_blocker_added(tree)
+                    # The remembered tree is real again — drop any fog ghost
+                    fog = getattr(self.game, "fog_of_war", None)
+                    if fog is not None:
+                        fog.clear_ghost_at(x, y, "wood")
         
         return False  # Still dropping off
     

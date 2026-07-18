@@ -68,6 +68,67 @@ def test_save_load_roundtrip_v2_fields(tmp_path):
         game.update(delta_time_override=1 / 60)
 
 
+def test_save_load_roundtrip_v4_fields(tmp_path):
+    """v4: control groups, worker tasks, fog resource ghosts, tile rescale."""
+    from managers.save_manager import SaveManager
+
+    SaveManager.SAVE_DIR = str(tmp_path)
+
+    random.seed(4321)
+    from core.game import Game
+
+    game = Game(mode="human_1v1", player_count=2)
+    for _ in range(120):
+        game.update(delta_time_override=1 / 60)
+
+    human = game.players[0]
+
+    # A worker actively gathering a specific node
+    worker = next(u for u in game.units if u.player is human and u.name == "worker")
+    resource = min(game.resources,
+                   key=lambda r: (r.x - worker.x) ** 2 + (r.y - worker.y) ** 2)
+    assert game.worker_task_system.assign_gather(worker, resource)
+    target_pos = (resource.x, resource.y)
+
+    # A control group with that worker + the castle
+    castle = next(b for b in game.buildings if b.player is human and b.name == "castle")
+    game.selection_manager.control_groups[3] = [worker, castle]
+
+    # A fog ghost of a resource depleted out of sight
+    game.fog_of_war.resource_ghosts[(5, 5, "wood")] = {"name": "wood", "x": 111.0, "y": 222.0}
+
+    # A zoom the tile cache must follow after load
+    game.camera.zoom = 2.0
+    saved_zoom = game.camera.zoom
+
+    SaveManager.save_game(game, slot=7)
+    success, message = SaveManager.load_game(game, slot=7)
+    assert success, message
+
+    # Camera zoom restored AND the tile cache rescaled to it (tiny-tiles bug)
+    assert game.camera.zoom == saved_zoom
+    assert game.game_map.current_zoom == saved_zoom
+
+    # Control group 3 has a worker and the castle again
+    members = game.selection_manager.control_groups[3]
+    names = sorted(getattr(m, "name", "") for m in members)
+    assert names == ["castle", "worker"]
+
+    # The worker resumed its gather task on the same node
+    worker2 = next(m for m in members if m.name == "worker")
+    task = game.worker_task_system.active_task(worker2)
+    assert task is not None and task.kind == "gather"
+    assert (task.resource.x, task.resource.y) == target_pos
+
+    # The fog ghost survived
+    assert game.fog_of_war.resource_ghosts.get((5, 5, "wood")) == {
+        "name": "wood", "x": 111.0, "y": 222.0}
+
+    # And the loaded game still simulates
+    for _ in range(60):
+        game.update(delta_time_override=1 / 60)
+
+
 def test_gate_passable_state_survives(tmp_path):
     from managers.save_manager import SaveManager
     from entities.building import Building

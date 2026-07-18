@@ -120,7 +120,7 @@ def test_tab_swap_hotkey_and_memory(game, card):
     select(game, own_worker(game))
     card.refresh()
 
-    assert card.handle_hotkey(key("space")) is True
+    assert card.handle_hotkey(key("tab")) is True  # Tab swaps the build tabs
     content = card.refresh()
     names = [slot['name'] for slot in content['slots'] if slot]
     # wall/wooden_wall/gate are deferred (buildable:false in data) so the menu
@@ -444,7 +444,7 @@ def test_consumes_key_only_for_occupied_slots(game, card):
     select(game, own_worker(game))
     card.refresh()
     assert card.consumes_key(key("r"))
-    assert card.consumes_key(key("space"))  # tab swap while chips visible
+    assert card.consumes_key(key("tab"))  # tab swap while chips visible
     assert not card.consumes_key(key("d"))
     # WASD is NEVER a card key now — camera pan always wins (user decision)
     assert not card.consumes_key(key("w"))

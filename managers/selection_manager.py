@@ -339,6 +339,8 @@ class SelectionManager:
             # issuing a path search per unit (immediate orders only; queued
             # waypoints execute per unit later).
             if not shift_held and len(movable_units) >= 8 and pathfinder.request_group_move(movable_units, world_pos, slots):
+                for obj in movable_units:
+                    obj.attack_move_target = None  # §8.14: plain move replaces attack-move
                 self._play_human_sound("move")
             else:
                 for obj, target_pos in zip(movable_units, slots):
@@ -523,6 +525,8 @@ class SelectionManager:
     
     def _attack_target(self, unit, target, pathfinder, new_destination=None):
         """Command unit to attack a target"""
+        # §8.14: an explicit attack order replaces any standing attack-move
+        unit.attack_move_target = None
         if unit.can_attack(target):
             unit.start_attack(target)
             unit.last_task = {"type": "attack", "target": target}
@@ -600,13 +604,21 @@ class SelectionManager:
                 # Only combat units
                 if hasattr(unit, 'can_attack') and unit.can_attack:
                     valid_units.append(unit)
-        
+            elif command_mode == 'attack_move':
+                # §8.14: combat units only (healers/workers can't engage)
+                if getattr(unit, 'can_attack_flag', False):
+                    valid_units.append(unit)
+
         return valid_units
     
     def _is_valid_target_for_command(self, command_mode, clicked_object, valid_units):
         """Check if the target is valid for the given command"""
         if command_mode == 'move':
             # Can always move to empty space or around objects
+            return True
+        elif command_mode == 'attack_move':
+            # §8.14: any ground or object — enemies get attacked directly,
+            # everything else is a destination
             return True
         elif command_mode == 'gather':
             # Must click on a resource
@@ -695,11 +707,38 @@ class SelectionManager:
             for unit in valid_units:
                 if hasattr(unit, 'current_target'):
                     self._attack_target(unit, clicked_object, pathfinder)
-        
+
+        elif command_mode == 'attack_move':
+            # §8.14: clicking an enemy is a plain attack; clicking ground
+            # (or anything else) marches there, auto-engaging en route.
+            # combat_system owns the engage/resume/arrive lifecycle.
+            is_enemy = (clicked_object is not None
+                        and (clicked_object in self.game.units
+                             or clicked_object in self.game.buildings)
+                        and getattr(clicked_object, 'player', None) is not None
+                        and clicked_object.player != self.game.players[0])
+            if is_enemy:
+                for unit in valid_units:
+                    self._attack_target(unit, clicked_object, pathfinder)
+                self._add_order_flash((clicked_object.x, clicked_object.y), "attack")
+            else:
+                positions = self._generate_formation_offsets(len(valid_units))
+                for i, unit in enumerate(valid_units):
+                    offset_x, offset_y = positions[i] if len(valid_units) > 1 else (0, 0)
+                    unit.attack_move_target = (world_pos[0] + offset_x,
+                                               world_pos[1] + offset_y)
+                    unit._amove_reissues = 0
+                    pathfinder.issue_move(unit, unit.attack_move_target)
+                if valid_units:
+                    self._play_unit_sound(valid_units[0], "attack")
+                self._add_order_flash(world_pos, "attack")
+
         return True
 
     def _move_unit_to_position(self, unit, world_pos, pathfinder):
         """Move a unit to a specific position"""
+        # §8.14: a plain move order replaces any standing attack-move
+        unit.attack_move_target = None
         if unit.name == "worker" and hasattr(self.game, "worker_task_system"):
             self.game.worker_task_system.assign_move(unit, world_pos)
             self._play_unit_sound(unit, "move")

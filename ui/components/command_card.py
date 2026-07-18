@@ -6,12 +6,12 @@ bottom: selection header (unit_panel) -> tab chips row -> a fixed 2x4 tile
 grid -> status strip. What the tiles DO switches with the selection:
 
 - own worker(s)            -> [Economy | Military] tab chips (always visible,
-                              no drill-down; E swaps, last tab remembered)
+                              no drill-down; Tab swaps, last tab remembered)
                               + build tiles for the active tab
 - own production building  -> unit tiles (+ tech tiles at the blacksmith)
-- own military units       -> Stop / Stance / Formation tiles (bottom rows,
-                              so W/A/S keep panning the camera with an army
-                              selected)
+- own military units       -> Stop / Stance / Formation / Attack Move tiles
+                              (bottom rows, so W/A/S keep panning the camera
+                              with an army selected)
 - own construction site    -> Cancel tile
 - own gate                 -> Open/Close tile
 
@@ -19,7 +19,9 @@ Grid hotkeys are position-mapped (card_slot_0..7 = Q E R T / Z X C V by
 default, rebindable via keybindings.json — deliberately WASD-free so camera
 pan always works, and number-free because 1-9/numpad are control groups).
 A slot key is only consumed while a tile occupies that slot; otherwise it
-falls through to the global bindings. Space swaps the build tabs.
+falls through to the global bindings. Tab swaps the build tabs while the
+chips are on screen (and cycles the army the rest of the time — the card
+consumes it first, so the same key is contextual).
 """
 import json
 import math
@@ -369,6 +371,16 @@ class CommandCard:
                 'tooltip': ['Formation', 'Cycle ring / line / box / wedge for group'
                             ' moves.', 'Also on F.'],
             }
+        if combat_units:
+            # §8.14 attack-move: march to a point, engaging enemies sighted
+            # on the way (V slot — bottom row, camera keys untouched)
+            content['slots'][7] = {
+                'kind': 'attack_move', 'label': 'Attack Move',
+                'icon': self._icon('action', 'attack'),
+                'cost': '', 'enabled': True, 'reason': 'Ready',
+                'tooltip': ['Attack Move', 'Click a spot: move there, engaging'
+                            ' any enemy sighted on the way.', 'Also on V.'],
+            }
 
     def _fill_construction(self, content, site):
         content['context'] = 'construction'
@@ -551,14 +563,17 @@ class CommandCard:
                 panel_surface.blit(text, (chip.centerx - text.get_width() // 2,
                                           chip.centery - text.get_height() // 2))
                 self._chip_rects.append((tab, chip.move(ui_x, ui_y)))
-            # tab-swap hint (derived from the binding; "space" shows as Spc)
+            # tab-swap hint (derived from the binding; default Tab)
             game_bindings = getattr(self.game, 'keybindings', None)
-            swap_key = (game_bindings.bindings.get("card_tab_swap", "space")
-                        if game_bindings else "space")
+            swap_key = (game_bindings.bindings.get("card_tab_swap", "tab")
+                        if game_bindings else "tab")
             hint_text = "Spc" if swap_key == "space" else swap_key.upper()[:3]
-            hint = self.key_font.render(hint_text, True, (140, 140, 120))
-            panel_surface.blit(hint, (grid_x + 2 * self.TILE_W + self.TILE_GAP - 8,
-                                      self.CHIPS_TOP - 12))
+            hint = self.key_font.render(hint_text, True, (185, 185, 160))
+            # Clamp inside the panel — "TAB" is wider than the old "Spc"
+            # and the fixed offset pushed it off the right edge (§8.14)
+            hint_x = min(grid_x + 2 * self.TILE_W + self.TILE_GAP - 8,
+                         panel_w - hint.get_width() - 8)
+            panel_surface.blit(hint, (hint_x, self.CHIPS_TOP - 12))
 
         # Tile grid. The BUILD card keeps its fixed 2x4 sockets — tiles come
         # and go there as requirements change, and the position-mapped
@@ -1012,6 +1027,10 @@ class CommandCard:
             self._play(True)
         elif kind == 'formation':
             self.game.selection_manager.cycle_formation()
+            self._play(True)
+        elif kind == 'attack_move':
+            # §8.14: arm the targeting mode; the next map click executes
+            self.game.ui_manager.set_command_mode('attack_move')
             self._play(True)
         elif kind == 'cancel_construction':
             # (the old panel's button called a nonexistent game method and

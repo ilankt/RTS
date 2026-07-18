@@ -48,7 +48,12 @@ DEFAULT_BINDINGS = {
     "card_slot_5": "x",
     "card_slot_6": "c",
     "card_slot_7": "v",
-    "card_tab_swap": "space",     # swap Economy/Military build tabs
+    # Swap Economy/Military build tabs. Deliberately the same key as
+    # cycle_army: the command card consumes Tab FIRST and only while the
+    # build chips are on screen (worker selected), so Tab is contextual —
+    # builder menu open: swap tabs; otherwise: cycle army (user request
+    # 2026-07-18; was space, which nobody found).
+    "card_tab_swap": "tab",
 }
 
 

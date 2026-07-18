@@ -24,10 +24,11 @@ class CursorManager:
             # Store the default system cursor
             self.default_cursor = pygame.mouse.get_cursor()
             
-            # Cursor file mapping
+            # Cursor file mapping (§8.14: attack-move shares the attack art)
             cursor_files = {
                 'move': 'assets/ui/Cursors/move_cursor.png',
-                'attack': 'assets/ui/Cursors/attack_cursor.png', 
+                'attack': 'assets/ui/Cursors/attack_cursor.png',
+                'attack_move': 'assets/ui/Cursors/attack_cursor.png',
                 'gather': 'assets/ui/Cursors/gather_cursor.png',
                 'deposit': 'assets/ui/Cursors/deposit_cursor.png'
             }
@@ -81,7 +82,7 @@ class CursorManager:
     
     def set_command_mode(self, command_mode):
         """Set active command mode and update cursor"""
-        if command_mode not in ['move', 'gather', 'deposit', 'attack']:
+        if command_mode not in ['move', 'gather', 'deposit', 'attack', 'attack_move']:
             self.clear_command_mode()
             return
             

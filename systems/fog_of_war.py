@@ -36,6 +36,12 @@ class FogOfWar:
         self._time_accum = 0.0
         self._has_updated = False
 
+        # Ghosts of resources that were depleted OUT of the human viewer's
+        # sight: still drawn (dimmed) where last seen, until the player
+        # actually reveals the spot and sees they're gone.
+        # {(r, c, name): {"name", "x", "y"}}
+        self.resource_ghosts = {}
+
         for player in game.players:
             self._init_player_grid(player)
 
@@ -98,6 +104,13 @@ class FogOfWar:
                 if grid[r][c] == self.VISIBLE:
                     grid[r][c] = self.EXPLORED
             self._visible_tiles[player] = new_visible
+
+            # Revealing a ghost's tile shows the resource is gone — drop it
+            if player is self._display_player() and self.resource_ghosts:
+                self.resource_ghosts = {
+                    key: ghost for key, ghost in self.resource_ghosts.items()
+                    if (key[0], key[1]) not in new_visible
+                }
 
     def _mark_visible_around(self, player, grid, new_visible, wx: float, wy: float, radius: float):
         """Mark all tiles within radius of (wx, wy) as VISIBLE via offset mask."""
@@ -193,6 +206,52 @@ class FogOfWar:
         if 0 <= r < self.map_height and 0 <= c < self.map_width:
             return self.visibility_grid[player][r][c]
         return self.UNEXPLORED
+
+    def _display_player(self):
+        """The player whose fog the human viewer watches through."""
+        return self.game.players[0] if self.game.players else None
+
+    def is_display_explored(self, wx: float, wy: float) -> bool:
+        """Should a static neutral (resource/fountain) DRAW at this spot?
+        Unlike units/buildings they can't move, so once seen they stay
+        drawn — under the explored dim — exactly like the minimap dots."""
+        if not self.enabled or self.reveal_display:
+            return True
+        human = self._display_player()
+        if human is None:
+            return True
+        return self.is_explored(human, wx, wy)
+
+    def record_resource_removed(self, resource) -> None:
+        """A resource left the world. If the human viewer has seen the spot
+        but can't see it right now, leave a ghost behind (the player still
+        believes it's there); watching it deplete leaves nothing."""
+        if not self.enabled or self.reveal_display:
+            return
+        human = self._display_player()
+        if human is None:
+            return
+        tile = self._world_to_tile(resource.x, resource.y)
+        if not tile:
+            return
+        c, r = tile
+        if not (0 <= r < self.map_height and 0 <= c < self.map_width):
+            return
+        grid = self.visibility_grid.get(human)
+        if grid is None:
+            return
+        if grid[r][c] != self.EXPLORED:  # visible: saw it vanish; unexplored: never knew
+            return
+        self.resource_ghosts[(r, c, resource.name)] = {
+            "name": resource.name, "x": resource.x, "y": resource.y,
+        }
+
+    def clear_ghost_at(self, wx: float, wy: float, name: str) -> None:
+        """A same-type resource (re)appeared here — the memory is true
+        again, so the ghost is redundant (tree regrowth)."""
+        tile = self._world_to_tile(wx, wy)
+        if tile:
+            self.resource_ghosts.pop((tile[1], tile[0], name), None)
 
     def is_object_visible(self, obj) -> bool:
         """Check if an object is visible to the human VIEWER (display)."""

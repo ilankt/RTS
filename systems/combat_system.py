@@ -24,6 +24,12 @@ class CombatSystem:
     # the tighter radius so they aren't pulled off their posts.
     MOVE_AGGRO_RANGE = 300
 
+    # §8.14 attack-move: how close to the ordered point counts as arrived,
+    # and how many failed re-paths (crowd blocking the exact spot) before
+    # the order is considered fulfilled.
+    AMOVE_ARRIVE_RADIUS = 45
+    AMOVE_MAX_REISSUES = 8
+
     """Handles combat targeting, attack positioning, and combat logic"""
     
     def __init__(self, game):
@@ -314,12 +320,15 @@ class CombatSystem:
                     # (2) §8.12 battlefield awareness: AI units on the move
                     # engage enemy UNITS that come within reach — armies no
                     # longer pass each other blindly. Human orders stay
-                    # literal (nobody wants hijacked move commands), and
-                    # marches don't get distracted by mere buildings.
+                    # literal (nobody wants hijacked move commands) EXCEPT
+                    # an explicit attack-move (§8.14): that order opts into
+                    # exactly this behavior. Marches still don't get
+                    # distracted by mere buildings.
                     if (
                         not engaged
-                        and unit.stance == STANCE_AGGRESSIVE
-                        and not getattr(unit.player, "human", True)
+                        and (getattr(unit, "attack_move_target", None) is not None
+                             or (unit.stance == STANCE_AGGRESSIVE
+                                 and not getattr(unit.player, "human", True)))
                         and not getattr(unit, "building_only_attack", False)
                         # frame throttle BEFORE the gate helper — this chain
                         # runs per frame per marching unit; the helper does
@@ -382,6 +391,28 @@ class CombatSystem:
                         frame = self.game.frame_counter
                         unit._next_target_scan_frame = frame + 60
                         unit._retreating_until = max(getattr(unit, "_retreating_until", 0), frame + 60)
+
+                # §8.14 attack-move lifecycle: with the fight over (or the
+                # order fresh but its path lost to a watchdog rescue), the
+                # unit resumes marching to the ordered point; arriving — or
+                # repeatedly failing to close the last stretch in a crowd —
+                # ends the order.
+                amove = getattr(unit, "attack_move_target", None)
+                if (amove is not None and not unit.in_combat
+                        and not unit.is_engaging and not unit.current_target):
+                    dist_sq = (unit.x - amove[0]) ** 2 + (unit.y - amove[1]) ** 2
+                    if dist_sq <= self.AMOVE_ARRIVE_RADIUS ** 2:
+                        unit.attack_move_target = None
+                    elif (not unit.destination and not unit.path
+                            and getattr(unit, "_pending_path_seq", None) is None
+                            and self.game.frame_counter >= getattr(unit, "_next_amove_repath_frame", 0)):
+                        reissues = getattr(unit, "_amove_reissues", 0) + 1
+                        if reissues > self.AMOVE_MAX_REISSUES:
+                            unit.attack_move_target = None  # close enough / blocked
+                        else:
+                            unit._amove_reissues = reissues
+                            unit._next_amove_repath_frame = self.game.frame_counter + 30
+                            self.game.pathfinder.issue_move(unit, amove)
 
                 # Handle ongoing engagements
                 if unit.is_engaging and unit.current_target:

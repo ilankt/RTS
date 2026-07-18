@@ -1,6 +1,6 @@
 import math
 import pygame
-from core.config import TILE_WIDTH, TOP_BAR_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
+from core.config import TILE_WIDTH, TILE_HEIGHT, TOP_BAR_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
 from entities import Building, Unit, Resource, ConstructionSite
 from utils.perf_stats import perf_stats
 
@@ -20,7 +20,7 @@ class RenderingSystem:
         self.MAP_GRAY = (60, 60, 60)
 
         # Cached fog tile surfaces keyed by (width, height, alpha)
-        self._fog_tile_cache = {}
+        self._fog_overlay = None  # §8.14: shared per-frame hex fog canvas
         # Cached scaled object sprites keyed by (id(sprite), width, height)
         self._scaled_sprite_cache = {}
         # Per-object visual scale from JSON (render_scale): normalizes
@@ -269,14 +269,22 @@ class RenderingSystem:
         bottom = (-camera.y + map_surface.get_height()) / zoom
 
         fog = getattr(self.game, 'fog_of_war', None)
+        # Static neutrals (resources, fountains) draw once EXPLORED, like
+        # their minimap dots — they can't move, so the memory stays true.
+        # Everything else needs current line of sight.
+        explored_check = getattr(fog, "is_display_explored", None)
+
+        # Ghosts of resources depleted out of sight lie under everything
+        if fog is not None:
+            self._draw_resource_ghosts(map_surface, camera, left, right, top, bottom)
 
         visible = []
-        for group in (
-            self.game.resources,
-            getattr(self.game, "fountains", ()),
-            self.game.buildings,
-            self.game.units,
-            self.game.construction_sites,
+        for group, is_static_neutral in (
+            (self.game.resources, True),
+            (getattr(self.game, "fountains", ()), True),
+            (self.game.buildings, False),
+            (self.game.units, False),
+            (self.game.construction_sites, False),
         ):
             for obj in group:
                 # Sprites are centered on (x, y) with world extents from size
@@ -293,8 +301,12 @@ class RenderingSystem:
                     or obj.y - margin > bottom
                 ):
                     continue
-                if fog and not fog.is_object_visible(obj):
-                    continue
+                if fog is not None:
+                    if is_static_neutral and explored_check is not None:
+                        if not explored_check(obj.x, obj.y):
+                            continue
+                    elif not fog.is_object_visible(obj):
+                        continue
                 visible.append(obj)
 
         visible.sort(key=lambda obj: obj.y)
@@ -318,6 +330,39 @@ class RenderingSystem:
                     obj._next_sparkle_frame = frame + 18
                     particles.spawn_fountain_sparkles(obj.x, obj.y - 14)
     
+    GHOST_ALPHA = 130  # remembered-but-gone resources draw see-through
+
+    def _draw_resource_ghosts(self, map_surface, camera, left, right, top, bottom):
+        """Resources that were depleted OUT of the viewer's sight keep
+        drawing (translucent) where last seen; FogOfWar prunes each ghost
+        the moment its tile is actually revealed."""
+        fog = self.game.fog_of_war
+        ghosts = getattr(fog, "resource_ghosts", None)
+        # Fog off / revealed display shows the true world — no false memories
+        if not ghosts or not getattr(fog, "enabled", True) or getattr(fog, "reveal_display", False):
+            return
+        for ghost in ghosts.values():
+            x, y = ghost["x"], ghost["y"]
+            if x + 72 < left or x - 72 > right or y + 72 < top or y - 72 > bottom:
+                continue
+            sprite = self.sprite_manager.get_resource_sprite(ghost["name"])
+            if sprite is None:
+                continue
+            sprite_w, sprite_h = sprite.get_size()
+            scale = (TILE_WIDTH / sprite_w) * self._render_scales.get(ghost["name"], 1.0)
+            width = max(1, int(sprite_w * scale * camera.zoom))
+            height = max(1, int(sprite_h * scale * camera.zoom))
+            key = (sprite, width, height, 'fog_ghost')
+            faded = self._scaled_sprite_cache.get(key)
+            if faded is None:
+                if len(self._scaled_sprite_cache) > 2048:
+                    self._scaled_sprite_cache.clear()
+                faded = pygame.transform.scale(sprite, (width, height)).copy()
+                faded.set_alpha(self.GHOST_ALPHA)
+                self._scaled_sprite_cache[key] = faded
+            map_surface.blit(faded, ((x * camera.zoom) + camera.x - width / 2,
+                                     (y * camera.zoom) + camera.y - height / 2))
+
     def _draw_object(self, obj, map_surface, camera):
         """Draw a single game object"""
         draw_x = (obj.x * camera.zoom) + camera.x
@@ -580,63 +625,70 @@ class RenderingSystem:
                 pygame.draw.circle(map_surface, color, (screen_x, screen_y), radius, 1)
     
     def _draw_fog_overlay(self, map_surface, camera):
-        """Draw fog of war overlay for the human player."""
+        """Fog of war overlay for the human player — HEXAGONS matching the
+        tile art, not the old 0.75-width rectangles (user-reported: boxy
+        fog with seams over a hex map).
+
+        All hexes are drawn onto ONE shared SRCALPHA canvas with
+        pygame.draw.polygon, which writes pixels directly (no blending):
+        neighboring hexes share lattice-exact edges, so rasterization
+        overlap can't double-darken a seam and rounding can't open a gap.
+        The canvas then composites onto the map in a single blit."""
         fog = getattr(self.game, 'fog_of_war', None)
         if not fog or not fog.enabled:
             return
-        
+
         human = self.game.players[0] if self.game.players else None
         if not human:
             return
-        
+
+        overlay = self._fog_overlay
+        if overlay is None or overlay.get_size() != map_surface.get_size():
+            overlay = self._fog_overlay = pygame.Surface(
+                map_surface.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 0))
+
+        # Same lattice math as Map.draw, so fog hexes land exactly on tiles
         tile_width = int(TILE_WIDTH * camera.zoom)
-        tile_height = int(TILE_WIDTH * camera.zoom * 0.875)
-        
-        # Determine visible tile range
+        tile_height = int(TILE_HEIGHT * camera.zoom)
+
         start_col = max(0, int(-camera.x / (tile_width * 0.75)) - 1)
         end_col = min(self.game.game_map.width, int((-camera.x + map_surface.get_width()) / (tile_width * 0.75)) + 1)
         start_row = max(0, int(-camera.y / tile_height) - 1)
         end_row = min(self.game.game_map.height, int((-camera.y + map_surface.get_height()) / tile_height) + 1)
-        
+
+        drew_any = False
         for row in range(start_row, end_row):
             for col in range(start_col, end_col):
                 state = fog.get_tile_state(human, row, col)
-                
+
                 if state == fog.UNEXPLORED:
-                    # Completely black
-                    alpha = 255
+                    alpha = 255       # never seen: solid black
                 elif state == fog.EXPLORED:
-                    # Semi-transparent black
-                    alpha = 150
+                    alpha = 150       # seen before: dimmed
                 else:
-                    continue  # VISIBLE - no overlay
-                
-                x = col * tile_width * 0.75
-                y = row * tile_height
+                    continue          # VISIBLE - no overlay
+
+                x = col * tile_width * 0.75 + camera.x
+                y = row * tile_height + camera.y
                 if col % 2 != 0:
                     y += tile_height / 2
-                
-                screen_x = x + camera.x
-                screen_y = y + camera.y
 
-                # Slightly larger rect to cover tile seams; surface cached per
-                # (size, alpha) instead of allocated per tile per frame. The
-                # map's last column/row get wider rects: their hex images
-                # overhang where no neighbor's fog covers them (hidden under
-                # the 720p sidebar, visible at higher resolutions).
-                fog_w = int(tile_width * 0.75) + 2
-                fog_h = int(tile_height) + 2
-                if col == self.game.game_map.width - 1:
-                    fog_w = int(tile_width) + 2
-                if row == self.game.game_map.height - 1:
-                    fog_h = int(tile_height * 1.5) + 2
-                key = (fog_w, fog_h, alpha)
-                fog_surface = self._fog_tile_cache.get(key)
-                if fog_surface is None:
-                    fog_surface = pygame.Surface((key[0], key[1]), pygame.SRCALPHA)
-                    fog_surface.fill((0, 0, 0, alpha))
-                    self._fog_tile_cache[key] = fog_surface
-                map_surface.blit(fog_surface, (int(screen_x) - 1, int(screen_y) - 1))
+                # Flat-top hex inscribed in the tile's w x h box — the same
+                # shape as the tile sprites, so fog interlocks like they do
+                w, h = tile_width, tile_height
+                pygame.draw.polygon(overlay, (0, 0, 0, alpha), (
+                    (x + 0.25 * w, y),
+                    (x + 0.75 * w, y),
+                    (x + w, y + 0.5 * h),
+                    (x + 0.75 * w, y + h),
+                    (x + 0.25 * w, y + h),
+                    (x, y + 0.5 * h),
+                ))
+                drew_any = True
+
+        if drew_any:
+            map_surface.blit(overlay, (0, 0))
     
     def get_visible_objects(self, camera, map_surface):
         """Get all objects that are currently visible on screen"""

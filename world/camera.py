@@ -1,5 +1,5 @@
 import random
-from core.config import CAMERA_SPEED, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP
+from core.config import CAMERA_SPEED, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP, DEFAULT_ZOOM
 
 class Camera:
     def __init__(self, width, height):
@@ -8,7 +8,7 @@ class Camera:
         self.width = width
         self.height = height
         self.speed = CAMERA_SPEED
-        self.zoom = 1.0
+        self.zoom = DEFAULT_ZOOM
         
         # Screen shake
         self.shake_amount = 0.0

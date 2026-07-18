@@ -1023,6 +1023,10 @@ class Game:
             self.resources.remove(resource)
             self.pathfinder.notify_blocker_removed(resource)
 
+            # Depleted out of the viewer's sight -> leave a fog ghost behind
+            if getattr(self, "fog_of_war", None):
+                self.fog_of_war.record_resource_removed(resource)
+
             # Invalidate AI memory cache since resources changed
             if hasattr(self, 'ai_system') and self.ai_system:
                 self.ai_system.invalidate_memory_cache()
