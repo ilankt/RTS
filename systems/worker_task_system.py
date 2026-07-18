@@ -167,6 +167,15 @@ class WorkerTaskSystem:
         task = self.tasks.pop(worker, None)
         if task:
             self._release_worker_slots(worker)
+            # Release the site too: update_construction advances any site
+            # whose .builder has the global is_building flag set, so a stale
+            # builder pointer made an abandoned site build in lockstep with
+            # the worker's NEXT site (user-reported "two buildings construct
+            # together as one"). _set_failed already did this; the normal
+            # cancel/reassign path must as well.
+            site = getattr(task, "construction_site", None)
+            if site is not None and getattr(site, "builder", None) is worker:
+                site.builder = None
         self._clear_motion(worker)
         self._clear_worker_task_fields(worker)
 

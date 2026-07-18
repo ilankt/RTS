@@ -82,16 +82,27 @@ class Minimap:
             color = RESOURCE_COLORS.get(resource.name, (200, 200, 120))
             pygame.draw.rect(self._dots_surface, color, (mini_x, mini_y, 2, 2))
 
-        # Buildings: owner color, larger/brighter than units; enemies only when
-        # their tile has been explored (they don't move)
+        # Buildings: owner color, larger than units; enemies only when their
+        # tile has been explored (they don't move). Thin DARK outline for
+        # contrast — the old 1px white frame on a 4x4 marker ate 3/4 of the
+        # colored pixels and every building read as white.
         for building in game.buildings:
             own = human is not None and building.player is human
             if fog_on and human and not own and not fog.is_explored(human, building.x, building.y):
                 continue
             mini_x, mini_y = self.world_to_mini(building.x, building.y)
             color = getattr(building.player, "color", (220, 220, 220))
-            pygame.draw.rect(self._dots_surface, color, (mini_x - 1, mini_y - 1, 4, 4))
-            pygame.draw.rect(self._dots_surface, (255, 255, 255), (mini_x - 1, mini_y - 1, 4, 4), 1)
+            pygame.draw.rect(self._dots_surface, (25, 25, 25), (mini_x - 2, mini_y - 2, 5, 5))
+            pygame.draw.rect(self._dots_surface, color, (mini_x - 1, mini_y - 1, 3, 3))
+
+        # §8.9 healing fountains: neutral map objective — always worth seeing.
+        # Cyan like the healing motes; gated on exploration like buildings.
+        for fountain in getattr(game, "fountains", ()):
+            if fog_on and human and not fog.is_explored(human, fountain.x, fountain.y):
+                continue
+            mini_x, mini_y = self.world_to_mini(fountain.x, fountain.y)
+            pygame.draw.rect(self._dots_surface, (25, 25, 25), (mini_x - 2, mini_y - 2, 6, 6))
+            pygame.draw.rect(self._dots_surface, (90, 205, 245), (mini_x - 1, mini_y - 1, 4, 4))
 
         # Units: owner color; enemies only while currently visible
         for unit in game.units:

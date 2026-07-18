@@ -182,6 +182,7 @@
     "role": "Static defense that controls territory",
     "requires": [],
     "buildable": true,
+    "render_scale": 0.8,
     "strong_against": [
       "archer",
       "worker"
@@ -243,6 +244,7 @@
       "barracks"
     ],
     "buildable": true,
+    "render_scale": 1.2,
     "strong_against": [],
     "weak_against": [
       "ram"

@@ -253,7 +253,8 @@ class SelectionManager:
     
     def _clear_all_selections(self):
         """Clear all object selections"""
-        all_objects = self.game.units + self.game.buildings + self.game.resources
+        all_objects = (self.game.units + self.game.buildings + self.game.resources
+                       + self.game.construction_sites)
         for obj in all_objects:
             obj.selected = False
         self.selected_objects.clear()

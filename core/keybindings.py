@@ -35,19 +35,20 @@ DEFAULT_BINDINGS = {
     "toggle_event_log": "l",      # scrolling log of past alerts (§8.2)
     "open_settings": "o",         # settings screen while paused (§8.5 audio)
     # Command-card grid hotkeys (§8.2.1 Phase A): position-mapped onto the
-    # sidebar's fixed 2x4 tile grid, row by row. While a key maps to an
-    # occupied card slot it wins over WASD camera pan (arrows/edge-scroll
-    # keep panning); "s" deliberately shadows cycle_stance only when a card
-    # tile sits in that slot.
+    # sidebar's fixed 2x4 tile grid, row by row. 2026-07-18 (user decision):
+    # NO key may ever collide with WASD camera pan — the old Q W / A S rows
+    # stole W/A/S whenever a worker was selected. Number keys were
+    # considered and rejected: 1-9 AND numpad 1-9 are control groups.
+    # Layout is the top letter row + bottom letter row, read left to right.
     "card_slot_0": "q",
-    "card_slot_1": "w",
-    "card_slot_2": "a",
-    "card_slot_3": "s",
+    "card_slot_1": "e",
+    "card_slot_2": "r",
+    "card_slot_3": "t",
     "card_slot_4": "z",
     "card_slot_5": "x",
     "card_slot_6": "c",
     "card_slot_7": "v",
-    "card_tab_swap": "e",         # swap Economy/Military build tabs
+    "card_tab_swap": "space",     # swap Economy/Military build tabs
 }
 
 

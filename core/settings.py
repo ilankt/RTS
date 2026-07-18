@@ -19,7 +19,8 @@ RESOLUTION_CHOICES = [[1280, 720], [1600, 900], [1920, 1080]]
 
 DEFAULTS = {
     "resolution": [1920, 1080],
-    "fullscreen": True,          # scaled fullscreen at the logical resolution
+    "fullscreen": True,          # fullscreen at the DESKTOP resolution (main.py
+    # queries it at startup); the resolution setting governs windowed mode
     "volume": 0.3,               # SFX volume, 0.0 - 1.0
     "music_volume": 0.4,         # background music volume (§8.5)
     "sound_enabled": True,

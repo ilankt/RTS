@@ -135,7 +135,13 @@ class UnitPanel:
     
     def _draw_overlay_bar(self, panel_surface, current, maximum, rect, color=None):
         """hp/progress bar drawn OVER the bottom of the sprite (§8.2.2: the
-        HP overlays the portrait at its base), value text centered inside."""
+        HP overlays the portrait at its base), value text centered inside.
+        The bar grows to fit the value text — "250/250" used to spill past a
+        small portrait's bar (user-reported)."""
+        value_text = f"{int(current)}/{int(maximum)}"
+        need = self.dense_font.size(value_text)[0] + 10
+        if need > rect.width:
+            rect = rect.inflate(need - rect.width, 0)
         fraction = (current / maximum) if maximum > 0 else 0
         fraction = max(0.0, min(1.0, fraction))
         backing = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
@@ -149,14 +155,38 @@ class UnitPanel:
         panel_surface.blit(text, (rect.centerx - text.get_width() // 2,
                                   rect.centery - text.get_height() // 2))
 
-    def _draw_stat_lines(self, panel_surface, lines, start_y, pitch=15, max_lines=3):
-        for text, color in lines[:max_lines]:
-            rendered = self.stat_font.render(text, True, color)
-            if rendered.get_width() > 178:
-                rendered = pygame.transform.smoothscale(
-                    rendered, (178, rendered.get_height()))
-            panel_surface.blit(rendered, (6, start_y))
-            start_y += pitch
+    STAT_GLYPH = 16  # px, inline beside the number
+
+    def _draw_stat_lines(self, panel_surface, lines, start_y, pitch=15, max_lines=3,
+                         start_x=8):
+        """Each line is either (text, color) or a list of (glyph_name, text,
+        color) segments — glyph+number pairs drawn inline (§8.2.2: stats read
+        as icons, not label soup)."""
+        for line in lines[:max_lines]:
+            if isinstance(line, tuple):
+                text, color = line
+                rendered = self.stat_font.render(text, True, color)
+                if rendered.get_width() > 178:
+                    rendered = pygame.transform.smoothscale(
+                        rendered, (178, rendered.get_height()))
+                panel_surface.blit(rendered, (start_x - 2, start_y))
+                start_y += pitch
+                continue
+            # Glyph and text share a vertical center (they drifted apart
+            # when drawn at the same top-y: the font's line box is taller
+            # than the glyph — user-reported misalignment).
+            x = start_x
+            row_h = max(self.STAT_GLYPH, self.stat_font.get_height())
+            for glyph_name, text, color in line:
+                glyph = (self.icon_loader.get_cost_glyph(glyph_name, self.STAT_GLYPH)
+                         if self.icon_loader else None)
+                if glyph is not None:
+                    panel_surface.blit(glyph, (x, start_y + (row_h - self.STAT_GLYPH) // 2))
+                    x += self.STAT_GLYPH + 3
+                rendered = self.stat_font.render(text, True, color)
+                panel_surface.blit(rendered, (x, start_y + (row_h - rendered.get_height()) // 2))
+                x += rendered.get_width() + 12
+            start_y += max(pitch, self.STAT_GLYPH + 2)
 
     def _single_selection_model(self, selected_info):
         """Return (portrait_icon, hp_tuple_or_None, stat_lines) for the
@@ -166,31 +196,24 @@ class UnitPanel:
         lines = []
 
         if stype == "Unit":
+            # §8.2.2 (user layout): one glyph+number stat per row — the
+            # column sits to the RIGHT of the left-aligned portrait.
+            # Strengths/weaknesses stay in the production tooltips.
             hp = (obj.hp, self._get_unit_max_hp(obj), None)
             if getattr(obj, 'can_attack', False) and obj.name != 'worker':
-                lines.append((
-                    f"DMG {obj.get_effective_min_damage()}-{obj.get_effective_max_damage()}"
-                    f" {obj.attack_type.title()}  RNG {int(obj.get_effective_attack_range())}",
-                    (255, 200, 100)))
-            lines.append((
-                f"ARM {obj.get_effective_armor_value()} {obj.armor_type.title()}"
-                + (f"  SPD {obj.attack_speed:.1f}/s" if getattr(obj, 'can_attack', False)
-                   and obj.name != 'worker' else ""),
-                (200, 200, 200)))
-            strong = [t.replace('_', ' ').title()
-                      for t in getattr(obj, 'strong_against', ()) or () if t]
-            weak = [t.replace('_', ' ').title()
-                    for t in getattr(obj, 'weak_against', ()) or () if t]
-            if strong or weak:
-                parts = []
-                if strong:
-                    parts.append("Str " + "/".join(strong[:2]))
-                if weak:
-                    parts.append("Wk " + "/".join(weak[:2]))
-                lines.append(("  ".join(parts), (150, 210, 150)))
+                lines.append([
+                    ('attack',
+                     f"{obj.get_effective_min_damage()}-{obj.get_effective_max_damage()}",
+                     (255, 210, 130))])
+                lines.append([('speed', f"{obj.attack_speed:.1f}/s", (200, 210, 235))])
+                lines.append([('armor', str(obj.get_effective_armor_value()), (225, 205, 160))])
+                lines.append([('range', str(int(obj.get_effective_attack_range())), (170, 215, 160))])
+            else:
+                lines.append([('armor', str(obj.get_effective_armor_value()), (225, 205, 160))])
             if obj.name == "worker" and getattr(obj, 'resource_amount', 0) > 0:
-                res = (obj.resource_type or 'unknown').replace('_', ' ').title()
-                lines.append((f"Carrying: {int(obj.resource_amount)} {res}", (255, 200, 100)))
+                res = obj.resource_type or 'unknown'
+                # Carried cargo as its resource glyph + amount (fits the column)
+                lines.append([(res, str(int(obj.resource_amount)), (255, 200, 100))])
             return 'unit', hp, lines  # caller resolves the icon at the sprite size
 
         if stype == "Construction":
@@ -238,10 +261,17 @@ class UnitPanel:
         panel_surface.blit(name_text, (cx - name_text.get_width() // 2, 2))
         sprite_top = 2 + name_text.get_height() + 2
 
-        # Sprite size: big with no stats, a touch smaller when stats follow.
+        # Layout (§8.2.2 user design): units put the portrait on the LEFT
+        # with the stat column to its right; everything else keeps the
+        # centered portrait with lines underneath.
         avail = self.HEADER_HEIGHT - sprite_top - 2
-        sprite = min(84, avail) if not lines else min(64, avail - 2 * 15)
-        sprite = max(40, sprite)
+        side_layout = stype == "Unit"
+        if side_layout:
+            sprite = max(48, min(68, avail - 4))
+        else:
+            row_h = self.STAT_GLYPH + 2
+            sprite = min(84, avail) if not lines else min(64, avail - min(2, len(lines)) * row_h)
+            sprite = max(40, sprite)
 
         # Resolve the portrait icon at the chosen size.
         if stype == "Unit":
@@ -253,7 +283,10 @@ class UnitPanel:
         else:
             icon = None
 
-        sprite_rect = pygame.Rect(cx - sprite // 2, sprite_top, sprite, sprite)
+        if side_layout:
+            sprite_rect = pygame.Rect(12, sprite_top + 2, sprite, sprite)
+        else:
+            sprite_rect = pygame.Rect(cx - sprite // 2, sprite_top, sprite, sprite)
         if icon is not None:
             panel_surface.blit(icon, sprite_rect.topleft)
         else:
@@ -270,7 +303,15 @@ class UnitPanel:
             self._draw_overlay_bar(panel_surface, hp[0], hp[1], bar_rect, hp[2])
 
         if lines:
-            self._draw_stat_lines(panel_surface, lines, start_y=sprite_rect.bottom + 3)
+            if side_layout:
+                # Single stat column right of the portrait, top-aligned with it
+                self._draw_stat_lines(panel_surface, lines,
+                                      start_y=sprite_rect.y + 1,
+                                      start_x=sprite_rect.right + 16,
+                                      max_lines=4)
+            else:
+                self._draw_stat_lines(panel_surface, lines,
+                                      start_y=sprite_rect.bottom + 3)
         return selected_info, self.HEADER_HEIGHT
 
     def _draw_multi_selection(self, panel_surface, selected_objects):
@@ -289,18 +330,21 @@ class UnitPanel:
         unit_count = sum(len(m) for kind, _n, m in groups if kind == 'unit')
         total = sum(len(m) for _k, _n, m in groups)
         if unit_count:
-            formation = getattr(self.game.selection_manager, 'formation_type', 'ring')
-            title_text = f"{total} selected — {formation.title()} (F)"
+            # Formation name lives on the Formation tile (with its tooltip);
+            # the old "— Ring (F)" suffix here read as a mystery code.
+            title_text = f"{total} selected"
         else:
             title_text = f"{total} buildings selected"
         title = self.small_font.render(title_text, True, (230, 230, 230))
-        panel_surface.blit(title, (8, 8))
+        panel_surface.blit(title, (8, 6))
 
         icon_size = 40
         icon_spacing = 4
         icons_per_row = 4
         start_x = 8
-        start_y = 28
+        # Below the title, whatever its font height — the §8.2.2 font pass
+        # grew the title past the old hardcoded 28 and icons drew over it.
+        start_y = 6 + title.get_height() + 6
 
         for i, (kind, name, members) in enumerate(groups):
             row = i // icons_per_row

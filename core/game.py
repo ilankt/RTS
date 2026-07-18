@@ -524,6 +524,8 @@ class Game:
         """Update all game systems"""
         perf_stats.begin_frame()
         try:
+            self._update_mouse_confinement()
+
             # Music playlist advance runs even while paused/game-over (§8.5).
             # Mood follows recent human-involved combat; game over plays the
             # victory/defeat stinger once (when the files exist).
@@ -761,7 +763,33 @@ class Game:
                 )
         self._last_resource_snapshot = dict(player.resources)
 
-    EDGE_SCROLL_MARGIN = 14  # px from the window edge that trigger scrolling
+    # §8.2 edge scroll: 14 px was a sliver — the cursor had to sit in a
+    # near-invisible band for anything to happen (user-reported). 32 px is a
+    # comfortable target, and speed ramps with penetration so the effect
+    # fades in instead of snapping on at an exact pixel line.
+    EDGE_SCROLL_MARGIN = 32
+    EDGE_SCROLL_MIN_FACTOR = 0.45  # speed at the inner rim of the band
+
+    def _update_mouse_confinement(self):
+        """Confine the OS cursor to the window while a match is live (§8.2,
+        user-reported: on an ultrawide the cursor sails past the window edge
+        and edge scroll never fires). Standard RTS behavior — grab during
+        play, release on pause/game-over so menus and other monitors work.
+        SDL drops the grab automatically on alt-tab and re-asserts it when
+        the window regains focus. Human matches only; headless/spectator
+        sims never grab."""
+        # Keyboard focus, not mouse focus: mouse focus flickers off when the
+        # cursor presses the bottom screen edge (see edge-scroll note), and a
+        # dropped grab there would invite the taskbar in mid-battle.
+        want_grab = (self.mode == "human_1v1"
+                     and not self.game_paused
+                     and not self.game_over_state
+                     and pygame.key.get_focused())
+        try:
+            if pygame.event.get_grab() != want_grab:
+                pygame.event.set_grab(want_grab)
+        except pygame.error:
+            pass  # dummy video driver
 
     def _update_camera_movement(self):
         """Update camera movement from keyboard input + edge scrolling (§8.6).
@@ -780,18 +808,40 @@ class Game:
         if keys[pygame.K_DOWN] or (keys[pygame.K_s] and not card.consumes_key(pygame.K_s)):
             self.camera.move(dy=-CAMERA_SPEED)
 
-        # Edge scroll when the mouse hugs the window border
-        if pygame.mouse.get_focused():
+        # Edge scroll when the mouse hugs the window border. Speed ramps from
+        # EDGE_SCROLL_MIN_FACTOR at the band's inner rim to full CAMERA_SPEED
+        # at the window edge. Measured against the real window size, not the
+        # config constants, so other resolutions keep working.
+        #
+        # KEYBOARD focus gate on purpose: pressing the cursor against the
+        # bottom screen edge can flick SDL's MOUSE focus off for a frame
+        # (Windows probes the auto-hide taskbar there), which killed edge
+        # scroll exactly on the bottom-most pixel (user-reported). Keyboard
+        # focus stays put while the window is active.
+        if pygame.key.get_focused():
             mouse_x, mouse_y = pygame.mouse.get_pos()
             margin = self.EDGE_SCROLL_MARGIN
+            win_w, win_h = self.screen.get_width(), self.screen.get_height()
+            # Clamp into the surface and anchor the far bands on the LAST
+            # reachable pixel (size-1): scaled displays can report the border
+            # row at or past the surface size, and the boundary row must
+            # always scroll.
+            mouse_x = max(0, min(mouse_x, win_w - 1))
+            mouse_y = max(0, min(mouse_y, win_h - 1))
+
+            def edge_speed(depth):
+                fraction = max(0.0, min(1.0, depth / margin))
+                factor = self.EDGE_SCROLL_MIN_FACTOR + (1 - self.EDGE_SCROLL_MIN_FACTOR) * fraction
+                return CAMERA_SPEED * factor
+
             if mouse_x <= margin:
-                self.camera.move(dx=CAMERA_SPEED)
-            elif mouse_x >= SCREEN_WIDTH - margin:
-                self.camera.move(dx=-CAMERA_SPEED)
+                self.camera.move(dx=edge_speed(margin - mouse_x))
+            elif mouse_x >= win_w - 1 - margin:
+                self.camera.move(dx=-edge_speed(mouse_x - (win_w - 1 - margin)))
             if mouse_y <= margin:
-                self.camera.move(dy=CAMERA_SPEED)
-            elif mouse_y >= SCREEN_HEIGHT - margin:
-                self.camera.move(dy=-CAMERA_SPEED)
+                self.camera.move(dy=edge_speed(margin - mouse_y))
+            elif mouse_y >= win_h - 1 - margin:
+                self.camera.move(dy=-edge_speed(mouse_y - (win_h - 1 - margin)))
 
     def _center_camera_on(self, x, y):
         self.camera.x = -x * self.camera.zoom + MAP_VIEW_WIDTH / 2

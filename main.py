@@ -21,7 +21,22 @@ import core.config as _config
 from core.settings import Settings
 
 settings = Settings()
-_config.apply_resolution(*settings.get("resolution"))
+_resolution = settings.get("resolution")
+if settings.get("fullscreen"):
+    # §8.2 native fullscreen (user-reported): the old scaled fullscreen
+    # rendered the logical resolution stretched onto the display — on an
+    # ultrawide that pillarboxed the 16:9 image and let the cursor roam the
+    # black bars ("mouse reaches left/right of the game area"). Fullscreen
+    # now renders at the DESKTOP resolution: true edge-to-edge, the screen
+    # boundary IS the game boundary, and wide monitors see more map. The
+    # SCALED blit becomes a crisp 1:1. The settings resolution still governs
+    # windowed mode.
+    try:
+        pygame.display.init()
+        _resolution = list(pygame.display.get_desktop_sizes()[0])
+    except pygame.error:
+        pass
+_config.apply_resolution(*_resolution)
 if settings.get("colorblind_palette"):
     # In-place so modules that imported the list by value see the swap too
     _config.PLAYER_COLORS[:] = _config.PLAYER_COLORS_COLORBLIND

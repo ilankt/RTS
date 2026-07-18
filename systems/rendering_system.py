@@ -23,9 +23,12 @@ class RenderingSystem:
         self._fog_tile_cache = {}
         # Cached scaled object sprites keyed by (id(sprite), width, height)
         self._scaled_sprite_cache = {}
-        # Per-unit visual scale from units.json (render_scale): normalizes
+        # Per-object visual scale from JSON (render_scale): normalizes
         # perceived size across art styles (thin realistic sheets vs chunky
-        # cartoons) without touching collision or gameplay size
+        # cartoons) without touching collision or gameplay size. Buildings
+        # register their construction-site alias too, so a rescaled tower's
+        # foundation shrinks with it (§8.2.2 user report: watchtower drew a
+        # third wider than everything else, temple undersized).
         self._render_scales = {}
         try:
             import json
@@ -34,6 +37,12 @@ class RenderingSystem:
                     scale = unit.get('render_scale')
                     if scale:
                         self._render_scales[unit['name']] = float(scale)
+            with open('data/buildings.json') as f:
+                for building in json.load(f):
+                    scale = building.get('render_scale')
+                    if scale:
+                        self._render_scales[building['name']] = float(scale)
+                        self._render_scales[f"{building['name']}_construction"] = float(scale)
         except (OSError, ValueError):
             pass
 
@@ -272,7 +281,11 @@ class RenderingSystem:
             for obj in group:
                 # Sprites are centered on (x, y) with world extents from size
                 # (in tiles); pad generously so we never cull a drawn sprite.
-                margin = max(obj.radius, obj.size[0] * 32, obj.size[1] * 28) + 8
+                # Height budget uses the full drawn width (size[0]*64): tall
+                # sprites (watchtower) extend far above center, and the old
+                # tighter margin culled their construction fade-in whenever
+                # the site center slipped just off-screen (§8.2.2 bug 7).
+                margin = max(obj.radius, obj.size[0] * 64, obj.size[1] * 56) + 8
                 if (
                     obj.x + margin < left
                     or obj.x - margin > right
@@ -337,6 +350,9 @@ class RenderingSystem:
             return
         sprite_w, sprite_h = sprite.get_size()
         scale = (site.size[0] * TILE_WIDTH) / sprite_w
+        # Same visual scale as the finished building, or the ghost pops to a
+        # different size the moment construction completes.
+        scale *= self._render_scales.get(site.building_name, 1.0)
         width = max(1, int(sprite_w * scale * camera.zoom))
         height = max(1, int(sprite_h * scale * camera.zoom))
         key = (sprite, width, height, False)

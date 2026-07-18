@@ -15,10 +15,11 @@ grid -> status strip. What the tiles DO switches with the selection:
 - own construction site    -> Cancel tile
 - own gate                 -> Open/Close tile
 
-Grid hotkeys are position-mapped (card_slot_0..7 = Q W / A S / Z X / C V by
-default, rebindable via keybindings.json). A slot key is only consumed while
-a tile occupies that slot; otherwise it falls through to the global bindings
-and to WASD camera pan.
+Grid hotkeys are position-mapped (card_slot_0..7 = Q E R T / Z X C V by
+default, rebindable via keybindings.json — deliberately WASD-free so camera
+pan always works, and number-free because 1-9/numpad are control groups).
+A slot key is only consumed while a tile occupies that slot; otherwise it
+falls through to the global bindings. Space swaps the build tabs.
 """
 import json
 import math
@@ -389,12 +390,17 @@ class CommandCard:
         content['context'] = 'market'
         content['building'] = market
         for row, resource in enumerate(MARKET_TRADEABLE):
+            # §8.2.2 fix (user-reported): tiles showed the market BUILDING
+            # icon eight times over. Each tile now carries the traded
+            # resource's glyph, with Sell/Buy + gold delta on the scrim
+            # (sell green, buy red) — left column sells, right column buys.
             can_sell = market_rules.can_sell(human, resource)
             content['slots'][row * 2] = {
                 'kind': 'trade', 'direction': 'sell', 'resource': resource,
                 'label': f'Sell {MARKET_TRADE_LOT} {resource.title()}',
-                'icon': self._icon('building', 'market'),
-                'cost': f'+{MARKET_SELL_GOLD}G',
+                'icon': self._trade_icon(resource),
+                'cost': f'Sell +{MARKET_SELL_GOLD}g',
+                'label_color': (150, 220, 150),
                 'enabled': can_sell,
                 'reason': 'Ready' if can_sell else f'Need {MARKET_TRADE_LOT} {resource}',
                 'tooltip': [f'Sell {MARKET_TRADE_LOT} {resource} for {MARKET_SELL_GOLD} gold',
@@ -404,13 +410,21 @@ class CommandCard:
             content['slots'][row * 2 + 1] = {
                 'kind': 'trade', 'direction': 'buy', 'resource': resource,
                 'label': f'Buy {MARKET_TRADE_LOT} {resource.title()}',
-                'icon': self._icon('building', 'market'),
-                'cost': f'-{MARKET_BUY_GOLD}G',
+                'icon': self._trade_icon(resource),
+                'cost': f'Buy -{MARKET_BUY_GOLD}g',
+                'label_color': (230, 160, 140),
                 'enabled': can_buy,
                 'reason': 'Ready' if can_buy else f'Need {MARKET_BUY_GOLD} gold',
                 'tooltip': [f'Buy {MARKET_TRADE_LOT} {resource} for {MARKET_BUY_GOLD} gold',
                             'Shift: trade 5 lots.'],
             }
+
+    def _trade_icon(self, resource):
+        """Resource glyph sized for a tile; market icon as a fallback."""
+        glyph = self.icon_loader.get_cost_glyph(resource, self.TILE_ICON_FILL - 14)
+        if glyph is None:
+            return self._icon('building', 'market')
+        return glyph
 
     def _fill_gate(self, content, gate):
         content['context'] = 'gate'
@@ -537,19 +551,34 @@ class CommandCard:
                 panel_surface.blit(text, (chip.centerx - text.get_width() // 2,
                                           chip.centery - text.get_height() // 2))
                 self._chip_rects.append((tab, chip.move(ui_x, ui_y)))
-            # tab-swap hint
-            hint = self.key_font.render("E", True, (140, 140, 120))
+            # tab-swap hint (derived from the binding; "space" shows as Spc)
+            game_bindings = getattr(self.game, 'keybindings', None)
+            swap_key = (game_bindings.bindings.get("card_tab_swap", "space")
+                        if game_bindings else "space")
+            hint_text = "Spc" if swap_key == "space" else swap_key.upper()[:3]
+            hint = self.key_font.render(hint_text, True, (140, 140, 120))
             panel_surface.blit(hint, (grid_x + 2 * self.TILE_W + self.TILE_GAP - 8,
                                       self.CHIPS_TOP - 12))
 
-        # Fixed 2x4 tile grid — empty slots draw as faint sockets so the
-        # position-mapped hotkeys always point at the same spot on screen
-        for i in range(self.GRID_COLS * self.GRID_ROWS):
-            row, col = divmod(i, self.GRID_COLS)
+        # Tile grid. The BUILD card keeps its fixed 2x4 sockets — tiles come
+        # and go there as requirements change, and the position-mapped
+        # hotkeys should always point at the same spot on screen. Every
+        # other context has a static tile set, so it draws ONLY its occupied
+        # tiles, compacted to the top of the grid — no columns of dead
+        # sockets pushing Stop/Stance/Formation to the panel floor
+        # (user-reported). Hotkey badges keep their slot-mapped keys.
+        if content['context'] == 'build':
+            placements = [(i, i, content['slots'][i])
+                          for i in range(self.GRID_COLS * self.GRID_ROWS)]
+        else:
+            occupied = [(i, s) for i, s in enumerate(content['slots']) if s is not None]
+            placements = [(i, visual, s) for visual, (i, s) in enumerate(occupied)]
+
+        for i, visual, slot in placements:
+            row, col = divmod(visual, self.GRID_COLS)
             tile = pygame.Rect(grid_x + col * (self.TILE_W + self.TILE_GAP),
                                self.GRID_TOP + row * (self.TILE_H + self.TILE_GAP),
                                self.TILE_W, self.TILE_H)
-            slot = content['slots'][i]
             screen_tile = tile.move(ui_x, ui_y)
             if slot is None:
                 # Warm stone socket (not flat black) so empty slots still read
@@ -620,7 +649,9 @@ class CommandCard:
         else:
             label = slot.get('cost') or slot.get('label') or ''
             if label:
-                if slot['kind'] in ('stance', 'formation'):
+                if slot.get('label_color') and slot['enabled']:
+                    label_color = slot['label_color']
+                elif slot['kind'] in ('stance', 'formation'):
                     label_color = (185, 210, 240)
                 else:
                     label_color = (235, 235, 220) if slot['enabled'] else (210, 140, 130)

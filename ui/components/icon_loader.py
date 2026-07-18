@@ -6,7 +6,10 @@ import json
 # number, unlike the framed *_icon.png plates. Kept in a fixed order so the
 # eye learns each resource's position in a cost row.
 COST_GLYPH_ORDER = ('gold', 'wood', 'stone', 'food')
-GLYPH_NAMES = COST_GLYPH_ORDER + ('time',)
+# 'attack'/'armor'/'range'/'speed' are the unit-stat glyphs (§8.2.2: the
+# selection header shows numbers beside glyphs, not text labels). 'speed' is
+# the flat-style hourglass — 'time' stays the cost-row duration glyph.
+GLYPH_NAMES = COST_GLYPH_ORDER + ('time', 'attack', 'armor', 'range', 'speed')
 
 
 class IconLoader:

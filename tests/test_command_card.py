@@ -120,7 +120,7 @@ def test_tab_swap_hotkey_and_memory(game, card):
     select(game, own_worker(game))
     card.refresh()
 
-    assert card.handle_hotkey(key("e")) is True
+    assert card.handle_hotkey(key("space")) is True
     content = card.refresh()
     names = [slot['name'] for slot in content['slots'] if slot]
     # wall/wooden_wall/gate are deferred (buildable:false in data) so the menu
@@ -437,16 +437,21 @@ def test_select_all_military_production(game, card):
 def test_consumes_key_only_for_occupied_slots(game, card):
     # Nothing selected: never consume
     card.refresh()
-    assert not card.consumes_key(key("a"))
+    assert not card.consumes_key(key("r"))
 
-    # Worker (economy tab): a=lumbermill occupied, d unbound
+    # Worker (economy tab): r=lumbermill occupied (2026-07-18 WASD-free
+    # layout: Q E R T / Z X C V), d unbound
     select(game, own_worker(game))
     card.refresh()
-    assert card.consumes_key(key("a"))
-    assert card.consumes_key(key("e"))  # tab swap while chips visible
+    assert card.consumes_key(key("r"))
+    assert card.consumes_key(key("space"))  # tab swap while chips visible
     assert not card.consumes_key(key("d"))
+    # WASD is NEVER a card key now — camera pan always wins (user decision)
+    assert not card.consumes_key(key("w"))
+    assert not card.consumes_key(key("a"))
+    assert not card.consumes_key(key("s"))
 
-    # Army: top rows empty so W/A/S pan; Z (stop) is consumed
+    # Army: Z (stop) is consumed; WASD still free
     warrior = spawn_own_unit(game, "warrior", 700, 700)
     select(game, warrior)
     card.refresh()
