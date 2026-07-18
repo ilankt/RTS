@@ -96,7 +96,7 @@ def test_open_terrain_returns_direct_path():
 def test_water_barrier_returns_clean_failure():
     game_map = FakeMap(width=8, height=5)
     for row in range(game_map.height):
-        game_map.grid[row][3] = "water"
+        game_map.grid[row][3] = "water_shallow"
     pathfinder, _ = make_pathfinder(game_map)
 
     result = pathfinder.find_result((80, 160), (420, 160), unit_radius=8)
@@ -137,10 +137,10 @@ def test_unreachable_enclosed_goal_fails():
     game_map = FakeMap(width=7, height=7)
     for row in (2, 4):
         for col in range(2, 5):
-            game_map.grid[row][col] = "water"
+            game_map.grid[row][col] = "water_shallow"
     for row in range(2, 5):
         for col in (2, 4):
-            game_map.grid[row][col] = "water"
+            game_map.grid[row][col] = "water_shallow"
     pathfinder, _ = make_pathfinder(game_map)
 
     result = pathfinder.find_result((64, 224), (224, 224), unit_radius=4)
@@ -168,7 +168,7 @@ def test_mark_dirty_rebuilds_static_occupancy():
 
 def test_navigation_index_matches_reference_walkability_for_static_blockers():
     game_map = FakeMap(width=8, height=8)
-    game_map.grid[3][3] = "water"
+    game_map.grid[3][3] = "water_shallow"
     pathfinder, game = make_pathfinder(game_map)
     game.buildings.append(FakeObject("house", x=160, y=96, radius=28))
     game.resources.append(FakeResource("wood", x=288, y=96, radius=20))
@@ -266,8 +266,8 @@ def test_navigation_index_matches_reference_walkability_dense_sweep():
     mutations (depleted resource, destroyed building) + mark_dirty."""
     game_map = FakeMap(width=10, height=10)
     for row in range(2, 5):
-        game_map.grid[row][6] = "water"
-    game_map.grid[7][2] = "lava"
+        game_map.grid[row][6] = "water_shallow"
+    game_map.grid[7][2] = "water_deep"
     pathfinder, game = make_pathfinder(game_map)
 
     house = FakeObject("house", x=160, y=96, radius=28)
@@ -302,7 +302,7 @@ def test_incremental_blocker_updates_match_reference():
     as a full rebuild, including cache invalidation in the changed region."""
     game_map = FakeMap(width=10, height=10)
     for row in range(2, 5):
-        game_map.grid[row][6] = "water"
+        game_map.grid[row][6] = "water_shallow"
     pathfinder, game = make_pathfinder(game_map)
 
     def sweep():
@@ -424,7 +424,7 @@ def test_jps_matches_plain_astar_cost_on_random_maps(monkeypatch):
     for trial in range(30):
         game_map = FakeMap(width=12, height=12)
         for _ in range(rng.randint(4, 14)):
-            game_map.grid[rng.randrange(12)][rng.randrange(12)] = "water"
+            game_map.grid[rng.randrange(12)][rng.randrange(12)] = "water_shallow"
         pathfinder, game = make_pathfinder(game_map)
         for _ in range(rng.randint(0, 4)):
             game.buildings.append(
@@ -478,7 +478,8 @@ def reference_terrain_walkable(game_map, x, y, cell_size=20):
         if grid_pos is None:
             return False
         col, row = grid_pos
-        if game_map.grid[row][col] in {"water", "lava"}:
+        from core.config import BLOCKED_TERRAIN
+        if game_map.grid[row][col] in BLOCKED_TERRAIN:
             return False
     return True
 

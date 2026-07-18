@@ -60,7 +60,7 @@ def test_pathfinder_terrain_bitmap_follows_the_restored_ground(saves):
     SaveManager.save_game(game, slot=1)
 
     # Corrupt the live terrain + its derived bitmap, then load it back
-    game.game_map.grid = [["water" for _ in range(game.game_map.width)]
+    game.game_map.grid = [["water_shallow" for _ in range(game.game_map.width)]
                           for _ in range(game.game_map.height)]
     game.pathfinder.rebuild_terrain()
     bitmap = lambda: sum(sum(row) for row in game.pathfinder.grid._terrain_bitmap)

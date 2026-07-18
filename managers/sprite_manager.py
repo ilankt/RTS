@@ -112,6 +112,14 @@ class SpriteManager:
         for resource_name, resource_data in self.game_data["resources"].items():
             sprites["resources"][resource_name] = pygame.image.load(resource_data.sprite).convert_alpha()
 
+        # §11.1 biome-matched trees: wood placed on desert renders the
+        # desert tree (resource.sprite_variant = "wood_desert")
+        try:
+            sprites["resources"]["wood_desert"] = pygame.image.load(
+                "assets/sprites/Resources/TREE_DESERT.png").convert_alpha()
+        except (pygame.error, FileNotFoundError):
+            pass  # generic tree everywhere when the variant art is missing
+
         # Load and tint unit animation sheets
         for unit_name, unit_data in self.game_data["units"].items():
             sprites["units"][unit_name] = {}
@@ -130,8 +138,12 @@ class SpriteManager:
         return self.sprites["buildings"][building_name][player_index]
     
     def get_resource_sprite(self, resource_name):
-        """Get a resource sprite (no tinting)"""
-        return self.sprites["resources"][resource_name]
+        """Get a resource sprite (no tinting). Unknown variant names fall
+        back to the base wood sprite rather than KeyError."""
+        sprite = self.sprites["resources"].get(resource_name)
+        if sprite is None and "_" in resource_name:
+            sprite = self.sprites["resources"].get(resource_name.split("_")[0])
+        return sprite
     
     def get_unit_animation_sheet(self, unit_name, animation_name, player_index):
         """Get a tinted unit animation sheet for a specific player"""

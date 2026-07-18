@@ -92,9 +92,37 @@ def assert_image(relative_path: str, expected_size: tuple[int, int] | None) -> N
                 raise AssertionError(f"{relative_path}: expected transparent corners, got {corners}")
 
 
+def verify_tileset(failures: list) -> None:
+    """§11.1: the terrain sheet's geometry is load-bearing — its size must
+    match what tileset.json slices (3 columns x however many rows the base
+    layout + variants occupy, 128x112 each). Manifest-driven because
+    tools/build_tileset_from_textures.py grows the sheet with variants."""
+    import json
+
+    manifest_path = ROOT / "assets" / "tiles" / "tileset.json"
+    sheet_path = ROOT / "assets" / "tiles" / "tileset.png"
+    if not manifest_path.exists() or not sheet_path.exists():
+        failures.append("missing assets/tiles/tileset.png or tileset.json")
+        return
+    manifest = json.loads(manifest_path.read_text())
+    cells = []
+    for tile in manifest["tiles"]:
+        cells.append(tile["location"])
+        cells.extend(tile.get("variants", []))
+    cols = max(c for c, _ in cells) + 1
+    rows = max(r for _, r in cells) + 1
+    expected = (cols * manifest["tile_width"], rows * manifest["tile_height"])
+    actual = Image.open(sheet_path).size
+    if actual != expected:
+        failures.append(
+            f"tileset.png is {actual[0]}x{actual[1]} but tileset.json "
+            f"slices {expected[0]}x{expected[1]}")
+
+
 def main() -> int:
     referenced = referenced_asset_paths()
     failures = []
+    verify_tileset(failures)
 
     for relative_path in sorted(referenced):
         if not exact_case_exists(relative_path):

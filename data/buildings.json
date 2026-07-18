@@ -140,7 +140,7 @@
     "buildable": true,
     "strong_against": [],
     "weak_against": [],
-    "sprite": "assets/sprites/Buildings/quarry.png",
+    "sprite": "assets/sprites/Buildings/Quarry.png",
     "size": [
       1.5,
       1.5

@@ -82,32 +82,10 @@ def test_is_resisted_by_flags_type_disadvantage():
     assert is_resisted_by(spearman, enemy_archer)
 
 
-def test_forest_cover_multiplier_behind_flag(monkeypatch):
-    """§8.4 position matters: forest reduces damage taken, only when flagged on."""
-    from types import SimpleNamespace
+def test_forest_cover_mechanic_is_gone():
+    """§11.1 roster simplification: the forest tile and its cover mechanic
+    were removed together (user decision 2026-07-18)."""
     import systems.combat_rules as rules
 
-    class TinyMap:
-        grid = [["grass", "forest"]]
-
-        def world_to_grid(self, x, y):
-            return (1, 0) if x >= 64 else (0, 0)
-
-    monkeypatch.setattr(rules, "_game_map", TinyMap())
-    in_forest = SimpleNamespace(name="archer", x=100.0, y=10.0)
-    in_open = SimpleNamespace(name="archer", x=10.0, y=10.0)
-
-    # Flag off (the default): no effect anywhere
-    monkeypatch.setattr(rules, "COMBAT_TERRAIN_COVER_ENABLED", False)
-    assert rules.terrain_cover_multiplier(in_forest) == 1.0
-
-    monkeypatch.setattr(rules, "COMBAT_TERRAIN_COVER_ENABLED", True)
-    assert rules.terrain_cover_multiplier(in_forest) == rules.COMBAT_FOREST_COVER_MULTIPLIER
-    assert rules.terrain_cover_multiplier(in_open) == 1.0
-
-    # Buildings never get cover
-    from entities.building import Building
-    building = Building(name="barracks", size=[2, 2], hp=100, sprite=None,
-                        build_duration=1, x=100, y=10, radius=48,
-                        armor_type="fortified")
-    assert rules.terrain_cover_multiplier(building) == 1.0
+    assert not hasattr(rules, "terrain_cover_multiplier")
+    assert not hasattr(rules, "set_terrain_provider")

@@ -1,5 +1,5 @@
 import math
-from core.config import DEBUG_MOVEMENT
+from core.config import DEBUG_MOVEMENT, BLOCKED_TERRAIN
 from entities.unit import STANCE_AGGRESSIVE, STANCE_DEFENSIVE, STANCE_NO_ATTACK, STANCE_STAND_GROUND
 from systems.combat_rules import (
     calculate_damage as calculate_combat_damage,
@@ -83,7 +83,7 @@ class CombatSystem:
                 col, row = hex_coord
                 if row < 0 or row >= self.game_map.height or col < 0 or col >= self.game_map.width:
                     continue
-                if self.game_map.grid[row][col] in {"water", "lava"}:
+                if self.game_map.grid[row][col] in BLOCKED_TERRAIN:
                     continue
 
             # Check for collision with buildings

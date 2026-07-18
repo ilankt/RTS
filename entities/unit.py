@@ -1,6 +1,6 @@
 import pygame
 from entities.game_object import GameObject
-from core.config import WORKER_CAPACITY, DEBUG_MOVEMENT
+from core.config import WORKER_CAPACITY, DEBUG_MOVEMENT, BLOCKED_TERRAIN
 from systems.combat_rules import (
     calculate_damage as calculate_combat_damage,
     effective_attack_range,
@@ -328,7 +328,7 @@ class Unit(GameObject):
                     hex_coord = game_map.world_to_grid(check_x, check_y)
                     if hex_coord and 0 <= hex_coord[1] < len(game_map.grid) and 0 <= hex_coord[0] < len(game_map.grid[0]):
                         tile_type = game_map.grid[hex_coord[1]][hex_coord[0]]
-                        if tile_type in {"water", "lava"}:
+                        if tile_type in BLOCKED_TERRAIN:
                             return False
 
                 # Check obstacles with improved collision detection

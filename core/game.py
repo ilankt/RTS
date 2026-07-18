@@ -100,6 +100,8 @@ class Game:
         self.resources = []
         self.construction_sites = []
         self.fountains = []  # §8.9 neutral healing fountains
+        self.mountains = []  # §11.2 impassable mountain props
+        self.props = []      # §11.2 world props (rocks/dead trees/ruins)
         self.debug_overlay = False
         self.frame_counter = 0
         
@@ -115,8 +117,6 @@ class Game:
         self.pathfinder = Pathfinding(self.game_map, self)
         from systems.dynamic_events import DynamicEventSystem
         self.dynamic_events = DynamicEventSystem(self)  # §7.5 random_events mutator
-        from systems.combat_rules import set_terrain_provider
-        set_terrain_provider(self.game_map)  # §8.4 flagged forest cover
         
         # Initialize new systems
         self.movement_system = MovementSystem(self)
@@ -1298,13 +1298,17 @@ class Game:
         self._stinger_played = False
         self._human_combat_until = 0.0
         self.worker_task_system = WorkerTaskSystem(self)
-        for obj in self.buildings + self.units + self.resources + self.construction_sites + self.fountains:
+        for obj in (self.buildings + self.units + self.resources
+                    + self.construction_sites + self.fountains + self.mountains
+                    + self.props):
             obj.in_world = False
         self.buildings.clear()
         self.units.clear()
         self.resources.clear()
         self.construction_sites.clear()
         self.fountains.clear()
+        self.mountains.clear()
+        self.props.clear()
         self.frame_counter = 0
         self.sim_time_elapsed = 0.0
         self.stats_units_trained = {}

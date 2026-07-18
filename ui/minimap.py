@@ -28,12 +28,21 @@ class Minimap:
         self._pings = []
 
     def create_map_texture(self):
-        map_texture = pygame.Surface((self.game.game_map.width, self.game.game_map.height))
-        for y, row in enumerate(self.game.game_map.grid):
+        game_map = self.game.game_map
+        # One color per tile NAME (not per cell): averaged across the
+        # tile's §11.1 variants so future variant art can't skew the map
+        # tint toward whichever variant happens to be the base
+        variants = getattr(game_map, "tile_variants", None)
+        name_color = {}
+        for name, image in game_map.tile_images.items():
+            surfaces = (variants or {}).get(name) or [image]
+            colors = [pygame.transform.average_color(s) for s in surfaces]
+            name_color[name] = tuple(
+                sum(c[i] for c in colors) // len(colors) for i in range(3))
+        map_texture = pygame.Surface((game_map.width, game_map.height))
+        for y, row in enumerate(game_map.grid):
             for x, tile_name in enumerate(row):
-                tile_image = self.game.game_map.tile_images[tile_name]
-                avg_color = pygame.transform.average_color(tile_image)
-                map_texture.set_at((x, y), avg_color)
+                map_texture.set_at((x, y), name_color[tile_name])
         return pygame.transform.scale(map_texture, (self.width, self.height))
 
     def handle_click(self, mouse_pos):
@@ -102,6 +111,26 @@ class Minimap:
             color = getattr(building.player, "color", (220, 220, 220))
             pygame.draw.rect(self._dots_surface, (25, 25, 25), (mini_x - 2, mini_y - 2, 5, 5))
             pygame.draw.rect(self._dots_surface, color, (mini_x - 1, mini_y - 1, 3, 3))
+
+        # §11.2 landmark props (ruins): brown dot, explored-gated; small
+        # props (rocks, dead trees) stay off the minimap — noise at 2px
+        for prop in getattr(game, "props", ()):
+            if prop.radius < 50:
+                continue
+            if fog_on and human and not fog.is_explored(human, prop.x, prop.y):
+                continue
+            mini_x, mini_y = self.world_to_mini(prop.x, prop.y)
+            pygame.draw.rect(self._dots_surface, (128, 108, 82),
+                             (mini_x - 1, mini_y - 1, 4, 4))
+
+        # §11.2 mountains: dark-gray landmark blobs, explored-gated
+        for mountain in getattr(game, "mountains", ()):
+            if fog_on and human and not fog.is_explored(human, mountain.x, mountain.y):
+                continue
+            mini_x, mini_y = self.world_to_mini(mountain.x, mountain.y)
+            side = max(3, int(mountain.radius / 24))
+            pygame.draw.rect(self._dots_surface, (78, 74, 70),
+                             (mini_x - side // 2, mini_y - side // 2, side, side))
 
         # §8.9 healing fountains: neutral map objective — always worth seeing.
         # Cyan like the healing motes; gated on exploration like buildings.

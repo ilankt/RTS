@@ -25,6 +25,40 @@ MAP_SIZES = {
 TILE_WIDTH = 64
 TILE_HEIGHT = 56
 
+# --- Terrain categories (§11.4/§11.1) — THE definition of what terrain is.
+# Every system asks these sets, never a local literal. Roster simplified
+# 2026-07-18 (user decision): 4 grounds + 2 waters. Everything that used to
+# be a special tile (forest, mountains, lava) is a PROP placed on these
+# grounds — trees are choppable resources with biome sprites, mountains are
+# huge impassable objects (§11.2). Adding a terrain type — or changing what
+# blocks/spawns/builds — is a one-line change here.
+TERRAIN_TYPES = {
+    "grass", "desert", "swamp", "dirt", "water_shallow", "water_deep",
+}
+WATER_TERRAIN = {"water_shallow", "water_deep"}
+# Units cannot walk here, buildings cannot stand here (nav bitmap, collision,
+# placement, spawn probes, and the watchdog all key off this ONE set).
+BLOCKED_TERRAIN = set(WATER_TERRAIN)
+BUILDABLE_TERRAIN = TERRAIN_TYPES - BLOCKED_TERRAIN
+# Where castles/spawns may generate (map.py start-location search) — no
+# castles in the bog.
+SPAWN_SAFE_TERRAIN = {"grass", "desert", "dirt"}
+# Where each resource type may be placed by world generation. Swamps are
+# wood-rich, mineral deposits favor open/dry ground; desert wood uses the
+# TREE_DESERT sprite.
+RESOURCE_TERRAIN = {
+    "gold": {"grass", "desert", "dirt"},
+    "stone": {"grass", "desert", "dirt"},
+    "wood": {"grass", "swamp", "desert"},
+}
+# Old-roster names found in pre-simplification saves map onto the new
+# roster on load (blocked stays blocked, walkable stays walkable).
+LEGACY_TERRAIN = {
+    "plains": "grass", "forest": "grass", "cracked_dirt": "dirt",
+    "desert_hills": "desert", "stone": "dirt", "rocky": "dirt",
+    "dark_stone": "dirt", "lava": "water_deep", "water": "water_shallow",
+}
+
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -222,15 +256,9 @@ MARKET_TRADEABLE = ("wood", "food", "stone")
 COMBAT_BONUS_VS_TAGS_ENABLED = True
 COMBAT_BONUS_VS_TAG_MULTIPLIER = 1.5
 
-# §8.4 "position matters" — units standing in forest take reduced damage,
-# making wooded ground a defensive lever. Default ON since the 2026-07-13
-# same-seed A/B (tools/balance_12_cover_{off,on}.json): identical win rates,
-# 0 timeouts, and ram reliance dropped 32%→20% with cover on.
-# Override for A/B sim runs with the RTS_TERRAIN_COVER env var (1/0).
-import os as _os
-
-COMBAT_TERRAIN_COVER_ENABLED = _os.environ.get("RTS_TERRAIN_COVER", "1").strip().lower() in {"1", "true", "on", "yes"}
-COMBAT_FOREST_COVER_MULTIPLIER = 0.85  # damage taken by a unit in forest
+# (§8.4 forest cover removed 2026-07-18: the forest tile left the roster —
+# forests are tree props now — and the user dropped the cover mechanic
+# with it. See PLAN_ARCHIVE §8.4 for the old cover-on evidence.)
 
 # Debug Configuration
 DEBUG_PATHFINDING = False  # Enable/disable pathfinding debug output

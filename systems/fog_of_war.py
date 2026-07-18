@@ -244,6 +244,8 @@ class FogOfWar:
             return
         self.resource_ghosts[(r, c, resource.name)] = {
             "name": resource.name, "x": resource.x, "y": resource.y,
+            # §11.1 biome trees: the ghost keeps the biome look too
+            "variant": getattr(resource, "sprite_variant", None),
         }
 
     def clear_ghost_at(self, wx: float, wy: float, name: str) -> None:

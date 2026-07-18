@@ -1,5 +1,6 @@
 import math
-from core.config import (GATHERING_RATES, DROP_OFF_BUILDINGS, DROP_OFF_DELAY,
+from core.config import (BLOCKED_TERRAIN,
+                         GATHERING_RATES, DROP_OFF_BUILDINGS, DROP_OFF_DELAY,
                          FARM_FOOD_AMOUNT, FARM_FOOD_INTERVAL,
                          WORKER_SATURATION_ENABLED, WORKER_SATURATION_CAP)
 from systems.upgrade_effects import effective_gather_rate_multiplier
@@ -424,6 +425,8 @@ class GatheringManager:
                     )
                     tree.x = x
                     tree.y = y
+                    from entities.resource import assign_biome_sprite
+                    assign_biome_sprite(tree, self.game.game_map)
                     self.game.resources.append(tree)
                     self.game.pathfinder.notify_blocker_added(tree)
                     # The remembered tree is real again — drop any fog ghost
@@ -527,7 +530,7 @@ class GatheringManager:
             if (0 <= row < len(self.game.game_map.grid) and 
                 0 <= col < len(self.game.game_map.grid[row])):
                 tile_type = self.game.game_map.grid[row][col]
-                if tile_type in {"water", "lava"}:
+                if tile_type in BLOCKED_TERRAIN:
                     return False
         
         # Check collision with buildings (allow some overlap with resources and units)

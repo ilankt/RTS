@@ -1,7 +1,7 @@
 import math
 import pygame
 from entities import Building, ConstructionSite
-from core.config import TILE_WIDTH, TILE_HEIGHT, TOP_BAR_HEIGHT
+from core.config import TILE_WIDTH, TILE_HEIGHT, TOP_BAR_HEIGHT, BLOCKED_TERRAIN
 from systems.upgrade_effects import effective_build_speed_multiplier, has_required_buildings
 from utils.debug_logger import debug_log
 
@@ -111,12 +111,16 @@ class BuildingSystem:
         hex_coord = self.game_map.world_to_grid(world_pos[0], world_pos[1])
         if not hex_coord:
             return False
-        if self.game_map.grid[hex_coord[1]][hex_coord[0]] in {"water", "lava"}:
+        if self.game_map.grid[hex_coord[1]][hex_coord[0]] in BLOCKED_TERRAIN:
             return False
         radius = self.building_to_place['size'][0] * TILE_WIDTH / 2
         wall_names = ("wall", "wooden_wall", "gate")
         all_objects = (self.game.buildings + self.game.units +
-                       self.game.resources + self.game.construction_sites)
+                       self.game.resources + self.game.construction_sites +
+                       list(getattr(self.game, "fountains", ())) +
+                       list(getattr(self.game, "mountains", ())) +
+                       [p for p in getattr(self.game, "props", ())
+                        if getattr(p, "blocks", False)])
         for obj in all_objects:
             if obj is self.selected_builder:
                 continue
@@ -229,7 +233,7 @@ class BuildingSystem:
 
         # Check terrain type
         tile_type = self.game_map.grid[hex_coord[1]][hex_coord[0]]
-        if tile_type in {"water", "lava"}:
+        if tile_type in BLOCKED_TERRAIN:
             return False
 
         # §8.11: no building on unexplored ground — same rule the AI follows
@@ -481,7 +485,7 @@ class BuildingSystem:
                                 col, row = grid_pos
                                 if 0 <= col < self.game.game_map.width and 0 <= row < self.game.game_map.height:
                                     terrain = self.game.game_map.grid[row][col]
-                                    if terrain not in ["water", "lava"]:
+                                    if terrain not in BLOCKED_TERRAIN:
                                         # Safe to nudge
                                         site.builder.x = nudge_pos_x
                                         site.builder.y = nudge_pos_y

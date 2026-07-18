@@ -352,24 +352,45 @@ Two facts that set the scope:
   hand-painted art shows obvious repetition. This is why the decision is reskin **+
   variants**, not reskin alone.
 
-- [ ] **New hand-painted tileset** matching the buildings' house style (crisp dark
-  outlines, soft upper-left light, stylized medieval) — *not* photo-texture. Same
-  12 names. Geometry may change via `tileset.json` if the art wants it.
-- [ ] **Per-tile variants** *(low, ~30 lines)* — `tile_images[name] → list[Surface]`,
-  deterministic pick (`hash(row, col) % len`) so a seed still reproduces the look,
-  cache key `(name, variant)`. Touches `map.py:24-46, 433-434` and `minimap.py:34`
-  (average across variants). 2–4 variants for high-coverage types (grass, plains,
-  desert, water); 1 is fine for rare ones.
-- [ ] **Pin the sheet** in `tools/verify_visual_assets.py`.
-- [ ] *(stretch, cheap)* **Water fringe** — one shoreline overlay blitted only where
-  `grid[r][c] != neighbour` across a water/land boundary. Biggest visual delta per
-  line of code; softens the worst seam without an autotiler.
-- **Deliberately NOT doing: hex autotiling.** Full 6-bit edge masks + transition art
-  is the one genuinely structural item here — flat-top hex has **parity-dependent
-  neighbour offsets that exist nowhere in the codebase** (the smoothing pass at
-  `map.py:187-192` iterates a *square 3×3*, which is already subtly wrong for hex
-  adjacency, and would need fixing first). Revisit only if variants+fringe prove
-  insufficient.
+**ROSTER SIMPLIFIED 2026-07-18 (user decision):** the 12-type photo-texture
+roster is gone. New roster: **grass, desert, swamp, dirt + water_shallow,
+water_deep** (6 names, 3×2 sheet, 384×224). Forest/mountain/lava tiles are
+PROPS now: trees = choppable resources with biome sprites (desert wood uses
+`TREE_DESERT.png`, wired), mountains = §11.2 props (landed same day), the
+forest-cover combat mechanic dropped with the forest tile (user decision —
+the new-world balance baseline supersedes the old cover-on evidence).
+Old saves load via `LEGACY_TERRAIN` name mapping. Generation rewritten:
+elevation/moisture → 6 types, deep water always ringed by shallow, spawns
+confined to the largest land component (a water-sealed "safe" pocket used
+to be a valid spawn — found by the mountain-reachability BFS).
+
+- [ ] **New hand-painted tileset** matching the buildings' house style — *not*
+  photo-texture. The **6 new names**; prompts ready in
+  `REQUIRED_VISUAL_ASSET_PROMPTS.md` ("Terrain Tileset"). Until it lands the
+  game runs on a placeholder sheet derived from the legacy art
+  (`tools/build_placeholder_tileset.py`; swamp = recolored forest,
+  water_deep = darkened water).
+- [x] **Per-tile variants** — *landed 2026-07-18.* `tile_variants[name] →
+  list[Surface]`, deterministic per-coordinate pick (never the seeded RNG),
+  `tileset.json` accepts `"variants": [[col,row],…]` per tile; until real
+  variant art exists, all 6 types get 4 FREE derived variants
+  (hex-symmetric flips + 180°). Minimap averages across variants.
+  `tests/test_tile_variants.py`.
+- [x] **Pin the sheet** in `tools/verify_visual_assets.py` (384×224).
+- [x] **Edge transitions (supersedes the water-fringe stretch item AND the
+  deferred autotiling)** — *landed 2026-07-18 (user request).* Procedural
+  texture splatting, no transition art ever needed: the higher
+  `TERRAIN_BLEND_PRIORITY` terrain feathers ~30 px (sheet res) into its
+  lower-priority hex neighbours through 6 per-direction alpha masks +
+  pre-blended per-terrain overlays, precomputed per map cell
+  (`Map.build_transitions`, rebuilt on save-restore) and blitted over
+  boundary tiles only. The old blocker — "parity-dependent neighbour
+  offsets exist nowhere in the codebase" — died when `Map.hex_neighbors`
+  landed for the mountain BFS; its direction order (N S NW SW NE SE) IS
+  the mask order, parity-tested in `tests/test_tile_transitions.py`.
+  Because overlays derive from the live tile images, the hand-painted
+  sheet upgrades the transitions automatically. Measured: 2.49 → 2.75
+  ms/frame full draw (+0.26 ms), 989 boundary cells on a 70×70 map.
 - **✅ Verify:** a screenshot of grass/desert/forest fields at zoom 1.0 shows no
   obvious repeating pattern; biome boundaries don't read as a hard sawtooth; the
   minimap still looks right (it's derived); `pytest` green; zoom in/out costs the
@@ -399,40 +420,58 @@ enough)** → render group tuple (`rendering_system.py:263`) → sprite fn → *
 (`save_manager.py:47` + rebuild)** → reset (`game.py:1232,1238`) → optional AI
 awareness (`context.py`).
 
-- [ ] **Mountain prop** — large `radius`/`size` (fountain uses `radius=70, size=[3,3]`),
-  `invulnerable`, blocking. Sprites: user-generated later; ship behind the procedural
-  placeholder.
-- [ ] **Cluster placement so mountains form ridges, not confetti** — scattered
-  singletons will read as rubble. Reuse the gaussian-cluster approach from
-  `_place_forest_clusters` (`game_state.py:315-389`). **This is where mountains earn
-  their keep: a ridge is a chokepoint.**
-- [ ] **⚠ Validate reachability after placing** — a ridge that seals a spawn or
-  orphans a resource is a match-ruining bug, and the terrain connected-components
-  machinery (`pathfinding._build_terrain_components`) only models *terrain*, not
-  props. Placement must verify every spawn and resource still has an open approach.
-- [ ] **Oasis prop** — `invulnerable`, **non-blocking** (either `passable=True` or
-  simply never call `notify_blocker_added`). **Cheapest of everything here:** the
-  generator *already* has an oasis rule (`map.py:209-211`, arid tile with ≥2 water
-  neighbours → grass), so the setup exists; `dirt`/`grass`/`water` tiles exist; and
-  **`assets/sprites/Resources/TREE_DESERT.png` is already on disk, referenced by
-  nothing** — free art. Sketch: `_place_oasis` finds a desert region, stamps a small
-  `water` disc into `grid` **inside `generate_perlin_map`** (do it after `Pathfinding`
-  is constructed and you must call `pathfinder.rebuild_terrain()`; do it during
-  generation and it's free), then scatters desert-tree props.
-- [ ] Decide whether mountains/oases affect the terrain-cover table
-  (`COMBAT_FOREST_COVER_MULTIPLIER`, `config.py:216`) — terrain already has combat
-  meaning; new world objects should make a deliberate choice, not inherit one.
-- [ ] **Re-baseline §8.8 if mountains block meaningfully.** Chokepoints change AI
-  attack pathing, walling, and tower value. Same-seed 12-match battery before/after.
-- **✅ Verify:** mountains appear as ridges that units path *around* cleanly (no new
-  stuck cases — cross-check against §8.13.3); no spawn or resource is ever sealed off
-  across 12 seeded maps; oases read as oases; props survive save/load; the §8.8 battery
-  shows no personality collapse.
-
-*(Note: `game_state.py:306` already tests `grid[r][c] in {"water","lava","mountain"}` —
-a latent leftover for a terrain type the generator never emits. Harmless; leave it,
-or drop the dead `"mountain"` string so it doesn't imply a terrain path we chose
-against.)*
+- [x] **Mountain prop** — *landed 2026-07-18* (`entities/mountain.py`): radius
+  60–110 scaled by relative elevation, `invulnerable`, blocking; all fountain
+  touch points wired (collision static index, nav, render group, minimap,
+  save/load v4, restart). Placeholder massif draws until
+  `assets/sprites/Props/Mountain.png` exists (prompt in
+  `REQUIRED_VISUAL_ASSET_PROMPTS.md`).
+- [x] **Ridge placement** — *landed:* candidates = top slice of ELIGIBLE land
+  by elevation (adaptive threshold — the island generator peaks at the
+  excluded map center, so any absolute cutoff starved or flooded), ~2-tile
+  chaining separation turns perlin's high blobs into contiguous ridges.
+  Spawn areas + map center stay clear.
+- [x] **⚠ Reachability validated** — *landed:* hex-adjacency BFS
+  (`Map.hex_neighbors` — the codebase's first true parity-correct hex
+  adjacency) with ±1-tile tolerance on spawn coords (the §8.13.4 round-trip
+  lands them a tile off); any mountain severing a spawn pair is deleted.
+  Bonus find: **spawn selection could pick a water-sealed pocket** — spawns
+  are now confined to `Map.largest_land_component()`.
+- [x] **World props round 2** — *landed 2026-07-18 (user art batch):*
+  generic `Prop` entity + type registry (`entities/prop.py`) — **rocks**
+  (blocking outcrops on open ground), **dead trees** (swamp scenery,
+  non-blocking), **ruins** (rare blocking landmark, minimap dot).
+  Placement is art-gated (a type only spawns if its sprite exists), joins
+  the reachability guarantee, saves in v4. Mountain variants land as
+  `Mountain_N.png` (auto-loaded, position-stable per-instance pick).
+  **Latent bug fixed in passing:** the pathfinder's bulk rebuild
+  enumerated only buildings/resources/sites — every `mark_dirty()` (one
+  runs right after setup, another after every load) silently DROPPED
+  fountains/mountains from the nav grid, so units pathed *through* ridges
+  and only the collision system pushed them out. All static neutrals are
+  now in the sweep; 3-seed stuck-probe unchanged (76/56 vs 84/49).
+- [ ] **Oasis prop** — non-blocking; desert region + small shallow-water
+  stamp during generation + desert-tree props (art wired: wood on desert
+  renders `TREE_DESERT.png`; reeds art still ungenerated).
+- [ ] **Re-baseline §8.8** — REQUIRED now, not conditional: new generator +
+  ridges + no forest cover = a new world. Same-seed 12-match battery
+  (12 parallel 1-match processes) once the hand-painted art lands.
+- **✅ Verify (open):** live-play pass — units path *around* ridges cleanly
+  (cross-check §8.13.3 stuck cases); props survive save/load (test-covered);
+  §8.8 battery shows no personality collapse.
+- **Stuck-unit rate: NO regression (measured properly).** A first single-seed
+  probe suggested 7 → ~25 recoveries per match; a 3-seed A/B (old world at
+  9289118 vs new, 10 sim-min 4-AI each) shows **82 recoveries / 49 unique
+  stuck units vs 84 / 49** — identical. The initial number was one calm
+  old-world run vs one noisy new-world run (per-process id() jitter makes
+  even fixed-seed runs vary — same reason the balance battery runs as
+  parallel single matches). The REAL, pre-existing signal both worlds share:
+  ~25 unique wedges/match, almost all units squeezed into **AI base-packing
+  pockets** (gaps of 4-30 px between placed buildings — instrumented probe:
+  24/24 events touching a building). Mountains contribute ~nothing (2/23
+  near a ridge). Watchdog self-heals every case. Cure remains §6 local
+  steering; a cheap mitigation candidate: minimum building-gap of one unit
+  diameter in `building_placer`.
 
 ### 11.3 Ambient life — motion & animals
 
@@ -484,13 +523,14 @@ terrain constants module. The impassable set is a bare literal in **11 places**
 resource-suitability sets are duplicated at `game_state.py:266-268` and `:403-406`
 — a *third* category with no name.
 
-- [ ] Hoist `TERRAIN_TYPES`, `BLOCKED_TERRAIN`, `BUILDABLE_TERRAIN`,
+- [x] Hoist `TERRAIN_TYPES`, `BLOCKED_TERRAIN`, `BUILDABLE_TERRAIN`,
   `SPAWN_SAFE_TERRAIN`, `RESOURCE_TERRAIN` into `core/config.py` and route all sites
-  through them. Pure refactor, no behavior change — land it on its own with the
-  navigation reference sweep green.
-- **✅ Verify:** `pytest` green incl. `tests/test_navigation.py`'s dense reference
-  sweep; a grep for `{"water", "lava"}` returns **zero** hits outside config;
-  benchmark unchanged.
+  through them. *Landed 2026-07-18* — plus `LEGACY_TERRAIN` (old-save name mapping)
+  when the roster simplified the same day. Two drifts found and resolved: a phantom
+  "mountain" tile in one blocked set, and the two resource-suitability copies
+  disagreeing about cracked_dirt.
+- **✅ Verified:** suite green incl. the navigation sweep; grep for the literals
+  returns zero hits outside config.
 
 ---
 

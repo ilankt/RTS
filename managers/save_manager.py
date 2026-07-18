@@ -50,6 +50,10 @@ class SaveManager:
             "fog_enabled": bool(getattr(getattr(game, "fog_of_war", None), "enabled", True)),
             "tree_regrowth": list(getattr(game, "_tree_regrowth", [])),
             "fountains": [[f.x, f.y] for f in getattr(game, "fountains", ())],
+            # §11.2 props are hand-enumerated groups — an unsaved prop
+            # silently vanishes on load (Track D standing constraint)
+            "mountains": [[m.x, m.y, m.radius] for m in getattr(game, "mountains", ())],
+            "props": [[p.name, p.x, p.y] for p in getattr(game, "props", ())],
             "terrain": cls._serialize_terrain(game),
             "stats_units_trained": {f"{k[0]}|{k[1]}": v for k, v in getattr(game, "stats_units_trained", {}).items()},
             "stats_buildings_built": {f"{k[0]}|{k[1]}": v for k, v in getattr(game, "stats_buildings_built", {}).items()},
@@ -275,12 +279,26 @@ class SaveManager:
         rows = terrain.get("rows") or []
         if not palette or len(rows) != game_map.height:
             return False
+        # §11.1 roster simplification: pre-simplification saves use the old
+        # 12-name roster — translate (blocked stays blocked, walkable stays
+        # walkable); anything unrecognizable becomes grass rather than a
+        # KeyError at draw time.
+        from core.config import LEGACY_TERRAIN, TERRAIN_TYPES
+
+        palette = [
+            name if name in TERRAIN_TYPES else LEGACY_TERRAIN.get(name, "grass")
+            for name in palette
+        ]
         grid = []
         for row in rows:
             if len(row) != game_map.width:
                 return False
             grid.append([palette[ord(c) - 48] for c in row])
         game_map.grid = grid
+        # §11.1: biome-edge blending is precomputed per map — recompute for
+        # the restored ground
+        if hasattr(game_map, "build_transitions"):
+            game_map.build_transitions()
 
         pathfinder = getattr(game, "pathfinder", None)
         if pathfinder is not None:
@@ -638,6 +656,9 @@ class SaveManager:
             resource.x = rdata["x"]
             resource.y = rdata["y"]
             resource.amount_remaining = rdata.get("amount_remaining", 1000)
+            # §11.1 biome trees: re-derive from the restored terrain
+            from entities.resource import assign_biome_sprite
+            assign_biome_sprite(resource, getattr(game, "game_map", None))
             game.resources.append(resource)
             restored_resources.append(resource)
 
@@ -736,6 +757,35 @@ class SaveManager:
             fountain = Fountain(fx, fy)
             game.fountains.append(fountain)
             game.pathfinder.notify_blocker_added(fountain)
+
+        # §11.2 mountain props (older saves simply have none)
+        from entities.mountain import Mountain
+
+        for mountain in getattr(game, "mountains", ()):
+            mountain.in_world = False
+            game.pathfinder.notify_blocker_removed(mountain)
+        game.mountains = []
+        for entry in state.get("mountains", []):
+            mountain = Mountain(entry[0], entry[1],
+                                radius=entry[2] if len(entry) > 2 else 80)
+            game.mountains.append(mountain)
+            game.pathfinder.notify_blocker_added(mountain)
+
+        # §11.2 round 2: world props (rocks/dead trees/ruins)
+        from entities.prop import PROP_TYPES, Prop
+
+        for prop in getattr(game, "props", ()):
+            prop.in_world = False
+            if getattr(prop, "blocks", False):
+                game.pathfinder.notify_blocker_removed(prop)
+        game.props = []
+        for entry in state.get("props", []):
+            if entry[0] not in PROP_TYPES:
+                continue  # prop type retired since the save was written
+            prop = Prop(entry[0], entry[1], entry[2])
+            game.props.append(prop)
+            if prop.blocks:
+                game.pathfinder.notify_blocker_added(prop)
 
         def _unflatten(flat):
             out = {}

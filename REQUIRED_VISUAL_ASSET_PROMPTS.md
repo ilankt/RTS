@@ -123,3 +123,204 @@ so cannot punch through a subject enclosed by its own outline.)
   wood clearly tan, food clearly red.
 - Avoid: text, numbers, watermark, background scenery, photorealism, and every framed-icon
   convention from the UI Icons section.
+
+## Terrain & World Props (§11.1 / §11.2) — FULL PROMPTS
+
+Two different pipelines, chosen around what image generators actually get
+wrong:
+
+- **Ground tiles**: generators cannot draw pixel-exact interlocking hexagons
+  and cannot do transparency. So we never ask: each terrain is generated as a
+  **flat seamless SQUARE texture** filling the whole canvas (no background at
+  all), and `tools/build_tileset_from_textures.py` cuts the exact hex masks
+  AND mints 4 variants per terrain from different crop offsets of the same
+  image. Save each result as
+  `assets/tiles/source_textures/<name>.png`, then run the tool.
+- **Props** (mountain, trees): single object on a **solid pure magenta
+  (#FF00FF) background** as the transparency key — magenta never occurs in
+  rock/wood/foliage art, and `tools/cutout_glyph_background.py` flood-fills
+  the flat backdrop off from the border into true alpha without punching
+  holes in the subject.
+
+**No transition art is needed, ever**: biome borders (grass-desert,
+land-water, all 6 hex directions) are blended IN-GAME by feathering the
+actual tile textures across shared edges (`Map.build_transitions`), so the
+transitions always match whatever sheet is installed. Generate only the six
+flat textures below.
+
+### Ground texture prompts — one per file, copy-paste verbatim
+
+Shared tail — append to every ground prompt below:
+
+> hand-painted stylized medieval fantasy RTS terrain, soft painterly
+> brushwork, mid-saturation natural colors, even diffuse overhead lighting
+> with NO directional shadows, top-down view straight from above, perfectly
+> seamless tileable texture that repeats on all four edges with no visible
+> seam, uniform detail density with no focal point, no vignette, no border,
+> no objects, no creatures, no buildings, no text, no watermark, square
+> image, 1024x1024
+
+**grass.png**
+> Lush green grassland meadow ground texture: short dense grass in soft
+> tonal patches of fresh green and deeper olive, a few tiny lighter tufts
+> and sparse minuscule white-yellow wildflower dots, gentle organic
+> variation, nothing taller than grass, +shared tail
+
+**desert.png**
+> Warm sandy desert ground texture: fine golden-beige sand with soft wind
+> ripples, subtle darker undulations, a few tiny scattered pebbles and
+> faint dry cracks, sun-warmed tones from pale cream to amber, +shared tail
+
+**swamp.png**
+> Murky swamp bog ground texture: wet brown-green marsh mud interlaced with
+> patches of dark stagnant water, thin films of algae, small moss clumps and
+> sparse short reed stubble, oily green-brown palette with faint teal water
+> glints, +shared tail
+
+**dirt.png**
+> Bare packed earth ground texture: dry brown soil with subtle footworn
+> compression marks, small embedded pebbles, faint patches of lighter dust
+> and darker damp earth, neutral warm browns, +shared tail
+
+**water_shallow.png** *(revised 2026-07-18: tuned as a PAIR with deep —
+the old versions were too far apart and the coast read as a cliff)*
+> Sunlit shallow coastal water texture: clear bright turquoise-cyan water
+> with soft ripple highlights, the sandy bottom faintly visible through the
+> surface as a warm golden tint, delicate light caustic patterns, fresh and
+> readable, the LIGHTEST water in the set, +shared tail
+
+**water_deep.png** *(revised: only 2-3 shades darker than shallow — the
+in-engine preview `transitions_v2_coast_lighter_deep.png` is the target)*
+> Open sea water texture: medium-deep vivid sea-blue water, only two or
+> three shades darker than bright turquoise shallows, clearly blue and
+> alive, never black, never near-black navy, never murky, calm surface with
+> sparse subtle wave crests and a few faint foam flecks, no visible bottom,
+> +shared tail
+
+Processing:
+
+    # drop the six PNGs into assets/tiles/source_textures/  then:
+    python tools/build_tileset_from_textures.py
+    python tools/verify_visual_assets.py
+
+Missing textures keep their current tile, so the set can land one biome at
+a time. Judge in-game (tiles read at 64x56): detail that vanishes at that
+scale is wasted; detail that strobes when tiled is worse.
+
+### Mountain prop — assets/sprites/Props/Mountain.png
+
+Drop-in: the renderer loads this path automatically over the procedural
+placeholder. In game it spans 3-5 tiles — it must read as a LANDMARK.
+
+**Mountain.png** (generate at 1024x1024)
+> A single massive rocky mountain massif with three jagged stone peaks of
+> different heights, light snow caps on the two tallest, stylized medieval
+> fantasy RTS game art, hand-painted with crisp dark ink-like outlines,
+> isometric three-quarter top-down view matching a strategy game building
+> sprite, cool stone gray cliffs with warm earthy brown scree at the base,
+> soft light from the upper left, gentle ambient occlusion in the crevices,
+> a small irregular rocky footprint skirt at the bottom, the mountain
+> centered and filling about 85 percent of the frame, THE ENTIRE BACKGROUND
+> IS ONE SOLID FLAT PURE MAGENTA COLOR hex FF00FF with no gradient, no
+> shadow cast onto the background, no vignette, no horizon, no sky, no
+> clouds, no text, no watermark, square image, 1024x1024
+
+For VARIANTS (ridges stop reading as clones): re-run the same prompt changing ONLY the peak clause - 'two jagged stone peaks' / 'one single dominant jagged peak' / 'four stepped jagged peaks of ascending height'. Save as Mountain_2.png, Mountain_3.png, ... in assets/sprites/Props/ - the renderer auto-loads any count and each placed mountain picks one deterministically.
+
+Processing:
+
+    python tools/cutout_glyph_background.py --out-dir assets/sprites/Props <generated>.png
+    # rename/move the result to assets/sprites/Props/Mountain.png (or Mountain_N.png)
+    # then check the silhouette for leftover magenta fringe pixels
+
+### Tree props — assets/sprites/Resources/TREE.png / TREE_DESERT.png
+
+Both are live: every wood resource renders TREE.png, and any wood standing
+on desert terrain automatically renders TREE_DESERT.png. Regenerate them in
+house style whenever ready (current desert palm is serviceable).
+
+**TREE.png** (generate at 1000x1000)
+> A single broadleaf fantasy tree with a full rounded canopy in two or three
+> clumps, visible sturdy trunk, stylized medieval RTS game art, hand-painted
+> with crisp dark outlines, isometric three-quarter top-down view, rich
+> living greens with warm brown bark, soft light from the upper left, small
+> grassy root footprint, tree centered filling about 80 percent of the
+> frame, THE ENTIRE BACKGROUND IS ONE SOLID FLAT PURE MAGENTA COLOR hex
+> FF00FF with no gradient, no cast shadow on the background, no other
+> plants, no text, no watermark, square image, 1000x1000
+
+**TREE_DESERT.png** (generate at 1000x1000)
+> A single desert palm tree with a slightly curved trunk and a crown of arcs
+> of fronds, a few coconuts, stylized medieval RTS game art, hand-painted
+> with crisp dark outlines, isometric three-quarter top-down view, dusty
+> green fronds and sun-bleached tan trunk, small sandy footprint with a
+> couple of tiny stones, soft light from the upper left, tree centered
+> filling about 80 percent of the frame, THE ENTIRE BACKGROUND IS ONE SOLID
+> FLAT PURE MAGENTA COLOR hex FF00FF with no gradient, no cast shadow on the
+> background, no text, no watermark, square image, 1000x1000
+
+Processing: same magenta cutout as the mountain, then overwrite the file in
+`assets/sprites/Resources/`.
+
+### World prop prompts (§11.2 follow-ups) — magenta-keyed, like the mountain
+
+Not yet wired in code — generate freely; each gets its entity/placement pass
+when the art lands. Same processing as the mountain (magenta cutout, then
+check the silhouette for pink fringe). The no-ground-patch rule applies to
+ALL of them: these sit on several biomes, so any baked soil mound will clash
+with one of them.
+
+**Rocks.png — rock outcrop (small blocking prop)** (1000x1000)
+> A single cluster of three to five weathered gray granite boulders of
+> varying sizes leaning together as one rocky outcrop, stylized medieval
+> fantasy RTS game art, hand-painted with crisp dark ink-like outlines,
+> isometric three-quarter top-down view matching a strategy game building
+> sprite, cool stone grays with subtle warm lichen accents, soft light from
+> the upper left, gentle ambient occlusion between the boulders, NO ground
+> patch beneath it - the boulder bases fade directly out with no soil, no
+> grass and no sand, the cluster centered filling about 70 percent of the
+> frame, THE ENTIRE BACKGROUND IS ONE SOLID FLAT PURE MAGENTA COLOR hex
+> FF00FF with no gradient, no shadow cast onto the background, no vignette,
+> no text, no watermark, square image, 1000x1000
+
+**DeadTree.png — swamp dead tree (non-blocking atmosphere)** (1000x1000)
+> A single gnarled dead swamp tree with a twisted bare trunk, a few crooked
+> leafless branches and thin strands of hanging moss, stylized medieval
+> fantasy RTS game art, hand-painted with crisp dark ink-like outlines,
+> isometric three-quarter top-down view, weathered gray-brown bark with
+> faint green moss accents, soft light from the upper left, NO ground patch
+> beneath it - the roots fade directly out with no soil mound and no water,
+> the tree centered filling about 75 percent of the frame, THE ENTIRE
+> BACKGROUND IS ONE SOLID FLAT PURE MAGENTA COLOR hex FF00FF with no
+> gradient, no shadow cast onto the background, no vignette, no text, no
+> watermark, square image, 1000x1000
+
+**Reeds.png — marsh reed clump (non-blocking, swamp & shorelines)** (1000x1000)
+> A single small clump of tall marsh reeds and cattails with slender
+> green-brown stalks and two or three dark brown cattail heads, stylized
+> medieval fantasy RTS game art, hand-painted with crisp dark ink-like
+> outlines, isometric three-quarter top-down view, muted wetland greens and
+> tans, soft light from the upper left, NO ground patch beneath it - the
+> stalks fade directly out at the base with no soil and no water, the clump
+> centered filling about 60 percent of the frame, THE ENTIRE BACKGROUND IS
+> ONE SOLID FLAT PURE MAGENTA COLOR hex FF00FF with no gradient, no shadow
+> cast onto the background, no vignette, no text, no watermark, square
+> image, 1000x1000
+
+**Ruins.png — crumbled watchtower (blocking landmark, story flavor)** (1000x1000)
+> The crumbling ruin of a single small round medieval stone watchtower,
+> broken off at half height with a jagged top edge, a few scattered fallen
+> stone blocks around its foot, an empty dark doorway, stylized medieval
+> fantasy RTS game art, hand-painted with crisp dark ink-like outlines
+> matching a strategy game building sprite, isometric three-quarter
+> top-down view, weathered gray stone with moss accents, soft light from
+> the upper left, gentle ambient occlusion, minimal ground contact - the
+> fallen blocks sit directly on the background with no soil patch, the ruin
+> centered filling about 75 percent of the frame, THE ENTIRE BACKGROUND IS
+> ONE SOLID FLAT PURE MAGENTA COLOR hex FF00FF with no gradient, no shadow
+> cast onto the background, no vignette, no text, no watermark, square
+> image, 1000x1000
+
+**Oasis: no new art needed** — it will be generated as a shallow-water
+pocket stamped into desert during map generation, ringed by the existing
+desert palms (TREE_DESERT). Reeds.png above is its optional garnish.

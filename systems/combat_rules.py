@@ -3,34 +3,13 @@ from __future__ import annotations
 
 import random
 
-from core.config import (COMBAT_BONUS_VS_TAGS_ENABLED, COMBAT_BONUS_VS_TAG_MULTIPLIER,
-                         COMBAT_TERRAIN_COVER_ENABLED, COMBAT_FOREST_COVER_MULTIPLIER)
+from core.config import COMBAT_BONUS_VS_TAGS_ENABLED, COMBAT_BONUS_VS_TAG_MULTIPLIER
 from systems.upgrade_effects import effective_building_stat, effective_unit_stat
 
-# §8.4 position matters: set by Game init so damage math can read terrain
-# without threading the map through every entity call site.
-_game_map = None
-
-
-def set_terrain_provider(game_map):
-    global _game_map
-    _game_map = game_map
-
-
-def terrain_cover_multiplier(target) -> float:
-    """Damage multiplier from the target's ground: forest is cover.
-    Buildings don't hide in trees — units only."""
-    if not COMBAT_TERRAIN_COVER_ENABLED or _game_map is None:
-        return 1.0
-    if is_building_target(target):
-        return 1.0
-    grid_pos = _game_map.world_to_grid(target.x, target.y)
-    if not grid_pos:
-        return 1.0
-    col, row = grid_pos
-    if _game_map.grid[row][col] == "forest":
-        return COMBAT_FOREST_COVER_MULTIPLIER
-    return 1.0
+# (§8.4 forest cover removed 2026-07-18 with the terrain-roster
+# simplification — the forest TILE no longer exists; forests are tree
+# props. User decision: the cover mechanic goes with it. The new-world
+# balance baseline supersedes the old cover-on numbers.)
 
 
 EFFECTIVENESS_TABLE = {
@@ -133,6 +112,5 @@ def calculate_damage(attacker, target) -> int:
     # of being UI/AI-only lore, so e.g. spearman counters cavalry distinctly.
     if COMBAT_BONUS_VS_TAGS_ENABLED and has_bonus_against(attacker, target):
         damage *= COMBAT_BONUS_VS_TAG_MULTIPLIER
-    damage *= terrain_cover_multiplier(target)  # §8.4 position matters (flagged)
     damage -= effective_armor_value(target)
     return max(1, int(damage))

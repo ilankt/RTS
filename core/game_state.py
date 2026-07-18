@@ -1,8 +1,11 @@
 import random
 import math
 from entities import Building, Unit, Resource
+from entities.resource import assign_biome_sprite
 from systems.animation import Animation
-from core.config import MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
+from utils.debug_logger import debug_log
+from core.config import (MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, BLOCKED_TERRAIN,
+                         RESOURCE_TERRAIN, SPAWN_SAFE_TERRAIN)
 
 
 class GameState:
@@ -68,6 +71,11 @@ class GameState:
         if focus_castle:
             self.game.camera.x = (MAP_VIEW_WIDTH / 2) - focus_castle.x * self.game.camera.zoom
             self.game.camera.y = (MAP_VIEW_HEIGHT / 2) - focus_castle.y * self.game.camera.zoom
+
+        # §11.2 mountains + props BEFORE resources: everything placed after
+        # them collision-checks against them, so nothing spawns inside
+        self._place_mountains(spawn_locations)
+        self._place_props(spawn_locations)
 
         # Place some resources around the map
         self._place_resources(spawn_locations)
@@ -203,7 +211,7 @@ class GameState:
         def viable(r, c):
             if not (3 <= r < game_map.height - 3 and 3 <= c < game_map.width - 3):
                 return False
-            if game_map.grid[r][c] not in ("grass", "plains", "dirt"):
+            if game_map.grid[r][c] not in SPAWN_SAFE_TERRAIN:
                 return False
             for spawn_r, spawn_c in spawn_locations:
                 if math.hypot(r - spawn_r, c - spawn_c) < 12:
@@ -262,10 +270,7 @@ class GameState:
                 terrain = self.game.game_map.grid[r][c]
                 suitable = False
                 
-                if resource_type in ["gold", "stone"]:
-                    suitable = terrain in {"grass", "plains", "rocky", "dirt"}
-                elif resource_type == "wood":
-                    suitable = terrain in {"grass", "forest", "plains"}
+                suitable = terrain in RESOURCE_TERRAIN.get(resource_type, ())
                 
                 if suitable:
                     world_pos = self.game.game_map.grid_to_world(c, r)
@@ -282,6 +287,7 @@ class GameState:
                         resource.x, resource.y = world_pos
                         if amount_override is not None:
                             resource.amount_remaining = amount_override
+                        assign_biome_sprite(resource, self.game.game_map)
                         self.game.resources.append(resource)
                         placed += 1
 
@@ -303,7 +309,9 @@ class GameState:
             col, row = grid
             if not (0 <= row < self.game.game_map.height and 0 <= col < self.game.game_map.width):
                 continue
-            if self.game.game_map.grid[row][col] in {"water", "lava", "mountain"}:
+            # (pre-hoist this also listed "mountain" — a tile that never
+            # existed; mountains are §11.2 props, not terrain)
+            if self.game.game_map.grid[row][col] in BLOCKED_TERRAIN:
                 continue
             if self._check_collision_with_objects(px, py, 12):
                 continue
@@ -382,6 +390,7 @@ class GameState:
                 if not self._check_collision_with_objects(world_pos[0], world_pos[1], tree_collision_radius):
                     resource = self._create_instance_from_template(self.game.game_data["resources"]["wood"])
                     resource.x, resource.y = world_pos
+                    assign_biome_sprite(resource, self.game.game_map)
                     self.game.resources.append(resource)
                     trees_placed += 1
             
@@ -400,10 +409,7 @@ class GameState:
             terrain = self.game.game_map.grid[r][c]
             suitable = False
             
-            if resource_type in ["gold", "stone"]:
-                suitable = terrain in {"grass", "plains", "rocky", "dirt", "cracked_dirt"}
-            elif resource_type == "wood":
-                suitable = terrain in {"grass", "forest", "plains"}
+            suitable = terrain in RESOURCE_TERRAIN.get(resource_type, ())
             
             if suitable:
                 # Check distance from spawn points
@@ -425,29 +431,256 @@ class GameState:
                         resource.x, resource.y = world_pos
                         if amount_override is not None:
                             resource.amount_remaining = amount_override
+                        assign_biome_sprite(resource, self.game.game_map)
                         self.game.resources.append(resource)
                         break
-            
+
             attempts += 1
     
     def _check_collision_with_objects(self, x, y, radius):
         """Check if a position would collide with any existing game object"""
-        # Check collision with buildings
-        for building in self.game.buildings:
-            dist = ((building.x - x)**2 + (building.y - y)**2)**0.5
-            if dist < (building.radius + radius + 20):  # Add some extra spacing
-                return True
-        
-        # Check collision with units
-        for unit in self.game.units:
-            dist = ((unit.x - x)**2 + (unit.y - y)**2)**0.5
-            if dist < (unit.radius + radius + 20):  # Add some extra spacing
-                return True
-        
-        # Check collision with existing resources
-        for resource in self.game.resources:
-            dist = ((resource.x - x)**2 + (resource.y - y)**2)**0.5
-            if dist < (resource.radius + radius + 20):  # Add some extra spacing
-                return True
-        
+        for group in (self.game.buildings, self.game.units, self.game.resources,
+                      getattr(self.game, "fountains", ()),
+                      getattr(self.game, "mountains", ()),
+                      getattr(self.game, "props", ())):
+            for obj in group:
+                dist = ((obj.x - x) ** 2 + (obj.y - y) ** 2) ** 0.5
+                if dist < (obj.radius + radius + 20):  # Add some extra spacing
+                    return True
         return False
+
+    # §11.2 mountain ridges: exclusion radii (tiles), chaining separation
+    # (world px), and density cap per 1600 tiles. The elevation threshold
+    # is ADAPTIVE — the top slice of the eligible ground — because the
+    # island-shaped generator peaks at the (excluded) map center, so any
+    # absolute threshold either starves flat maps or floods spiky ones.
+    MOUNTAIN_ELEVATION_FLOOR = 0.28   # never ridge genuinely low ground
+    MOUNTAIN_ELIGIBLE_FRACTION = 0.06  # top 6% of eligible cells qualify
+    MOUNTAIN_SPAWN_CLEAR_TILES = 10
+    MOUNTAIN_CENTER_CLEAR_TILES = 9
+    MOUNTAIN_MIN_SEPARATION = 95.0
+    MOUNTAINS_PER_1600_TILES = 7
+
+    def _place_mountains(self, spawn_locations):
+        """§11.2 mountains-as-props: ridge the high ground the old stone
+        TILES used to mark. Candidates are the highest-elevation land
+        cells; the ~2-tile separation lets perlin's natural elevation
+        blobs chain into contiguous ridges instead of confetti. Spawn
+        areas and the map center (fountain ground) stay clear, and a
+        post-pass deletes any mountain that severs spawn-to-spawn
+        reachability — an open map beats a broken one."""
+        from entities.mountain import Mountain
+
+        game_map = self.game.game_map
+        elevation = getattr(game_map, "elevation", None)
+        if not elevation:
+            return
+        cap = max(4, int(game_map.width * game_map.height / 1600.0
+                         * self.MOUNTAINS_PER_1600_TILES))
+        center = (game_map.height // 2, game_map.width // 2)
+
+        eligible = []
+        for r in range(2, game_map.height - 2):
+            for c in range(2, game_map.width - 2):
+                if game_map.grid[r][c] in BLOCKED_TERRAIN:
+                    continue
+                height = elevation[r][c]
+                if height < self.MOUNTAIN_ELEVATION_FLOOR:
+                    continue
+                if math.hypot(r - center[0], c - center[1]) < self.MOUNTAIN_CENTER_CLEAR_TILES:
+                    continue
+                if any(math.hypot(r - sr, c - sc) < self.MOUNTAIN_SPAWN_CLEAR_TILES
+                       for sr, sc in spawn_locations):
+                    continue
+                eligible.append((height, r, c))
+        if not eligible:
+            return
+        eligible.sort(reverse=True)
+        candidates = eligible[:max(cap * 3,
+                                   int(len(eligible) * self.MOUNTAIN_ELIGIBLE_FRACTION))]
+        threshold = candidates[-1][0]
+        peak = candidates[0][0]
+        spread = max(1e-6, peak - threshold)
+
+        placed = []
+        for height, r, c in candidates:
+            if len(placed) >= cap:
+                break
+            x, y = game_map.grid_to_world(c, r)
+            if any(math.hypot(x - m.x, y - m.y) < self.MOUNTAIN_MIN_SEPARATION
+                   for m in placed):
+                continue
+            # Relatively higher ground grows bigger mountains (radius 60..110)
+            radius = 60 + int(50 * (height - threshold) / spread)
+            placed.append(Mountain(x, y, radius=radius))
+
+        for mountain in placed:
+            self.game.mountains.append(mountain)
+            self.game.pathfinder.notify_blocker_added(mountain)
+        if getattr(self.game, "collision_system", None):
+            self.game.collision_system.invalidate_static_index()
+        self._ensure_spawns_connected(spawn_locations)
+
+    # §11.2 round 2: world props. Counts scale with map area; per-type
+    # terrain, spawn clearance (tiles) and same-type separation (world px).
+    PROP_PLACEMENT = {
+        "rocks": {"terrain": {"grass", "desert", "dirt"}, "per_1600": 5,
+                  "spawn_clear": 7, "separation": 150.0},
+        "dead_tree": {"terrain": {"swamp"}, "per_1600": 5,
+                      "spawn_clear": 5, "separation": 110.0},
+        "ruins": {"terrain": {"grass", "desert", "dirt"}, "per_1600": 0.5,
+                  "spawn_clear": 14, "separation": 900.0},
+    }
+
+    def _place_props(self, spawn_locations):
+        """Scatter world props (rocks/dead trees/ruins) on their terrain,
+        clear of spawns, the map center, and each other. Only types whose
+        SPRITE exists are placed — props ship art-first. Blocking props
+        register with nav and join the reachability guarantee."""
+        from entities.prop import Prop, available_prop_types
+
+        game_map = self.game.game_map
+        center = (game_map.height // 2, game_map.width // 2)
+        area_factor = game_map.width * game_map.height / 1600.0
+        placed_any = False
+
+        for name in sorted(available_prop_types()):
+            rules = self.PROP_PLACEMENT.get(name)
+            if rules is None:
+                continue
+            target = max(1, int(rules["per_1600"] * area_factor))
+            placed = []
+            attempts = 0
+            while len(placed) < target and attempts < target * 60:
+                attempts += 1
+                r = random.randint(3, game_map.height - 4)
+                c = random.randint(3, game_map.width - 4)
+                if game_map.grid[r][c] not in rules["terrain"]:
+                    continue
+                if math.hypot(r - center[0], c - center[1]) < 6:
+                    continue  # keep the fountain's neutral ground open
+                if any(math.hypot(r - sr, c - sc) < rules["spawn_clear"]
+                       for sr, sc in spawn_locations):
+                    continue
+                x, y = game_map.grid_to_world(c, r)
+                if any(math.hypot(x - p.x, y - p.y) < rules["separation"]
+                       for p in placed):
+                    continue
+                if self._check_collision_with_objects(x, y, 40):
+                    continue
+                prop = Prop(name, x, y)
+                placed.append(prop)
+                self.game.props.append(prop)
+                if prop.blocks:
+                    self.game.pathfinder.notify_blocker_added(prop)
+                placed_any = True
+
+        if placed_any:
+            if getattr(self.game, "collision_system", None):
+                self.game.collision_system.invalidate_static_index()
+            self._ensure_spawns_connected(spawn_locations)
+
+    def _blocking_world_props(self):
+        """Everything huge-and-neutral that seals ground: mountains plus
+        blocking props (rocks, ruins) — the reachability BFS's blocker set."""
+        return (list(self.game.mountains)
+                + [p for p in getattr(self.game, "props", ())
+                   if getattr(p, "blocks", False)])
+
+    def _ensure_spawns_connected(self, spawn_locations):
+        """§11.2 reachability guarantee: every spawn can reach every other
+        spawn on foot. Tile-level BFS over TRUE hex adjacency, with tiles
+        under (or hugging) a mountain counting as blocked; while any spawn
+        is cut off, the mountain nearest the failing corridor is deleted
+        and the check reruns. Errs toward fewer mountains."""
+        game_map = self.game.game_map
+        if len(spawn_locations) < 2 or not self._blocking_world_props():
+            return
+
+        for _attempt in range(len(self._blocking_world_props()) + 1):
+            unreachable = self._first_unreachable_spawn(spawn_locations)
+            if unreachable is None:
+                return
+            blockers = self._blocking_world_props()
+            if not blockers:
+                # Still cut off with zero blockers: the WATER separates
+                # these spawns (island map) — that predates props and
+                # isn't ours to fix here.
+                return
+            # Delete the blocker closest to the line between spawn 0 and
+            # the cut-off spawn — the likeliest wall in the corridor
+            ax, ay = game_map.grid_to_world(spawn_locations[0][1], spawn_locations[0][0])
+            bx, by = game_map.grid_to_world(unreachable[1], unreachable[0])
+            blocker = min(
+                blockers,
+                key=lambda m: self._point_to_segment_sq(m.x, m.y, ax, ay, bx, by))
+            blocker.in_world = False
+            if blocker in self.game.mountains:
+                self.game.mountains.remove(blocker)
+            else:
+                self.game.props.remove(blocker)
+            self.game.pathfinder.notify_blocker_removed(blocker)
+            debug_log.log(
+                f"{blocker.name} at ({blocker.x:.0f}, {blocker.y:.0f}) removed: "
+                "it cut off a spawn", "GENERAL")
+        if getattr(self.game, "collision_system", None):
+            self.game.collision_system.invalidate_static_index()
+
+    def _first_unreachable_spawn(self, spawn_locations):
+        """BFS from spawn 0 over walkable hex tiles; the first spawn not
+        reached, or None when all are connected.
+
+        ±1-tile tolerance on BOTH ends on purpose: spawn_locations come
+        through the §8.13.4 world<->grid round trip, which can land one
+        tile off (deliberately unfixed — see MASTER_PLAN). A spawn counts
+        as connected if the component touches it OR any hex neighbour."""
+        game_map = self.game.game_map
+        blockers = self._blocking_world_props()
+
+        def tile_open(r, c):
+            if game_map.grid[r][c] in BLOCKED_TERRAIN:
+                return False
+            x, y = game_map.grid_to_world(c, r)
+            # A tile whose center a blocker overlaps (plus a unit's width
+            # of margin) doesn't count as a corridor
+            return all((m.x - x) ** 2 + (m.y - y) ** 2 > (m.radius + 24) ** 2
+                       for m in blockers)
+
+        def in_bounds(r, c):
+            return 0 <= r < game_map.height and 0 <= c < game_map.width
+
+        def ring(tile):
+            yield tile
+            for nr, nc in game_map.hex_neighbors(*tile):
+                if in_bounds(nr, nc):
+                    yield (nr, nc)
+
+        start = next((t for t in ring(spawn_locations[0]) if tile_open(*t)), None)
+        if start is None:
+            return None  # spawn 0 itself is walled in — nothing to compare against
+        frontier = [start]
+        seen = {start}
+        while frontier:
+            r, c = frontier.pop()
+            for nr, nc in game_map.hex_neighbors(r, c):
+                if not in_bounds(nr, nc):
+                    continue
+                if (nr, nc) in seen or not tile_open(nr, nc):
+                    continue
+                seen.add((nr, nc))
+                frontier.append((nr, nc))
+        for spawn in spawn_locations[1:]:
+            if not any(tile in seen for tile in ring(spawn)):
+                return spawn
+        return None
+
+    @staticmethod
+    def _point_to_segment_sq(px, py, ax, ay, bx, by):
+        """Squared distance from point P to segment AB."""
+        abx, aby = bx - ax, by - ay
+        ab_sq = abx * abx + aby * aby
+        if ab_sq <= 0:
+            return (px - ax) ** 2 + (py - ay) ** 2
+        t = max(0.0, min(1.0, ((px - ax) * abx + (py - ay) * aby) / ab_sq))
+        cx, cy = ax + abx * t, ay + aby * t
+        return (px - cx) ** 2 + (py - cy) ** 2

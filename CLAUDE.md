@@ -19,7 +19,17 @@ python tools/benchmark_ai_spectator.py --seconds 300 --speed 5
 
 ### Core Systems
 - **Coordinates**: Hex grid (row, col) for tile rendering/terrain (`world/map.py`), World (x, y) for
-  smooth movement and combat/collision math.
+  smooth movement and combat/collision math. `Map.hex_neighbors` is the one authoritative
+  parity-correct hex adjacency.
+- **Terrain** (§11.1, simplified 2026-07-18): 6 tile types — grass, desert, swamp, dirt,
+  water_shallow, water_deep — defined ONLY by the category sets in `core/config.py`
+  (`TERRAIN_TYPES`, `BLOCKED_TERRAIN`, `SPAWN_SAFE_TERRAIN`, `RESOURCE_TERRAIN`,
+  `LEGACY_TERRAIN` for old saves). Per-tile visual variants pick deterministically by
+  coordinates. Forests/mountains are PROPS, not tiles: trees are choppable resources
+  (biome sprites — desert wood renders `TREE_DESERT.png`), mountains
+  (`entities/mountain.py`) are huge invulnerable blockers placed as ridges on high
+  ground with a hex-BFS reachability guarantee (spawns confined to the largest land
+  component). There is no terrain combat modifier (forest cover removed with the tile).
 - **Pathfinding**: Jump Point Search over a separate **square navigation grid**
   (`systems/pathfinding.py`, `GRID_SIZE = 20` world units/cell in `core/config.py`) laid on top
   of the hex render map — not the hex grid itself. Static blockers only (buildings, resources,

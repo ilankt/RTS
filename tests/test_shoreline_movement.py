@@ -31,7 +31,7 @@ class LakeMap:
         self.grid = [["grass" for _ in range(self.width)] for _ in range(self.height)]
         for row in range(3, 7):
             for col in range(6, 14):
-                self.grid[row][col] = "water"
+                self.grid[row][col] = "water_shallow"
 
     def world_to_grid(self, x, y):
         col = int(x // 64)

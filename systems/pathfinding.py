@@ -136,6 +136,16 @@ class NavigationGrid:
             list(getattr(self.game, "buildings", []))
             + list(getattr(self.game, "resources", []))
             + list(getattr(self.game, "construction_sites", []))
+            # §11.2 static neutrals. These were MISSING from the bulk
+            # rebuild: notify_blocker_added registered them, then the next
+            # mark_dirty() (Game init runs one right after setup; load runs
+            # one after restore) silently dropped them again — so fountains
+            # and mountains only ever "blocked" via the collision system
+            # and units pathed straight through ridges.
+            + list(getattr(self.game, "fountains", []))
+            + list(getattr(self.game, "mountains", []))
+            + [p for p in getattr(self.game, "props", [])
+               if getattr(p, "blocks", False)]
         ):
             if self._blocks_navigation(obj):
                 self.blockers.append(obj)
@@ -422,7 +432,8 @@ class NavigationGrid:
         map_height = game_map.height
         map_width = game_map.width
         world_to_grid = game_map.world_to_grid
-        blocked_terrain = {"water", "lava"}
+        from core.config import BLOCKED_TERRAIN
+        blocked_terrain = BLOCKED_TERRAIN  # local alias for the hot loop
         inset = 0.5
         bitmap: List[bytearray] = []
         for cell_y in range(self._terrain_rows):

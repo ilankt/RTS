@@ -1,5 +1,6 @@
 import math
 import pygame
+from core.config import BLOCKED_TERRAIN
 from utils.debug_logger import debug_log
 from utils.perf_stats import perf_stats
 
@@ -50,6 +51,9 @@ class CollisionSystem:
             tuple(id(obj) for obj in self.game.construction_sites),
             tuple(id(obj) for obj in self.game.resources),
             tuple(id(obj) for obj in getattr(self.game, "fountains", ())),
+            tuple(id(obj) for obj in getattr(self.game, "mountains", ())),
+            tuple(id(obj) for obj in getattr(self.game, "props", ())
+                  if getattr(obj, "blocks", False)),
         )
 
     def _ensure_static_index(self):
@@ -78,6 +82,17 @@ class CollisionSystem:
         for obj in getattr(self.game, "fountains", ()):
             self._index_object(self._static_buckets, obj)
             self._static_kinds[id(obj)] = "resource"
+        # §11.2 mountains: same "resource" kind trick as fountains — they
+        # block movement/placement and stay untargetable in combat queries
+        for obj in getattr(self.game, "mountains", ()):
+            self._index_object(self._static_buckets, obj)
+            self._static_kinds[id(obj)] = "resource"
+        # §11.2 round 2: BLOCKING world props (rocks/ruins); decorative
+        # props (dead trees) never enter the collision world at all
+        for obj in getattr(self.game, "props", ()):
+            if getattr(obj, "blocks", False):
+                self._index_object(self._static_buckets, obj)
+                self._static_kinds[id(obj)] = "resource"
         self._static_signature = signature
 
     def invalidate_static_index(self):
@@ -517,7 +532,7 @@ class CollisionSystem:
             if hex_coord:
                 col, row = hex_coord
                 if 0 <= row < self.game_map.height and 0 <= col < self.game_map.width:
-                    if self.game_map.grid[row][col] in {"water", "lava"}:
+                    if self.game_map.grid[row][col] in BLOCKED_TERRAIN:
                         return True
         return False
 
@@ -799,7 +814,7 @@ class CollisionSystem:
             hex_coord = self.game_map.world_to_grid(detour_x, detour_y)
             if hex_coord:
                 tile_type = self.game_map.grid[hex_coord[1]][hex_coord[0]]
-                if tile_type not in {"water", "lava"}:
+                if tile_type not in BLOCKED_TERRAIN:
                     # Check if detour point is clear of obstacles
                     pass
                     is_clear = True

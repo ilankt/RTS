@@ -280,6 +280,8 @@ class RenderingSystem:
 
         visible = []
         for group, is_static_neutral in (
+            (getattr(self.game, "mountains", ()), True),  # §11.2 landmarks
+            (getattr(self.game, "props", ()), True),      # §11.2 world props
             (self.game.resources, True),
             (getattr(self.game, "fountains", ()), True),
             (self.game.buildings, False),
@@ -345,7 +347,8 @@ class RenderingSystem:
             x, y = ghost["x"], ghost["y"]
             if x + 72 < left or x - 72 > right or y + 72 < top or y - 72 > bottom:
                 continue
-            sprite = self.sprite_manager.get_resource_sprite(ghost["name"])
+            sprite = self.sprite_manager.get_resource_sprite(
+                ghost.get("variant") or ghost["name"])
             if sprite is None:
                 continue
             sprite_w, sprite_h = sprite.get_size()
@@ -447,18 +450,86 @@ class RenderingSystem:
         self._fountain_surface = surface
         return surface
 
+    def _mountain_sprites(self):
+        """§11.2 mountain visuals. Drop-in art convention: put
+        `assets/sprites/Props/Mountain.png` in place and it loads
+        automatically; ADDITIONAL variants load from `Mountain_2.png`,
+        `Mountain_3.png`, ... (any count — ridges stop reading as clones
+        the moment a second one exists). Placeholder massif until then.
+        Each placed mountain picks a variant deterministically from its
+        position (see _get_object_sprite)."""
+        cached = getattr(self, "_mountain_surfaces", None)
+        if cached is not None:
+            return cached
+        sprites = []
+        try:
+            sprites.append(pygame.image.load(
+                "assets/sprites/Props/Mountain.png").convert_alpha())
+            index = 2
+            while True:
+                path = f"assets/sprites/Props/Mountain_{index}.png"
+                try:
+                    sprites.append(pygame.image.load(path).convert_alpha())
+                except (pygame.error, FileNotFoundError):
+                    break
+                index += 1
+        except (pygame.error, FileNotFoundError):
+            pass
+        if not sprites:
+            size = 128
+            surface = pygame.Surface((size, size), pygame.SRCALPHA)
+            # Massif: three overlapping peaks, dark base, lit upper-left faces
+            pygame.draw.polygon(surface, (74, 70, 66),
+                                [(6, 108), (36, 42), (66, 108)])
+            pygame.draw.polygon(surface, (88, 84, 78),
+                                [(30, 112), (64, 18), (100, 112)])
+            pygame.draw.polygon(surface, (70, 66, 62),
+                                [(62, 110), (94, 48), (122, 110)])
+            pygame.draw.polygon(surface, (108, 104, 96),
+                                [(64, 18), (52, 44), (64, 40), (74, 46)])
+            pygame.draw.polygon(surface, (232, 236, 240),
+                                [(64, 18), (58, 32), (64, 29), (70, 33)])
+            pygame.draw.ellipse(surface, (58, 54, 50, 160), (4, 100, 120, 24))
+            sprites.append(surface)
+        self._mountain_surfaces = sprites
+        return sprites
+
+    def _prop_sprite(self, name):
+        """§11.2 world-prop art, cached per type. A prop whose file went
+        missing simply doesn't draw (placement only spawns types with art,
+        but an old save may still reference one)."""
+        cache = getattr(self, "_prop_surfaces", None)
+        if cache is None:
+            cache = self._prop_surfaces = {}
+        if name not in cache:
+            from entities.prop import prop_sprite_path
+            try:
+                cache[name] = pygame.image.load(prop_sprite_path(name)).convert_alpha()
+            except (pygame.error, FileNotFoundError, TypeError):
+                cache[name] = None
+        return cache[name]
+
     def _get_object_sprite(self, obj):
         """Get the appropriate sprite for an object"""
         sprite_to_draw = None
 
         if obj.__class__.__name__ == "Fountain":
             return self._fountain_sprite()
+        if obj.__class__.__name__ == "Mountain":
+            sprites = self._mountain_sprites()
+            # Position-stable variant pick: same mountain, same look,
+            # across frames and save/load
+            return sprites[(int(obj.x) * 31 + int(obj.y) * 17) % len(sprites)]
+        if obj.__class__.__name__ == "Prop":
+            return self._prop_sprite(obj.name)
 
         if isinstance(obj, Building):
             player_index = self.game.players.index(obj.player)
             sprite_to_draw = self.sprite_manager.get_building_sprite(obj.name, player_index)
         elif isinstance(obj, Resource):
-            sprite_to_draw = self.sprite_manager.get_resource_sprite(obj.name)
+            # §11.1 biome trees: a desert-placed tree carries sprite_variant
+            sprite_to_draw = self.sprite_manager.get_resource_sprite(
+                getattr(obj, "sprite_variant", None) or obj.name)
         elif isinstance(obj, Unit):
             sprite_to_draw = obj.get_current_sprite()
         elif isinstance(obj, ConstructionSite):
