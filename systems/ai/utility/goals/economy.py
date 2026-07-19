@@ -109,7 +109,10 @@ class MarketTradeGoal(Goal):
     category = "economy"
 
     SELL_SURPLUS = 400   # a stockpile this big is doing nothing
-    SELL_GOLD_CAP = 200  # only sell while gold is actually short
+    # 200 → 350 (2026-07-19 balance report F4): a runaway winner sat at 214
+    # gold with 28,814 wood banked, permanently JUST above the sell trigger —
+    # the market never converted the mountain into closing power.
+    SELL_GOLD_CAP = 350  # only sell while gold is actually short
     BUY_GOLD_MIN = 400   # only buy from a comfortable bank
     BUY_SHORTAGE = 60    # a stockpile this low is blocking something
     TRADE_COOLDOWN_S = 10.0  # one trade per cooldown — a permanently-valid

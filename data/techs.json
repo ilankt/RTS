@@ -7,7 +7,7 @@
         "costs": {
             "wood": 75
         },
-        "research_time": 20,
+        "research_time": 35,
         "requires": [],
         "effects": {
             "gather_rate_multipliers": {
@@ -25,7 +25,7 @@
         "costs": {
             "wood": 200
         },
-        "research_time": 22,
+        "research_time": 38,
         "requires": [],
         "effects": {
             "building_stat_bonuses": {
@@ -45,7 +45,7 @@
             "gold": 120,
             "wood": 80
         },
-        "research_time": 24,
+        "research_time": 42,
         "requires": [],
         "effects": {
             "unit_stat_multipliers": {
@@ -74,7 +74,7 @@
             "gold": 100,
             "wood": 120
         },
-        "research_time": 24,
+        "research_time": 42,
         "requires": [],
         "effects": {
             "unit_stat_multipliers": {
@@ -105,7 +105,7 @@
             "gold": 100,
             "food": 80
         },
-        "research_time": 24,
+        "research_time": 42,
         "requires": [],
         "effects": {
             "unit_stat_bonuses": {
@@ -134,7 +134,7 @@
             "gold": 150,
             "wood": 250
         },
-        "research_time": 30,
+        "research_time": 50,
         "requires": [
             "siege_workshop"
         ],

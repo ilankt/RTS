@@ -24,7 +24,11 @@ EFFECTIVENESS_TABLE = {
     ("siege", "light"): 0.45,
     ("siege", "heavy"): 0.75,
     ("siege", "siege"): 0.8,
-    ("siege", "fortified"): 2.25,
+    # 2.25 → 1.5 (2026-07-19 balance report F1): stacked with the ram's 1.5x
+    # strong-vs-building tag this double-dipped to 3.375x — 2 rams erased a
+    # 5000hp castle in 17s taking zero damage, and rams hit 24% of late-game
+    # armies. Combined multiplier is now 2.25x (castle TTK ~26s).
+    ("siege", "fortified"): 1.5,
 }
 
 
