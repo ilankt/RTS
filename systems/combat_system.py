@@ -232,6 +232,7 @@ class CombatSystem:
                     is_counter = has_bonus_against(unit, unit.current_target)
                     resisted = is_resisted_by(unit, unit.current_target)
                     damage_events.append((unit.current_target, damage_dealt, is_counter, resisted))
+                    self._record_damage(unit, unit.current_target, damage_dealt)
                     # §8.11: victims remember their attacker (retaliation,
                     # emergency defense) — also makes the kill-XP path live
                     unit.current_target.last_attacker = unit
@@ -438,6 +439,7 @@ class CombatSystem:
                             has_bonus_against(building, building.current_target),
                             is_resisted_by(building, building.current_target),
                         ))
+                        self._record_damage(building, building.current_target, damage_dealt)
                         building.current_target.last_attacker = building
                         building.current_target._last_damage_frame = self.game.frame_counter
                         if hasattr(self.game, 'notify_human_combat'):
@@ -538,6 +540,39 @@ class CombatSystem:
         template = self.game.game_data["units"].get(unit.name) if hasattr(self.game, "game_data") else None
         return template.hp if template else unit.hp
 
+    def _record_damage(self, attacker, target, damage):
+        """§8.15 balance instrumentation: bump per-type damage tallies.
+        Guarded getattr so unit tests driving a bare fake game don't need
+        the stat dicts to exist."""
+        attacker_player = getattr(attacker, 'player', None)
+        if attacker_player is not None:
+            dealt = getattr(self.game, 'stats_damage_dealt', None)
+            if dealt is not None:
+                key = (attacker_player.name, attacker.name)
+                dealt[key] = dealt.get(key, 0.0) + damage
+        target_player = getattr(target, 'player', None)
+        if target_player is not None:
+            taken = getattr(self.game, 'stats_damage_taken', None)
+            if taken is not None:
+                key = (target_player.name, target.name)
+                taken[key] = taken.get(key, 0.0) + damage
+
+    def _record_death(self, victim, loss_stats_name):
+        """§8.15: bump the victim's loss tally and credit the killer."""
+        victim_player = getattr(victim, 'player', None)
+        if victim_player is not None:
+            lost = getattr(self.game, loss_stats_name, None)
+            if lost is not None:
+                key = (victim_player.name, victim.name)
+                lost[key] = lost.get(key, 0) + 1
+        killer = getattr(victim, 'last_attacker', None)
+        killer_player = getattr(killer, 'player', None) if killer is not None else None
+        if killer_player is not None and killer_player is not victim_player:
+            kills = getattr(self.game, 'stats_kills', None)
+            if kills is not None:
+                key = (killer_player.name, killer.name)
+                kills[key] = kills.get(key, 0) + 1
+
     def _update_healer(self, healer, delta_time):
         """Heal the most-wounded friendly unit in range (game-time cadence)."""
         from core.config import HEALER_HEAL_AMOUNT, HEALER_HEAL_INTERVAL, HEALER_HEAL_RANGE
@@ -563,6 +598,10 @@ class CombatSystem:
             healed = min(self._unit_max_hp(best), best.hp + HEALER_HEAL_AMOUNT) - best.hp
             best.hp += healed
             healer._heal_cooldown = HEALER_HEAL_INTERVAL
+            if healed > 0 and healer.player is not None:
+                healing = getattr(self.game, 'stats_healing', None)
+                if healing is not None:
+                    healing[healer.player.name] = healing.get(healer.player.name, 0.0) + healed
             healer.status = "attack"  # plays the healer's cast animation
             if getattr(self.game, "particles", None):
                 self.game.particles.spawn_attack_particles(best.x, best.y, count=1)
@@ -577,6 +616,7 @@ class CombatSystem:
 
     def handle_unit_death(self, unit):
         """Handle cleanup when a unit dies"""
+        self._record_death(unit, 'stats_units_lost')
         # Spawn death particles and sound
         if hasattr(self.game, 'particles') and self.game.particles:
             self.game.particles.spawn_death_particles(unit.x, unit.y, count=6)
@@ -619,6 +659,7 @@ class CombatSystem:
     
     def handle_building_destruction(self, building):
         """Handle cleanup when a building is destroyed"""
+        self._record_death(building, 'stats_buildings_lost')
         # §8.9 garrison: survivors are ejected unharmed before the rubble
         if getattr(building, "garrison", None):
             from systems import garrison

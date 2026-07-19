@@ -1,0 +1,554 @@
+{
+ "equal_count": {
+  "warrior_vs_archer": [
+   {
+    "a_survive_value": 525.0,
+    "b_survive_value": 932.0,
+    "a_cost": 840.0,
+    "b_cost": 960.0,
+    "a_alive": 5,
+    "b_alive": 8,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 525.0,
+    "b_survive_value": 925.6,
+    "a_cost": 840.0,
+    "b_cost": 960.0,
+    "a_alive": 5,
+    "b_alive": 8,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 525.0,
+    "b_survive_value": 928.8,
+    "a_cost": 840.0,
+    "b_cost": 960.0,
+    "a_alive": 5,
+    "b_alive": 8,
+    "sim_s": 240.0,
+    "healing_done": 0
+   }
+  ],
+  "warrior_vs_spearman": [
+   {
+    "a_survive_value": 406.1,
+    "b_survive_value": 0,
+    "a_cost": 840.0,
+    "b_cost": 620.0,
+    "a_alive": 4,
+    "b_alive": 0,
+    "sim_s": 11.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 412.4,
+    "b_survive_value": 0,
+    "a_cost": 840.0,
+    "b_cost": 620.0,
+    "a_alive": 5,
+    "b_alive": 0,
+    "sim_s": 10.8,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 364.1,
+    "b_survive_value": 0,
+    "a_cost": 840.0,
+    "b_cost": 620.0,
+    "a_alive": 4,
+    "b_alive": 0,
+    "sim_s": 11.7,
+    "healing_done": 0
+   }
+  ],
+  "warrior_vs_cavalry": [
+   {
+    "a_survive_value": 0,
+    "b_survive_value": 443.7,
+    "a_cost": 840.0,
+    "b_cost": 1040.0,
+    "a_alive": 0,
+    "b_alive": 4,
+    "sim_s": 14.8,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 0,
+    "b_survive_value": 435.9,
+    "a_cost": 840.0,
+    "b_cost": 1040.0,
+    "a_alive": 0,
+    "b_alive": 4,
+    "sim_s": 14.8,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 0,
+    "b_survive_value": 383.1,
+    "a_cost": 840.0,
+    "b_cost": 1040.0,
+    "a_alive": 0,
+    "b_alive": 4,
+    "sim_s": 15.4,
+    "healing_done": 0
+   }
+  ],
+  "archer_vs_spearman": [
+   {
+    "a_survive_value": 960.0,
+    "b_survive_value": 387.5,
+    "a_cost": 960.0,
+    "b_cost": 620.0,
+    "a_alive": 8,
+    "b_alive": 5,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 960.0,
+    "b_survive_value": 387.5,
+    "a_cost": 960.0,
+    "b_cost": 620.0,
+    "a_alive": 8,
+    "b_alive": 5,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 960.0,
+    "b_survive_value": 387.5,
+    "a_cost": 960.0,
+    "b_cost": 620.0,
+    "a_alive": 8,
+    "b_alive": 5,
+    "sim_s": 240.0,
+    "healing_done": 0
+   }
+  ],
+  "archer_vs_cavalry": [
+   {
+    "a_survive_value": 324.8,
+    "b_survive_value": 650.0,
+    "a_cost": 960.0,
+    "b_cost": 1040.0,
+    "a_alive": 4,
+    "b_alive": 5,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 295.2,
+    "b_survive_value": 650.0,
+    "a_cost": 960.0,
+    "b_cost": 1040.0,
+    "a_alive": 4,
+    "b_alive": 5,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 339.2,
+    "b_survive_value": 650.0,
+    "a_cost": 960.0,
+    "b_cost": 1040.0,
+    "a_alive": 4,
+    "b_alive": 5,
+    "sim_s": 240.0,
+    "healing_done": 0
+   }
+  ],
+  "spearman_vs_cavalry": [
+   {
+    "a_survive_value": 0,
+    "b_survive_value": 493.1,
+    "a_cost": 620.0,
+    "b_cost": 1040.0,
+    "a_alive": 0,
+    "b_alive": 4,
+    "sim_s": 9.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 0,
+    "b_survive_value": 510.9,
+    "a_cost": 620.0,
+    "b_cost": 1040.0,
+    "a_alive": 0,
+    "b_alive": 5,
+    "sim_s": 9.4,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 0,
+    "b_survive_value": 483.2,
+    "a_cost": 620.0,
+    "b_cost": 1040.0,
+    "a_alive": 0,
+    "b_alive": 5,
+    "sim_s": 9.2,
+    "healing_done": 0
+   }
+  ],
+  "warrior_vs_warrior": [
+   {
+    "a_survive_value": 0,
+    "b_survive_value": 27.3,
+    "a_cost": 840.0,
+    "b_cost": 840.0,
+    "a_alive": 0,
+    "b_alive": 1,
+    "sim_s": 23.8,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 56.3,
+    "b_survive_value": 0,
+    "a_cost": 840.0,
+    "b_cost": 840.0,
+    "a_alive": 1,
+    "b_alive": 0,
+    "sim_s": 23.7,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 37.4,
+    "b_survive_value": 0,
+    "a_cost": 840.0,
+    "b_cost": 840.0,
+    "a_alive": 2,
+    "b_alive": 0,
+    "sim_s": 23.7,
+    "healing_done": 0
+   }
+  ]
+ },
+ "equal_cost": {
+  "warrior9_vs_archer8": [
+   {
+    "a_survive_value": 630.0,
+    "b_survive_value": 932.0,
+    "a_cost": 945.0,
+    "b_cost": 960.0,
+    "a_alive": 6,
+    "b_alive": 8,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 630.0,
+    "b_survive_value": 925.6,
+    "a_cost": 945.0,
+    "b_cost": 960.0,
+    "a_alive": 6,
+    "b_alive": 8,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 630.0,
+    "b_survive_value": 928.8,
+    "a_cost": 945.0,
+    "b_cost": 960.0,
+    "a_alive": 6,
+    "b_alive": 8,
+    "sim_s": 240.0,
+    "healing_done": 0
+   }
+  ],
+  "warrior9_vs_spearman12": [
+   {
+    "a_survive_value": 0,
+    "b_survive_value": 79.4,
+    "a_cost": 945.0,
+    "b_cost": 930.0,
+    "a_alive": 0,
+    "b_alive": 2,
+    "sim_s": 15.8,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 58.8,
+    "b_survive_value": 0,
+    "a_cost": 945.0,
+    "b_cost": 930.0,
+    "a_alive": 2,
+    "b_alive": 0,
+    "sim_s": 16.2,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 0,
+    "b_survive_value": 1.9,
+    "a_cost": 945.0,
+    "b_cost": 930.0,
+    "a_alive": 0,
+    "b_alive": 1,
+    "sim_s": 17.2,
+    "healing_done": 0
+   }
+  ],
+  "warrior9_vs_cavalry7": [
+   {
+    "a_survive_value": 252.4,
+    "b_survive_value": 0,
+    "a_cost": 945.0,
+    "b_cost": 910.0,
+    "a_alive": 3,
+    "b_alive": 0,
+    "sim_s": 17.3,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 270.9,
+    "b_survive_value": 0,
+    "a_cost": 945.0,
+    "b_cost": 910.0,
+    "a_alive": 3,
+    "b_alive": 0,
+    "sim_s": 17.7,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 220.9,
+    "b_survive_value": 0,
+    "a_cost": 945.0,
+    "b_cost": 910.0,
+    "a_alive": 3,
+    "b_alive": 0,
+    "sim_s": 19.0,
+    "healing_done": 0
+   }
+  ],
+  "archer8_vs_spearman12": [
+   {
+    "a_survive_value": 904.0,
+    "b_survive_value": 620.0,
+    "a_cost": 960.0,
+    "b_cost": 930.0,
+    "a_alive": 8,
+    "b_alive": 8,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 920.0,
+    "b_survive_value": 620.0,
+    "a_cost": 960.0,
+    "b_cost": 930.0,
+    "a_alive": 8,
+    "b_alive": 8,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 907.2,
+    "b_survive_value": 620.0,
+    "a_cost": 960.0,
+    "b_cost": 930.0,
+    "a_alive": 8,
+    "b_alive": 8,
+    "sim_s": 240.0,
+    "healing_done": 0
+   }
+  ],
+  "archer8_vs_cavalry7": [
+   {
+    "a_survive_value": 324.8,
+    "b_survive_value": 520.0,
+    "a_cost": 960.0,
+    "b_cost": 910.0,
+    "a_alive": 4,
+    "b_alive": 4,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 295.2,
+    "b_survive_value": 520.0,
+    "a_cost": 960.0,
+    "b_cost": 910.0,
+    "a_alive": 4,
+    "b_alive": 4,
+    "sim_s": 240.0,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 339.2,
+    "b_survive_value": 520.0,
+    "a_cost": 960.0,
+    "b_cost": 910.0,
+    "a_alive": 4,
+    "b_alive": 4,
+    "sim_s": 240.0,
+    "healing_done": 0
+   }
+  ],
+  "spearman12_vs_cavalry7": [
+   {
+    "a_survive_value": 354.6,
+    "b_survive_value": 0,
+    "a_cost": 930.0,
+    "b_cost": 910.0,
+    "a_alive": 6,
+    "b_alive": 0,
+    "sim_s": 7.9,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 393.7,
+    "b_survive_value": 0,
+    "a_cost": 930.0,
+    "b_cost": 910.0,
+    "a_alive": 6,
+    "b_alive": 0,
+    "sim_s": 7.9,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 401.4,
+    "b_survive_value": 0,
+    "a_cost": 930.0,
+    "b_cost": 910.0,
+    "a_alive": 7,
+    "b_alive": 0,
+    "sim_s": 7.7,
+    "healing_done": 0
+   }
+  ],
+  "warrior9_vs_warrior9": [
+   {
+    "a_survive_value": 0,
+    "b_survive_value": 52.1,
+    "a_cost": 945.0,
+    "b_cost": 945.0,
+    "a_alive": 0,
+    "b_alive": 1,
+    "sim_s": 25.7,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 195.3,
+    "b_survive_value": 0,
+    "a_cost": 945.0,
+    "b_cost": 945.0,
+    "a_alive": 3,
+    "b_alive": 0,
+    "sim_s": 20.2,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 108.8,
+    "b_survive_value": 0,
+    "a_cost": 945.0,
+    "b_cost": 945.0,
+    "a_alive": 2,
+    "b_alive": 0,
+    "sim_s": 22.8,
+    "healing_done": 0
+   }
+  ]
+ },
+ "ram_probes": [
+  {
+   "target": "watchtower",
+   "escorts": 0,
+   "killed": true,
+   "time_s": 11.8,
+   "rams_lost": 0,
+   "escorts_lost": 0
+  },
+  {
+   "target": "watchtower",
+   "escorts": 0,
+   "killed": true,
+   "time_s": 12.4,
+   "rams_lost": 0,
+   "escorts_lost": 0
+  },
+  {
+   "target": "watchtower",
+   "escorts": 3,
+   "killed": true,
+   "time_s": 12.2,
+   "rams_lost": 0,
+   "escorts_lost": 0
+  },
+  {
+   "target": "watchtower",
+   "escorts": 3,
+   "killed": true,
+   "time_s": 13.2,
+   "rams_lost": 0,
+   "escorts_lost": 0
+  },
+  {
+   "target": "castle",
+   "escorts": 0,
+   "killed": true,
+   "time_s": 16.8,
+   "rams_lost": 0,
+   "escorts_lost": 0
+  },
+  {
+   "target": "castle",
+   "escorts": 0,
+   "killed": true,
+   "time_s": 17.4,
+   "rams_lost": 0,
+   "escorts_lost": 0
+  },
+  {
+   "target": "castle",
+   "escorts": 3,
+   "killed": true,
+   "time_s": 17.2,
+   "rams_lost": 0,
+   "escorts_lost": 0
+  },
+  {
+   "target": "castle",
+   "escorts": 3,
+   "killed": true,
+   "time_s": 17.8,
+   "rams_lost": 0,
+   "escorts_lost": 0
+  }
+ ],
+ "healer_ab": {
+  "w8h2_vs_w10": [
+   {
+    "a_survive_value": 250.0,
+    "b_survive_value": 506.1,
+    "a_cost": 1090.0,
+    "b_cost": 1050.0,
+    "a_alive": 2,
+    "b_alive": 8,
+    "sim_s": 11.6,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 250.0,
+    "b_survive_value": 504.4,
+    "a_cost": 1090.0,
+    "b_cost": 1050.0,
+    "a_alive": 2,
+    "b_alive": 8,
+    "sim_s": 11.8,
+    "healing_done": 0
+   },
+   {
+    "a_survive_value": 250.0,
+    "b_survive_value": 524.6,
+    "a_cost": 1090.0,
+    "b_cost": 1050.0,
+    "a_alive": 2,
+    "b_alive": 8,
+    "sim_s": 11.6,
+    "healing_done": 0
+   }
+  ]
+ }
+}

@@ -1,0 +1,5686 @@
+{
+ "config": {
+  "seed": 3001,
+  "players": 2,
+  "map": [
+   70,
+   70
+  ],
+  "personalities": {
+   "AI 1": "rusher",
+   "AI 2": "boomer"
+  },
+  "difficulties": {
+   "AI 1": "normal",
+   "AI 2": "normal"
+  },
+  "seconds_cap": 2400.0
+ },
+ "winner_name": "AI 1",
+ "winner_personality": "rusher",
+ "completed": true,
+ "sim_seconds": 1822.6,
+ "units_trained": {
+  "AI 2|worker": 93,
+  "AI 1|worker": 15,
+  "AI 1|warrior": 59,
+  "AI 2|warrior": 17,
+  "AI 1|spearman": 63,
+  "AI 2|spearman": 30,
+  "AI 2|archer": 28,
+  "AI 1|archer": 21,
+  "AI 1|cavalry": 34,
+  "AI 2|ram": 40,
+  "AI 1|ram": 57,
+  "AI 2|cavalry": 6,
+  "AI 2|healer": 3,
+  "AI 1|healer": 3
+ },
+ "buildings_built": {
+  "AI 2|farm": 5,
+  "AI 1|farm": 5,
+  "AI 2|house": 18,
+  "AI 2|lumbermill": 4,
+  "AI 1|barracks": 1,
+  "AI 1|house": 16,
+  "AI 1|blacksmith": 1,
+  "AI 1|lumbermill": 6,
+  "AI 2|barracks": 1,
+  "AI 2|watchtower": 2,
+  "AI 2|blacksmith": 5,
+  "AI 2|market": 1,
+  "AI 1|watchtower": 3,
+  "AI 1|stable": 1,
+  "AI 1|temple": 1,
+  "AI 2|siege_workshop": 2,
+  "AI 1|siege_workshop": 2,
+  "AI 1|market": 1,
+  "AI 2|stable": 3,
+  "AI 2|temple": 1,
+  "AI 1|mine": 2
+ },
+ "damage_dealt": {
+  "AI 2|spearman": 4584.0,
+  "AI 2|warrior": 2998.0,
+  "AI 1|spearman": 3978.0,
+  "AI 1|warrior": 5753.0,
+  "AI 2|archer": 13750.0,
+  "AI 1|archer": 4733.0,
+  "AI 1|watchtower": 649.0,
+  "AI 1|cavalry": 11464.0,
+  "AI 2|ram": 588.0,
+  "AI 2|cavalry": 3201.0,
+  "AI 2|watchtower": 4506.0,
+  "AI 1|ram": 3652.0
+ },
+ "damage_taken": {
+  "AI 1|cavalry": 5638.0,
+  "AI 1|spearman": 6649.0,
+  "AI 2|spearman": 4018.0,
+  "AI 1|warrior": 6774.0,
+  "AI 2|warrior": 2677.0,
+  "AI 1|archer": 1428.0,
+  "AI 1|worker": 504.0,
+  "AI 2|archer": 2439.0,
+  "AI 2|lumbermill": 146.0,
+  "AI 1|ram": 7144.0,
+  "AI 2|worker": 3671.0,
+  "AI 2|ram": 6314.0,
+  "AI 1|watchtower": 293.0,
+  "AI 1|lumbermill": 895.0,
+  "AI 2|cavalry": 1788.0,
+  "AI 1|siege_workshop": 170.0,
+  "AI 1|house": 79.0,
+  "AI 2|watchtower": 1265.0,
+  "AI 2|stable": 598.0,
+  "AI 2|house": 2886.0,
+  "AI 1|mine": 53.0,
+  "AI 2|siege_workshop": 734.0,
+  "AI 2|blacksmith": 797.0,
+  "AI 2|healer": 364.0,
+  "AI 2|castle": 2532.0
+ },
+ "kills": {
+  "AI 2|warrior": 11,
+  "AI 2|archer": 85,
+  "AI 1|archer": 38,
+  "AI 1|watchtower": 4,
+  "AI 1|spearman": 43,
+  "AI 2|spearman": 35,
+  "AI 1|warrior": 55,
+  "AI 1|cavalry": 69,
+  "AI 2|ram": 1,
+  "AI 2|cavalry": 12,
+  "AI 2|watchtower": 19,
+  "AI 1|ram": 2
+ },
+ "units_lost": {
+  "AI 2|archer": 28,
+  "AI 1|cavalry": 15,
+  "AI 1|spearman": 51,
+  "AI 1|warrior": 41,
+  "AI 2|warrior": 16,
+  "AI 1|archer": 16,
+  "AI 2|spearman": 30,
+  "AI 1|ram": 39,
+  "AI 2|worker": 94,
+  "AI 2|ram": 40,
+  "AI 1|worker": 8,
+  "AI 2|cavalry": 6,
+  "AI 2|healer": 3
+ },
+ "buildings_lost": {
+  "AI 2|lumbermill": 2,
+  "AI 1|watchtower": 1,
+  "AI 1|lumbermill": 3,
+  "AI 1|siege_workshop": 1,
+  "AI 2|watchtower": 2,
+  "AI 2|blacksmith": 5,
+  "AI 2|stable": 3,
+  "AI 2|house": 16,
+  "AI 2|siege_workshop": 2,
+  "AI 2|castle": 1,
+  "AI 2|farm": 1
+ },
+ "healing": {
+  "AI 2": 5826.4,
+  "AI 1": 2656.0
+ },
+ "resources_gathered": {
+  "AI 2": 23971,
+  "AI 1": 40566
+ },
+ "goal_chosen": {
+  "AI 2|scout": 744,
+  "AI 2|train_worker": 94,
+  "AI 1|scout": 1403,
+  "AI 1|train_worker": 15,
+  "AI 2|build_farm": 5,
+  "AI 1|build_farm": 5,
+  "AI 1|build_barracks": 1,
+  "AI 2|build_lumbermill": 5,
+  "AI 2|build_house": 18,
+  "AI 1|build_house": 16,
+  "AI 2|build_barracks": 1,
+  "AI 1|build_blacksmith": 1,
+  "AI 1|build_lumbermill": 6,
+  "AI 2|build_watchtower": 3,
+  "AI 1|train_warrior": 60,
+  "AI 1|research_improved_tools": 1,
+  "AI 2|build_blacksmith": 6,
+  "AI 2|train_warrior": 17,
+  "AI 1|train_spearman": 63,
+  "AI 2|train_spearman": 30,
+  "AI 2|build_market": 1,
+  "AI 1|research_forged_blades": 1,
+  "AI 2|research_improved_tools": 1,
+  "AI 1|build_watchtower": 3,
+  "AI 2|train_archer": 28,
+  "AI 2|research_reinforced_frames": 1,
+  "AI 1|build_stable": 1,
+  "AI 1|research_reinforced_frames": 1,
+  "AI 1|train_archer": 21,
+  "AI 1|research_fletching": 1,
+  "AI 1|build_temple": 1,
+  "AI 2|market_trade": 91,
+  "AI 2|build_siege_workshop": 2,
+  "AI 2|research_fletching": 1,
+  "AI 1|build_siege_workshop": 2,
+  "AI 2|control_fountain": 11,
+  "AI 1|train_cavalry": 34,
+  "AI 2|train_ram": 41,
+  "AI 2|attack": 2195,
+  "AI 1|defend_base": 74,
+  "AI 2|research_forged_blades": 1,
+  "AI 1|train_ram": 57,
+  "AI 2|build_mine": 1,
+  "AI 1|attack": 1647,
+  "AI 1|build_market": 1,
+  "AI 2|build_stable": 3,
+  "AI 1|market_trade": 125,
+  "AI 1|research_siege_engineering": 1,
+  "AI 2|research_padded_armor": 1,
+  "AI 2|train_cavalry": 6,
+  "AI 2|research_siege_engineering": 1,
+  "AI 2|build_temple": 1,
+  "AI 2|defend_base": 174,
+  "AI 2|train_healer": 3,
+  "AI 1|build_mine": 2,
+  "AI 1|research_padded_armor": 1,
+  "AI 1|train_healer": 3,
+  "AI 1|expand_castle": 1
+ },
+ "goal_top": {
+  "AI 2|train_worker": 94,
+  "AI 1|train_worker": 15,
+  "AI 2|build_farm": 9,
+  "AI 1|build_farm": 5,
+  "AI 1|build_barracks": 1,
+  "AI 2|build_lumbermill": 5,
+  "AI 2|build_house": 29,
+  "AI 1|build_house": 17,
+  "AI 2|build_barracks": 1,
+  "AI 1|build_blacksmith": 1,
+  "AI 1|build_lumbermill": 7,
+  "AI 2|build_watchtower": 3,
+  "AI 1|train_warrior": 60,
+  "AI 1|research_improved_tools": 1,
+  "AI 2|build_blacksmith": 9,
+  "AI 2|train_warrior": 17,
+  "AI 1|train_spearman": 63,
+  "AI 2|train_spearman": 29,
+  "AI 2|build_market": 1,
+  "AI 1|research_forged_blades": 1,
+  "AI 2|research_improved_tools": 1,
+  "AI 1|build_watchtower": 3,
+  "AI 2|train_archer": 28,
+  "AI 2|research_reinforced_frames": 1,
+  "AI 1|build_stable": 1,
+  "AI 1|research_reinforced_frames": 1,
+  "AI 1|train_archer": 21,
+  "AI 1|research_fletching": 1,
+  "AI 1|build_temple": 1,
+  "AI 2|market_trade": 91,
+  "AI 2|build_siege_workshop": 2,
+  "AI 2|research_fletching": 1,
+  "AI 1|build_siege_workshop": 2,
+  "AI 1|train_cavalry": 34,
+  "AI 2|train_ram": 41,
+  "AI 2|research_forged_blades": 1,
+  "AI 1|train_ram": 57,
+  "AI 2|build_mine": 1,
+  "AI 1|build_market": 3,
+  "AI 2|build_stable": 3,
+  "AI 1|market_trade": 125,
+  "AI 1|research_siege_engineering": 1,
+  "AI 2|research_padded_armor": 1,
+  "AI 2|train_cavalry": 6,
+  "AI 2|research_siege_engineering": 1,
+  "AI 2|build_temple": 1,
+  "AI 2|train_healer": 3,
+  "AI 1|build_mine": 2,
+  "AI 1|research_padded_armor": 1,
+  "AI 1|train_healer": 3,
+  "AI 1|expand_castle": 1
+ },
+ "goal_fallthrough": {
+  "AI 2|build_house": 11,
+  "AI 2|build_farm": 4,
+  "AI 1|build_market": 2,
+  "AI 1|build_lumbermill": 1,
+  "AI 2|build_blacksmith": 3,
+  "AI 1|build_house": 1
+ },
+ "final_upgrades": {
+  "AI 1": [
+   "fletching",
+   "forged_blades",
+   "improved_tools",
+   "padded_armor",
+   "reinforced_frames",
+   "siege_engineering"
+  ],
+  "AI 2": [
+   "fletching",
+   "forged_blades",
+   "improved_tools",
+   "padded_armor",
+   "reinforced_frames",
+   "siege_engineering"
+  ]
+ },
+ "samples": [
+  {
+   "t": 0.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 1
+     },
+     "buildings": {
+      "castle": 1
+     },
+     "resources": {
+      "food": 200,
+      "gold": 100,
+      "wood": 200
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 1
+     },
+     "buildings": {
+      "castle": 1
+     },
+     "resources": {
+      "food": 200,
+      "gold": 100,
+      "wood": 200
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 30.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 1,
+      "barracks": 1
+     },
+     "resources": {
+      "food": 110,
+      "gold": 60,
+      "wood": 15
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 6
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 1,
+      "house": 1,
+      "lumbermill": 1
+     },
+     "resources": {
+      "food": 60,
+      "gold": 120,
+      "wood": 50
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 60.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 1,
+      "barracks": 1,
+      "house": 1,
+      "blacksmith": 1
+     },
+     "resources": {
+      "food": 15,
+      "gold": 50,
+      "wood": 55
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 3,
+      "house": 2,
+      "lumbermill": 2
+     },
+     "resources": {
+      "food": 85,
+      "gold": 140,
+      "wood": 154
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 90.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 1,
+      "spearman": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 2,
+      "barracks": 1,
+      "house": 2,
+      "blacksmith": 1,
+      "lumbermill": 2
+     },
+     "resources": {
+      "food": 10,
+      "gold": 90,
+      "wood": 175
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 1,
+      "spearman": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 3,
+      "house": 2,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "blacksmith": 1
+     },
+     "resources": {
+      "food": 90,
+      "gold": 70,
+      "wood": 176
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 120.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 1,
+      "spearman": 1,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 2,
+      "barracks": 1,
+      "house": 2,
+      "blacksmith": 1,
+      "lumbermill": 2,
+      "watchtower": 1
+     },
+     "resources": {
+      "food": 30,
+      "gold": 125,
+      "wood": 153
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 1,
+      "spearman": 1,
+      "archer": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 4,
+      "house": 2,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 85,
+      "gold": 40,
+      "wood": 184
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 150.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 2,
+      "spearman": 1,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 3,
+      "barracks": 1,
+      "house": 3,
+      "blacksmith": 1,
+      "lumbermill": 2,
+      "watchtower": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 50,
+      "gold": 55,
+      "wood": 47
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 2,
+      "spearman": 3,
+      "archer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 3,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 5,
+      "gold": 20,
+      "wood": 309
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 180.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 2,
+      "spearman": 1,
+      "archer": 1,
+      "cavalry": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 4,
+      "barracks": 1,
+      "house": 3,
+      "blacksmith": 1,
+      "lumbermill": 2,
+      "watchtower": 1,
+      "stable": 1,
+      "temple": 1
+     },
+     "resources": {
+      "food": 25,
+      "gold": 155,
+      "wood": 140
+     },
+     "melee_engaged_dists": [
+      228.2,
+      179.2,
+      308.8
+     ],
+     "ranged_engaged_dists": [
+      358.0
+     ],
+     "ram_escort_dists": [],
+     "units_near_fountain": 1
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "spearman": 4,
+      "archer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 3,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 55,
+      "gold": 20,
+      "wood": 73
+     },
+     "melee_engaged_dists": [
+      57.1,
+      56.0,
+      94.1,
+      150.7
+     ],
+     "ranged_engaged_dists": [
+      144.1,
+      274.5
+     ],
+     "ram_escort_dists": [],
+     "units_near_fountain": 6
+    }
+   }
+  },
+  {
+   "t": 210.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 1,
+      "spearman": 1,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 3,
+      "blacksmith": 1,
+      "lumbermill": 2,
+      "watchtower": 1,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 0,
+      "gold": 245,
+      "wood": 45
+     },
+     "melee_engaged_dists": [
+      52.0,
+      145.9
+     ],
+     "ranged_engaged_dists": [
+      460.2
+     ],
+     "ram_escort_dists": [],
+     "units_near_fountain": 3
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "spearman": 4,
+      "archer": 6,
+      "ram": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 4,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 0,
+      "gold": 55,
+      "wood": 2
+     },
+     "melee_engaged_dists": [
+      52.0,
+      337.3,
+      283.8,
+      386.5
+     ],
+     "ranged_engaged_dists": [
+      288.5,
+      274.3,
+      278.1
+     ],
+     "ram_escort_dists": [
+      194.2,
+      206.8
+     ],
+     "units_near_fountain": 4
+    }
+   }
+  },
+  {
+   "t": 240.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 2,
+      "archer": 1,
+      "ram": 1,
+      "spearman": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 3,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 30,
+      "gold": 445,
+      "wood": 135
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [
+      415.4
+     ],
+     "ram_escort_dists": [
+      33.3
+     ],
+     "units_near_fountain": 2
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "spearman": 5,
+      "archer": 5,
+      "ram": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 4,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 35,
+      "gold": 125,
+      "wood": 107
+     },
+     "melee_engaged_dists": [
+      423.4
+     ],
+     "ranged_engaged_dists": [
+      415.4
+     ],
+     "ram_escort_dists": [
+      134.3,
+      148.7,
+      97.4
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 270.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "archer": 3,
+      "ram": 3,
+      "spearman": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 4,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 15,
+      "gold": 285,
+      "wood": 285
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      119.1,
+      107.2,
+      121.1
+     ],
+     "units_near_fountain": 2
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 4,
+      "spearman": 5,
+      "archer": 7,
+      "ram": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 5,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 25,
+      "gold": 0,
+      "wood": 32
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      93.9,
+      127.3,
+      33.9
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 300.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 2,
+      "spearman": 3,
+      "ram": 3,
+      "archer": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 4,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 30,
+      "gold": 335,
+      "wood": 45
+     },
+     "melee_engaged_dists": [
+      168.2
+     ],
+     "ranged_engaged_dists": [
+      203.0
+     ],
+     "ram_escort_dists": [
+      111.5,
+      62.5,
+      191.2
+     ],
+     "units_near_fountain": 3
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 5,
+      "spearman": 5,
+      "archer": 6,
+      "ram": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 5,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 50,
+      "gold": 45,
+      "wood": 202
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [
+      474.9,
+      292.4,
+      221.6
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      161.4
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 330.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "ram": 3,
+      "archer": 3,
+      "spearman": 2,
+      "warrior": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 15,
+      "gold": 225,
+      "wood": 325
+     },
+     "melee_engaged_dists": [
+      260.3,
+      279.4,
+      240.6,
+      365.5
+     ],
+     "ranged_engaged_dists": [
+      469.2
+     ],
+     "ram_escort_dists": [
+      75.9,
+      46.3,
+      100.5
+     ],
+     "units_near_fountain": 2
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 6,
+      "archer": 6,
+      "spearman": 6,
+      "ram": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 5,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 55,
+      "gold": 65,
+      "wood": 202
+     },
+     "melee_engaged_dists": [
+      240.6,
+      326.2
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      52.5,
+      53.0
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 360.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "ram": 2,
+      "spearman": 2,
+      "warrior": 1,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 40,
+      "gold": 60,
+      "wood": 175
+     },
+     "melee_engaged_dists": [
+      37.2,
+      333.4
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      96.6,
+      65.9
+     ],
+     "units_near_fountain": 2
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 5,
+      "archer": 6,
+      "spearman": 7,
+      "ram": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 5,
+      "gold": 25,
+      "wood": 242
+     },
+     "melee_engaged_dists": [
+      38.7,
+      37.2,
+      158.7
+     ],
+     "ranged_engaged_dists": [
+      152.8,
+      169.0,
+      171.7,
+      284.8
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      50.3,
+      31.5,
+      117.2
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 390.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 1,
+      "ram": 3,
+      "archer": 1,
+      "spearman": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 130,
+      "gold": 50,
+      "wood": 455
+     },
+     "melee_engaged_dists": [
+      102.8,
+      357.1
+     ],
+     "ranged_engaged_dists": [
+      229.4
+     ],
+     "ram_escort_dists": [
+      223.6,
+      60.0,
+      278.9
+     ],
+     "units_near_fountain": 2
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 5,
+      "archer": 7,
+      "spearman": 7,
+      "ram": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 55,
+      "gold": 19,
+      "wood": 122
+     },
+     "melee_engaged_dists": [
+      445.8
+     ],
+     "ranged_engaged_dists": [
+      101.6,
+      102.8,
+      476.3
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      28.0,
+      55.7
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 420.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "ram": 2,
+      "cavalry": 1,
+      "spearman": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 110,
+      "gold": 0,
+      "wood": 835
+     },
+     "melee_engaged_dists": [
+      480.2
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      181.4,
+      170.1
+     ],
+     "units_near_fountain": 3
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 5,
+      "archer": 7,
+      "spearman": 7,
+      "ram": 6
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 145,
+      "gold": 9,
+      "wood": 362
+     },
+     "melee_engaged_dists": [
+      51.4,
+      443.4
+     ],
+     "ranged_engaged_dists": [
+      358.8
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      16.2,
+      84.0,
+      56.2,
+      22.3
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 450.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "ram": 4,
+      "spearman": 1,
+      "warrior": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 175,
+      "gold": 10,
+      "wood": 955
+     },
+     "melee_engaged_dists": [
+      60.2,
+      167.2
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      455.4,
+      346.2,
+      112.2,
+      28.5
+     ],
+     "units_near_fountain": 3
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 4,
+      "archer": 7,
+      "spearman": 8,
+      "ram": 7,
+      "cavalry": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 170,
+      "gold": 79,
+      "wood": 663
+     },
+     "melee_engaged_dists": [
+      45.3,
+      60.1,
+      44.6
+     ],
+     "ranged_engaged_dists": [
+      87.0,
+      76.4
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      78.5,
+      361.0,
+      99.3,
+      22.4,
+      170.8
+     ],
+     "units_near_fountain": 2
+    }
+   }
+  },
+  {
+   "t": 480.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "spearman": 2,
+      "ram": 1,
+      "cavalry": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 175,
+      "gold": 0,
+      "wood": 655
+     },
+     "melee_engaged_dists": [
+      49.3,
+      74.9
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      368.0
+     ],
+     "units_near_fountain": 1
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 4,
+      "archer": 8,
+      "spearman": 7,
+      "ram": 6,
+      "cavalry": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 180,
+      "gold": 74,
+      "wood": 552
+     },
+     "melee_engaged_dists": [
+      434.3,
+      104.3,
+      462.2,
+      49.3,
+      471.6
+     ],
+     "ranged_engaged_dists": [
+      267.1,
+      108.8,
+      223.0
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      111.9,
+      22.1,
+      72.8,
+      128.1
+     ],
+     "units_near_fountain": 1
+    }
+   }
+  },
+  {
+   "t": 510.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "ram": 3,
+      "cavalry": 1,
+      "warrior": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 1,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 275,
+      "gold": 20,
+      "wood": 1155
+     },
+     "melee_engaged_dists": [
+      255.4
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      169.0,
+      299.2,
+      276.9
+     ],
+     "units_near_fountain": 4
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 4,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 7,
+      "cavalry": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 270,
+      "gold": 114,
+      "wood": 892
+     },
+     "melee_engaged_dists": [
+      130.4,
+      60.0,
+      55.7,
+      254.6
+     ],
+     "ranged_engaged_dists": [
+      52.1
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      37.4,
+      49.2,
+      76.7,
+      36.0,
+      43.3
+     ],
+     "units_near_fountain": 5
+    }
+   }
+  },
+  {
+   "t": 540.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 6,
+      "warrior": 1,
+      "spearman": 1,
+      "ram": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 2,
+      "watchtower": 1,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 305,
+      "gold": 50,
+      "wood": 680
+     },
+     "melee_engaged_dists": [
+      207.2,
+      54.4
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      162.9
+     ],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 4,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 7,
+      "cavalry": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 420,
+      "gold": 114,
+      "wood": 582
+     },
+     "melee_engaged_dists": [
+      492.6,
+      85.2,
+      65.3,
+      28.2
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      64.0,
+      22.1,
+      44.2,
+      77.1,
+      77.2
+     ],
+     "units_near_fountain": 1
+    }
+   }
+  },
+  {
+   "t": 570.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 1,
+      "ram": 2,
+      "cavalry": 1,
+      "spearman": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 2,
+      "watchtower": 1,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 260,
+      "gold": 0,
+      "wood": 360
+     },
+     "melee_engaged_dists": [
+      107.0,
+      55.4
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      83.8,
+      298.1
+     ],
+     "units_near_fountain": 1
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 7,
+      "cavalry": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 470,
+      "gold": 114,
+      "wood": 432
+     },
+     "melee_engaged_dists": [
+      55.4,
+      241.2,
+      322.2
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      150.3,
+      84.0,
+      52.2,
+      49.3,
+      72.0
+     ],
+     "units_near_fountain": 1
+    }
+   }
+  },
+  {
+   "t": 600.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "spearman": 1,
+      "ram": 3,
+      "warrior": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 1,
+      "stable": 1,
+      "temple": 1,
+      "siege_workshop": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 335,
+      "gold": 20,
+      "wood": 360
+     },
+     "melee_engaged_dists": [
+      53.3,
+      52.7
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      542.4,
+      507.5,
+      184.7
+     ],
+     "units_near_fountain": 1
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "archer": 8,
+      "spearman": 7,
+      "ram": 6,
+      "cavalry": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 470,
+      "gold": 184,
+      "wood": 572
+     },
+     "melee_engaged_dists": [
+      55.1,
+      161.7,
+      498.5,
+      53.3
+     ],
+     "ranged_engaged_dists": [
+      456.4,
+      407.6,
+      421.5,
+      60.5,
+      103.1
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      25.6,
+      109.7,
+      25.7,
+      41.2
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 630.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "ram": 3,
+      "spearman": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 2,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 400,
+      "gold": 30,
+      "wood": 489
+     },
+     "melee_engaged_dists": [
+      55.9
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      360.5,
+      365.5,
+      462.0
+     ],
+     "units_near_fountain": 3
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 5,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 6,
+      "cavalry": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 435,
+      "gold": 64,
+      "wood": 472
+     },
+     "melee_engaged_dists": [
+      55.9,
+      302.1
+     ],
+     "ranged_engaged_dists": [
+      130.1,
+      234.4,
+      113.1
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      379.7,
+      223.1,
+      132.4,
+      99.4
+     ],
+     "units_near_fountain": 3
+    }
+   }
+  },
+  {
+   "t": 660.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "ram": 2,
+      "spearman": 1,
+      "warrior": 1,
+      "cavalry": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 2,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1
+     },
+     "resources": {
+      "food": 425,
+      "gold": 0,
+      "wood": 634
+     },
+     "melee_engaged_dists": [
+      56.0
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      118.4,
+      503.6
+     ],
+     "units_near_fountain": 1
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 5,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 6,
+      "cavalry": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 485,
+      "gold": 214,
+      "wood": 532
+     },
+     "melee_engaged_dists": [
+      268.9,
+      112.2,
+      106.9,
+      466.7,
+      275.5,
+      365.5,
+      276.0
+     ],
+     "ranged_engaged_dists": [
+      56.0,
+      211.7,
+      56.4
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      865.9,
+      554.5,
+      62.8,
+      42.9
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 690.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "ram": 3,
+      "warrior": 1,
+      "cavalry": 1,
+      "spearman": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 2,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 490,
+      "gold": 10,
+      "wood": 634
+     },
+     "melee_engaged_dists": [
+      371.2
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      74.8,
+      300.6,
+      176.7
+     ],
+     "units_near_fountain": 1
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 5,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 6,
+      "cavalry": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 635,
+      "gold": 214,
+      "wood": 732
+     },
+     "melee_engaged_dists": [
+      406.8,
+      397.9
+     ],
+     "ranged_engaged_dists": [
+      434.2
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      101.9,
+      110.6,
+      89.2,
+      34.8
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 720.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "ram": 3,
+      "warrior": 2,
+      "cavalry": 1,
+      "spearman": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 505,
+      "gold": 20,
+      "wood": 1094
+     },
+     "melee_engaged_dists": [
+      305.2,
+      93.5,
+      70.4,
+      52.4
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      44.7,
+      213.5,
+      242.8
+     ],
+     "units_near_fountain": 2
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 5,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 4,
+      "cavalry": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 785,
+      "gold": 214,
+      "wood": 1212
+     },
+     "melee_engaged_dists": [
+      402.6,
+      52.4,
+      427.0
+     ],
+     "ranged_engaged_dists": [
+      338.0
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      206.8,
+      188.9
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 750.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 2,
+      "cavalry": 2,
+      "spearman": 2,
+      "ram": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 585,
+      "gold": 0,
+      "wood": 1334
+     },
+     "melee_engaged_dists": [
+      493.8
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      469.6,
+      33.1
+     ],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 5,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 4,
+      "cavalry": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 935,
+      "gold": 214,
+      "wood": 1752
+     },
+     "melee_engaged_dists": [
+      182.1
+     ],
+     "ranged_engaged_dists": [
+      63.2
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      80.3,
+      87.0
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 780.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "cavalry": 2,
+      "spearman": 3,
+      "ram": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 625,
+      "gold": 10,
+      "wood": 2034
+     },
+     "melee_engaged_dists": [
+      481.1
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      37.7,
+      46.9,
+      48.8
+     ],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 5,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 4,
+      "cavalry": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 1085,
+      "gold": 214,
+      "wood": 1972
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      165.8,
+      162.5
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 810.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "cavalry": 2,
+      "spearman": 4,
+      "ram": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 690,
+      "gold": 20,
+      "wood": 2414
+     },
+     "melee_engaged_dists": [
+      167.0
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      20.2,
+      83.9,
+      166.6,
+      114.6
+     ],
+     "units_near_fountain": 2
+    },
+    "AI 2": {
+     "units": {
+      "worker": 8,
+      "warrior": 5,
+      "archer": 9,
+      "spearman": 8,
+      "ram": 3,
+      "cavalry": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 980,
+      "gold": 4,
+      "wood": 1532
+     },
+     "melee_engaged_dists": [
+      167.0,
+      312.8,
+      233.1
+     ],
+     "ranged_engaged_dists": [
+      469.9,
+      215.4
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      20.3
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 840.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "cavalry": 3,
+      "spearman": 4,
+      "ram": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 690,
+      "gold": 10,
+      "wood": 2814
+     },
+     "melee_engaged_dists": [
+      389.2,
+      300.6
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      127.7,
+      60.3,
+      31.7,
+      40.2
+     ],
+     "units_near_fountain": 2
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 6,
+      "archer": 9,
+      "spearman": 8,
+      "ram": 4,
+      "cavalry": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 1130,
+      "gold": 154,
+      "wood": 1492
+     },
+     "melee_engaged_dists": [
+      380.3,
+      286.7
+     ],
+     "ranged_engaged_dists": [
+      463.2,
+      396.9
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      54.9,
+      21.0
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 870.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 4,
+      "cavalry": 1,
+      "spearman": 2,
+      "ram": 2,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 700,
+      "gold": 5,
+      "wood": 2664
+     },
+     "melee_engaged_dists": [
+      47.2
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      63.5,
+      132.7
+     ],
+     "units_near_fountain": 1
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 6,
+      "archer": 9,
+      "spearman": 8,
+      "ram": 4,
+      "cavalry": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 1280,
+      "gold": 204,
+      "wood": 1852
+     },
+     "melee_engaged_dists": [
+      153.3,
+      449.8,
+      432.5
+     ],
+     "ranged_engaged_dists": [
+      484.5,
+      195.3,
+      470.8
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      106.1,
+      67.2
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 900.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "cavalry": 2,
+      "spearman": 1,
+      "ram": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 765,
+      "gold": 15,
+      "wood": 2744
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      34.2,
+      36.8,
+      224.2,
+      135.0
+     ],
+     "units_near_fountain": 1
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 5,
+      "archer": 9,
+      "spearman": 8,
+      "ram": 3,
+      "cavalry": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 1430,
+      "gold": 204,
+      "wood": 2332
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      107.4
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 930.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "cavalry": 2,
+      "spearman": 3,
+      "ram": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 830,
+      "gold": 25,
+      "wood": 3004
+     },
+     "melee_engaged_dists": [
+      487.1
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      144.0,
+      69.0,
+      97.4,
+      108.8
+     ],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 5,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 3,
+      "cavalry": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 1580,
+      "gold": 204,
+      "wood": 2532
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [
+      399.5
+     ],
+     "ram_escort_dists": [
+      93.9,
+      127.4,
+      47.9
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 960.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 3,
+      "cavalry": 2,
+      "spearman": 3,
+      "ram": 4,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 940,
+      "gold": 50,
+      "wood": 3614
+     },
+     "melee_engaged_dists": [
+      114.9,
+      56.7,
+      58.9
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      215.7,
+      93.0,
+      38.5,
+      33.6
+     ],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 5,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 3,
+      "cavalry": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 2,
+      "blacksmith": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 1505,
+      "gold": 14,
+      "wood": 2352
+     },
+     "melee_engaged_dists": [
+      490.1,
+      439.2,
+      484.8,
+      230.0,
+      442.6,
+      114.9,
+      168.1,
+      458.3,
+      443.5,
+      429.6,
+      229.5
+     ],
+     "ranged_engaged_dists": [
+      475.6,
+      471.1,
+      467.6,
+      446.7,
+      453.5,
+      462.1,
+      96.3,
+      483.4
+     ],
+     "ram_escort_dists": [
+      93.9,
+      122.1,
+      129.8
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 990.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "warrior": 4,
+      "cavalry": 2,
+      "ram": 3,
+      "spearman": 4,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 970,
+      "gold": 0,
+      "wood": 4554
+     },
+     "melee_engaged_dists": [
+      58.1,
+      51.6,
+      41.6,
+      55.7
+     ],
+     "ranged_engaged_dists": [
+      231.0
+     ],
+     "ram_escort_dists": [
+      84.3,
+      24.6,
+      289.5
+     ],
+     "units_near_fountain": 1
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 7,
+      "archer": 7,
+      "spearman": 9,
+      "ram": 3,
+      "cavalry": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 5,
+      "lumbermill": 3,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 1595,
+      "gold": 54,
+      "wood": 2296
+     },
+     "melee_engaged_dists": [
+      307.1,
+      246.7,
+      280.5,
+      41.6,
+      342.2,
+      337.9,
+      298.8,
+      339.6,
+      228.8,
+      349.9,
+      290.1,
+      251.6,
+      66.1,
+      60.5,
+      354.4,
+      418.6
+     ],
+     "ranged_engaged_dists": [
+      377.1,
+      348.9,
+      362.8,
+      364.7,
+      324.3,
+      236.3,
+      58.1
+     ],
+     "ram_escort_dists": [
+      94.9,
+      122.1,
+      76.8
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1020.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 2,
+      "warrior": 4,
+      "ram": 2,
+      "spearman": 4,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 1070,
+      "gold": 70,
+      "wood": 4507
+     },
+     "melee_engaged_dists": [
+      54.6
+     ],
+     "ranged_engaged_dists": [
+      95.9
+     ],
+     "ram_escort_dists": [
+      125.9,
+      30.0
+     ],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 7,
+      "archer": 7,
+      "spearman": 9,
+      "ram": 3,
+      "cavalry": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 5,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "blacksmith": 1
+     },
+     "resources": {
+      "food": 1745,
+      "gold": 54,
+      "wood": 2062
+     },
+     "melee_engaged_dists": [
+      371.3,
+      296.6,
+      393.2,
+      269.2,
+      54.6,
+      95.9,
+      149.5
+     ],
+     "ranged_engaged_dists": [
+      300.1,
+      462.1
+     ],
+     "ram_escort_dists": [
+      130.9,
+      154.8,
+      118.4
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1050.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 3,
+      "warrior": 5,
+      "ram": 4,
+      "spearman": 3,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 1035,
+      "gold": 0,
+      "wood": 4867
+     },
+     "melee_engaged_dists": [
+      375.1,
+      462.9,
+      345.4,
+      215.9,
+      116.1,
+      160.5,
+      75.2,
+      455.2
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      47.7,
+      85.1,
+      46.5,
+      22.1
+     ],
+     "units_near_fountain": 5
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 7,
+      "archer": 7,
+      "spearman": 9,
+      "ram": 3,
+      "cavalry": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 7,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 1790,
+      "gold": 4,
+      "wood": 1502
+     },
+     "melee_engaged_dists": [
+      116.1,
+      50.4
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      16.2,
+      17.7,
+      20.6
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1080.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 3,
+      "warrior": 6,
+      "ram": 4,
+      "spearman": 4,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 5,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 1100,
+      "gold": 10,
+      "wood": 5249
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      39.7,
+      73.4,
+      81.0,
+      46.9
+     ],
+     "units_near_fountain": 3
+    },
+    "AI 2": {
+     "units": {
+      "worker": 7,
+      "warrior": 7,
+      "archer": 10,
+      "spearman": 8,
+      "ram": 5,
+      "cavalry": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 9,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 1490,
+      "gold": 19,
+      "wood": 1422
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      16.2,
+      17.7,
+      17.3,
+      30.8,
+      60.7
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1110.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 3,
+      "warrior": 6,
+      "ram": 4,
+      "spearman": 5,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 6,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 1150,
+      "gold": 0,
+      "wood": 5371
+     },
+     "melee_engaged_dists": [
+      312.5,
+      484.6,
+      199.9,
+      353.9
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      101.0,
+      86.8,
+      49.0,
+      25.8
+     ],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 4,
+      "warrior": 7,
+      "archer": 8,
+      "spearman": 10,
+      "ram": 7,
+      "cavalry": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 9,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 1340,
+      "gold": 34,
+      "wood": 1262
+     },
+     "melee_engaged_dists": [
+      192.1,
+      355.7,
+      322.7,
+      412.2,
+      334.3,
+      227.8,
+      364.9,
+      376.0,
+      283.7,
+      348.8,
+      308.9,
+      376.9,
+      220.0,
+      348.1,
+      384.9,
+      86.4,
+      441.8
+     ],
+     "ranged_engaged_dists": [
+      368.5,
+      394.1,
+      401.1,
+      199.9,
+      398.8,
+      246.4,
+      232.1,
+      342.0
+     ],
+     "ram_escort_dists": [
+      16.2,
+      17.7,
+      16.2,
+      30.8,
+      80.2,
+      58.7,
+      84.4
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1140.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 4,
+      "warrior": 7,
+      "ram": 5,
+      "spearman": 4,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 6,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 1165,
+      "gold": 10,
+      "wood": 5411
+     },
+     "melee_engaged_dists": [
+      445.0,
+      242.5,
+      50.6,
+      317.1
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      98.7,
+      98.0,
+      232.3,
+      284.0,
+      139.8
+     ],
+     "units_near_fountain": 2
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 6,
+      "archer": 9,
+      "spearman": 10,
+      "ram": 9,
+      "worker": 7,
+      "cavalry": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 7,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 1150,
+      "gold": 59,
+      "wood": 1147
+     },
+     "melee_engaged_dists": [
+      471.6,
+      464.4,
+      416.7,
+      431.1,
+      444.8,
+      498.5,
+      333.6,
+      458.3,
+      485.4,
+      454.1,
+      194.7,
+      492.0
+     ],
+     "ranged_engaged_dists": [
+      487.6,
+      171.0,
+      157.0
+     ],
+     "ram_escort_dists": [
+      16.2,
+      17.7,
+      16.2,
+      30.8,
+      71.8,
+      89.9,
+      69.7,
+      125.4,
+      228.3
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1170.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 4,
+      "warrior": 7,
+      "ram": 5,
+      "spearman": 6,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 6,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 1280,
+      "gold": 50,
+      "wood": 5911
+     },
+     "melee_engaged_dists": [
+      359.2,
+      72.6,
+      90.7
+     ],
+     "ranged_engaged_dists": [
+      408.5
+     ],
+     "ram_escort_dists": [
+      21.2,
+      55.6,
+      27.4,
+      22.3,
+      65.4
+     ],
+     "units_near_fountain": 5
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 6,
+      "archer": 10,
+      "spearman": 10,
+      "ram": 7,
+      "worker": 7,
+      "cavalry": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 9,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1
+     },
+     "resources": {
+      "food": 810,
+      "gold": 4,
+      "wood": 632
+     },
+     "melee_engaged_dists": [
+      357.2,
+      422.6,
+      448.8,
+      55.4
+     ],
+     "ranged_engaged_dists": [
+      411.7,
+      399.1,
+      230.1
+     ],
+     "ram_escort_dists": [
+      18.4,
+      17.7,
+      16.2,
+      30.8,
+      96.3,
+      35.1,
+      54.6
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1200.0,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 4,
+      "warrior": 6,
+      "ram": 6,
+      "spearman": 7,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 6,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 1310,
+      "gold": 0,
+      "wood": 5766
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [
+      64.7
+     ],
+     "ram_escort_dists": [
+      97.9,
+      100.2,
+      41.8,
+      50.9,
+      68.6,
+      32.5
+     ],
+     "units_near_fountain": 4
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 7,
+      "archer": 9,
+      "spearman": 10,
+      "ram": 8,
+      "worker": 8,
+      "cavalry": 5,
+      "healer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 7,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1
+     },
+     "resources": {
+      "food": 560,
+      "gold": 54,
+      "wood": 562
+     },
+     "melee_engaged_dists": [
+      468.2,
+      468.8,
+      455.5,
+      483.9,
+      473.5,
+      473.5,
+      496.3,
+      492.6,
+      365.4,
+      452.3,
+      290.3,
+      497.4
+     ],
+     "ranged_engaged_dists": [
+      453.8,
+      486.0,
+      191.1,
+      176.7,
+      407.8,
+      434.1,
+      446.1
+     ],
+     "ram_escort_dists": [
+      18.4,
+      17.7,
+      16.2,
+      30.8,
+      68.8,
+      189.9,
+      16.2,
+      144.8
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1230.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 4,
+      "warrior": 7,
+      "ram": 5,
+      "spearman": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 7,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 1375,
+      "gold": 10,
+      "wood": 6246
+     },
+     "melee_engaged_dists": [
+      106.0,
+      57.3
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      63.9,
+      39.1,
+      184.0,
+      96.8,
+      37.1
+     ],
+     "units_near_fountain": 4
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 7,
+      "archer": 9,
+      "spearman": 10,
+      "ram": 9,
+      "cavalry": 5,
+      "worker": 5,
+      "healer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1
+     },
+     "resources": {
+      "food": 610,
+      "gold": 74,
+      "wood": 642
+     },
+     "melee_engaged_dists": [
+      471.7,
+      176.5,
+      490.2,
+      437.6,
+      150.4
+     ],
+     "ranged_engaged_dists": [
+      438.4,
+      297.3,
+      224.4
+     ],
+     "ram_escort_dists": [
+      28.5,
+      31.2,
+      41.0,
+      29.2,
+      45.5,
+      64.4,
+      59.8,
+      197.7,
+      43.8
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1260.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 4,
+      "warrior": 5,
+      "ram": 4,
+      "spearman": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 7,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 1405,
+      "gold": 40,
+      "wood": 6446
+     },
+     "melee_engaged_dists": [
+      97.0,
+      62.5
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      39.4,
+      139.7,
+      84.4,
+      28.4
+     ],
+     "units_near_fountain": 3
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 7,
+      "archer": 9,
+      "spearman": 10,
+      "ram": 8,
+      "cavalry": 5,
+      "worker": 5,
+      "healer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 8,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 760,
+      "gold": 194,
+      "wood": 722
+     },
+     "melee_engaged_dists": [
+      53.6,
+      116.6
+     ],
+     "ranged_engaged_dists": [
+      209.8
+     ],
+     "ram_escort_dists": [
+      16.2,
+      31.4,
+      46.0,
+      23.0,
+      29.8,
+      70.3,
+      35.2,
+      36.7
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1290.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 4,
+      "warrior": 7,
+      "ram": 4,
+      "spearman": 4,
+      "archer": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 7,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 1325,
+      "gold": 60,
+      "wood": 5966
+     },
+     "melee_engaged_dists": [
+      54.2,
+      116.7,
+      57.5
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      51.7,
+      124.7,
+      43.6,
+      36.4
+     ],
+     "units_near_fountain": 5
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 6,
+      "archer": 9,
+      "spearman": 9,
+      "ram": 7,
+      "cavalry": 5,
+      "worker": 8,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 9,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 335,
+      "gold": 9,
+      "wood": 422
+     },
+     "melee_engaged_dists": [
+      266.7,
+      156.6,
+      284.1,
+      182.5,
+      299.8,
+      202.5,
+      154.7,
+      211.5,
+      305.6,
+      203.3,
+      170.0,
+      174.7
+     ],
+     "ranged_engaged_dists": [
+      189.5,
+      292.8,
+      198.0,
+      152.9,
+      249.9,
+      159.1
+     ],
+     "ram_escort_dists": [
+      16.2,
+      24.5,
+      34.2,
+      20.3,
+      29.8,
+      259.1,
+      33.0
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1320.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 5,
+      "warrior": 8,
+      "ram": 6,
+      "spearman": 3,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 7,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 1140,
+      "gold": 30,
+      "wood": 6246
+     },
+     "melee_engaged_dists": [
+      86.6,
+      395.0
+     ],
+     "ranged_engaged_dists": [
+      82.3
+     ],
+     "ram_escort_dists": [
+      54.3,
+      89.1,
+      35.7,
+      20.6,
+      43.7,
+      32.5
+     ],
+     "units_near_fountain": 7
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 6,
+      "archer": 10,
+      "spearman": 10,
+      "ram": 9,
+      "cavalry": 5,
+      "worker": 8,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 10,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 270,
+      "gold": 34,
+      "wood": 312
+     },
+     "melee_engaged_dists": [
+      105.6,
+      230.7
+     ],
+     "ranged_engaged_dists": [
+      82.3
+     ],
+     "ram_escort_dists": [
+      16.2,
+      24.5,
+      44.9,
+      20.3,
+      84.5,
+      64.3,
+      27.0,
+      90.9,
+      37.1
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1350.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 5,
+      "ram": 5,
+      "warrior": 7,
+      "spearman": 7,
+      "healer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 7,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 1095,
+      "gold": 65,
+      "wood": 6116
+     },
+     "melee_engaged_dists": [
+      32.9,
+      55.0,
+      237.1,
+      191.2,
+      443.6
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      135.0,
+      16.2,
+      72.1,
+      133.3,
+      156.9
+     ],
+     "units_near_fountain": 2
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 5,
+      "archer": 10,
+      "spearman": 10,
+      "ram": 11,
+      "cavalry": 5,
+      "worker": 7,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 10,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 315,
+      "gold": 4,
+      "wood": 282
+     },
+     "melee_engaged_dists": [
+      466.8,
+      81.0,
+      56.4,
+      475.9,
+      466.1,
+      32.9
+     ],
+     "ranged_engaged_dists": [
+      453.7,
+      471.4,
+      440.9,
+      488.0,
+      450.6
+     ],
+     "ram_escort_dists": [
+      16.2,
+      24.5,
+      67.5,
+      20.3,
+      133.0,
+      73.8,
+      85.7,
+      96.1,
+      32.5,
+      27.4,
+      95.3
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1380.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 6,
+      "ram": 7,
+      "warrior": 9,
+      "spearman": 7,
+      "healer": 1,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 8,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 960,
+      "gold": 25,
+      "wood": 5986
+     },
+     "melee_engaged_dists": [
+      85.9,
+      354.5,
+      40.3,
+      42.7
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      45.4,
+      20.1,
+      158.9,
+      30.3,
+      25.8,
+      65.9,
+      50.2
+     ],
+     "units_near_fountain": 6
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 4,
+      "archer": 10,
+      "spearman": 10,
+      "ram": 10,
+      "cavalry": 5,
+      "worker": 7,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 11,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 390,
+      "gold": 54,
+      "wood": 182
+     },
+     "melee_engaged_dists": [
+      372.0,
+      376.3
+     ],
+     "ranged_engaged_dists": [
+      412.5
+     ],
+     "ram_escort_dists": [
+      16.2,
+      24.5,
+      109.2,
+      20.3,
+      108.4,
+      46.8,
+      121.6,
+      83.1,
+      152.4,
+      96.4
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1410.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 6,
+      "ram": 8,
+      "warrior": 9,
+      "spearman": 9,
+      "healer": 1,
+      "archer": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 8,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 765,
+      "gold": 0,
+      "wood": 5326
+     },
+     "melee_engaged_dists": [
+      67.9,
+      478.1,
+      63.5,
+      59.9,
+      416.6,
+      320.2
+     ],
+     "ranged_engaged_dists": [
+      333.8
+     ],
+     "ram_escort_dists": [
+      115.1,
+      21.9,
+      89.1,
+      84.6,
+      50.5,
+      70.4,
+      50.8,
+      64.5
+     ],
+     "units_near_fountain": 5
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 5,
+      "archer": 8,
+      "spearman": 8,
+      "ram": 9,
+      "cavalry": 3,
+      "worker": 8,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 11,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 340,
+      "gold": 24,
+      "wood": 262
+     },
+     "melee_engaged_dists": [
+      183.1,
+      252.4,
+      428.0,
+      352.9,
+      170.1,
+      274.0,
+      446.1,
+      188.8,
+      71.7,
+      386.3,
+      298.7
+     ],
+     "ranged_engaged_dists": [
+      160.3,
+      259.9,
+      260.6,
+      176.8,
+      74.5
+     ],
+     "ram_escort_dists": [
+      16.2,
+      24.5,
+      340.1,
+      20.4,
+      133.8,
+      328.2,
+      39.5,
+      153.9,
+      57.5
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1440.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 8,
+      "ram": 10,
+      "warrior": 10,
+      "spearman": 8,
+      "healer": 1,
+      "archer": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 10,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 630,
+      "gold": 10,
+      "wood": 4916
+     },
+     "melee_engaged_dists": [
+      69.3,
+      449.0,
+      55.9,
+      373.6,
+      320.3
+     ],
+     "ranged_engaged_dists": [
+      488.0
+     ],
+     "ram_escort_dists": [
+      73.8,
+      125.6,
+      68.1,
+      23.8,
+      41.8,
+      100.8,
+      25.9,
+      101.0,
+      76.1,
+      54.7
+     ],
+     "units_near_fountain": 8
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 5,
+      "archer": 7,
+      "spearman": 10,
+      "ram": 10,
+      "cavalry": 3,
+      "worker": 8,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 11,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 395,
+      "gold": 4,
+      "wood": 622
+     },
+     "melee_engaged_dists": [
+      130.2,
+      311.1,
+      228.4,
+      386.8
+     ],
+     "ranged_engaged_dists": [
+      287.4,
+      304.0
+     ],
+     "ram_escort_dists": [
+      16.2,
+      24.5,
+      44.0,
+      20.4,
+      174.5,
+      99.7,
+      54.0,
+      136.1,
+      57.0,
+      84.8
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1470.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 8,
+      "ram": 11,
+      "warrior": 10,
+      "spearman": 9,
+      "healer": 2,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 10,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 310,
+      "gold": 0,
+      "wood": 4756
+     },
+     "melee_engaged_dists": [
+      53.0,
+      286.7,
+      226.2,
+      174.4
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      87.3,
+      63.7,
+      45.9,
+      97.3,
+      109.8,
+      46.2,
+      28.5,
+      46.8,
+      133.1,
+      59.9,
+      41.6
+     ],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 5,
+      "archer": 5,
+      "spearman": 7,
+      "ram": 8,
+      "cavalry": 4,
+      "worker": 7,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 11,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 335,
+      "gold": 14,
+      "wood": 742
+     },
+     "melee_engaged_dists": [
+      49.8
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      16.2,
+      24.5,
+      61.0,
+      19.0,
+      89.7,
+      287.8,
+      56.2,
+      106.3
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1500.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 11,
+      "ram": 11,
+      "warrior": 10,
+      "spearman": 12,
+      "healer": 3,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 11,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 0,
+      "gold": 35,
+      "wood": 3896
+     },
+     "melee_engaged_dists": [
+      118.5,
+      57.6,
+      55.6,
+      129.3
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      74.9,
+      57.2,
+      224.9,
+      20.0,
+      34.9,
+      75.5,
+      52.1,
+      157.4,
+      100.5,
+      56.9,
+      55.0
+     ],
+     "units_near_fountain": 7
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 4,
+      "archer": 4,
+      "spearman": 7,
+      "ram": 8,
+      "cavalry": 4,
+      "worker": 6,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 11,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 360,
+      "gold": 49,
+      "wood": 592
+     },
+     "melee_engaged_dists": [
+      216.0,
+      319.4,
+      49.3,
+      242.3,
+      55.1,
+      356.4,
+      402.7
+     ],
+     "ranged_engaged_dists": [
+      298.7,
+      300.9,
+      276.9,
+      200.5
+     ],
+     "ram_escort_dists": [
+      16.4,
+      31.7,
+      90.0,
+      22.6,
+      48.0,
+      146.6,
+      16.9,
+      85.0
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1530.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 9,
+      "ram": 11,
+      "warrior": 12,
+      "spearman": 9,
+      "healer": 3,
+      "archer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 11,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 20,
+      "gold": 335,
+      "wood": 3521
+     },
+     "melee_engaged_dists": [
+      257.1,
+      200.6,
+      95.7,
+      454.4,
+      258.3,
+      230.7,
+      171.8,
+      411.2,
+      62.9,
+      246.2
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      117.5,
+      21.7,
+      19.7,
+      37.8,
+      21.7,
+      59.5,
+      58.5,
+      60.7,
+      35.3,
+      32.5,
+      127.3
+     ],
+     "units_near_fountain": 4
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 3,
+      "archer": 6,
+      "spearman": 8,
+      "ram": 8,
+      "cavalry": 4,
+      "worker": 8,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 11,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 350,
+      "gold": 4,
+      "wood": 382
+     },
+     "melee_engaged_dists": [
+      82.4,
+      78.2,
+      113.1,
+      62.9
+     ],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      16.2,
+      30.2,
+      56.1,
+      22.6,
+      169.1,
+      51.5,
+      64.4,
+      137.6
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1560.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 10,
+      "ram": 13,
+      "warrior": 13,
+      "spearman": 8,
+      "healer": 3,
+      "archer": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 11,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 1
+     },
+     "resources": {
+      "food": 145,
+      "gold": 260,
+      "wood": 3281
+     },
+     "melee_engaged_dists": [
+      477.2
+     ],
+     "ranged_engaged_dists": [
+      494.9
+     ],
+     "ram_escort_dists": [
+      105.5,
+      58.9,
+      56.5,
+      32.6,
+      70.0,
+      67.4,
+      67.5,
+      95.5,
+      78.6,
+      54.0,
+      75.1,
+      96.0,
+      35.6
+     ],
+     "units_near_fountain": 11
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 3,
+      "archer": 7,
+      "spearman": 3,
+      "ram": 6,
+      "cavalry": 4,
+      "worker": 7,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 11,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 310,
+      "gold": 29,
+      "wood": 372
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [
+      16.2,
+      30.2,
+      21.7,
+      22.6,
+      118.8,
+      18.7
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1590.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 10,
+      "ram": 13,
+      "warrior": 15,
+      "spearman": 7,
+      "healer": 3,
+      "archer": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 12,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 2
+     },
+     "resources": {
+      "food": 70,
+      "gold": 190,
+      "wood": 3301
+     },
+     "melee_engaged_dists": [
+      15.8,
+      26.1,
+      371.2,
+      53.1,
+      20.4,
+      73.6,
+      339.6,
+      41.0
+     ],
+     "ranged_engaged_dists": [
+      45.5,
+      438.8
+     ],
+     "ram_escort_dists": [
+      120.6,
+      93.9,
+      58.9,
+      97.5,
+      269.4,
+      37.7,
+      50.9,
+      115.4,
+      171.4,
+      86.3,
+      148.7,
+      39.1,
+      52.4
+     ],
+     "units_near_fountain": 6
+    },
+    "AI 2": {
+     "units": {
+      "warrior": 2,
+      "archer": 4,
+      "spearman": 5,
+      "ram": 6,
+      "cavalry": 3,
+      "worker": 7,
+      "healer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 11,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "stable": 1
+     },
+     "resources": {
+      "food": 315,
+      "gold": 9,
+      "wood": 332
+     },
+     "melee_engaged_dists": [
+      74.9,
+      171.8,
+      237.1,
+      337.4
+     ],
+     "ranged_engaged_dists": [
+      155.1,
+      197.9
+     ],
+     "ram_escort_dists": [
+      16.2,
+      30.2,
+      82.0,
+      22.6,
+      67.1,
+      19.8
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1620.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 10,
+      "ram": 13,
+      "warrior": 16,
+      "spearman": 5,
+      "healer": 3,
+      "archer": 4
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 12,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 2
+     },
+     "resources": {
+      "food": 20,
+      "gold": 170,
+      "wood": 3191
+     },
+     "melee_engaged_dists": [
+      303.5,
+      441.4,
+      54.5,
+      197.0,
+      189.2,
+      258.0
+     ],
+     "ranged_engaged_dists": [
+      391.0,
+      372.8
+     ],
+     "ram_escort_dists": [
+      63.8,
+      54.0,
+      43.6,
+      35.3,
+      93.8,
+      48.1,
+      22.5,
+      28.3,
+      51.0,
+      30.0,
+      71.7,
+      57.8,
+      55.9
+     ],
+     "units_near_fountain": 13
+    },
+    "AI 2": {
+     "units": {
+      "spearman": 4,
+      "ram": 5,
+      "warrior": 1,
+      "cavalry": 1,
+      "worker": 5,
+      "healer": 3,
+      "archer": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 9,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "temple": 1,
+      "blacksmith": 1
+     },
+     "resources": {
+      "food": 315,
+      "gold": 9,
+      "wood": 392
+     },
+     "melee_engaged_dists": [
+      302.1,
+      228.3,
+      253.2,
+      189.2,
+      320.2
+     ],
+     "ranged_engaged_dists": [
+      309.4
+     ],
+     "ram_escort_dists": [
+      16.2,
+      34.3,
+      105.2,
+      125.9,
+      122.4
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1650.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 11,
+      "ram": 12,
+      "warrior": 18,
+      "spearman": 6,
+      "healer": 3,
+      "archer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 13,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 2
+     },
+     "resources": {
+      "food": 15,
+      "gold": 310,
+      "wood": 2511
+     },
+     "melee_engaged_dists": [
+      328.2,
+      274.6
+     ],
+     "ranged_engaged_dists": [
+      419.6
+     ],
+     "ram_escort_dists": [
+      112.9,
+      24.0,
+      64.3,
+      68.6,
+      34.3,
+      48.3,
+      51.3,
+      21.6,
+      69.4,
+      56.6,
+      31.5,
+      32.5
+     ],
+     "units_near_fountain": 11
+    },
+    "AI 2": {
+     "units": {
+      "ram": 3,
+      "cavalry": 1,
+      "worker": 8,
+      "healer": 3,
+      "archer": 1,
+      "spearman": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 7,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "temple": 1
+     },
+     "resources": {
+      "food": 390,
+      "gold": 9,
+      "wood": 297
+     },
+     "melee_engaged_dists": [
+      351.8,
+      337.9
+     ],
+     "ranged_engaged_dists": [
+      349.3
+     ],
+     "ram_escort_dists": [
+      152.9,
+      24.5,
+      16.2
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1680.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 12,
+      "ram": 14,
+      "warrior": 16,
+      "spearman": 9,
+      "healer": 3,
+      "archer": 3
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 13,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 2
+     },
+     "resources": {
+      "food": 10,
+      "gold": 245,
+      "wood": 2381
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [
+      233.9
+     ],
+     "ram_escort_dists": [
+      197.8,
+      48.7,
+      77.8,
+      16.2,
+      20.6,
+      119.3,
+      136.6,
+      58.1,
+      74.4,
+      42.3,
+      52.2,
+      32.5,
+      69.0,
+      152.6
+     ],
+     "units_near_fountain": 11
+    },
+    "AI 2": {
+     "units": {
+      "ram": 3,
+      "cavalry": 1,
+      "worker": 7,
+      "healer": 3,
+      "archer": 1,
+      "spearman": 2
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 7,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "temple": 1,
+      "blacksmith": 1
+     },
+     "resources": {
+      "food": 365,
+      "gold": 9,
+      "wood": 117
+     },
+     "melee_engaged_dists": [
+      254.4,
+      190.1
+     ],
+     "ranged_engaged_dists": [
+      211.3
+     ],
+     "ram_escort_dists": [
+      51.1,
+      26.3,
+      50.3
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1710.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 14,
+      "ram": 15,
+      "warrior": 17,
+      "spearman": 10,
+      "healer": 3,
+      "archer": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 13,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 2
+     },
+     "resources": {
+      "food": 140,
+      "gold": 345,
+      "wood": 1971
+     },
+     "melee_engaged_dists": [
+      412.4,
+      403.2,
+      90.8,
+      372.3
+     ],
+     "ranged_engaged_dists": [
+      142.0,
+      191.6
+     ],
+     "ram_escort_dists": [
+      53.5,
+      63.6,
+      70.7,
+      110.9,
+      25.4,
+      56.1,
+      38.0,
+      88.4,
+      80.9,
+      95.3,
+      138.2,
+      26.2,
+      50.6,
+      63.7,
+      77.2
+     ],
+     "units_near_fountain": 11
+    },
+    "AI 2": {
+     "units": {
+      "ram": 2,
+      "healer": 3,
+      "worker": 6,
+      "archer": 1,
+      "spearman": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 7,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "temple": 1,
+      "blacksmith": 1,
+      "siege_workshop": 1
+     },
+     "resources": {
+      "food": 365,
+      "gold": 9,
+      "wood": 137
+     },
+     "melee_engaged_dists": [
+      146.0
+     ],
+     "ranged_engaged_dists": [
+      462.2
+     ],
+     "ram_escort_dists": [
+      220.7,
+      128.1
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1740.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 14,
+      "ram": 16,
+      "warrior": 16,
+      "spearman": 10,
+      "healer": 3,
+      "archer": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 13,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 2
+     },
+     "resources": {
+      "food": 290,
+      "gold": 575,
+      "wood": 1391
+     },
+     "melee_engaged_dists": [
+      40.5,
+      496.2,
+      444.4,
+      212.2,
+      370.5
+     ],
+     "ranged_engaged_dists": [
+      171.5,
+      228.4,
+      63.5
+     ],
+     "ram_escort_dists": [
+      53.9,
+      24.5,
+      105.3,
+      95.1,
+      70.1,
+      76.4,
+      56.1,
+      73.5,
+      30.4,
+      104.9,
+      44.3,
+      26.2,
+      46.5,
+      64.8,
+      28.7,
+      31.4
+     ],
+     "units_near_fountain": 8
+    },
+    "AI 2": {
+     "units": {
+      "ram": 3,
+      "healer": 3,
+      "archer": 1,
+      "worker": 6
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 6,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "temple": 1
+     },
+     "resources": {
+      "food": 365,
+      "gold": 9,
+      "wood": 117
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [
+      74.1
+     ],
+     "ram_escort_dists": [
+      313.0,
+      127.6,
+      456.9
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1770.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 15,
+      "ram": 16,
+      "warrior": 16,
+      "spearman": 9,
+      "healer": 3,
+      "archer": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 14,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 2
+     },
+     "resources": {
+      "food": 5,
+      "gold": 155,
+      "wood": 1361
+     },
+     "melee_engaged_dists": [
+      466.9
+     ],
+     "ranged_engaged_dists": [
+      436.1,
+      299.4
+     ],
+     "ram_escort_dists": [
+      37.9,
+      41.0,
+      20.9,
+      90.6,
+      21.3,
+      38.5,
+      43.7,
+      21.4,
+      48.4,
+      51.2,
+      24.0,
+      26.2,
+      67.9,
+      105.9,
+      94.1,
+      50.5
+     ],
+     "units_near_fountain": 11
+    },
+    "AI 2": {
+     "units": {
+      "ram": 1,
+      "healer": 3,
+      "archer": 1,
+      "worker": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 5,
+      "lumbermill": 2,
+      "barracks": 1,
+      "watchtower": 1,
+      "market": 1,
+      "temple": 1
+     },
+     "resources": {
+      "food": 390,
+      "gold": 9,
+      "wood": 397
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [
+      235.8
+     ],
+     "ram_escort_dists": [
+      133.2
+     ],
+     "units_near_fountain": 0
+    }
+   }
+  },
+  {
+   "t": 1800.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 8,
+      "cavalry": 18,
+      "ram": 17,
+      "warrior": 18,
+      "spearman": 10,
+      "healer": 3,
+      "archer": 5
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "barracks": 1,
+      "house": 15,
+      "blacksmith": 1,
+      "lumbermill": 3,
+      "watchtower": 2,
+      "stable": 1,
+      "temple": 1,
+      "market": 1,
+      "siege_workshop": 1,
+      "mine": 2
+     },
+     "resources": {
+      "food": 0,
+      "gold": 305,
+      "wood": 951
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [
+      287.9,
+      281.0
+     ],
+     "ram_escort_dists": [
+      74.8,
+      89.6,
+      62.9,
+      51.2,
+      55.3,
+      81.8,
+      51.4,
+      34.6,
+      20.0,
+      23.4,
+      91.9,
+      21.3,
+      37.5,
+      35.1,
+      126.6,
+      59.6,
+      113.3
+     ],
+     "units_near_fountain": 10
+    },
+    "AI 2": {
+     "units": {
+      "healer": 1,
+      "worker": 1
+     },
+     "buildings": {
+      "castle": 1,
+      "farm": 5,
+      "house": 3,
+      "lumbermill": 2,
+      "barracks": 1,
+      "market": 1,
+      "temple": 1
+     },
+     "resources": {
+      "food": 255,
+      "gold": 49,
+      "wood": 322
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    }
+   }
+  }
+ ]
+}

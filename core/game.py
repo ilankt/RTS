@@ -172,6 +172,16 @@ class Game:
         self.stats_buildings_built = {}
         self.stats_tower_damage = {}  # {player_name: damage dealt by watchtowers}
         self.stats_resources_gathered = {}  # {player_name: cumulative gathered}
+        # §8.15 combat instrumentation (balance battery): keyed like the
+        # trained/built stats — {(player_name, unit_or_building_type): value}.
+        # Written by combat_system on damage/death/heal frames only; costs
+        # nothing outside combat. Not persisted in saves (diagnostic data).
+        self.stats_damage_dealt = {}    # attacker's type
+        self.stats_damage_taken = {}    # victim's type
+        self.stats_kills = {}           # killer's type, enemy deaths credited
+        self.stats_units_lost = {}
+        self.stats_buildings_lost = {}
+        self.stats_healing = {}         # {player_name: hp restored by healers}
         self.sim_time_elapsed = 0.0   # game-time seconds since match start
         # Income-rate HUD (§8.3): human player's recent income events,
         # {resource: [(sim_time, amount), ...]} pruned as it's read
@@ -1313,6 +1323,12 @@ class Game:
         self.stats_units_trained = {}
         self.stats_buildings_built = {}
         self.stats_tower_damage = {}
+        self.stats_damage_dealt = {}
+        self.stats_damage_taken = {}
+        self.stats_kills = {}
+        self.stats_units_lost = {}
+        self.stats_buildings_lost = {}
+        self.stats_healing = {}
 
         # Reset players resources
         for player in self.players:

@@ -44,6 +44,8 @@ def parse_args():
     p.add_argument("--map-h", type=int, default=70)
     p.add_argument("--personalities", type=str, default=None,
                    help="comma list, one per player, e.g. rusher,turtle")
+    p.add_argument("--difficulties", type=str, default=None,
+                   help="comma list, one per player, e.g. hard,normal (default normal)")
     p.add_argument("--seconds", type=float, default=2400.0)
     p.add_argument("--speed", type=float, default=5.0)
     p.add_argument("--dt", type=float, default=1 / 60)
@@ -144,6 +146,11 @@ def main():
         for player, pers in zip(game.players, wanted):
             player.ai_personality = pers
 
+    if args.difficulties:
+        wanted = [s.strip() for s in args.difficulties.split(",")]
+        for player, diff in zip(game.players, wanted):
+            player.ai_difficulty = diff
+
     # Hook goal selection (personality is read lazily per tick, and
     # last_chosen*/last_scores are refreshed by every _tick call).
     # Two-lane AI (§7 P2): both the behavior (mode) and action (spend) goals
@@ -206,6 +213,7 @@ def main():
 
     winner = game.winning_player
     personalities = {p.name: p.ai_personality for p in game.players}
+    difficulties = {p.name: getattr(p, "ai_difficulty", "normal") for p in game.players}
 
     def flat(d):
         return {f"{k[0]}|{k[1]}": v for k, v in d.items()}
@@ -215,6 +223,7 @@ def main():
             "seed": args.seed, "players": args.players,
             "map": [args.map_w, args.map_h],
             "personalities": personalities,
+            "difficulties": difficulties,
             "seconds_cap": args.seconds,
         },
         "winner_name": winner.name if winner else None,
@@ -223,6 +232,14 @@ def main():
         "sim_seconds": round(sim_time, 1),
         "units_trained": flat(game.stats_units_trained),
         "buildings_built": flat(game.stats_buildings_built),
+        # §8.15 combat economics (per player|type)
+        "damage_dealt": {k: round(v, 1) for k, v in flat(game.stats_damage_dealt).items()},
+        "damage_taken": {k: round(v, 1) for k, v in flat(game.stats_damage_taken).items()},
+        "kills": flat(game.stats_kills),
+        "units_lost": flat(game.stats_units_lost),
+        "buildings_lost": flat(game.stats_buildings_lost),
+        "healing": {k: round(v, 1) for k, v in game.stats_healing.items()},
+        "resources_gathered": dict(game.stats_resources_gathered),
         "goal_chosen": flat(goal_chosen),
         "goal_top": flat(goal_top),
         "goal_fallthrough": flat(goal_fallthrough),
