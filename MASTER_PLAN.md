@@ -41,11 +41,12 @@ max 23 / 0 teleports). The **200-unit acceptance gate is not met** — see §6.
 
 | Priority | Item | Why now |
 |---|---|---|
-| 1 | **§8.15 balance re-baseline (stone removal)** | The economy changed shape 2026-07-19 and *nothing* has been measured since |
-| 2 | **§8.2.2 HUD readability & scale** | The HUD is unreadable at the default 1080p — §8.2's deferred DPI item came due |
-| 3 | **§11 Track D — world, art & atmosphere** | The map is the least-finished-looking part of the game |
-| 4 | §8.12 AI depth candidates | Depth, not defect |
-| 5 | §6 / §5 Phase 6 Track A residue | Gated behind a fresh profile; only at 200 u |
+| 1 | **§8.17 playtest batch 2026-07-20** | User-reported from live play; queued for the next session |
+| 2 | **§8.15 balance re-baseline (stone removal)** | Applied + validated 2026-07-19/20; residue: FFA close-out, sweep gaps, bigger personality battery |
+| 3 | **§8.2.2 HUD readability & scale** | The HUD is unreadable at the default 1080p — §8.2's deferred DPI item came due |
+| 4 | **§11 Track D — world, art & atmosphere** | The map is the least-finished-looking part of the game |
+| 5 | §8.12 AI depth candidates | Depth, not defect |
+| 6 | §6 / §5 Phase 6 Track A residue | Gated behind a fresh profile; only at 200 u |
 
 *(The §8.13 bug batch — the old priority 1 — landed 2026-07-17; see §2 for the
 residue: a live-play observation pass and the gated planner-erosion deferral,
@@ -172,6 +173,74 @@ Treat the whole table as a hypothesis.
   one fewer resource to manage? That was the point of the change.
 - **✅ Verify:** the report's re-validation gates, plus a human match
   where wood never feels like the only decision.
+
+---
+
+## 1b. §8.17 — Playtest batch 2026-07-20 *(user-reported, queued for next session)*
+
+Three observations from live play, 2026-07-20. Recon done same-day so the
+next session starts from anchored facts, not a cold search.
+
+### 8.17.1 Towers: combat stats missing from the command card
+
+Selected units show the §8.2.2 stat glyphs (attack/armor/range/speed beside
+numbers in the selection header). A selected **watchtower** — a combat
+building with min/max damage, pierce, range 255, attack speed 1.5 — doesn't
+get the same treatment. Combat buildings should render the same glyph row.
+
+- Where: `ui/components/command_card.py` — the building selection path skips
+  the unit-stat glyph header; glyphs come from `icon_loader` (`GLYPH_NAMES`:
+  attack/armor/range/speed exist already, nothing new to draw).
+- Watch: castle has no attack; farm/house have armor only — decide whether
+  non-attacking buildings show a reduced row (armor glyph alone) or none.
+  Data source is the same template fields units use (`can_attack`,
+  `min_damage`/`max_damage`, `attack_range`, `attack_speed`, `armor_*`).
+
+### 8.17.2 Construction sites read as "0 hp" (and die too easily?)
+
+User: *"Build sites can be destroyed. Even ones with 0hp. Maybe set them as
+1hp? not sure."*
+
+Recon: `entities/construction_site.py` hardcodes **hp=100 flat** for every
+site regardless of building or progress, and nothing scales it while
+building (`systems/building_system.py` only reads the final hp at
+completion). So a castle site shows **100/5000 on its health bar ≈ an
+empty bar** — that's the "0 hp" sighting — and razing ANY foundation takes
+100 damage (~4 s of one warrior), whether it's a farm at 0 % or a castle at
+95 %.
+
+Candidate fix (decide next session): the AoE-style model — site hp **grows
+with construction progress** (e.g. `10 % + 90 % × progress` of the final
+building's hp), so fresh foundations stay cheap to deny but a nearly-done
+castle is a real object; health bar denominator = the same moving max, so
+the bar reads honestly. The flat-100 constant dates from when sites weren't
+attackable at all (armor fields were added later — see the crash comment in
+the file). Sites are deliberately soft (`armor light/0`) — keep that.
+- Touches: construction_site hp init + a max-hp notion, building_system
+  progress tick, health-bar rendering, AI raid targeting (site hp feeds
+  threat/target scoring), save/load (site hp persists — v5 loads must not
+  break), `tests/test_phase*` site expectations.
+
+### 8.17.3 World scale pass: trees are unit-sized (the "ridiculous Dead Tree")
+
+Trees render at roughly unit size, so the `dead_tree` prop (26 px radius,
+"2 tiles") and live TREE resources sit in the world like infantry. User:
+scale trees up, and **review the relative scale of everything** — units vs
+trees vs buildings vs mountains vs props — as one deliberate pass, not
+per-asset nudges.
+
+- Where: `systems/rendering_system.py` — resources/props draw at
+  `size[0] × TILE_WIDTH / sprite_w` × `_render_scales` (per-name
+  `render_scale` from JSON already exists for units/buildings; resources
+  currently have no per-name entry — TREE has no `render_scale` hook in
+  `data/resources.json`, add one or extend `_render_scales` to resources).
+- Mind the collision/nav footprint vs visual scale split: bigger sprite must
+  NOT silently mean bigger blocker (nav radius is gameplay-tuned; §11.2
+  mountains already separate visual from footprint). Fog ghosts and minimap
+  dots reuse resource scale — keep them consistent.
+- Do it as a **single comparative screenshot pass** (side-by-side lineup of
+  unit/tree/house/castle/mountain at 1.25 zoom) so relative sizes get chosen
+  together — then bake numbers into JSON `render_scale` fields.
 
 ---
 
