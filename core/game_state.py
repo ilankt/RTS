@@ -152,18 +152,22 @@ class GameState:
         """Place resources around the map"""
         # First, place guaranteed resources near each castle
         for spawn_r, spawn_c in spawn_locations:
-            # Starting gold/stone: one RICH deposit each near the castle (5x the
-            # old 500). Big enough to carry the early game, so hunting for fresh
-            # deposits is a mid-game concern, not an opening chore. (2026-07-12)
+            # Starting gold: ONE rich deposit near the castle. Big enough to
+            # carry the early game, so hunting for fresh deposits is a mid-game
+            # concern, not an opening chore. (2026-07-12)
             # Band tightened 3-5 → 3-4 tiles (2026-07-14): with haul time
             # dominating gold income, a 147 px vs 280 px starting deposit was
             # a ~2x income difference decided by spawn luck (instrumented
             # seed 1001). Wider band kept as fallback so placement never fails.
-            if not self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 4, 1, amount_override=2500):
-                self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 6, 1, amount_override=2500)
-
-            if not self._place_resource_near_spawn("stone", spawn_r, spawn_c, 3, 4, 1, amount_override=2500):
-                self._place_resource_near_spawn("stone", spawn_r, spawn_c, 3, 6, 1, amount_override=2500)
+            #
+            # 2500 → 3000 (2026-07-19, stone removal): this is now the only
+            # mineral at home and has to last longer. Deliberately still ONE
+            # node — the saturation cap (3 workers) is what keeps gold the
+            # early bottleneck, and a second home node would double base gold
+            # income overnight. Freed stone labour is meant to go OUT to the
+            # contested map deposits below, not stack up in the base.
+            if not self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 4, 1, amount_override=3000):
+                self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 6, 1, amount_override=3000)
 
             # Wood is left as-is (per-bunch amount is fine) — 8 trees near spawn.
             self._place_resource_near_spawn("wood", spawn_r, spawn_c, 2, 6, 8, amount_override=250)
@@ -179,19 +183,21 @@ class GameState:
         player_factor = 1.0 - (player_count - 2) * 0.1  # -10% per player above 2
         player_factor = max(0.5, player_factor)  # Minimum 50%
         
-        # Resource counts (rebalance 2026-07-12): FEWER but far RICHER gold/stone
+        # Resource counts (rebalance 2026-07-12): FEWER but far RICHER gold
         # deposits — you control a deposit longer and hunt less often — and MORE
         # wood clusters so timber is always easy to find nearby.
-        extra_gold = int(random.randint(1, 2) * area_factor * player_factor)
-        extra_stone = int(random.randint(1, 2) * area_factor * player_factor)
+        #
+        # 1-2 → 2-3 map gold nodes (2026-07-19, stone removal): the stone
+        # deposits that used to occupy this ground are gone, and the workers
+        # who mined them need somewhere to go. Contested map gold is where
+        # they go — that is the point of the swap, so do not fold this back
+        # into the base without also re-tuning gold costs.
+        extra_gold = int(random.randint(2, 3) * area_factor * player_factor)
         extra_wood = int(random.randint(20, 30) * area_factor * player_factor)
 
-        # Additional gold/stone across the map — 5x richer per node (was 1500).
+        # Additional gold across the map — 5x richer per node (was 1500).
         for _ in range(extra_gold):
             self._place_random_resource("gold", spawn_locations, min_distance=15, amount_override=7500)
-
-        for _ in range(extra_stone):
-            self._place_random_resource("stone", spawn_locations, min_distance=15, amount_override=7500)
 
         # Instead of individual trees, create forest clusters (many more now)
         self._place_forest_clusters(extra_wood, spawn_locations)

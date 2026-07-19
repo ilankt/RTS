@@ -210,7 +210,6 @@ class Game:
         self.resource_icons = {
             "food": pygame.image.load("assets/ui/food_icon.png").convert_alpha(),
             "gold": pygame.image.load("assets/ui/gold_icon.png").convert_alpha(),
-            "stone": pygame.image.load("assets/ui/stone_icon.png").convert_alpha(),
             "wood": pygame.image.load("assets/ui/lumber_icon.png").convert_alpha(),
             "house": pygame.image.load("assets/ui/house_icon.png").convert_alpha()
         }
@@ -1314,7 +1313,7 @@ class Game:
         self.stats_units_trained = {}
         self.stats_buildings_built = {}
         self.stats_tower_damage = {}
-        
+
         # Reset players resources
         for player in self.players:
             if player.human:

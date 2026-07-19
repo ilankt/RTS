@@ -23,9 +23,11 @@ class SaveManager:
         
         # Build serializable state
         state = {
-            # v4 adds control groups, worker tasks, fog resource ghosts;
-            # v3 added terrain; v1-v3 still load (missing fields default)
-            "version": 4,
+            # v5 drops the stone resource (quarries, stone nodes and stone
+            # stockpiles in v1-v4 saves are discarded on load); v4 added
+            # control groups, worker tasks, fog resource ghosts; v3 added
+            # terrain; v1-v4 still load (missing fields default)
+            "version": 5,
             "timestamp": datetime.now().isoformat(),
             "map_size": ([game.game_map.width, game.game_map.height]
                          if getattr(game, "game_map", None) else None),
@@ -388,7 +390,7 @@ class SaveManager:
         
         # Validate version (older saves load with newer fields defaulting —
         # v1/v2 simply keep the generated terrain, as they always did)
-        if state.get("version") not in (1, 2, 3, 4):
+        if state.get("version") not in (1, 2, 3, 4, 5):
             return False, "Unsupported save version"
         
         # Clear existing state (mark old objects dead so stale references fail
@@ -457,6 +459,8 @@ class SaveManager:
                                              and SPECTATOR_REVEALED_DISPLAY)
 
         # Restore players
+        from core.config import GATHERING_RATES
+
         player_map = {}
         for player_data in state["players"]:
             idx = player_data["index"]
@@ -465,7 +469,13 @@ class SaveManager:
                 player.name = player_data["name"]
                 player.human = player_data["human"]
                 player.color = tuple(player_data["color"])
-                player.resources = player_data["resources"]
+                # v5: keep only resources this build still has. A v1-v4 save
+                # carries a "stone" stockpile that nothing can spend or show —
+                # dropping it here stops dead currency riding along forever.
+                player.resources = {
+                    resource: player_data["resources"].get(resource, 0)
+                    for resource in GATHERING_RATES
+                }
                 player.upgrades = {
                     tech_id: game.game_data.get("techs", {}).get(tech_id)
                     for tech_id in player_data.get("upgrades", [])
@@ -614,6 +624,12 @@ class SaveManager:
             unit.attack_move_target = tuple(amove) if amove else None
             unit.resource_type = udata.get("resource_type")
             unit.resource_amount = udata.get("resource_amount", 0)
+            # v5: a v1-v4 worker can be mid-haul with a load of stone. There
+            # is no drop-off that accepts it any more, so the task remap below
+            # would hand it an undeliverable errand — drop the carry instead.
+            if unit.resource_type is not None and unit.resource_type not in GATHERING_RATES:
+                unit.resource_type = None
+                unit.resource_amount = 0
             
             # Re-link animations
             player_idx = game.players.index(player)
@@ -800,13 +816,15 @@ class SaveManager:
         game.stats_resources_gathered = dict(state.get("stats_resources_gathered", {}))
         cls._restore_fog(game, state.get("fog_explored", {}))
 
-        # v4: fog ghosts of resources depleted out of the viewer's sight
+        # v4: fog ghosts of resources depleted out of the viewer's sight.
+        # v5 drops ghosts of resource types this build no longer has (stone) —
+        # they'd render as an unresolvable minimap dot with no world sprite.
         fog = getattr(game, "fog_of_war", None)
         if fog is not None and hasattr(fog, "resource_ghosts"):
             fog.resource_ghosts = {
                 (entry[0], entry[1], entry[2]): {"name": entry[2], "x": entry[3], "y": entry[4]}
                 for entry in state.get("resource_ghosts", [])
-                if len(entry) == 5
+                if len(entry) == 5 and entry[2] in game.game_data["resources"]
             }
 
         # v4: control groups (older saves simply reset them)

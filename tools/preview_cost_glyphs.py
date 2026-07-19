@@ -34,11 +34,10 @@ SURFACES = {
     "tooltip": (10, 10, 14),
 }
 
-GLYPHS = ["gold", "wood", "stone", "food", "time"]
+GLYPHS = ["gold", "wood", "food", "time"]
 LEGACY = {
     "gold": "assets/ui/gold_icon.png",
     "wood": "assets/ui/lumber_icon.png",
-    "stone": "assets/ui/stone_icon.png",
     "food": "assets/ui/food_icon.png",
 }
 

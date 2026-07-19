@@ -44,15 +44,15 @@ def make_game(placer_holder=True):
     return game, placer
 
 
-def make_ctx(game, personality="turtle", workers=6, wood=500, stone=100):
+def make_ctx(game, personality="turtle", workers=6, wood=500):
     player = SimpleNamespace(name="AI 1", ai_personality=personality,
-                             resources={"wood": wood, "stone": stone, "gold": 0, "food": 0})
+                             resources={"wood": wood, "gold": 0, "food": 0})
     ctx = GoalContext(game=game, player=player)
     ctx.castle = SimpleNamespace(name="castle", x=1000.0, y=1000.0, hp=2500)
     ctx.workers = [SimpleNamespace(name="worker")] * workers
     ctx.enemy_buildings = [SimpleNamespace(name="castle", x=3000.0, y=1000.0, hp=2500)]
     ctx.resources = dict(player.resources)
-    ctx.cost_data = {"wooden_wall": {"wood": 40}, "gate": {"wood": 60, "stone": 25}}
+    ctx.cost_data = {"wooden_wall": {"wood": 40}, "gate": {"wood": 80}}
     return ctx
 
 
@@ -107,7 +107,7 @@ def test_wall_goal_only_for_walling_personalities():
 
     # Gated on economy size and affordability
     assert goal.score(make_ctx(game, workers=4)) == 0
-    assert goal.score(make_ctx(game, wood=10, stone=0)) == 0
+    assert goal.score(make_ctx(game, wood=10)) == 0
 
     # One segment at a time: an in-flight wall site zeroes the score
     busy = make_ctx(game)

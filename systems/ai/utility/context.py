@@ -101,7 +101,7 @@ class GoalContext:
                 if not fog_on or fog.is_explored(player, building.x, building.y):
                     ctx.enemy_buildings.append(building)
 
-        ctx.gathering_counts_by_type = {"gold": 0, "wood": 0, "stone": 0}
+        ctx.gathering_counts_by_type = {"gold": 0, "wood": 0}
         pop = 0
         for unit in game.units:
             if unit.name == "worker":

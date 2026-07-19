@@ -371,7 +371,7 @@ class SelectionManager:
 
     # Right-clicking one of these with an empty worker means "work this
     # drop-off": gather its resource type nearby (§7.4 smart commands).
-    DROPOFF_RESOURCE = {"lumbermill": "wood", "mine": "gold", "quarry": "stone"}
+    DROPOFF_RESOURCE = {"lumbermill": "wood", "mine": "gold"}
 
     def _command_spec_for(self, unit, clicked_object, world_pos):
         """Resolve a right-click into a (kind, payload) command spec."""
@@ -659,9 +659,6 @@ class SelectionManager:
             return True
         # Mine accepts gold
         elif building_name == "mine" and resource_type == "gold":
-            return True
-        # Quarry accepts stone  
-        elif building_name == "quarry" and resource_type == "stone":
             return True
         # Lumbermill accepts wood
         elif building_name == "lumbermill" and resource_type == "wood":

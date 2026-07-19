@@ -36,7 +36,7 @@ def test_strategy_data_loads_ram_siege_and_tech_costs():
     assert "ram" in data["units"]
     assert "siege_workshop" in data["buildings"]
     assert "improved_tools" in data["techs"]
-    assert data["costs"]["siege_engineering"]["stone"] == 80
+    assert data["costs"]["siege_engineering"] == {"gold": 150, "wood": 250}
     # Healer + temple enabled 2026-07-17: the temple is buildable (military tab)
     # and trains the healer, whose heal logic was already implemented and tested.
     assert data["units"]["healer"].buildable is True
@@ -65,7 +65,7 @@ def test_default_game_mode_is_human_1v1_and_spectator_is_preserved():
 
 def test_research_manager_completes_once_and_applies_effect_data():
     player = Player("Human", human=True)
-    player.resources = {"gold": 500, "wood": 500, "stone": 500, "food": 500}
+    player.resources = {"gold": 500, "wood": 500, "food": 500}
     game = FakeGame(player)
     blacksmith_template = game.game_data["buildings"]["blacksmith"]
     blacksmith = Building(
@@ -96,7 +96,7 @@ def test_research_manager_completes_once_and_applies_effect_data():
 
 def test_ai_scores_new_blacksmith_siege_and_ram_goals():
     player = Player("AI", human=False)
-    player.resources = {"gold": 1000, "wood": 1000, "stone": 1000, "food": 1000}
+    player.resources = {"gold": 1000, "wood": 1000, "food": 1000}
     game = FakeGame(player)
     castle = Building("castle", [2.5, 2.5], 5000, None, 50, player=player)
     barracks = Building("barracks", [1.5, 1.5], 1000, None, 10, player=player)
@@ -112,7 +112,7 @@ def test_ai_scores_new_blacksmith_siege_and_ram_goals():
 
 def test_siege_engineering_requires_siege_workshop():
     player = Player("Human", human=True)
-    player.resources = {"gold": 500, "wood": 500, "stone": 500, "food": 500}
+    player.resources = {"gold": 500, "wood": 500, "food": 500}
     game = FakeGame(player)
     blacksmith = Building("blacksmith", [1.5, 1.5], 800, None, 10, player=player)
     game.buildings.append(blacksmith)

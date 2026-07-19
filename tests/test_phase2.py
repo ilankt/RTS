@@ -15,7 +15,7 @@ class MockPlayer:
         self.human = human
         self.name = "Test"
         self.color = (255, 255, 255)
-        self.resources = {"food": 100, "gold": 200, "stone": 100, "wood": 200}
+        self.resources = {"food": 100, "gold": 200, "wood": 200}
 
 
 # ---------------------------------------------------------------------------
@@ -83,11 +83,15 @@ class TestResourceDepletion:
         res = Resource("wood", None, x=100, y=100, radius=16)
         assert res.amount_remaining == 600  # From RESOURCE_LIMITS
 
-    def test_gold_and_stone_resource_limits(self):
+    def test_gold_resource_limit(self):
         gold = Resource("gold", None, x=100, y=100, radius=16)
-        stone = Resource("stone", None, x=100, y=100, radius=16)
         assert gold.amount_remaining == 1000
-        assert stone.amount_remaining == 1000
+
+    def test_removed_resource_type_gets_no_limit(self):
+        """Stone left the roster 2026-07-19 — an unknown type must fall back
+        to the default rather than silently inheriting a real limit."""
+        from core.config import RESOURCE_LIMITS
+        assert "stone" not in RESOURCE_LIMITS
     
     def test_tree_regrowth_tracker_initializes(self):
         class MockGame:

@@ -7,7 +7,6 @@ from .economy import (
     BuildLumbermillGoal,
     BuildMarketGoal,
     BuildMineGoal,
-    BuildQuarryGoal,
     MarketTradeGoal,
 )
 from .military import (
@@ -74,6 +73,5 @@ ALL_GOALS = [
     BuildFarmGoal,
     BuildLumbermillGoal,
     BuildMineGoal,
-    BuildQuarryGoal,
     BuildMarketGoal,
 ]

@@ -48,7 +48,6 @@ SPAWN_SAFE_TERRAIN = {"grass", "desert", "dirt"}
 # TREE_DESERT sprite.
 RESOURCE_TERRAIN = {
     "gold": {"grass", "desert", "dirt"},
-    "stone": {"grass", "desert", "dirt"},
     "wood": {"grass", "swamp", "desert"},
 }
 # Old-roster names found in pre-simplification saves map onto the new
@@ -139,9 +138,11 @@ PATHFINDING_QUEUE_MAX_RETRIES = 10
 PATH_CACHE_MAX_ENTRIES = 4096
 
 # Resource Gathering Configuration
+# Stone was removed 2026-07-19 (user decision): three resources carry the
+# whole economy. Its costs folded into WOOD (see data/buildings.json), so
+# defense and siege still avoid competing with army gold.
 GATHERING_RATES = {
     "gold": 1,     # Resources per second
-    "stone": 1,
     "wood": 2,
     "food": 3      # Food per second from farms
 }
@@ -153,7 +154,6 @@ GATHERING_RATES = {
 # became the de-facto army and the best wood economy (boomer) always won.
 WORKER_CAPACITY = {
     "gold": 20,
-    "stone": 10,
     "wood": 20
 }
 
@@ -166,14 +166,12 @@ FARM_FOOD_INTERVAL = 10.0  # Seconds between food generation
 
 RESOURCE_LIMITS = {
     "gold": 1000,
-    "stone": 1000,
     "wood": 600
 }
 
 # Drop-off buildings for each resource type
 DROP_OFF_BUILDINGS = {
     "gold": ["mine", "castle"],
-    "stone": ["quarry", "castle"],
     "wood": ["lumbermill", "castle"]
 }
 
@@ -186,7 +184,7 @@ TOP_BAR_HEIGHT = 100
 TOP_BAR_START_X = 48   # clears the framed banner's left end-cap
 TOP_BAR_SPACING = 185  # keeps the 5th item clear of the right-side Idle badge
 TOP_BAR_ROW_Y = 25
-TOP_BAR_ITEMS = ["food", "gold", "stone", "wood", "house"]
+TOP_BAR_ITEMS = ["food", "gold", "wood", "house"]
 # Top bar width will be MAP_VIEW_WIDTH (to not overlap minimap)
 
 # Building Menu Configuration
@@ -203,21 +201,23 @@ BUILDING_ICON_SIZE = 48  # Button height - padding (60 - 12 = 48)
 # Deliberately lean: enough to open (a couple of houses/farms, a few extra
 # workers, and a down-payment toward the first barracks) but NOT enough to
 # build everything at once — the player has to prioritise. For reference:
-# worker 25f, house 50w, farm/lumbermill 75w, barracks 150g/100w/50s,
-# warrior 100g/25w/50f. Gold (100) is intentionally short of a barracks so
-# the first military push requires gathering first.
+# worker 25f, house 50w, farm/lumbermill/mine 75w, barracks 100g/100w,
+# warrior 80g/50f. Gold (100) is exactly a barracks and nothing else, so the
+# first military push still requires gathering first.
+#
+# The 75 starting stone was dropped 2026-07-19 with the resource. It bought
+# nothing in the opening (the cheapest stone item was a 125-stone tower), so
+# it is NOT compensated in wood — starting wood is a balance-pass dial.
 
 HUMAN_STARTING_RESOURCES = {
     "food": 200,      # Starting food for human player
     "gold": 100,      # Starting gold for human player
-    "stone": 75,      # Starting stone for human player
     "wood": 200       # Starting wood for human player
 }
 
 AI_STARTING_RESOURCES = {
     "food": 200,      # Starting food for AI players
     "gold": 100,      # Starting gold for AI players
-    "stone": 75,      # Starting stone for AI players
     "wood": 200       # Starting wood for AI players
 }
 
@@ -248,7 +248,7 @@ PLAYER_GATHERING_MULTIPLIER = 5.0
 MARKET_TRADE_LOT = 100      # resources moved per trade
 MARKET_SELL_GOLD = 50       # gold received for selling one lot
 MARKET_BUY_GOLD = 150       # gold paid to buy one lot
-MARKET_TRADEABLE = ("wood", "food", "stone")
+MARKET_TRADEABLE = ("wood", "food")
 
 # Combat counter model (§8.4, prototyped behind a flag): attackers deal bonus
 # damage to targets listed in their strong_against tags, making e.g.

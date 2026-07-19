@@ -14,7 +14,6 @@ from systems.ai.utility.goals.economy import (
     BuildHouseGoal,
     BuildLumbermillGoal,
     BuildMineGoal,
-    BuildQuarryGoal,
 )
 from systems.ai.worker_brain import WorkerBrain
 from systems.ai.utility.ai import UtilityAISystem
@@ -36,7 +35,7 @@ class FakePlayer:
         self.name = "AI"
         self.human = False
         self.color = (255, 0, 0)
-        self.resources = {"gold": 200, "wood": 200, "stone": 150, "food": 100}
+        self.resources = {"gold": 200, "wood": 200, "food": 100}
         self.ai_personality = personality
 
 
@@ -89,10 +88,9 @@ class FakeGame:
                 "farm":     {"wood": 75},
                 "house":    {"gold": 50, "wood": 50},
                 "barracks": {"gold": 100, "wood": 100},
-                "watchtower": {"wood": 75, "stone": 125},
+                "watchtower": {"wood": 200},
                 "lumbermill": {"gold": 75, "wood": 75},
                 "mine": {"gold": 75, "wood": 75},
-                "quarry": {"gold": 75, "wood": 75},
             },
             "buildings": {},
             "units": {},
@@ -260,7 +258,6 @@ class TestResourceDropoffGoals:
         [
             (BuildLumbermillGoal, "lumbermill", "wood", 2),
             (BuildMineGoal, "mine", "gold", 2),
-            (BuildQuarryGoal, "quarry", "stone", 3),
         ],
     )
     def test_scores_when_known_resource_cluster_is_unserved(self, goal_cls, building_name, resource_name, min_workers):
@@ -279,7 +276,6 @@ class TestResourceDropoffGoals:
         [
             (BuildLumbermillGoal, "lumbermill", "wood", 2),
             (BuildMineGoal, "mine", "gold", 2),
-            (BuildQuarryGoal, "quarry", "stone", 3),
         ],
     )
     def test_zero_when_known_resource_cluster_is_already_serviced(self, goal_cls, building_name, resource_name, min_workers):
@@ -368,7 +364,7 @@ class TestBuildWatchtowerGoal:
 
     def test_zero_when_watchtower_is_unaffordable(self):
         p = FakePlayer()
-        p.resources["stone"] = 50
+        p.resources["wood"] = 50
         castle = FakeBuilding("castle", p)
         workers = [FakeUnit("worker", p) for _ in range(3)]
         ctx = _ctx_with(p, units=workers, buildings=[castle])

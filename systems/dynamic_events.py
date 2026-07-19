@@ -2,7 +2,7 @@
 adaptation. Opt-in via the `random_events` mutator so the balance baseline
 and default matches stay deterministic-boring.
 
-V1 events: resource booms (a rich 3-node cluster of gold/wood/stone appears
+V1 events: resource booms (a rich 3-node cluster of gold/wood appears
 on open ground away from every castle) and bumper harvests (every farm's
 food tick fires immediately). Wandering hostiles/weather need neutral-unit
 AI and stay future work.
@@ -22,7 +22,7 @@ class DynamicEventSystem:
     MIN_CASTLE_DISTANCE = 400  # events never pop inside a base
     PLACEMENT_TRIES = 40
 
-    EVENTS = ("boom_gold", "boom_wood", "boom_stone", "bumper_harvest")
+    EVENTS = ("boom_gold", "boom_wood", "bumper_harvest")
 
     def __init__(self, game):
         self.game = game

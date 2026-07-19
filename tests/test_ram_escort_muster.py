@@ -64,7 +64,7 @@ def test_unescorted_working_ram_is_recalled_home(game, moved):
     ai = game.players[1]
     castle = next(b for b in game.buildings if b.player is ai and b.name == "castle")
     barracks = add_barracks(game, ai)  # a trainer exists -> fighters can come
-    ai.resources = {"food": 500, "gold": 500, "stone": 500, "wood": 500}
+    ai.resources = {"food": 500, "gold": 500, "wood": 500}
     ram = spawn(game, ai, "ram", castle.x + 900, castle.y + 900)
     ram.destination = (castle.x + 1500, castle.y + 1500)  # marching out alone
     try:
@@ -88,7 +88,7 @@ def test_desperate_ram_is_released(game, moved):
     ai = game.players[1]
     castle = next(b for b in game.buildings if b.player is ai and b.name == "castle")
     saved = dict(ai.resources)
-    ai.resources = {"food": 0, "gold": 0, "stone": 0, "wood": 0}
+    ai.resources = {"food": 0, "gold": 0, "wood": 0}
     ram = spawn(game, ai, "ram", castle.x + 900, castle.y + 900)
     ram.destination = (castle.x + 1500, castle.y + 1500)
     try:
@@ -107,7 +107,7 @@ def test_launch_wave_holds_rams_without_fighters(game, moved, monkeypatch):
     ai = game.players[1]
     castle = next(b for b in game.buildings if b.player is ai and b.name == "castle")
     barracks = add_barracks(game, ai)
-    ai.resources = {"food": 500, "gold": 500, "stone": 500, "wood": 500}
+    ai.resources = {"food": 500, "gold": 500, "wood": 500}
     ram = spawn(game, ai, "ram", castle.x + 100, castle.y + 100)
     attacked = []
     monkeypatch.setattr(brain, "_command_attack",

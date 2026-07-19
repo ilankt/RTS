@@ -996,7 +996,7 @@ class MilitaryBrain:
 
     # §7.3 risk/reward: forward economy buildings are raid bait. A raid-sized
     # army prefers them when they're meaningfully softer than the castle.
-    ECONOMY_RAID_TARGETS = ("lumbermill", "mine", "quarry", "farm")
+    ECONOMY_RAID_TARGETS = ("lumbermill", "mine", "farm")
     RAID_SOFTNESS = 0.6  # econ target must be < this fraction of castle threat
 
     def _find_attack_target(self, ctx):

@@ -44,8 +44,7 @@
     "armor_value": 10,
     "costs": {
       "gold": 500,
-      "wood": 200,
-      "stone": 300
+      "wood": 500
     }
   },
   {
@@ -133,30 +132,9 @@
     }
   },
   {
-    "name": "quarry",
-    "display_name": "Quarry",
-    "role": "Stone drop-off near deposits",
-    "requires": [],
-    "buildable": true,
-    "strong_against": [],
-    "weak_against": [],
-    "sprite": "assets/sprites/Buildings/Quarry.png",
-    "size": [
-      1.5,
-      1.5
-    ],
-    "hp": 750,
-    "build_duration": 8,
-    "armor_type": "fortified",
-    "armor_value": 4,
-    "costs": {
-      "wood": 75
-    }
-  },
-  {
     "name": "market",
     "display_name": "Market",
-    "role": "Trades wood, food, and stone for gold (and back)",
+    "role": "Trades wood and food for gold (and back)",
     "requires": [],
     "buildable": true,
     "strong_against": [],
@@ -206,8 +184,7 @@
     "attack_speed": 1.5,
     "attack_range": 255,
     "costs": {
-      "wood": 75,
-      "stone": 125
+      "wood": 200
     }
   },
   {
@@ -260,7 +237,7 @@
     "armor_value": 3,
     "costs": {
       "gold": 150,
-      "stone": 100
+      "wood": 150
     }
   },
   {
@@ -311,14 +288,13 @@
     "armor_type": "fortified",
     "armor_value": 4,
     "costs": {
-      "gold": 60,
-      "wood": 160,
-      "stone": 60
+      "gold": 100,
+      "wood": 200
     }
   },
   {
     "name": "wall",
-    "display_name": "Stone Wall",
+    "display_name": "Fortified Wall",
     "role": "Heavy defensive wall segment",
     "requires": [
       "barracks"
@@ -338,7 +314,7 @@
     "armor_type": "fortified",
     "armor_value": 10,
     "costs": {
-      "stone": 50
+      "wood": 80
     }
   },
   {
@@ -384,8 +360,7 @@
     "armor_type": "fortified",
     "armor_value": 6,
     "costs": {
-      "wood": 60,
-      "stone": 25
+      "wood": 80
     }
   }
 ]

@@ -85,10 +85,14 @@ class BuildMarketGoal(Goal):
             return 0
         if not ctx.can_afford("market"):
             return 0
+        # Read the tradeable set rather than listing resources here — this
+        # silently kept scoring on stone after it left MARKET_TRADEABLE.
+        from core.config import MARKET_TRADEABLE
+
         res = ctx.resources
         gold = res.get("gold", 0)
-        surplus = max(res.get("wood", 0), res.get("food", 0), res.get("stone", 0))
-        shortage = min(res.get("wood", 0), res.get("food", 0), res.get("stone", 0))
+        surplus = max(res.get(r, 0) for r in MARKET_TRADEABLE)
+        shortage = min(res.get(r, 0) for r in MARKET_TRADEABLE)
         if surplus >= 400 or (gold >= 400 and shortage < 60):
             return 55
         return 0
@@ -272,18 +276,5 @@ class BuildMineGoal(Goal):
         return start_construction(ctx, "mine", ctx.game.ai_system.building_placer)
 
 
-class BuildQuarryGoal(Goal):
-    name = "build_quarry"
-    category = "economy"
-
-    def score(self, ctx):
-        if ctx.has_construction_in_progress("quarry"):
-            return 0
-        if not ctx.can_afford("quarry"):
-            return 0
-        if len(ctx.workers) < 3:
-            return 0
-        return ctx.score_dropoff_need("quarry")
-
-    def execute(self, ctx):
-        return start_construction(ctx, "quarry", ctx.game.ai_system.building_placer)
+# (BuildQuarryGoal removed 2026-07-19 with the stone resource. Gold is the
+# only mineral now; BuildMineGoal covers every mineral drop-off.)

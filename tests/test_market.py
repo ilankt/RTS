@@ -16,7 +16,7 @@ from systems import market
 
 
 def player_with(**resources):
-    base = {"gold": 0, "wood": 0, "stone": 0, "food": 0}
+    base = {"gold": 0, "wood": 0, "food": 0}
     base.update(resources)
     return SimpleNamespace(resources=base)
 
@@ -27,10 +27,10 @@ def test_sell_and_buy_math():
     assert p.resources["wood"] == 250 - MARKET_TRADE_LOT
     assert p.resources["gold"] == MARKET_SELL_GOLD
 
-    p = player_with(gold=200, stone=0)
-    assert market.buy(p, "stone")
+    p = player_with(gold=200, food=0)
+    assert market.buy(p, "food")
     assert p.resources["gold"] == 200 - MARKET_BUY_GOLD
-    assert p.resources["stone"] == MARKET_TRADE_LOT
+    assert p.resources["food"] == MARKET_TRADE_LOT
 
 
 def test_trades_reject_when_unaffordable():
@@ -57,31 +57,31 @@ def test_ai_trade_goal_sells_surplus_and_buys_shortages():
 
     times = {"now": 100.0}
 
-    def ctx_with(gold, wood=0, food=0, stone=0, has_market=True):
+    def ctx_with(gold, wood=0, food=0, has_market=True):
         times["now"] += 60.0  # each scenario is past the trade cooldown
-        player = player_with(gold=gold, wood=wood, food=food, stone=stone)
+        player = player_with(gold=gold, wood=wood, food=food)
         player.name = "AI 1"
         return SimpleNamespace(
             buildings={"market": [object()]} if has_market else {},
-            resources={"gold": gold, "wood": wood, "food": food, "stone": stone},
+            resources={"gold": gold, "wood": wood, "food": food},
             player=player,
             game=SimpleNamespace(sim_time_elapsed=times["now"]),
         )
 
     # rotting wood + gold-starved -> sell
-    ctx = ctx_with(gold=50, wood=600, food=100, stone=100)
+    ctx = ctx_with(gold=50, wood=600, food=100)
     assert goal.score(ctx) > 0
     assert goal.execute(ctx) is True
     assert ctx.player.resources["gold"] == 50 + MARKET_SELL_GOLD
 
-    # banked gold + stone shortage -> buy
-    ctx = ctx_with(gold=800, wood=200, food=200, stone=10)
+    # banked gold + food shortage -> buy
+    ctx = ctx_with(gold=800, wood=200, food=10)
     assert goal.score(ctx) > 0
     assert goal.execute(ctx) is True
-    assert ctx.player.resources["stone"] == 10 + MARKET_TRADE_LOT
+    assert ctx.player.resources["food"] == 10 + MARKET_TRADE_LOT
 
     # balanced stockpiles -> no trade
-    assert goal.score(ctx_with(gold=250, wood=200, food=200, stone=200)) == 0
+    assert goal.score(ctx_with(gold=250, wood=200, food=200)) == 0
     # no market -> nothing
     assert goal.score(ctx_with(gold=50, wood=600, has_market=False)) == 0
 
@@ -150,8 +150,9 @@ def test_market_card_tiles():
     content = card.refresh()
     assert content['context'] == 'market'
     kinds = [(s['direction'], s['resource']) for s in content['slots'] if s]
-    assert ('sell', 'wood') in kinds and ('buy', 'stone') in kinds
-    assert len(kinds) == 6
+    assert ('sell', 'wood') in kinds and ('buy', 'food') in kinds
+    # one sell + one buy tile per tradeable resource (wood, food)
+    assert len(kinds) == 4
 
     # press a sell tile with enough wood
     human.resources['wood'] = 300

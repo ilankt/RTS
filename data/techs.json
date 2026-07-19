@@ -12,11 +12,10 @@
         "effects": {
             "gather_rate_multipliers": {
                 "gold": 1.2,
-                "stone": 1.2,
                 "wood": 1.2
             }
         },
-        "tooltip": "Workers gather wood, gold, and stone 20% faster."
+        "tooltip": "Workers gather wood and gold 20% faster."
     },
     {
         "id": "reinforced_frames",
@@ -24,8 +23,7 @@
         "icon": "assets/ui/Techs/reinforced_frames_icon.png",
         "building": "blacksmith",
         "costs": {
-            "stone": 100,
-            "wood": 100
+            "wood": 200
         },
         "research_time": 22,
         "requires": [],
@@ -134,11 +132,12 @@
         "building": "blacksmith",
         "costs": {
             "gold": 150,
-            "wood": 150,
-            "stone": 80
+            "wood": 250
         },
         "research_time": 30,
-        "requires": ["siege_workshop"],
+        "requires": [
+            "siege_workshop"
+        ],
         "effects": {
             "unit_stat_multipliers": {
                 "ram": {

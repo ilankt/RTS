@@ -64,13 +64,13 @@ class FakeGame:
                 name="Human",
                 human=True,
                 color=(255, 255, 255),
-                resources={"food": 100, "gold": 200, "stone": 100, "wood": 200},
+                resources={"food": 100, "gold": 200, "wood": 200},
             ),
             SimpleNamespace(
                 name="AI",
                 human=False,
                 color=(255, 0, 0),
-                resources={"food": 100, "gold": 200, "stone": 100, "wood": 200},
+                resources={"food": 100, "gold": 200, "wood": 200},
             ),
         ]
         self.game_data = load_game_data()
@@ -85,11 +85,11 @@ class FakeGame:
 
 
 def test_build_menu_uses_nested_costs_for_watchtower_affordability():
-    player = SimpleNamespace(resources={"gold": 999, "wood": 149, "stone": 100})
-    building = {"name": "watchtower", "costs": {"wood": 150, "stone": 100}}
+    player = SimpleNamespace(resources={"gold": 999, "wood": 149})
+    building = {"name": "watchtower", "costs": {"gold": 150, "wood": 150}}
 
     assert CommandCard._can_afford(player, building) is False
-    assert CommandCard._format_costs(building) == "Wood: 150, Stone: 100"
+    assert CommandCard._format_costs(building) == "Gold: 150, Wood: 150"
 
     player.resources["wood"] = 150
     assert CommandCard._can_afford(player, building) is True

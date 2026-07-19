@@ -13,7 +13,6 @@ class BuildingPlacer:
     RESOURCE_BUILDINGS = {
         "mine": "gold",
         "lumbermill": "wood",
-        "quarry": "stone",
     }
 
     # §9 placement-starvation fix: the 72-candidate castle ring saturates
@@ -136,7 +135,7 @@ class BuildingPlacer:
             return None
         towers = ctx.buildings.get("watchtower", [])
         best, best_score = None, -1.0
-        for name in ("mine", "lumbermill", "quarry", "market"):
+        for name in ("mine", "lumbermill", "market"):
             for building in ctx.buildings.get(name, []):
                 castle_dist = math.hypot(building.x - ctx.castle.x, building.y - ctx.castle.y)
                 if castle_dist < 300:
@@ -296,7 +295,7 @@ class BuildingPlacer:
             _cluster_counts, find_nearest_dropoff_ctx, RESOURCE_SERVICE_RADIUS)
 
         best, best_score = None, 0.0
-        for resource_type in ("gold", "stone", "wood"):
+        for resource_type in ("gold", "wood"):
             resources = ctx.known_resources(resource_type)
             if not resources:
                 continue

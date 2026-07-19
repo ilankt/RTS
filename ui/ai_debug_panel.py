@@ -32,7 +32,6 @@ class AIDebugPanel:
         self.resource_colors = {
             "gold": (255, 215, 0),
             "wood": (139, 69, 19),
-            "stone": (128, 128, 128),
             "food": (255, 140, 0)
         }
         
@@ -376,7 +375,7 @@ class AIDebugPanel:
         resources = {}
         player_resources = getattr(player, 'resources', {})
         
-        for resource_type in ['gold', 'wood', 'stone', 'food']:
+        for resource_type in ['gold', 'wood', 'food']:
             resources[resource_type] = player_resources.get(resource_type, 0)
         
         return resources

@@ -7,9 +7,5 @@
     {
         "name": "wood",
         "sprite": "assets/sprites/Resources/TREE.png"
-    },
-    {
-        "name": "stone",
-        "sprite": "assets/sprites/Resources/STONE_DEPOSIT.png"
     }
 ]

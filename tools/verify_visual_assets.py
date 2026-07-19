@@ -38,7 +38,6 @@ EXPECTED_DIMS = {
     # §8.2.2 HUD cost glyphs — bare transparent cut-outs (not framed icons)
     "assets/ui/Glyphs/gold_glyph.png": (1024, 1024),
     "assets/ui/Glyphs/wood_glyph.png": (1024, 1024),
-    "assets/ui/Glyphs/stone_glyph.png": (1024, 1024),
     "assets/ui/Glyphs/food_glyph.png": (1024, 1024),
     "assets/ui/Glyphs/time_glyph.png": (1024, 1024),
 }

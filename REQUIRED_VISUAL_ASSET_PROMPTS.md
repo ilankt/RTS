@@ -20,7 +20,8 @@ Use the current game assets as the style anchor:
 - Buildings: `assets/sprites/Buildings/Barracks.png`, `Castle.png`, `Lumbermill.png`, `Watchtower.png`
 - Unit sheets: `assets/sprites/Units/Warrior/Warrior_Idle.png`, `Warrior_Run.png`, `Warrior_Attack.png`, `assets/sprites/Units/Archer/Archer_Shoot.png`
 - UI icons: `assets/ui/Units/warrior_icon.png`, `archer_icon.png`, `worker_icon.png`, `assets/ui/build_mil_icon.png`
-- HUD cost glyphs: `assets/ui/Glyphs/gold_glyph.png`, `wood_glyph.png`, `stone_glyph.png`, `food_glyph.png`, `time_glyph.png`
+- HUD cost glyphs: `assets/ui/Glyphs/gold_glyph.png`, `wood_glyph.png`, `food_glyph.png`, `time_glyph.png`
+  *(`stone_glyph.png` is no longer used — the stone resource was removed 2026-07-19.)*
 
 ## Shared Style Guide
 
@@ -107,7 +108,6 @@ so cannot punch through a subject enclosed by its own outline.)
   |---|---|---|
   | gold | bright yellow-gold `(245,200,60)` | 8.14 |
   | wood | **light** warm brown `(196,142,92)` | 4.54 |
-  | stone | light cool gray `(185,190,196)` | 6.92 |
   | food | **bright** warm red `(230,125,95)` | 4.60 |
   | time | pale gray-blue `(170,196,214)` | 7.13 |
 

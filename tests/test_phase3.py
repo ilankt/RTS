@@ -13,7 +13,7 @@ class MockPlayer:
         self.human = human
         self.name = "Test"
         self.color = (255, 255, 255)
-        self.resources = {"food": 100, "gold": 200, "stone": 100, "wood": 200}
+        self.resources = {"food": 100, "gold": 200, "wood": 200}
         self.ai_personality = personality
 
 

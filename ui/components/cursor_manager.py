@@ -182,9 +182,6 @@ class CursorManager:
         # Mine accepts gold
         elif building_name == "mine" and resource_type == "gold":
             return True
-        # Quarry accepts stone  
-        elif building_name == "quarry" and resource_type == "stone":
-            return True
         # Lumbermill accepts wood types
         elif building_name == "lumbermill" and resource_type == "wood":
             return True

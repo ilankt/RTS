@@ -38,8 +38,8 @@ class FakePlayer:
     def __init__(self):
         self.name = "AI"
         self.human = False
-        self.resources = {"wood": 0, "gold": 0, "stone": 0, "food": 0}
-        self.gathering_rates = {"wood": 4.0, "gold": 1.0, "stone": 1.0, "food": 1.0}
+        self.resources = {"wood": 0, "gold": 0, "food": 0}
+        self.gathering_rates = {"wood": 4.0, "gold": 1.0, "food": 1.0}
         self.build_speed_bonus = 1.0
 
 
@@ -86,7 +86,7 @@ class FakeWorker:
         self.gathering_target = None
         self.resource_type = None
         self.resource_amount = 0
-        self.max_capacity = {"wood": 4, "gold": 4, "stone": 4}
+        self.max_capacity = {"wood": 4, "gold": 4}
         self.gathering_timer = 0
         self.drop_off_target = None
         self.is_dropping_off = False

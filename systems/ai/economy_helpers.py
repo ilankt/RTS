@@ -14,15 +14,16 @@ from core.config import DROP_OFF_BUILDINGS
 RESOURCE_TO_DROPOFF = {
     "wood": "lumbermill",
     "gold": "mine",
-    "stone": "quarry",
 }
 
 DROPOFF_TO_RESOURCE = {building: resource for resource, building in RESOURCE_TO_DROPOFF.items()}
 
 RESOURCE_DROPOFF_CAPS = {
     "lumbermill": 3,
-    "mine": 2,
-    "quarry": 2,
+    # 2 → 3 with the stone removal (2026-07-19): gold is the only mineral
+    # now and the map carries more of it, so the AI needs a third mine to
+    # actually service the contested deposits it is meant to expand to.
+    "mine": 3,
 }
 
 RESOURCE_SERVICE_RADIUS = 280.0
@@ -31,7 +32,6 @@ RESOURCE_CLUSTER_RADIUS = 220.0
 CRITICAL_STOCKPILE = {
     "wood": 75,
     "gold": 75,
-    "stone": 50,
 }
 
 

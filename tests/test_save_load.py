@@ -233,3 +233,62 @@ def test_gate_passable_state_survives(tmp_path):
 
     gate2 = next(b for b in game.buildings if b.name == "gate")
     assert gate2.is_gate and gate2.passable  # still open after load
+
+
+def test_v4_save_with_stone_is_sanitized_on_load(tmp_path):
+    """Stone left the roster 2026-07-19 (PLAN_ARCHIVE §8.15). A v1-v4 save
+    still carries stone stockpiles, stone nodes, quarries and workers caught
+    mid-haul with a load of stone. All of it must be dropped on load — a
+    surviving stone carry would be handed an undeliverable errand by the
+    worker-task remap, since no drop-off accepts stone any more."""
+    import json
+
+    from managers.save_manager import SaveManager
+
+    SaveManager.SAVE_DIR = str(tmp_path)
+
+    random.seed(4321)
+    from core.game import Game
+
+    game = Game(mode="human_1v1", player_count=2)
+    for _ in range(60):
+        game.update(delta_time_override=1 / 60)
+
+    SaveManager.save_game(game, slot=7)
+
+    # Rewrite the save as a pre-removal v4 file: stone everywhere.
+    path = os.path.join(SaveManager.SAVE_DIR, "save_7.json")
+    with open(path) as f:
+        state = json.load(f)
+
+    state["version"] = 4
+    for player_data in state["players"]:
+        player_data["resources"]["stone"] = 640
+    state["resources"].append({"name": "stone", "x": 900.0, "y": 900.0,
+                               "amount_remaining": 2500})
+    quarry = dict(state["buildings"][0])
+    quarry["name"] = "quarry"
+    state["buildings"].append(quarry)
+    worker_index = next(i for i, u in enumerate(state["units"])
+                        if u["name"] == "worker")
+    state["units"][worker_index]["resource_type"] = "stone"
+    state["units"][worker_index]["resource_amount"] = 8
+    state["resource_ghosts"] = [[5, 5, "stone", 700.0, 700.0]]
+
+    with open(path, "w") as f:
+        json.dump(state, f)
+
+    success, message = SaveManager.load_game(game, slot=7)
+    assert success, message
+
+    assert all("stone" not in p.resources for p in game.players)
+    assert all(set(p.resources) == {"gold", "wood", "food"} for p in game.players)
+    assert not any(r.name == "stone" for r in game.resources)
+    assert not any(b.name == "quarry" for b in game.buildings)
+    assert not any(getattr(u, "resource_type", None) == "stone" for u in game.units)
+    ghosts = getattr(game.fog_of_war, "resource_ghosts", {})
+    assert not any(g["name"] == "stone" for g in ghosts.values())
+
+    # and the sanitized game still simulates
+    for _ in range(60):
+        game.update(delta_time_override=1 / 60)

@@ -35,13 +35,13 @@ from ui import fonts as ui_fonts
 
 
 # Castle listed last (§8.12): rebuildable after a loss — expensive comeback
-ECONOMY_BUILDINGS = ['farm', 'house', 'lumbermill', 'mine', 'quarry', 'market', 'castle']
+ECONOMY_BUILDINGS = ['farm', 'house', 'lumbermill', 'mine', 'market', 'castle']
 MILITARY_BUILDINGS = ['barracks', 'stable', 'blacksmith', 'siege_workshop', 'temple',
                       'watchtower', 'wooden_wall', 'wall', 'gate']
 
 # §8.2.2: only a fallback now — costs render as glyph+number pairs. Kept so a
 # missing glyph degrades to the old abbreviation instead of showing nothing.
-RESOURCE_LETTER = {"gold": "G", "wood": "W", "stone": "S", "food": "F"}
+RESOURCE_LETTER = {"gold": "G", "wood": "W", "food": "F"}
 
 
 class CommandCard:
@@ -494,7 +494,7 @@ class CommandCard:
 
     @staticmethod
     def _format_costs(building):
-        """Long form: "Wood: 150, Stone: 100"."""
+        """Long form: "Gold: 150, Wood: 150"."""
         costs = building.get('costs', {})
         if not costs:
             return ""
@@ -706,7 +706,7 @@ class CommandCard:
     # Only used to tint the letter fallback when a glyph asset is missing, so
     # the abbreviation still reads as its resource (matches the glyph hues).
     _RESOURCE_TINT = {'gold': (245, 200, 60), 'wood': (196, 142, 92),
-                      'stone': (185, 190, 196), 'food': (230, 125, 95)}
+                      'food': (230, 125, 95)}
 
     def _draw_tile_scrim(self, surface, tile, rows, row_h):
         """Dark scrim behind the bottom `rows` of overlay text so numbers stay

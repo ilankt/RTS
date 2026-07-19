@@ -112,7 +112,7 @@ def test_worker_selection_shows_build_grid_immediately(game, card):
     assert content['context'] == 'build'
     assert [tab for tab, _ in content['chips']] == ['economy', 'military']
     names = [slot['name'] for slot in content['slots'] if slot]
-    assert names == ['farm', 'house', 'lumbermill', 'mine', 'quarry', 'market', 'castle']
+    assert names == ['farm', 'house', 'lumbermill', 'mine', 'market', 'castle']
     assert content['slots'][7] is None  # economy leaves the last slot empty
 
 
@@ -467,23 +467,23 @@ def test_consumes_key_only_for_occupied_slots(game, card):
 
 def test_cost_bearing_tiles_carry_a_costs_dict(game, card):
     """The tile cost row is glyph+number pairs now, so slots carry a real
-    costs dict, not the old pre-joined "500G 200W" string."""
+    costs dict, not the old pre-joined "500G 500W" string."""
     select(game, own_worker(game))
     card.active_tab = 'economy'
     content = card.refresh()
     castle = next(s for s in content['slots'] if s and s['name'] == 'castle')
     assert isinstance(castle['costs'], dict)
-    assert castle['costs'] == {'gold': 500, 'wood': 200, 'stone': 300}
+    assert castle['costs'] == {'gold': 500, 'wood': 500}
     assert 'cost' not in castle, "old pre-joined cost string must be gone"
     # The name left the tile — it must survive as the tooltip's title row.
     assert castle['tooltip'][0] == castle['label']
 
 
 def test_cost_glyphs_load_at_requested_size(game):
-    """All five glyphs (4 resources + duration) load as square surfaces —
+    """All four glyphs (3 resources + duration) load as square surfaces —
     if any is missing the tile silently falls back to a letter."""
     loader = game.ui_manager.command_card.icon_loader
-    for name in ('gold', 'wood', 'stone', 'food', 'time'):
+    for name in ('gold', 'wood', 'food', 'time'):
         glyph = loader.get_cost_glyph(name, 13)
         assert glyph is not None, f"{name} glyph did not load"
         assert glyph.get_size() == (13, 13)
@@ -497,7 +497,7 @@ def test_tooltip_carries_a_cost_row_with_duration(game, card):
     castle = next(s for s in content['slots'] if s and s['name'] == 'castle')
     cost_rows = [x for x in castle['tooltip'] if isinstance(x, dict)]
     assert len(cost_rows) == 1
-    assert cost_rows[0]['costs'] == {'gold': 500, 'wood': 200, 'stone': 300}
+    assert cost_rows[0]['costs'] == {'gold': 500, 'wood': 500}
     assert cost_rows[0]['duration'], "castle tooltip must show a build duration"
 
 

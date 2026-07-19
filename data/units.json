@@ -5,7 +5,10 @@
     "role": "Builder and gatherer",
     "requires": [],
     "buildable": true,
-    "strong_against": [],
+    "strong_against": [
+      "warrior",
+      "spearman"
+    ],
     "weak_against": [
       "cavalry"
     ],
@@ -242,8 +245,7 @@
     "build_time": 14,
     "icon": "assets/ui/Units/ram_icon.png",
     "costs": {
-      "wood": 160,
-      "stone": 40
+      "wood": 200
     },
     "min_damage": 85,
     "max_damage": 115,

@@ -59,7 +59,6 @@ class FloatingUI:
         # Resource notification colors (darker, more subdued)
         self.resource_colors = {
             'gold': (200, 180, 60),     # Darker golden yellow
-            'stone': (140, 140, 140),   # Darker gray
             'wood': (60, 180, 60),      # Darker green
             'food': (180, 100, 30)      # Darker orange-brown
         }

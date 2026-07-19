@@ -17,7 +17,6 @@ class Player:
         self.builder_capacity = 10  # Max number of builders that can work on a building
         self.gathering_rates = {
             "gold": PLAYER_GATHERING_MULTIPLIER,
-            "stone": PLAYER_GATHERING_MULTIPLIER,
             "wood": PLAYER_GATHERING_MULTIPLIER,
             "food": PLAYER_GATHERING_MULTIPLIER,
         }

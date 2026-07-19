@@ -1,11 +1,10 @@
 import pygame
 from core.config import SCREEN_WIDTH, TILE_WIDTH, TILE_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
 
-# Colorblind-safe resource palette (§8.1): amber / green / grey
+# Colorblind-safe resource palette (§8.1): amber / green
 RESOURCE_COLORS = {
     "gold": (255, 195, 60),
     "wood": (70, 160, 60),
-    "stone": (170, 170, 175),
 }
 PING_DURATION_MS = 2000
 

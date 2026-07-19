@@ -37,7 +37,7 @@ PRODUCES = {
     "castle": ["worker"], "barracks": ["warrior", "archer", "spearman"],
     "stable": ["cavalry"], "siege_workshop": ["ram"], "blacksmith": [],
 }
-RES_NAME = {"gold": "Gold", "wood": "Wood", "stone": "Stone", "food": "Food"}
+RES_NAME = {"gold": "Gold", "wood": "Wood", "food": "Food"}
 
 
 # --------------------------------------------------------------------------- #
@@ -136,7 +136,7 @@ def _esc(text):
 
 
 def _cost_chips(costs):
-    order = ["food", "gold", "wood", "stone"]
+    order = ["food", "gold", "wood"]
     chips = []
     for res in order:
         if costs.get(res):
@@ -256,7 +256,7 @@ def build(output_path=None):
     econ_rates = "".join(
         f'<div class="stat"><span>{res.title()}</span>'
         f'<b>{rates[res]*mult:.0f}/s per worker</b></div>'
-        for res in ("gold", "wood", "stone"))
+        for res in ("gold", "wood"))
     market = (f'Sell {config.MARKET_TRADE_LOT} → {config.MARKET_SELL_GOLD} gold '
               f'&nbsp;·&nbsp; Buy {config.MARKET_TRADE_LOT} ← {config.MARKET_BUY_GOLD} gold')
 
@@ -311,7 +311,7 @@ def build(output_path=None):
 _CSS = """
 :root{--bg:#14141e;--panel:#1e2230;--card:#1e212c;--line:#2c3040;
 --gold:#c8b464;--txt:#d9dbe3;--mut:#8b90a2;--good:#6ac06a;--bad:#d97a7a;
---gold-r:#d4b43c;--wood-r:#5cb85c;--stone-r:#a9adb8;--food-r:#e0863c;}
+--gold-r:#d4b43c;--wood-r:#5cb85c;--food-r:#e0863c;}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--txt);
 font:15px/1.55 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
@@ -346,7 +346,7 @@ overflow:hidden;display:flex;flex-direction:column}
 border-radius:6px;padding:2px 7px}
 .cost em{font-style:normal;font-size:11px;opacity:.8;margin-left:2px}
 .cost.gold{color:var(--gold-r)}.cost.wood{color:var(--wood-r)}
-.cost.stone{color:var(--stone-r)}.cost.food{color:var(--food-r)}.cost.free{color:var(--mut)}
+.cost.food{color:var(--food-r)}.cost.free{color:var(--mut)}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;margin-bottom:8px}
 .stat{display:flex;justify-content:space-between;font-size:13px;
 border-bottom:1px dotted #2c3040;padding:3px 0}
@@ -449,11 +449,11 @@ _PAGE = """<!doctype html>
 <section id="economy">
   <h2>Economy &amp; Tech</h2>
   <div class="cols">
-    <div class="panel"><h3>The four resources</h3>
+    <div class="panel"><h3>The three resources</h3>
       <p><b>Gold</b> — the army currency: nearly every soldier costs it. Scarce
       and contested.<br>
-      <b>Wood</b> — buildings and siege. Renewable and plentiful.<br>
-      <b>Stone</b> — defense and siege only (watchtowers and battering rams).<br>
+      <b>Wood</b> — everything you build: structures, defense and siege.
+      Renewable and plentiful.<br>
       <b>Food</b> — labor: every unit needs it; farms produce it over time.</p></div>
     <div class="panel"><h3>Gathering</h3>
       <div class="econ">{econ_rates}</div>
