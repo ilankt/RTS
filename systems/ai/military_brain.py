@@ -55,6 +55,18 @@ class MilitaryBrain:
     MUSTER_WAVE_SIZE = 5
     MUSTER_TIMEOUT_S = 25.0
 
+    # §8.16 endgame close-out (2026-07-19 balance report change 6): the v2
+    # battery showed dominant AIs choosing attack for THOUSANDS of ticks
+    # without finishing — a 204-fighter army trickling 5-unit waves into a
+    # towered base forever, or idling because the loser's last workers hid
+    # in fog on a fully-explored map (elimination requires the last worker,
+    # §8.12 comeback rule). When fighting strength is OVERWHELMING, waves
+    # launch at full size and idle squads sweep explored ground for
+    # remnants instead of waiting for targets that never appear.
+    OVERWHELM_MIN_FIGHTERS = 12
+    OVERWHELM_RATIO = 3.0      # my fighters vs the enemy's VISIBLE fighters
+    SWEEP_GRID = 3             # sweep anchors per map axis (3x3)
+
     # §7 P3 back-line march discipline: archers leash to the nearest front
     # fighter while approaching (like healers do) and open fire when the
     # front engages within support range. The leash point sits BEHIND the
@@ -97,6 +109,20 @@ class MilitaryBrain:
         self._next_squad_index = {}  # player -> rotating squad cursor
         self._regroup_until = {}     # player name -> sim time (§8.9 retreat)
         self._musters = {}           # player name -> {"point", "since"} (§8.14)
+        self._sweep_index = {}       # player name -> rotating sweep anchor (§8.16)
+
+    def overwhelming(self, ctx) -> bool:
+        """§8.16: does this player hold decisive fighting superiority?
+        Compares own fighters against VISIBLE enemy fighters — fog hides
+        the rest, but an army this large should be closing regardless."""
+        from systems.ai.utility.context import combatants_of
+
+        mine = len(combatants_of(ctx.military))
+        if mine < self.OVERWHELM_MIN_FIGHTERS:
+            return False
+        MILITARY = ("warrior", "archer", "spearman", "cavalry", "ram")
+        visible = sum(1 for e in ctx.enemy_units if e.name in MILITARY)
+        return mine >= self.OVERWHELM_RATIO * max(1, visible)
 
     def is_regrouping(self, player) -> bool:
         """§8.9: is this player's army re-massing after a retreat?"""
@@ -199,6 +225,14 @@ class MilitaryBrain:
             scout_brain = getattr(getattr(self.game, "ai_system", None), "scout_brain", None)
             if scout_brain is not None:
                 anchor = scout_brain.next_unexplored_anchor(ctx.player, (castle.x, castle.y))
+                # §8.16: on a fully-explored map next_unexplored_anchor is
+                # None, but the last enemy WORKERS can still be hiding in
+                # fog (explored != currently visible, and elimination needs
+                # the last worker — §8.12). Sweep explored ground so sight
+                # bubbles re-cover it; the moment anything is spotted,
+                # ctx.enemy_units fills and the attack path takes over.
+                if anchor is None and not ctx.enemy_units:
+                    anchor = self._next_sweep_anchor(ctx)
                 if anchor is not None:
                     squad = self._next_squad(ctx.player, combatants)
                     for unit in squad:
@@ -395,6 +429,24 @@ class MilitaryBrain:
 
     # --- §8.14: attack musters (group waves, not trickles) ----------------
 
+    def _next_sweep_anchor(self, ctx):
+        """§8.16 remnant sweep: rotate through a SWEEP_GRID x SWEEP_GRID
+        lattice of map anchors. Each call advances the cursor, so successive
+        squads fan out over different cells until something becomes visible."""
+        game_map = getattr(self.game, "game_map", None)
+        if game_map is None:
+            return None
+        from core.config import TILE_WIDTH, TILE_HEIGHT
+
+        world_w = game_map.width * TILE_WIDTH
+        world_h = game_map.height * TILE_HEIGHT
+        n = self.SWEEP_GRID
+        index = self._sweep_index.get(ctx.player.name, 0)
+        self._sweep_index[ctx.player.name] = (index + 1) % (n * n)
+        row, col = divmod(index, n)
+        return (world_w * (2 * col + 1) / (2 * n),
+                world_h * (2 * row + 1) / (2 * n))
+
     def _create_muster(self, ctx, combatants, target):
         """Open a muster: this tick's squad rallies at its forwardmost
         member (toward the target) instead of charging in singly."""
@@ -441,10 +493,21 @@ class MilitaryBrain:
         waited = (getattr(self.game, "sim_time_elapsed", 0.0) - state["since"]
                   >= self.MUSTER_TIMEOUT_S)
         threatened = ctx.threat_at(point[0], point[1]) > 0
-        wave_target = min(self.MUSTER_WAVE_SIZE, len(eligible))
+        # §8.16: a dominant army launches at FULL strength — 5-unit waves
+        # against a fortified base were suicide-by-trickle (v2 battery:
+        # 3,193 attack ticks without a kill). The small-wave cadence is for
+        # even fights, where reinforcing a committed push matters more.
+        overwhelming = self.overwhelming(ctx)
+        if overwhelming:
+            wave_target = len(eligible)
+        else:
+            wave_target = min(self.MUSTER_WAVE_SIZE, len(eligible))
         if len(formed) >= wave_target or waited or threatened:
             self._musters.pop(ctx.player.name, None)
-            self._launch_wave(ctx, formed if formed else eligible)
+            # §8.16: a dominant push commits everyone — stragglers converge
+            # on the target instead of seeding the next 5-unit trickle.
+            wave = eligible if overwhelming else (formed if formed else eligible)
+            self._launch_wave(ctx, wave)
             return
         self._rally_to_muster(
             [u for u in eligible if self._is_idle_military(u)], point)

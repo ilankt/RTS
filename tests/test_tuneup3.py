@@ -24,11 +24,16 @@ def _ram_ctx(rams, army_size):
 def test_ram_cap_scales_with_army():
     from systems.ai.utility.goals.military import TrainRamGoal
 
+    # 25% -> 12% (2026-07-19 balance report change 6): the v2 battery
+    # measured late-game ram share pinned at the old cap (23-24%), immune
+    # to a +40% price hike — the cap IS the share dial.
     goal = TrainRamGoal()
-    assert goal.score(_ram_ctx(rams=2, army_size=8)) > 0     # under cap
+    assert goal.score(_ram_ctx(rams=2, army_size=8)) > 0     # under min-cap
     assert goal.score(_ram_ctx(rams=3, army_size=8)) == 0    # min-cap hit, no filler
-    assert goal.score(_ram_ctx(rams=5, army_size=24)) > 0    # 25% of 24 = 6
-    assert goal.score(_ram_ctx(rams=6, army_size=24)) == 0   # proportional cap
+    assert goal.score(_ram_ctx(rams=2, army_size=24)) > 0    # under the CAP=3 floor
+    assert goal.score(_ram_ctx(rams=3, army_size=24)) == 0   # floor engaged (12% of 24 < 3)
+    assert goal.score(_ram_ctx(rams=3, army_size=40)) > 0    # under 12% of 40 (cap 4)
+    assert goal.score(_ram_ctx(rams=4, army_size=40)) == 0   # proportional cap engaged
 
 
 def test_squads_interleave_unit_types():

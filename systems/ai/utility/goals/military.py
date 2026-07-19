@@ -397,13 +397,16 @@ class TrainRamGoal(Goal):
         building = ctx.find_idle_production_building("siege_workshop")
         if not building:
             return 0
-        # §8.12 batch 3: proportional hard cap. Rams are the only GOLD-FREE
-        # combat unit, so a wood-flush gold-broke AI used to win every quiet
-        # tick with the old flat filler score and mass ~30 rams. Now big ram
-        # counts require a big army to escort them (25% of military, min 3),
-        # and past the cap the goal is silent — no filler.
+        # §8.12 batch 3: proportional hard cap. Rams used to be the only
+        # gold-free combat unit, so a wood-flush gold-broke AI massed ~30.
+        # Big ram counts require a big army to escort them, and past the cap
+        # the goal is silent — no filler.
+        # 25% → 12% (2026-07-19 balance report, gate 1): rams held a 23-24%
+        # late-game army share — which was exactly this cap, not a price
+        # signal. The v2 battery proved the +40% ram price change couldn't
+        # move it; the cap is the knob that actually sets the share.
         rams = sum(1 for u in ctx.military if u.name == "ram")
-        if rams >= max(self.CAP, int(0.25 * len(ctx.military))):
+        if rams >= max(self.CAP, int(0.12 * len(ctx.military))):
             return 0
         # §8.12 reactive counters vs fortifications: a towered-up enemy
         # visibly pulls siege production (unit-only counters missed this).

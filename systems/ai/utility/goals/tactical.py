@@ -44,8 +44,17 @@ class AttackGoal(Goal):
     def score(self, ctx):
         from systems.ai.utility.personality import attack_army_threshold, difficulty_mods
 
+        # §8.16 endgame close-out: a decisively dominant army must keep the
+        # pressure on — the v2 battery's timeouts were winners re-massing or
+        # idling next to beaten opponents. Dominance bypasses the regroup
+        # pause and may target remnant UNITS (the §8.12 last-worker rule
+        # means razing the buildings isn't the end of the job).
+        brain = getattr(getattr(getattr(ctx, "game", None), "ai_system", None),
+                        "military_brain", None)
+        dominant = bool(brain and hasattr(brain, "overwhelming") and brain.overwhelming(ctx))
+
         # §8.9 squad retreat: no new offensives while the army re-masses
-        if getattr(ctx, "regrouping", False):
+        if getattr(ctx, "regrouping", False) and not dominant:
             return 0
 
         min_army = attack_army_threshold(getattr(ctx.player, "ai_personality", "balanced"))
@@ -57,8 +66,10 @@ class AttackGoal(Goal):
         n = len(combatants_of(ctx.military))
         if n < min_army:
             return 0
-        # Need a target to attack, otherwise pointless
-        if not ctx.enemy_buildings:
+        # Need a target: buildings normally; under dominance, visible
+        # remnant units count too (military_brain's target finder already
+        # falls back to units).
+        if not ctx.enemy_buildings and not (dominant and ctx.enemy_units):
             return 0
         return 70 + (n - min_army) * self.SCALE
 
