@@ -943,6 +943,23 @@ class SaveManager:
     SLOT_COUNT = 6
 
     @classmethod
+    def delete_save(cls, slot):
+        """Delete one save slot. Returns (ok, message).
+
+        Irreversible — there is no trash. The caller is responsible for
+        confirming with the player first (SaveLoadScreen arms the ✕ once
+        before it commits).
+        """
+        filepath = os.path.join(cls.SAVE_DIR, f"save_{slot}.json")
+        if not os.path.exists(filepath):
+            return False, "That slot is empty"
+        try:
+            os.remove(filepath)
+        except OSError as exc:
+            return False, f"Could not delete: {exc.strerror or exc}"
+        return True, f"Deleted Slot {slot + 1}"
+
+    @classmethod
     def slot_meta(cls, slot):
         """Friendly metadata for the save/load UI, or None if the slot is
         empty. Reads only the cheap header fields of the save."""

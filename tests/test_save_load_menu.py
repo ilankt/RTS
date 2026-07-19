@@ -92,3 +92,109 @@ def test_slot_meta_has_date_and_time(saves, game):
     meta = SaveManager.slot_meta(2)
     assert meta["date"] and meta["time"]
     assert meta["time"] in meta["when"]
+
+
+# --- Delete (2026-07-19) --------------------------------------------------- #
+
+def test_delete_save_removes_the_slot(saves, game):
+    SaveManager.save_game(game, slot=1)
+    assert SaveManager.slot_meta(1) is not None
+
+    ok, message = SaveManager.delete_save(1)
+    assert ok and "Slot 2" in message
+    assert SaveManager.slot_meta(1) is None
+
+    # Deleting an already-empty slot reports rather than raising
+    ok, message = SaveManager.delete_save(1)
+    assert ok is False and "empty" in message.lower()
+
+
+def test_delete_needs_two_clicks_and_esc_cancels(saves, game):
+    SaveManager.save_game(game, slot=2)
+    pygame.display.set_mode((320, 240))
+    from screens.save_load_menu import SaveLoadScreen
+
+    screen = SaveLoadScreen(screen=pygame.display.get_surface(), game=game)
+
+    # First press only ARMS — the save must survive a single stray click
+    screen._request_delete(2)
+    assert screen._confirm_delete == 2
+    assert SaveManager.slot_meta(2) is not None, "one click must not delete"
+
+    # Esc cancels the pending delete and does NOT close the screen
+    esc = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE)
+    screen._handle(esc)
+    assert screen._confirm_delete is None
+    assert screen.running is True
+    assert SaveManager.slot_meta(2) is not None
+
+    # Arm again, then confirm
+    screen._request_delete(2)
+    screen._request_delete(2)
+    assert SaveManager.slot_meta(2) is None
+    assert screen._meta[2] is None          # UI refreshed
+    assert screen._confirm_delete is None
+    assert "Deleted Slot 3" in screen._toast[0]
+
+    # A second Esc now leaves the screen as usual
+    screen._handle(esc)
+    assert screen.running is False
+
+
+def test_changing_slot_disarms_a_pending_delete(saves, game):
+    SaveManager.save_game(game, slot=0)
+    SaveManager.save_game(game, slot=1)
+    pygame.display.set_mode((320, 240))
+    from screens.save_load_menu import SaveLoadScreen
+
+    screen = SaveLoadScreen(screen=pygame.display.get_surface(), game=game)
+    screen._request_delete(0)
+    assert screen._confirm_delete == 0
+
+    screen._handle(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_DOWN))
+    assert screen._confirm_delete is None, "moving off the slot must disarm it"
+
+    # ...so the next delete press arms rather than deleting
+    screen._request_delete(0)
+    assert SaveManager.slot_meta(0) is not None
+
+
+def test_delete_button_only_exists_on_occupied_slots(saves, game):
+    SaveManager.save_game(game, slot=4)
+    pygame.display.set_mode((320, 240))
+    from screens.save_load_menu import SaveLoadScreen
+
+    screen = SaveLoadScreen(screen=pygame.display.get_surface(), game=None)
+    occupied = screen.slots.index(4)
+    empty = screen.slots.index(5)
+
+    assert screen._delete_rect(occupied) is not None
+    assert screen._delete_rect(empty) is None, "nothing to delete on an empty slot"
+
+    # Available load-only too (the main menu hides the tab strip entirely)
+    assert screen.can_save is False and screen._tab_rects() == {}
+
+    # The ✕ sits inside the row, and text is pulled in so it can't run under it
+    assert screen._slot_rect(occupied).contains(screen._delete_rect(occupied))
+    assert screen._text_right(occupied) <= screen._delete_rect(occupied).left
+    assert screen._text_right(empty) > screen._text_right(occupied)
+
+
+def test_clicking_the_x_deletes_instead_of_loading(saves, game):
+    SaveManager.save_game(game, slot=3)
+    pygame.display.set_mode((320, 240))
+    from screens.save_load_menu import SaveLoadScreen
+
+    screen = SaveLoadScreen(screen=pygame.display.get_surface(), game=None)
+    index = screen.slots.index(3)
+    click_x = pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1,
+                                 pos=screen._delete_rect(index).center)
+
+    screen._handle(click_x)                 # arms
+    assert screen._confirm_delete == 3
+    assert screen.result is None, "the ✕ must not trigger the row's load"
+    assert screen.running is True
+
+    screen._handle(click_x)                 # confirms
+    assert SaveManager.slot_meta(3) is None
+    assert screen.result is None
