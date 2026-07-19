@@ -45,7 +45,14 @@ python tools/benchmark_ai_spectator.py --seconds 300 --speed 5
 - **Combat**: Type effectiveness via `strong_against`/`weak_against` tags + Slash/Pierce/Siege
   multipliers (`systems/combat_rules.py`); auto-approach to attack range; tech upgrades modify
   effective stats (`systems/upgrade_effects.py`).
-- **Resources**: Gold/Stone 1/s, Wood 2/s, Food 3/s gathering rates (`GATHERING_RATES`).
+- **Resources** (3, simplified 2026-07-19): Gold 1/s, Wood 2/s, Food 3/s gathering rates
+  (`GATHERING_RATES`). **Stone was removed** — its costs folded into WOOD, so defense and
+  siege (towers, walls, rams) stay gold-free and don't compete with army production. Gold
+  is the contested army currency; each base gets ONE rich home deposit (3000) and the map
+  carries 2-3 rich contested ones. Adding/removing a resource means `GATHERING_RATES`,
+  `WORKER_CAPACITY`, `RESOURCE_LIMITS`, `DROP_OFF_BUILDINGS`, `TOP_BAR_ITEMS`,
+  `*_STARTING_RESOURCES`, `MARKET_TRADEABLE`, `RESOURCE_TERRAIN` — plus `data/resources.json`
+  and the AI's `RESOURCE_TO_DROPOFF`/`CRITICAL_STOCKPILE` tables.
 - **Collision**: 96px spatial-bucketed unit/static index (`systems/collision_system.py`), ~2-unit
   buffer, sliding along obstacles plus explicit pairwise separation push. A stuck-unit watchdog
   (`systems/unit_watchdog.py`) recovers units that make no progress for several seconds.
@@ -78,9 +85,10 @@ tools/          - benchmark_ai_spectator.py (headless perf benchmark), sprite pi
   `healer` (requires `temple`) is fully live: it auto-heals the most-wounded nearby ally
   (`combat_system._update_healer`); the AI trains it via `TrainHealerGoal` and keeps it
   trailing the army, never in combat commands (`military_brain`).
-- **Buildings** (`data/buildings.json`): castle, barracks, farm, house, lumbermill, mine, quarry,
+- **Buildings** (`data/buildings.json`): castle, barracks, farm, house, lumbermill, mine,
   watchtower, stable, blacksmith, siege_workshop, temple (trains the healer; the AI builds
-  it via `BuildTempleGoal`, category "support").
+  it via `BuildTempleGoal`, category "support"). *(`quarry` was deleted 2026-07-19 with the
+  stone resource; `BuildMineGoal` now covers every mineral drop-off.)*
   `wall`/`wooden_wall`/`gate` are **fully implemented** (drag-line placement, AI walling, gate
   toggle, nav sealing) but currently **disabled via `buildable: false`** pending
   orientation-aware sprites — flip the flags to re-enable (see MASTER_PLAN §8.10).
@@ -136,8 +144,8 @@ PATHFINDING_QUEUE_FRAME_MS = 10         # ceiling for the queue drain per frame;
                                         # over-budget searches suspend + resume
 PATH_CACHE_MAX_ENTRIES = 4096
 
-GATHERING_RATES = {"gold": 1, "stone": 1, "wood": 2, "food": 3}
-WORKER_CAPACITY = {"gold": 10, "stone": 10, "wood": 20}
+GATHERING_RATES = {"gold": 1, "wood": 2, "food": 3}
+WORKER_CAPACITY = {"gold": 20, "wood": 20}
 
 DEBUG_TO_FILE = True                    # writes to debug.dat
 PERF_STATS_ENABLED = False              # flip on for utils/perf_stats counters
@@ -149,7 +157,8 @@ DEFAULT_GAME_SPEED = 1.0; MAX_GAME_SPEED = 5.0
 
 Core gameplay (selection, movement, combat, gathering, building, production, save/load-lite,
 fog of war, formations, control groups, unit stances) works end to end. Content is a full
-7-unit / 13-building / 6-tech roster with a personality-driven utility AI.
+7-unit / 12-building / 6-tech roster on **3 resources** (gold/wood/food) with a
+personality-driven utility AI.
 
 **The active, single source of truth for what's being worked on next is
 [MASTER_PLAN.md](MASTER_PLAN.md)** — open work only (~4 tracks: A perf residue, B gameplay
@@ -167,12 +176,19 @@ Do not maintain a second roadmap or changelog in this file — update MASTER_PLA
 completed work into PLAN_ARCHIVE.md with its evidence, and rely on `git log` for the rest.
 
 ## Known Gaps (stable, not currently being worked)
-- **Save/Load** is save format **v4** (`managers/save_manager.py`, still loads v1-v3):
+- **Save/Load** is save format **v5** (`managers/save_manager.py`, still loads v1-v4 —
+  v5 discards their quarries, stone nodes, stone stockpiles, stone carries and stone fog
+  ghosts on load):
   terrain, units, buildings, construction sites, resources, production/research queues,
   rally points, gates, stances, fog (explored + resource ghosts), control groups,
   worker tasks (reassigned through `worker_task_system` on load), sim clock, stats,
   and tree timers all persist. Reachable from the pause menu (Save/Load tabs,
   click-slot acts directly), the main menu (load only), and F5/F9 (slot 0).
+  **Deleting a slot** (`SaveManager.delete_save`) is the one action that does NOT
+  fire on a single click: each occupied row's ✕ arms first and only deletes on a
+  second click / Enter, since a deleted save is unrecoverable (Esc cancels the
+  arm instead of leaving). The ✕ lives on the row, not behind a tab, because the
+  main menu opens this screen load-only with the tab strip hidden.
   Deliberately **not** saved — each self-heals within an AI tick of resuming:
   AI brain state, combat targets, in-flight paths.
 - Units can still get stuck at tight spots between static obstacles in rare cases; the

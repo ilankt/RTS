@@ -41,10 +41,11 @@ max 23 / 0 teleports). The **200-unit acceptance gate is not met** — see §6.
 
 | Priority | Item | Why now |
 |---|---|---|
-| 1 | **§8.2.2 HUD readability & scale** | The HUD is unreadable at the default 1080p — §8.2's deferred DPI item came due |
-| 2 | **§11 Track D — world, art & atmosphere** | The map is the least-finished-looking part of the game |
-| 3 | §8.12 AI depth candidates | Depth, not defect |
-| 4 | §6 / §5 Phase 6 Track A residue | Gated behind a fresh profile; only at 200 u |
+| 1 | **§8.15 balance re-baseline (stone removal)** | The economy changed shape 2026-07-19 and *nothing* has been measured since |
+| 2 | **§8.2.2 HUD readability & scale** | The HUD is unreadable at the default 1080p — §8.2's deferred DPI item came due |
+| 3 | **§11 Track D — world, art & atmosphere** | The map is the least-finished-looking part of the game |
+| 4 | §8.12 AI depth candidates | Depth, not defect |
+| 5 | §6 / §5 Phase 6 Track A residue | Gated behind a fresh profile; only at 200 u |
 
 *(The §8.13 bug batch — the old priority 1 — landed 2026-07-17; see §2 for the
 residue: a live-play observation pass and the gated planner-erosion deferral,
@@ -89,6 +90,88 @@ Violating one is how a "small fix" becomes a two-day regression hunt.
 - **Sprite sheets need the pipeline.** Team-color keying is a ±25 match on two
   exact shades; run `tools/normalize_team_color.py` + `reanchor_sprite_frames.py`
   on any generated sheet. Resources/props load **untinted** — no discipline needed.
+
+---
+
+## 1a. §8.15 — Balance re-baseline after the stone removal *(new 2026-07-19)*
+
+**Stone was removed 2026-07-19** (4 resources → gold/wood/food). The removal
+itself is done and test-green — full record, conversion math and the
+deliberately-rejected alternatives are in **PLAN_ARCHIVE.md §8.15**. What is
+**not** done is proving the new economy is balanced.
+
+**Every cost below was derived from a worker-time conversion, not measured.**
+Treat the whole table as a hypothesis.
+
+### What changed, and what it might break
+
+| Change | The risk it creates |
+|---|---|
+| Stone costs → **wood** (tower 200w, ram 200w, castle 500g/500w, temple 150w, workshop 100g/200w, siege tech 250w) | Wood becomes the dominant currency. Boomer (best wood economy) may re-dominate — the exact failure the 2026-07-14 gold carry re-tune fixed. |
+| Home gold node 2500 → **3000**, one node only | If gold now runs out mid-game, armies stall; if it never runs out, map gold is pointless. |
+| Map gold nodes **1-2 → 2-3** | Meant to pull labour outward. If nobody expands, the freed stone workers just idle on wood. |
+| `RESOURCE_DROPOFF_CAPS["mine"]` 2 → **3** | More AI mines competing for base space — watch §7 P1 placement starvation. |
+| Ram stayed **gold-free** (200w) | The archive already records "the wood-priced ram became the de-facto army". More wood income + a wood-only ram is exactly that trap re-armed. **Prime suspect if composition collapses.** |
+| Starting stone (75) dropped, **not** compensated | Openings are marginally leaner. Probably noise; confirm it isn't. |
+
+### Actions
+
+- [x] **Measured baseline (2026-07-19)** — superseded the planned 12-match
+  battery with a **30-match config matrix** (players 2/3/4 × maps 50/70/90 ×
+  all pairings/mirrors × difficulty axis), **equal-cost arena duels**
+  (`tools/arena_match.py`), and new per-unit combat instrumentation
+  (damage/kills/losses/healing — `stats_damage_dealt` et al.). Full findings
+  with evidence and the proposed change list:
+  **[tools/BALANCE_REPORT_2026-07-19.md](tools/BALANCE_REPORT_2026-07-19.md)**
+  (datasets: `tools/balance_matrix_2026-07-19/`, `tools/arena_2026-07-19_v2.json`).
+  - **Ram confirmed as the predicted failure**: 24 % of late-game armies,
+    2 rams kill a castle in 17 s taking 0 damage (2.25× table × 1.5× tag
+    double-dip); towers deal ~7 hp/hit back (F1).
+  - **Spearman monoculture is back** (most-trained, worst K/D 0.63) — §7
+    defect 3 re-armed by gold scarcity; archer hard-counters the
+    anti-cavalry specialist (F2).
+  - **Archer 3× cost-efficiency in real games** (K/D 3.02) though arena
+    stats are sane — micro-driven; warrior↔archer mutual counter tags are
+    incoherent (F3).
+  - **10/30 timeouts are an AI defect, not balance**: the winner sits on a
+    huge bank + army vs a crippled opponent and never finishes (F4 — fix in
+    §7 as "finish the map" push; also market SELL_GOLD_CAP 200→350).
+  - **Techs are a no-brainer** (61–91 % uptake; full tree during a 409 s
+    rush) — raise research times first (F5).
+  - Healer healthy; difficulty hard>rest works, normal≈easy; personality
+    spread 0.23–0.36 unreliable until F4 lands.
+- [x] **Report changes 1–5 applied + same-seed validated** (2026-07-19):
+  siege-vs-fortified 2.25→1.5, ram 60g+160w, archer tags cleared (+
+  `weak_against` mirrors made truthful — they drive the Resisted! cue),
+  research times +75 %, SELL_GOLD_CAP 350. Arena: warrior beats archer at
+  cost (+477), spearman beats archer (+347) and cavalry (+461), ram castle
+  TTK 17→21.6 s. Battery: warrior K/D 0.90→1.19, spearman 0.63→0.79, archer
+  efficiency 3.2×→2.17× warrior, timeouts 10→8 (3p all resolve). **Ram share
+  gate FAILED (24→23 %)** and spearman spam moved to #1 — structural
+  (train-goal scoring under gold scarcity), NOT price. Full diff in the
+  report's validation addendum. **Do not turn price/stat knobs further for
+  the spam gates** — the fix is AI-side.
+- [x] **Endgame close-out landed** (report change 6, §8.16, 2026-07-20):
+  `overwhelming()` dominance test, full-army wave launches, 3x3 remnant
+  sweep, AttackGoal regroup bypass + remnant-unit targeting, ram cap 12 %.
+  Same-seed battery v3: **ram share 24 %→12 % (gate PASSED)**, no unit type
+  above 25 % of armies for the first time; 2p dominance-stall timeouts
+  halved; difficulty ladder unstuck (normal beats easy decisively). Tests:
+  `tests/test_endgame_closeout.py`. Full diff in the report's change-6
+  addendum.
+- [ ] **Timeout residue** (8/30, composition changed): all four 4p FFAs
+  (§7 mop-up tails — needs its own FFA close-out design), one 3-way peer
+  stalemate (correct behavior, arguably), and fog-corner remnants the 3x3
+  sweep lattice walks past (seed 3044) — densify/route the sweep by fog
+  coverage next.
+- [ ] **Personality spread**: inconclusive at N=30 (rusher swung
+  0.36→0.50→0.29 across same-seed batteries; ±0.07 per win). Needs a ~3x
+  battery after the sweep/FFA follow-ups — don't tune personalities on
+  this data.
+- [ ] **Live-play pass**: does the opening still feel like it has choices with
+  one fewer resource to manage? That was the point of the change.
+- **✅ Verify:** the report's re-validation gates, plus a human match
+  where wood never feels like the only decision.
 
 ---
 

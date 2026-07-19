@@ -1934,6 +1934,82 @@ hex-shaped fog.
 
 ---
 
+### 8.15 Stone removal — 4 resources → 3 *(landed 2026-07-19, user decision)*
+
+**User:** *"maybe we need to remove the Stone resource. I think it's not
+necessary. I think that 3 resources is more than enough."*
+
+Stone is gone entirely: the `quarry` building, the stone deposit, the
+stockpile, the market lane, the AI goal, the cost glyph, the top-bar slot.
+Roster is now **gold / wood / food**.
+
+**The measurement that set the conversion rate.** Stone gathered at rate 1
+with carry **10**, while gold is rate 1 / carry **20** and wood rate 2 / carry
+20 — stone kept the old pre-2026-07-14 carry when gold was doubled, and was
+never re-tuned. With a round-trip haul of T seconds the effective incomes are
+`20/(4+T)`, `10/(2+T)`, `20/(2+T)`, so at T≈6–10 s **1 stone ≈ 1.6 gold ≈ 2
+wood in worker-time**. A 1:1 deletion would therefore have made every
+defensive and siege item quietly ~40 % cheaper. Costs were converted at
+roughly the labor rate, not face value.
+
+**Where the cost went: WOOD, deliberately** (user choice, from three options).
+Stone was the *defense-and-siege tax* — towers, walls, rams, the castle, siege
+tech. Folding it into gold would have made every tower an unbuilt warrior, and
+§7 defect 3 already records chronic gold scarcity collapsing AI unit
+composition into whatever is cheapest in gold. Wood keeps towers and rams
+**gold-free**, which is the dynamic stone existed to protect, and it is where
+the freed stone labour naturally flows.
+
+| Item | Before | After |
+|---|---|---|
+| castle | 500g 200w **300s** | 500g **500w** |
+| watchtower | 75w **125s** | **200w** |
+| temple | 150g **100s** | 150g **150w** |
+| siege_workshop | 60g 160w **60s** | **100g 200w** |
+| ram | 160w **40s** | **200w** |
+| wall *(disabled)* | **50s** | **80w** — display name "Stone Wall" → "Fortified Wall" |
+| gate *(disabled)* | 60w **25s** | **80w** |
+| reinforced_frames | 100w **100s** | **200w** |
+| siege_engineering | 150g 150w **80s** | 150g **250w** |
+
+**Map gold** (user: *"maybe put some more gold ore locations on map?"*).
+Deliberately **not** a second home deposit: with `WORKER_SATURATION_CAP = 3`,
+replacing the home stone node with gold would have given 6 saturated home
+slots instead of 3 and **doubled base gold income overnight**, destroying gold
+as the thing that limits army size. Instead the home node got richer
+(2500 → **3000**, it is now the only mineral at home) and map-wide contested
+nodes went **1-2 → 2-3** per area factor. Freed stone labour has to go *out*
+for gold — which is exactly the map control and expansion pressure §7 defects
+6 and 7 say the AI never generates. `RESOURCE_DROPOFF_CAPS["mine"]` 2 → **3**
+follows from this (gold is the only mineral now and there is more of it to
+service).
+
+**Two latent-drift fixes made in passing:**
+- `BuildMarketGoal` hardcoded `wood/food/stone` for its surplus/shortage
+  scores instead of reading `MARKET_TRADEABLE` — it would have kept scoring on
+  stone after stone left the tradeable set. Now derived from the constant.
+- The starting-resources comment in `config.py` documented costs that were
+  already wrong before this change (barracks "150g/100w/50s" vs the actual
+  100g/100w; warrior "100g/25w/50f" vs 80g/50f). Corrected.
+
+**Save format v5.** v1–v4 still load, and now *sanitize*: player stockpiles are
+rebuilt against the live resource set, quarries and stone nodes drop out via
+the existing missing-template path (index parity preserved), stone fog ghosts
+are filtered (they'd render as an unresolvable minimap dot with no sprite),
+and a worker caught **mid-haul carrying stone** has its carry cleared — the
+worker-task remap would otherwise have handed it a delivery to a drop-off that
+no longer accepts anything.
+
+**Evidence:** full suite **427 passed**. Headless 4-AI spectator match runs
+clean with no stone/quarry references and a working economy.
+
+**⚠ NOT yet re-validated: the §8.8 balance battery.** Every number above is a
+labor-rate conversion, not a measured result. The dials to move first are
+listed in MASTER_PLAN §4a — do not re-tune by feel without same-seed evidence
+(§1: *"Balance changes require same-seed validation before they're believed"*).
+
+---
+
 ## 9. Preserved backlog (non-perf, carried over from the deleted plans)
 
 Do **not** lose these; they are unrelated to the perf work. Trackable, but
