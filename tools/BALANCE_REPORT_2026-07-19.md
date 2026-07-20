@@ -266,6 +266,60 @@ then re-run this battery and judge gates 1, 4, 5.
 
 ---
 
+## Final addendum (2026-07-20): residue fixes + the 240-game verdict
+
+After change 6, three more close-out fixes landed (commit f365175): the
+remnant sweep went 3x3 → 5x5 and skips already-visible anchors; dominance
+is judged against the **weakest enemy player** (FFA mop-up starts);
+AttackGoal accepts known enemy *foundations* as targets (killing the
+raze-rebuild-in-fog treadmill measured in seed 3012). Same-seed v4
+(`tools/balance_matrix_2026-07-20_v4/`, 538s): timeouts 10→8→7, both
+formerly-stalled 3p/4p classes now produce winners, and the **difficulty
+ladder is 5/5 decisive** (was 3/5 with a normal-beats-hard upset).
+Discovered along the way: same-seed matches are knife-edge nondeterministic
+ACROSS PROCESSES (id()-keyed tie-breaks) — seed 3012 closes at t=949 in one
+process and times out in another. Same-seed comparisons carry that noise
+floor; only aggregates are trustworthy.
+
+### Personality gate: **effectively PASSED** (240 matches, 63 min, 0 failures)
+
+`tools/personality_battery_2026-07-20/` — 6 pairings × 20 seeds × both
+seats, judged on Wilson 95% intervals (`analyze_personalities.py`):
+
+| personality | wins | rate | 95% CI | verdict |
+|---|---|---|---|---|
+| boomer | 62/120 | 0.52 | [0.43, 0.60] | IN BAND |
+| turtle | 55/120 | 0.46 | [0.37, 0.55] | IN BAND |
+| rusher | 52/120 | 0.43 | [0.35, 0.52] | in band on the point, CI touches 0.35 |
+| balanced | 46/120 | 0.38 | [0.30, 0.47] | in band on the point, CI dips to 0.30 |
+
+No head-to-head is a stomp (worst: boomer 24–14 rusher). **Do not tune**:
+every point estimate is inside 0.35–0.65, and the archive's history of
+confident personality re-tunes losing same-seed validation applies with
+force. Watch item only: `balanced` is mildly weakest (loses all three
+matchups 14–21 at worst); revisit after any future combat change.
+2p timeout rate in this battery: 10% (25/240).
+
+### F6 census: the worker-slaughter hypothesis flips
+
+9,956 worker deaths credited by killer type: **archer 39%, warrior 27%,
+spearman 23%, cavalry 11%, watchtower 1%.** Not towers (my F6 guess), not
+primarily cavalry raids — it's the ARMY MAINLINE sweeping worker lines,
+archers first. The §8.12 flee (trigger-on-hit → run/garrison) loses the
+footrace: archers outrange (200) and outrun (60 vs 40) a worker that only
+starts running after the first hit. A real fix is a design decision
+(pre-emptive flee on enemy sighting? garrison at forward dropoffs? danger
+memory on nodes?) — parked for the user, census attached.
+
+### F5 residual: tech uptake barely moved
+
+52–92% uptake after the +75% research-time change (was 57–89%). Time is
+not the binding constraint; the next knob is **gold-denominated cost
+increases**, which couples to army budgets and deserves its own validated
+pass. Not applied.
+
+---
+
 ## Change 6 addendum (2026-07-20, applied + validated)
 
 Implementation (§8.16, `systems/ai/`): `MilitaryBrain.overwhelming()`

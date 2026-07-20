@@ -1,0 +1,308 @@
+{
+ "config": {
+  "seed": 9025,
+  "players": 2,
+  "map": [
+   70,
+   70
+  ],
+  "personalities": {
+   "AI 1": "balanced",
+   "AI 2": "boomer"
+  },
+  "difficulties": {
+   "AI 1": "normal",
+   "AI 2": "normal"
+  },
+  "seconds_cap": 2400.0
+ },
+ "winner_name": null,
+ "winner_personality": null,
+ "completed": false,
+ "sim_seconds": 2400.0,
+ "units_trained": {
+  "AI 2|worker": 23,
+  "AI 1|worker": 96,
+  "AI 2|warrior": 19,
+  "AI 2|spearman": 26,
+  "AI 2|archer": 18,
+  "AI 1|warrior": 48,
+  "AI 1|archer": 24,
+  "AI 1|spearman": 48,
+  "AI 1|ram": 34,
+  "AI 2|ram": 7,
+  "AI 2|healer": 3,
+  "AI 2|cavalry": 41
+ },
+ "buildings_built": {
+  "AI 1|farm": 5,
+  "AI 2|farm": 5,
+  "AI 2|house": 11,
+  "AI 2|lumbermill": 3,
+  "AI 1|barracks": 1,
+  "AI 1|house": 6,
+  "AI 1|lumbermill": 2,
+  "AI 2|barracks": 1,
+  "AI 2|watchtower": 4,
+  "AI 1|blacksmith": 1,
+  "AI 2|blacksmith": 1,
+  "AI 1|watchtower": 5,
+  "AI 1|market": 1,
+  "AI 2|market": 1,
+  "AI 1|siege_workshop": 1,
+  "AI 2|siege_workshop": 1,
+  "AI 2|mine": 10,
+  "AI 1|mine": 2,
+  "AI 2|stable": 1,
+  "AI 2|temple": 1,
+  "AI 2|castle": 1
+ },
+ "damage_dealt": {
+  "AI 2|watchtower": 6063.0,
+  "AI 1|archer": 6245.0,
+  "AI 1|warrior": 3281.0,
+  "AI 2|warrior": 4012.0,
+  "AI 2|archer": 9300.0,
+  "AI 1|spearman": 3695.0,
+  "AI 1|ram": 1637.0,
+  "AI 2|cavalry": 13648.0,
+  "AI 2|spearman": 1123.0,
+  "AI 1|watchtower": 9589.0
+ },
+ "damage_taken": {
+  "AI 1|archer": 2467.0,
+  "AI 2|spearman": 2979.0,
+  "AI 1|warrior": 7925.0,
+  "AI 2|watchtower": 1471.0,
+  "AI 1|spearman": 5970.0,
+  "AI 2|archer": 2610.0,
+  "AI 2|warrior": 3122.0,
+  "AI 1|lumbermill_construction": 2666.0,
+  "AI 1|worker": 4424.0,
+  "AI 1|lumbermill": 1415.0,
+  "AI 1|ram": 5330.0,
+  "AI 2|worker": 836.0,
+  "AI 2|cavalry": 10589.0,
+  "AI 2|mine": 1927.0,
+  "AI 1|mine_construction": 212.0,
+  "AI 2|mine_construction": 913.0,
+  "AI 1|mine": 72.0,
+  "AI 1|watchtower": 2655.0,
+  "AI 1|watchtower_construction": 162.0,
+  "AI 1|farm": 476.0,
+  "AI 1|house": 248.0,
+  "AI 1|castle": 124.0
+ },
+ "kills": {
+  "AI 2|watchtower": 33,
+  "AI 2|warrior": 42,
+  "AI 2|archer": 79,
+  "AI 1|warrior": 15,
+  "AI 1|archer": 25,
+  "AI 1|ram": 4,
+  "AI 1|spearman": 19,
+  "AI 2|spearman": 11,
+  "AI 2|cavalry": 67,
+  "AI 1|watchtower": 21
+ },
+ "units_lost": {
+  "AI 1|archer": 24,
+  "AI 1|warrior": 48,
+  "AI 1|spearman": 48,
+  "AI 1|worker": 91,
+  "AI 2|warrior": 14,
+  "AI 1|ram": 34,
+  "AI 2|cavalry": 18,
+  "AI 2|spearman": 20,
+  "AI 2|worker": 16,
+  "AI 2|archer": 9
+ },
+ "buildings_lost": {
+  "AI 1|lumbermill": 2,
+  "AI 2|watchtower": 2,
+  "AI 2|mine": 7,
+  "AI 1|mine": 1,
+  "AI 1|watchtower": 2,
+  "AI 1|farm": 2,
+  "AI 1|house": 1
+ },
+ "healing": {
+  "AI 2": 12952.7
+ },
+ "worker_killers": {
+  "archer": 28,
+  "warrior": 23,
+  "spearman": 10,
+  "cavalry": 21,
+  "watchtower": 12
+ },
+ "resources_gathered": {
+  "AI 1": 33160,
+  "AI 2": 44474
+ },
+ "goal_chosen": {
+  "AI 2|scout": 374,
+  "AI 2|train_worker": 23,
+  "AI 1|scout": 963,
+  "AI 1|train_worker": 96,
+  "AI 2|build_farm": 5,
+  "AI 1|build_farm": 5,
+  "AI 2|build_lumbermill": 3,
+  "AI 1|build_barracks": 1,
+  "AI 2|build_house": 11,
+  "AI 1|build_house": 6,
+  "AI 1|build_lumbermill": 96,
+  "AI 2|build_barracks": 1,
+  "AI 2|build_watchtower": 4,
+  "AI 2|train_warrior": 19,
+  "AI 1|build_blacksmith": 1,
+  "AI 2|build_blacksmith": 1,
+  "AI 1|build_watchtower": 7,
+  "AI 2|train_spearman": 26,
+  "AI 1|research_improved_tools": 1,
+  "AI 1|research_reinforced_frames": 1,
+  "AI 1|build_market": 1,
+  "AI 2|research_improved_tools": 1,
+  "AI 2|train_archer": 18,
+  "AI 1|train_warrior": 48,
+  "AI 1|market_trade": 144,
+  "AI 1|train_archer": 24,
+  "AI 2|research_reinforced_frames": 1,
+  "AI 1|train_spearman": 48,
+  "AI 2|build_market": 1,
+  "AI 2|control_fountain": 10,
+  "AI 2|market_trade": 16,
+  "AI 2|build_siege_workshop": 1,
+  "AI 2|build_mine": 46,
+  "AI 2|research_fletching": 1,
+  "AI 1|build_siege_workshop": 1,
+  "AI 1|build_mine": 13,
+  "AI 1|research_forged_blades": 1,
+  "AI 2|attack": 3725,
+  "AI 1|train_ram": 34,
+  "AI 2|research_padded_armor": 1,
+  "AI 1|attack": 2888,
+  "AI 2|train_ram": 7,
+  "AI 2|research_forged_blades": 1,
+  "AI 2|build_temple": 1,
+  "AI 2|build_stable": 1,
+  "AI 2|research_siege_engineering": 1,
+  "AI 2|train_healer": 3,
+  "AI 2|train_cavalry": 41,
+  "AI 2|expand_castle": 1,
+  "AI 1|research_fletching": 1,
+  "AI 2|defend_base": 5,
+  "AI 1|defend_base": 237,
+  "AI 1|control_fountain": 26
+ },
+ "goal_top": {
+  "AI 2|train_worker": 23,
+  "AI 1|train_worker": 96,
+  "AI 2|build_farm": 5,
+  "AI 1|build_farm": 5,
+  "AI 2|build_lumbermill": 3,
+  "AI 1|build_barracks": 1,
+  "AI 2|build_house": 754,
+  "AI 1|build_house": 6,
+  "AI 1|build_lumbermill": 98,
+  "AI 2|build_barracks": 1,
+  "AI 2|build_watchtower": 4,
+  "AI 2|train_warrior": 17,
+  "AI 1|build_blacksmith": 1,
+  "AI 2|build_blacksmith": 1,
+  "AI 1|build_watchtower": 7,
+  "AI 2|train_spearman": 24,
+  "AI 1|research_improved_tools": 1,
+  "AI 1|research_reinforced_frames": 1,
+  "AI 1|build_market": 1,
+  "AI 2|research_improved_tools": 1,
+  "AI 2|train_archer": 18,
+  "AI 1|train_warrior": 48,
+  "AI 1|market_trade": 144,
+  "AI 1|train_archer": 24,
+  "AI 2|research_reinforced_frames": 1,
+  "AI 1|train_spearman": 48,
+  "AI 2|build_market": 1,
+  "AI 2|market_trade": 16,
+  "AI 2|build_siege_workshop": 1,
+  "AI 2|build_mine": 57,
+  "AI 2|research_fletching": 1,
+  "AI 1|build_siege_workshop": 1,
+  "AI 1|build_mine": 13,
+  "AI 1|research_forged_blades": 1,
+  "AI 1|train_ram": 34,
+  "AI 2|research_padded_armor": 1,
+  "AI 2|train_ram": 5,
+  "AI 2|research_forged_blades": 1,
+  "AI 2|build_stable": 2,
+  "AI 2|build_temple": 1,
+  "AI 2|research_siege_engineering": 1,
+  "AI 2|train_healer": 3,
+  "AI 2|train_cavalry": 38,
+  "AI 2|expand_castle": 1,
+  "AI 1|research_fletching": 1
+ },
+ "goal_fallthrough": {
+  "AI 2|build_house": 743,
+  "AI 2|build_stable": 1,
+  "AI 2|build_mine": 11,
+  "AI 1|build_lumbermill": 2
+ },
+ "final_upgrades": {
+  "AI 1": [
+   "fletching",
+   "forged_blades",
+   "improved_tools",
+   "reinforced_frames"
+  ],
+  "AI 2": [
+   "fletching",
+   "forged_blades",
+   "improved_tools",
+   "padded_armor",
+   "reinforced_frames",
+   "siege_engineering"
+  ]
+ },
+ "samples": [
+  {
+   "t": 0.1,
+   "players": {
+    "AI 1": {
+     "units": {
+      "worker": 1
+     },
+     "buildings": {
+      "castle": 1
+     },
+     "resources": {
+      "food": 200,
+      "gold": 100,
+      "wood": 200
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    },
+    "AI 2": {
+     "units": {
+      "worker": 1
+     },
+     "buildings": {
+      "castle": 1
+     },
+     "resources": {
+      "food": 200,
+      "gold": 100,
+      "wood": 200
+     },
+     "melee_engaged_dists": [],
+     "ranged_engaged_dists": [],
+     "ram_escort_dists": [],
+     "units_near_fountain": 0
+    }
+   }
+  }
+ ]
+}

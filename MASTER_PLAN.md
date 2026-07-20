@@ -160,15 +160,30 @@ Treat the whole table as a hypothesis.
   halved; difficulty ladder unstuck (normal beats easy decisively). Tests:
   `tests/test_endgame_closeout.py`. Full diff in the report's change-6
   addendum.
-- [ ] **Timeout residue** (8/30, composition changed): all four 4p FFAs
-  (§7 mop-up tails — needs its own FFA close-out design), one 3-way peer
-  stalemate (correct behavior, arguably), and fog-corner remnants the 3x3
-  sweep lattice walks past (seed 3044) — densify/route the sweep by fog
-  coverage next.
-- [ ] **Personality spread**: inconclusive at N=30 (rusher swung
-  0.36→0.50→0.29 across same-seed batteries; ±0.07 per win). Needs a ~3x
-  battery after the sweep/FFA follow-ups — don't tune personalities on
-  this data.
+- [x] **Timeout residue fixed in class** (2026-07-20, commit f365175):
+  sweep 3x3→5x5 fog-routed, dominance vs the WEAKEST enemy (FFA mop-up
+  starts), AttackGoal accepts known enemy foundations (raze-rebuild-in-fog
+  treadmill). v4 same-seed: timeouts 10→8→7, 3p/4p classes now close,
+  **difficulty ladder 5/5 decisive**. Known noise floor: matches are
+  knife-edge nondeterministic ACROSS PROCESSES (id()-keyed tie-breaks;
+  seed 3012 closes at 949s in one process, times out in another) — judge
+  aggregates, never single same-seed runs.
+- [x] **Personality gate: effectively PASSED** (2026-07-20, 240-match
+  battery, 63 min, 0 failures — `tools/personality_battery_2026-07-20/`,
+  Wilson-interval verdicts in the report's final addendum): boomer 0.52 /
+  turtle 0.46 IN BAND; rusher 0.43 / balanced 0.38 in band on the point
+  with CIs touching the lower bound. No head-to-head worse than 24–14.
+  **Do not tune personalities**; watch `balanced` (mildly weakest) after
+  any future combat change.
+- [ ] **F5 residual — techs still a no-brainer** (52–92% uptake after the
+  research-time increase): next knob is gold-denominated tech costs;
+  couples to army budgets, needs its own validated pass.
+- [ ] **F6 answered, fix is a design decision**: worker killers are the
+  army mainline (archer 39%, warrior 27%, spearman 23%, cavalry 11%,
+  towers 1% — census in the report). The §8.12 flee loses the footrace to
+  archers (range 200, speed 60 vs worker 40, trigger only on first hit).
+  Candidate designs for the user: pre-emptive flee on enemy sighting,
+  garrison capacity at forward dropoffs, per-node danger memory.
 - [ ] **Live-play pass**: does the opening still feel like it has choices with
   one fewer resource to manage? That was the point of the change.
 - **✅ Verify:** the report's re-validation gates, plus a human match
@@ -176,10 +191,24 @@ Treat the whole table as a hypothesis.
 
 ---
 
-## 1b. §8.17 — Playtest batch 2026-07-20 *(user-reported, queued for next session)*
+## 1b. §8.17 — Playtest batch 2026-07-20 — **LANDED same day** (commit c40b02f)
 
-Three observations from live play, 2026-07-20. Recon done same-day so the
-next session starts from anchored facts, not a cold search.
+All three items shipped with tests (suite 447 green):
+- **8.17.1** buildings use unit-style glyph rows on the selection header
+  (watchtower full row, armor-only for non-attackers per user decision) —
+  verified on rendered frames.
+- **8.17.2** sites are targets: acquisition scans + towers include enemy
+  foundations, `ctx.enemy_construction_sites` on the blackboard (fog-gated,
+  counted as base threats), target-finder + AttackGoal gate cover them, and
+  site hp is progress-scaled (SITE_BASE_HP 50 → final hp; legacy saves
+  clamp). End-to-end probe: 6/8 spam sites planted at an AI base razed
+  in-sim; the wall function is gone. `tests/test_site_targeting.py`.
+- **8.17.3** resources take `render_scale` (wood 1.6, gold 1.25),
+  dead_tree 2 → 1.7 tiles; before/after lineup screenshots rendered for
+  user sign-off (radii/nav untouched). **Aesthetic review still owed by
+  the user** — the numbers are a first judgment call, not a verdict.
+
+Original recon (kept for context):
 
 ### 8.17.1 Towers: combat stats missing from the command card
 
