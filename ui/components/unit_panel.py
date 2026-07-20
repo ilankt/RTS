@@ -262,10 +262,9 @@ class UnitPanel:
         # Name centered at the top.
         name_color = selected_info["player_color"] if selected_info["owner"] != "Neutral" \
             else (225, 225, 225)
-        name_text = self.name_font.render(selected_info["name"][:18], True, name_color)
-        if name_text.get_width() > ui_width - 8:
-            name_text = pygame.transform.smoothscale(
-                name_text, (ui_width - 8, name_text.get_height()))
+        name_text = self.name_font.render(
+            ui_fonts.fit_text(self.name_font, selected_info["name"], ui_width - 8),
+            True, name_color)
         panel_surface.blit(name_text, (cx - name_text.get_width() // 2, 2))
         sprite_top = 2 + name_text.get_height() + 2
 

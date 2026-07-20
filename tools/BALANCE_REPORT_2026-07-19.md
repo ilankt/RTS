@@ -354,3 +354,69 @@ Same-seed battery: `tools/balance_matrix_2026-07-19_v3/` (**642s wall**,
   0.36 → 0.50 → 0.29 on the same seeds) — at 13–16 appearances, single
   wins move the rate by ±0.07. Judging this gate needs a ~3x bigger
   battery; do that after the sweep/FFA follow-ups.
+
+---
+
+## F5 close-out addendum (2026-07-20, applied + validated)
+
+**Change applied: `improved_tools` I/II/III cost 75w → 100g + 75w** (flat
+across levels per the §8.17 tier-pacing decision). Reached in two same-seed
+iterations after a fresh baseline; datasets:
+`tools/balance_matrix_2026-07-20_head/` (HEAD baseline), `_f5_50g/` (50g
+probe), `_f5_100g/` (100g, kept), with `*_summary.json` for each. *(The
+50g run was briefly written over the committed `_v5` dataset — a name
+collision, restored from e9a1b19 before this commit; always name new
+battery dirs after their experiment, not the next version number.)*
+
+**Why a fresh baseline was required:** the 3-level tech chains (§8.17
+follow-up) landed AFTER the v3 battery, so v3's tech table is level-1-only —
+the tiering itself was an unmeasured F5 change. Measuring HEAD first showed
+it had already done most of F5's work: uptake now falls by level and family
+(fletching 70/57/47, forged 61/43/31, padded 36/23/21, siege 29/20/14) —
+nothing like the old "full tree during a 409s rush". The one no-brainer left
+was improved_tools at **87/86/84** — wood-only, self-financing, bought by
+everyone. So the gold knob narrowed to that family alone; fletching/forged/
+padded/siege costs were deliberately NOT raised (they are genuine decisions
+already, and the report's own gate said revisit costs only where uptake
+stays >80%).
+
+| family (I/II/III %) | baseline | 50g probe | 100g (kept) |
+|---|---|---|---|
+| improved_tools | 87/86/84 | 86/84/79 | **69/56/51** |
+| reinforced_frames | 80/74/69 | 83/77/76 | **86/86/81** ⚠ |
+| fletching | 70/57/47 | 64/56/44 | 67/57/49 |
+| forged_blades | 61/43/31 | 50/40/30 | 59/44/30 |
+| padded_armor | 36/23/21 | 36/24/19 | 27/21/17 |
+| siege_engineering | 29/20/14 | 26/24/20 | 24/17/13 |
+
+- **50g was a no-op** (Δ within noise): the gather-rate tech pays for itself,
+  so half a warrior of gold only delays the buy. 100g — a warrior-plus per
+  level, 300g for the family — makes it compete with army production for
+  real: full-family completion 84% → 51%.
+- **⚠ reinforced_frames is the new top family (86/86/81)** — as the only
+  gold-free tech it absorbs the blocked research spend. This is the
+  *intended consequence* of the stone-removal principle (defense stays
+  gold-free — "every tower an unbuilt warrior"), and it buffs building armor
+  only, which distorts no army composition (see gates). **Watch-item:** if a
+  future battery shows it driving tower-heavy metas, the lever is its
+  research TIME (30/50/80s), never gold — raising its wood is a no-op (wood
+  is non-binding) and gold would break the decided principle.
+- **Gates, all three runs:** late-game ram share 11/11/11% (<15 ✓, via new
+  `tools/army_composition.py`, which reproduces v3's published numbers
+  exactly); no unit type above 27% of armies; timeouts 6/4/5 on the same
+  seeds — the documented cross-process noise floor, not a signal;
+  personality win rates swing inside the ±0.07-per-win N=30 band (turtle
+  0.27/0.40/0.20) — the 240-match Wilson verdict remains the authority.
+
+### F6 re-census (cowardly workers, landed 2026-07-19)
+
+`analyze_balance_matrix.py` now aggregates the `worker_killers` census as a
+standing section (it existed per-match since the personality battery but was
+never rolled up). Worker attrition across the three 2026-07-20 batteries:
+**72% / 74% / 71%** of workers trained died — down from the 90% that
+triggered F6, with workers-trained also down (~1450/battery vs 2258: fewer
+replacement workers needed). Killer mix is unchanged (archer ~34%, warrior
+~31%, spearman ~22%, cavalry ~12%, towers ~1%) — the flee helps against
+everything roughly equally. Further reduction (garrison capacity at forward
+dropoffs, per-node danger memory) is a design decision left open; ~70%
+attrition may simply be greed being punished, which is working as intended.

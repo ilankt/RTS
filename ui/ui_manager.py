@@ -1,5 +1,6 @@
 import pygame
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
+from ui.fonts import fit_text
 
 # Import UI components
 from ui.components.cursor_manager import CursorManager
@@ -91,7 +92,9 @@ class UIManager:
         y = 26
         for text, sim_time in entries:
             minutes, seconds = divmod(int(sim_time), 60)
-            line = self.small_font.render(f"{minutes:02d}:{seconds:02d}  {text}"[:44], True, (220, 220, 220))
+            line = self.small_font.render(
+                fit_text(self.small_font, f"{minutes:02d}:{seconds:02d}  {text}", 324),
+                True, (220, 220, 220))
             panel.blit(line, (8, y))
             y += line_height
         screen.blit(panel, (10, SCREEN_HEIGHT - panel_height - 40))

@@ -170,6 +170,16 @@ def main():
     # ---- healing -----------------------------------------------------------
     total_healing = sum(sum(m.get("healing", {}).values()) for m in matches)
 
+    # ---- worker attrition (F6 census) --------------------------------------
+    worker_killers = {}
+    for m in matches:
+        for killer, n in m.get("worker_killers", {}).items():
+            worker_killers[killer] = worker_killers.get(killer, 0) + n
+    workers_trained = sum(m.get("units_trained", {}).get(k, 0)
+                          for m in matches
+                          for k in m.get("units_trained", {}) if k.endswith("|worker"))
+    worker_deaths = sum(worker_killers.values())
+
     # ---- print -------------------------------------------------------------
     print(f"=== {len(matches)} matches | avg {sum(durations)/max(1,len(durations)):.0f} sim-s "
           f"| timeouts {timeouts} ===\n")
@@ -223,6 +233,12 @@ def main():
 
     print(f"\n-- healer output: {total_healing:.0f} hp healed across the battery --")
 
+    if worker_killers:  # absent in pre-census datasets — 0 would read as "solved"
+        print(f"\n-- worker attrition (F6): {worker_deaths}/{workers_trained} died "
+              f"({worker_deaths / workers_trained:.2f}) --")
+        for killer, n in sorted(worker_killers.items(), key=lambda kv: -kv[1]):
+            print(f"  {killer:14s} {n:5d}  ({n / max(1, worker_deaths):.2f})")
+
     if args.json:
         summary = {
             "matches": len(matches), "timeouts": timeouts,
@@ -232,6 +248,7 @@ def main():
             "never_trained": never_trained, "never_built": never_built,
             "tech_counts": tech_counts, "player_slots": player_slots,
             "total_healing": total_healing,
+            "worker_killers": worker_killers, "workers_trained": workers_trained,
         }
         with open(args.json, "w", encoding="utf-8") as fh:
             json.dump(summary, fh, indent=1)

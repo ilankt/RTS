@@ -42,6 +42,23 @@ def font(size, bold=False):
     return f
 
 
+def fit_text(font_obj, text, max_width):
+    """Measured truncation: `text` unchanged if it fits `max_width` px, else
+    the widest prefix that fits with a trailing ellipsis. §8.2.2: replaces
+    the blind `[:N]` caps, which count characters and so cut too early for
+    narrow glyphs and still overflow for wide ones."""
+    if font_obj.size(text)[0] <= max_width:
+        return text
+    lo, hi = 0, len(text)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if font_obj.size(text[:mid].rstrip() + "…")[0] <= max_width:
+            lo = mid
+        else:
+            hi = mid - 1
+    return text[:lo].rstrip() + "…"
+
+
 # Semantic sizes for the command card + unit panel. Tuned for the real system
 # face (a touch larger than the old default-font literals, which rendered
 # smaller and rougher than their nominal size).

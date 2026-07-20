@@ -195,11 +195,15 @@ class SelectionManager:
         
         # For multi-selection, only allow same-ownership objects
         if allow_multi_select and len(objects) > 1:
-            # Never allow multi-selection of AI/enemy units
+            # Enemies inside the box are ignored, not selection-blocking:
+            # own units take priority, so boxing over a fight still works
+            if human_objects:
+                return human_objects
+            # Never allow multi-selection of AI/enemy units; with only
+            # enemies in the box, fall back to single-select behavior
             if ai_objects:
-                return []
-            # Only return human objects for multi-selection
-            return human_objects + neutral_objects
+                return ai_objects[:1]
+            return neutral_objects
         else:
             # Single selection - allow any object but prioritize human player
             if human_objects:

@@ -1,0 +1,704 @@
+{
+ "matches": 30,
+ "timeouts": 6,
+ "win_rates": {
+  "rusher": [
+   6,
+   14
+  ],
+  "boomer": [
+   5,
+   16
+  ],
+  "turtle": [
+   4,
+   15
+  ],
+  "balanced": [
+   5,
+   13
+  ]
+ },
+ "difficulty_outcomes": [
+  {
+   "seed": 3051,
+   "matchup": {
+    "AI 1": "hard",
+    "AI 2": "easy"
+   },
+   "personalities": {
+    "AI 1": "balanced",
+    "AI 2": "balanced"
+   },
+   "winner_difficulty": "hard",
+   "sim_s": 1001.0
+  },
+  {
+   "seed": 3052,
+   "matchup": {
+    "AI 1": "hard",
+    "AI 2": "normal"
+   },
+   "personalities": {
+    "AI 1": "balanced",
+    "AI 2": "balanced"
+   },
+   "winner_difficulty": "normal",
+   "sim_s": 446.1
+  },
+  {
+   "seed": 3053,
+   "matchup": {
+    "AI 1": "normal",
+    "AI 2": "easy"
+   },
+   "personalities": {
+    "AI 1": "balanced",
+    "AI 2": "balanced"
+   },
+   "winner_difficulty": "normal",
+   "sim_s": 511.3
+  },
+  {
+   "seed": 3054,
+   "matchup": {
+    "AI 1": "hard",
+    "AI 2": "easy"
+   },
+   "personalities": {
+    "AI 1": "rusher",
+    "AI 2": "turtle"
+   },
+   "winner_difficulty": "hard",
+   "sim_s": 345.9
+  },
+  {
+   "seed": 3055,
+   "matchup": {
+    "AI 1": "hard",
+    "AI 2": "hard",
+    "AI 3": "easy",
+    "AI 4": "easy"
+   },
+   "personalities": {
+    "AI 1": "rusher",
+    "AI 2": "boomer",
+    "AI 3": "turtle",
+    "AI 4": "balanced"
+   },
+   "winner_difficulty": null,
+   "sim_s": 2400.0
+  }
+ ],
+ "unit_rows": {
+  "worker": {
+   "trained": 1423,
+   "lost": 1222,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 51750.0,
+   "by_personality": {
+    "boomer": {
+     "trained": 322
+    },
+    "rusher": {
+     "trained": 394
+    },
+    "turtle": {
+     "trained": 374
+    },
+    "balanced": {
+     "trained": 333
+    }
+   },
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 0.14,
+   "ge_cost": 12.5,
+   "dmg_per_1000ge": 0.0
+  },
+  "warrior": {
+   "trained": 1379,
+   "lost": 872,
+   "kills": 1003,
+   "damage_dealt": 127242.0,
+   "damage_taken": 152499.0,
+   "by_personality": {
+    "rusher": {
+     "trained": 474
+    },
+    "boomer": {
+     "trained": 264
+    },
+    "balanced": {
+     "trained": 392
+    },
+    "turtle": {
+     "trained": 249
+    }
+   },
+   "dmg_per_unit": 92.3,
+   "kills_per_unit": 0.73,
+   "kd": 1.15,
+   "survival": 0.37,
+   "ge_cost": 105.0,
+   "dmg_per_1000ge": 878.8
+  },
+  "spearman": {
+   "trained": 1434,
+   "lost": 966,
+   "kills": 668,
+   "damage_dealt": 79587.0,
+   "damage_taken": 124116.0,
+   "by_personality": {
+    "rusher": {
+     "trained": 322
+    },
+    "boomer": {
+     "trained": 393
+    },
+    "balanced": {
+     "trained": 368
+    },
+    "turtle": {
+     "trained": 351
+    }
+   },
+   "dmg_per_unit": 55.5,
+   "kills_per_unit": 0.47,
+   "kd": 0.69,
+   "survival": 0.33,
+   "ge_cost": 77.5,
+   "dmg_per_1000ge": 716.1
+  },
+  "archer": {
+   "trained": 1075,
+   "lost": 620,
+   "kills": 1611,
+   "damage_dealt": 231142.0,
+   "damage_taken": 62291.0,
+   "by_personality": {
+    "boomer": {
+     "trained": 352
+    },
+    "rusher": {
+     "trained": 153
+    },
+    "balanced": {
+     "trained": 231
+    },
+    "turtle": {
+     "trained": 339
+    }
+   },
+   "dmg_per_unit": 215.0,
+   "kills_per_unit": 1.5,
+   "kd": 2.6,
+   "survival": 0.42,
+   "ge_cost": 120.0,
+   "dmg_per_1000ge": 1791.8
+  },
+  "cavalry": {
+   "trained": 372,
+   "lost": 153,
+   "kills": 385,
+   "damage_dealt": 83010.0,
+   "damage_taken": 53015.0,
+   "by_personality": {
+    "rusher": {
+     "trained": 125
+    },
+    "boomer": {
+     "trained": 98
+    },
+    "balanced": {
+     "trained": 109
+    },
+    "turtle": {
+     "trained": 40
+    }
+   },
+   "dmg_per_unit": 223.1,
+   "kills_per_unit": 1.03,
+   "kd": 2.52,
+   "survival": 0.59,
+   "ge_cost": 130.0,
+   "dmg_per_1000ge": 1716.5
+  },
+  "ram": {
+   "trained": 529,
+   "lost": 308,
+   "kills": 108,
+   "damage_dealt": 110258.0,
+   "damage_taken": 50271.0,
+   "by_personality": {
+    "boomer": {
+     "trained": 151
+    },
+    "rusher": {
+     "trained": 99
+    },
+    "turtle": {
+     "trained": 160
+    },
+    "balanced": {
+     "trained": 119
+    }
+   },
+   "dmg_per_unit": 208.4,
+   "kills_per_unit": 0.2,
+   "kd": 0.35,
+   "survival": 0.42,
+   "ge_cost": 140.0,
+   "dmg_per_1000ge": 1488.8
+  },
+  "healer": {
+   "trained": 99,
+   "lost": 32,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 2097.0,
+   "by_personality": {
+    "rusher": {
+     "trained": 14
+    },
+    "boomer": {
+     "trained": 24
+    },
+    "balanced": {
+     "trained": 20
+    },
+    "turtle": {
+     "trained": 41
+    }
+   },
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 0.68,
+   "ge_cost": 125.0,
+   "dmg_per_1000ge": 0.0
+  },
+  "watchtower": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 530,
+   "damage_dealt": 136215.0,
+   "damage_taken": 48472.0,
+   "by_personality": {},
+   "dmg_per_unit": 136215.0,
+   "kills_per_unit": 530.0,
+   "kd": 530.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "mine_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 3472.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "mine": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 14882.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "farm": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 9149.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "house": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 23186.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "siege_workshop": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 7413.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "house_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 1144.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "blacksmith": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 9183.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "castle": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 86614.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "watchtower_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 3792.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "stable": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 4524.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "lumbermill": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 28979.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "barracks": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 8510.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "lumbermill_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 8932.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "market": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 9738.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "temple": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 2343.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "market_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 306.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "siege_workshop_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 346.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "temple_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 38.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "stable_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 40.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "castle_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 160.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "barracks_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 72.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  },
+  "farm_construction": {
+   "trained": 0,
+   "lost": 0,
+   "kills": 0,
+   "damage_dealt": 0.0,
+   "damage_taken": 120.0,
+   "by_personality": {},
+   "dmg_per_unit": 0.0,
+   "kills_per_unit": 0.0,
+   "kd": 0.0,
+   "survival": 1.0,
+   "ge_cost": null,
+   "dmg_per_1000ge": null
+  }
+ },
+ "building_rows": {
+  "farm": {
+   "built": 293,
+   "lost": 83,
+   "damage_dealt": 0.0
+  },
+  "house": {
+   "built": 554,
+   "lost": 102,
+   "damage_dealt": 0.0
+  },
+  "barracks": {
+   "built": 66,
+   "lost": 16,
+   "damage_dealt": 0.0
+  },
+  "blacksmith": {
+   "built": 65,
+   "lost": 24,
+   "damage_dealt": 0.0
+  },
+  "lumbermill": {
+   "built": 196,
+   "lost": 87,
+   "damage_dealt": 0.0
+  },
+  "watchtower": {
+   "built": 160,
+   "lost": 70,
+   "damage_dealt": 136215.0
+  },
+  "market": {
+   "built": 66,
+   "lost": 23,
+   "damage_dealt": 0.0
+  },
+  "stable": {
+   "built": 45,
+   "lost": 11,
+   "damage_dealt": 0.0
+  },
+  "siege_workshop": {
+   "built": 55,
+   "lost": 17,
+   "damage_dealt": 0.0
+  },
+  "temple": {
+   "built": 35,
+   "lost": 5,
+   "damage_dealt": 0.0
+  },
+  "mine": {
+   "built": 102,
+   "lost": 40,
+   "damage_dealt": 0.0
+  },
+  "castle": {
+   "built": 7,
+   "lost": 34,
+   "damage_dealt": 0.0
+  }
+ },
+ "never_trained": [],
+ "never_built": [
+  "gate",
+  "wall",
+  "wooden_wall"
+ ],
+ "tech_counts": {
+  "fletching": 49,
+  "fletching_2": 40,
+  "fletching_3": 33,
+  "forged_blades": 43,
+  "forged_blades_2": 30,
+  "forged_blades_3": 22,
+  "improved_tools": 61,
+  "improved_tools_2": 60,
+  "improved_tools_3": 59,
+  "padded_armor": 25,
+  "reinforced_frames": 56,
+  "reinforced_frames_2": 52,
+  "reinforced_frames_3": 48,
+  "siege_engineering": 20,
+  "siege_engineering_2": 14,
+  "padded_armor_2": 16,
+  "padded_armor_3": 15,
+  "siege_engineering_3": 10
+ },
+ "player_slots": 70,
+ "total_healing": 66012.2,
+ "worker_killers": {
+  "spearman": 222,
+  "warrior": 314,
+  "cavalry": 148,
+  "archer": 334,
+  "watchtower": 7
+ },
+ "workers_trained": 1423
+}

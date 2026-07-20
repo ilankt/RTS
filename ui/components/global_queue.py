@@ -13,6 +13,7 @@ queue too.
 import pygame
 
 from core.config import TOP_BAR_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
+from ui.fonts import fit_text
 
 
 class GlobalQueueStrip:
@@ -100,9 +101,10 @@ class GlobalQueueStrip:
             icon = self._icon(item['kind'], item['key'])
             if icon is not None:
                 row.blit(icon, (3, (self.ROW_H - self.ICON) // 2 - 1))
-            label = item['label'][:16]
-            if item['queued']:
-                label += f" +{item['queued']}"
+            # The +N badge survives truncation — the name gives way, not it
+            suffix = f" +{item['queued']}" if item['queued'] else ""
+            avail = self.ROW_W - (self.ICON + 8) - 4 - self.name_font.size(suffix)[0]
+            label = fit_text(self.name_font, item['label'], avail) + suffix
             text = self.name_font.render(label, True, (235, 235, 235))
             row.blit(text, (self.ICON + 8, 5))
 

@@ -5,6 +5,7 @@
         "icon": "assets/ui/Techs/improved_tools_icon.png",
         "building": "blacksmith",
         "costs": {
+            "gold": 100,
             "wood": 75
         },
         "research_time": 25,
@@ -23,6 +24,7 @@
         "icon": "assets/ui/Techs/improved_tools_icon.png",
         "building": "blacksmith",
         "costs": {
+            "gold": 100,
             "wood": 75
         },
         "research_time": 45,
@@ -42,6 +44,7 @@
         "icon": "assets/ui/Techs/improved_tools_icon.png",
         "building": "blacksmith",
         "costs": {
+            "gold": 100,
             "wood": 75
         },
         "research_time": 70,

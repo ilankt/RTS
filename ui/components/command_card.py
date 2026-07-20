@@ -322,7 +322,7 @@ class CommandCard:
         if building is not None and hasattr(self.game, 'research_manager'):
             research_info = self.game.research_manager.get_research_info(building)
         if research_info:
-            label = f"{research_info['display_name'][:18]} {int(research_info['progress'] * 100)}%"
+            label = f"{research_info['display_name']} {int(research_info['progress'] * 100)}%"
             if research_info.get('queue_length'):
                 label += f" · queue {research_info['queue_length']}"
             return {'progress': research_info['progress'], 'label': label,
@@ -620,7 +620,9 @@ class CommandCard:
             pygame.draw.rect(panel_surface, strip['color'],
                              (bar.x, bar.y, fill_w, bar.height))
             pygame.draw.rect(panel_surface, (110, 110, 110), bar, 1)
-            label = self.cost_font.render(strip['label'], True, (240, 240, 240))
+            label = self.cost_font.render(
+                ui_fonts.fit_text(self.cost_font, strip['label'], bar.width - 6),
+                True, (240, 240, 240))
             panel_surface.blit(label, (bar.centerx - label.get_width() // 2,
                                        bar.centery - label.get_height() // 2))
 

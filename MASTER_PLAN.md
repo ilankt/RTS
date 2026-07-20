@@ -41,8 +41,8 @@ max 23 / 0 teleports). The **200-unit acceptance gate is not met** — see §6.
 
 | Priority | Item | Why now |
 |---|---|---|
-| 1 | **§8.17 playtest batch 2026-07-20** | User-reported from live play; queued for the next session |
-| 2 | **§8.15 balance re-baseline (stone removal)** | Applied + validated 2026-07-19/20; residue: FFA close-out, sweep gaps, bigger personality battery |
+| 1 | **§8.17 playtest batch 2026-07-20** | Landed (incl. follow-ups + selection-box fix); residue: aesthetic sign-off (user) |
+| 2 | **§8.15 balance re-baseline (stone removal)** | Fully validated through F5/F6 close-out 2026-07-20; residue: live-play pass (user) |
 | 3 | **§8.2.2 HUD readability & scale** | The HUD is unreadable at the default 1080p — §8.2's deferred DPI item came due |
 | 4 | **§11 Track D — world, art & atmosphere** | The map is the least-finished-looking part of the game |
 | 5 | §8.12 AI depth candidates | Depth, not defect |
@@ -175,15 +175,25 @@ Treat the whole table as a hypothesis.
   with CIs touching the lower bound. No head-to-head worse than 24–14.
   **Do not tune personalities**; watch `balanced` (mildly weakest) after
   any future combat change.
-- [ ] **F5 residual — techs still a no-brainer** (52–92% uptake after the
-  research-time increase): next knob is gold-denominated tech costs;
-  couples to army budgets, needs its own validated pass.
-- [ ] **F6 answered, fix is a design decision**: worker killers are the
-  army mainline (archer 39%, warrior 27%, spearman 23%, cavalry 11%,
-  towers 1% — census in the report). The §8.12 flee loses the footrace to
-  archers (range 200, speed 60 vs worker 40, trigger only on first hit).
-  Candidate designs for the user: pre-emptive flee on enemy sighting,
-  garrison capacity at forward dropoffs, per-node danger memory.
+- [x] **F5 residual closed** (2026-07-20, three same-seed batteries —
+  full table in the report's F5 close-out addendum): a fresh HEAD baseline
+  showed the §8.17 3-level chains had already made 5 of 6 families genuine
+  decisions (uptake falls by level; padded/siege at 36→17%); the one
+  remaining no-brainer, wood-only `improved_tools` (87/86/84%), got
+  **100g + 75w per level** (50g probed first — a no-op, the tech
+  self-finances) → **69/56/51%**. Composition/timeout/personality gates
+  held throughout. ⚠ Watch-item: `reinforced_frames` (86/86/81%) is now
+  the top family — the gold-free defense lane absorbing blocked spend, as
+  the stone-removal principle intends; if it ever drives tower metas the
+  lever is its research TIME, never gold.
+- [x] **F6 closed with census** (2026-07-20): the user-picked pre-emptive
+  flee landed as **cowardly workers** (§1b follow-up batch); the census is
+  now a standing section of `analyze_balance_matrix.py` (worker_killers
+  was recorded per match but never aggregated). Attrition **90% → 72/74/71%**
+  across three batteries, workers-trained down ~35% (fewer replacements
+  needed); killer mix unchanged (archer ~34%, towers ~1%). Further
+  reduction (garrison at forward dropoffs, per-node danger memory) is
+  optional future design — ~70% may just be greed punished, as intended.
 - [ ] **Live-play pass**: does the opening still feel like it has choices with
   one fewer resource to manage? That was the point of the change.
 - **✅ Verify:** the report's re-validation gates, plus a human match
@@ -225,6 +235,12 @@ All three items shipped with tests (suite 447 green):
   stacking at exactly +1). `tests/test_tiered_techs.py`.
 - [x] **Resource pick/collision radius** 16 → 22.4 plus a 1.5× click pad —
   trees/gold easier to hit; visual sizes unchanged per user sign-off.
+- [x] **Selection box over a fight** (user-reported 2026-07-20): drag-select
+  returned NOTHING when any enemy stood inside the rect
+  (`_filter_selectable_objects` bailed with `[]` if `ai_objects` was
+  non-empty — so you couldn't box your own units mid-fight). Enemies in the
+  box are now ignored: own units win; an enemy-only box falls back to
+  single visual select, matching click behavior. `tests/test_selection_box.py`.
 - [ ] **Aesthetic sign-off outstanding**: world-scale numbers accepted
   "for now" — revisit only on user request.
 
@@ -435,8 +451,14 @@ decides what to spend it on** (a bigger, more legible icon — not more small te
   the icon to `TILE_ICON_LARGE` (44 from 28); the tooltip carries the name. Action tiles
   (stop/stance/formation/gate/market/cancel) keep the small icon + label, since they
   have no cost and the label *is* their content. Hotkey/queue badges + state colors kept.
-- [ ] **Audit the sibling blind truncations** — same class of bug:
-  `unit_panel.py:159` `[:30]`, `:171` `[:16]`, `ui_manager.py:94` `[:44]`.
+- [x] **Audit the sibling blind truncations** — *landed 2026-07-20.* Measured
+  `fit_text` (ellipsis within a pixel width, `ui/fonts.py`) replaced the four
+  blind caps that had survived: event log `[:44]` (ui_manager), selection-header
+  name `[:18]` (+ its distorting smoothscale squish, unit_panel), global-queue
+  label `[:16]` (the `+N` badge now survives truncation instead of the name
+  pushing it off), and the research strip `[:18]` (now fits at draw time where
+  the bar width is known). Deliberate abbreviations (hotkey `[:1]`, swap-key
+  `[:3]`, icon fallback `[:4]`, counters `[:2]`) left alone. `tests/test_fit_text.py`.
 - [x] **Shared font module** (`ui/fonts.py`) — *landed 2026-07-17, partial.* One place
   that resolves a clean **system face** (Segoe UI / Arial / DejaVu, default fallback)
   at semantic sizes (`title`/`body`/`label`/`cost`/`badge`/`bar_text`) — the old
