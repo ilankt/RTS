@@ -47,6 +47,10 @@ class ResearchManager:
             return False, f"Requires {tech.get('building', 'research building')}"
         if not has_required_buildings(self.game, player, tech.get("requires", [])):
             return False, "Missing prerequisite"
+        # §8.17 upgrades follow-up: tiered techs chain on the previous level
+        for required_tech in tech.get("requires_tech", []):
+            if not is_tech_completed(player, required_tech):
+                return False, "Missing prerequisite"
         costs = tech.get("costs", {})
         for resource, amount in costs.items():
             if player.resources.get(resource, 0) < amount:
@@ -67,13 +71,25 @@ class ResearchManager:
         }
 
     def available_for_building(self, building):
+        """Techs this building can show. §8.17 upgrades follow-up (user):
+        each tiered family shows only its NEXT level — completed levels and
+        not-yet-unlocked higher levels are hidden entirely, so a finished
+        family's button disappears from the card. Building-gated locks
+        (e.g. siege tech before the workshop) still show with their reason."""
         if not building or not getattr(building, "player", None):
             return []
+        player = building.player
         techs = []
         for tech in self.game.game_data.get("techs", {}).values():
-            if tech.get("building") == building.name:
-                ok, reason = self.research_status(building.player, tech["id"], building=building)
-                techs.append((tech, ok, reason))
+            if tech.get("building") != building.name:
+                continue
+            if is_tech_completed(player, tech["id"]):
+                continue  # done — the button disappears
+            if any(not is_tech_completed(player, req)
+                   for req in tech.get("requires_tech", [])):
+                continue  # a higher level; hidden until its turn
+            ok, reason = self.research_status(player, tech["id"], building=building)
+            techs.append((tech, ok, reason))
         return techs
 
     def update(self, delta_time: float):

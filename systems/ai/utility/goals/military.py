@@ -425,11 +425,23 @@ class TrainRamGoal(Goal):
 class ResearchTechGoal(Goal):
     name = "research_tech"
     category = "military"
-    tech_id = "<unset>"
+    tech_id = "<unset>"   # the family's level-1 id; levels chain as _2/_3
     base_score = 45
+    # §8.17 upgrades follow-up: techs come in 3 chained levels. The goal
+    # always pursues the family's next unresearched level.
+    CHAIN_SUFFIXES = ("", "_2", "_3")
+
+    def _next_tech_id(self, ctx):
+        upgrades = getattr(ctx.player, "upgrades", {}) or {}
+        for suffix in self.CHAIN_SUFFIXES:
+            tech_id = self.tech_id + suffix
+            if tech_id not in upgrades:
+                return tech_id
+        return None
 
     def score(self, ctx):
-        if not ctx.can_research(self.tech_id):
+        tech_id = self._next_tech_id(ctx)
+        if tech_id is None or not ctx.can_research(tech_id):
             return 0
         building = ctx.find_idle_research_building("blacksmith")
         if not building:
@@ -440,8 +452,11 @@ class ResearchTechGoal(Goal):
         return self.base_score
 
     def execute(self, ctx):
+        tech_id = self._next_tech_id(ctx)
+        if tech_id is None:
+            return False
         building = ctx.find_idle_research_building("blacksmith")
-        return queue_research(ctx, building, self.tech_id)
+        return queue_research(ctx, building, tech_id)
 
 
 class ResearchImprovedToolsGoal(ResearchTechGoal):

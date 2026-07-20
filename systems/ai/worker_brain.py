@@ -144,6 +144,11 @@ class WorkerBrain:
         best = None
         best_dist = float("inf")
         for site in ctx.construction_sites:
+            # §8.17 follow-up (user-observed: a worker walked blind into a
+            # battle to build a mine): a site inside a live threat zone gets
+            # no builder until the fight clears — DefendBase owns clearing it.
+            if ctx.threat_at(site.x, site.y) > 0:
+                continue
             # Check if no worker is assigned or the assigned worker is dead/gone
             builder = site.builder
             has_builder = bool(
@@ -171,6 +176,10 @@ class WorkerBrain:
             # §8.11: skip nodes this worker just failed to slot into —
             # re-picking the same crowded node thrashed FAILED→FAILED
             and not (worker_tasks and worker_tasks.recently_failed(worker, resource, "gather"))
+            # §8.17 follow-up (user): never assign a gather INTO a fight —
+            # the flee system kept rescuing workers this picker sent back to
+            # the same contested node (the death loop behind F6's 90%).
+            and ctx.threat_at(resource.x, resource.y) <= 0
         ]
         if not candidates:
             return None

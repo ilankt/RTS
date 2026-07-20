@@ -16,12 +16,17 @@ def _completed_effects(player):
             yield value.get("effects", {})
 
 
-def _named_value(table: dict, object_name: str, stat: str, default):
-    value = default
+def _named_value(table: dict, object_name: str, stat: str, value, multiply: bool):
+    """Fold a tech's stat table into a running multiplier/bonus.
+
+    The mode is explicit — the old sentinel dispatch (`default == 1.0` meant
+    multiply) broke the moment a running BONUS totalled exactly 1: the next
+    tiered armor level multiplied 1x1 instead of adding (+1 +1 read as +1).
+    Latent until §8.17's 3-level techs made additive stacking real."""
     for key in ("all", object_name):
         stats = table.get(key, {})
         if stat in stats:
-            if default == 1.0:
+            if multiply:
                 value *= stats[stat]
             else:
                 value += stats[stat]
@@ -58,8 +63,8 @@ def _stat_mods(player, kind: str, name: str, stat: str):
     multiplier = 1.0
     bonus = 0
     for effects in _completed_effects(player):
-        multiplier = _named_value(effects.get(f"{kind}_stat_multipliers", {}), name, stat, multiplier)
-        bonus = _named_value(effects.get(f"{kind}_stat_bonuses", {}), name, stat, bonus)
+        multiplier = _named_value(effects.get(f"{kind}_stat_multipliers", {}), name, stat, multiplier, multiply=True)
+        bonus = _named_value(effects.get(f"{kind}_stat_bonuses", {}), name, stat, bonus, multiply=False)
     if cache is not None:
         cache[key] = (multiplier, bonus)
     return multiplier, bonus

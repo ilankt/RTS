@@ -208,6 +208,26 @@ All three items shipped with tests (suite 447 green):
   user sign-off (radii/nav untouched). **Aesthetic review still owed by
   the user** — the numbers are a first judgment call, not a verdict.
 
+**Follow-up batch (2026-07-20, user direction after reading the report):**
+- [x] **Cowardly workers**: AI workers flee on SIGHTING enemy military
+  (260px scan, throttled), not just after the first hit; gather picks,
+  builder assignment, and drop-off planning all skip threatened ground
+  (`ctx.threat_at`) — closes the death loop behind F6's 90% attrition and
+  the user-observed "worker walks into a battle to build a mine".
+  `tests/test_worker_cowardice.py`.
+- [x] **3-level upgrades**: every blacksmith tech is a 3-level chain
+  (level 1 keeps its old id — old saves load unchanged); `requires_tech`
+  gating in research_manager; the card shows only the family's NEXT level
+  and a finished family's button disappears; AI research goals pursue the
+  next level. Pacing per user: durations escalate per level (25→95s),
+  costs stay flat. Found+fixed a latent stacking bug in
+  `upgrade_effects._named_value` (sentinel dispatch broke additive armor
+  stacking at exactly +1). `tests/test_tiered_techs.py`.
+- [x] **Resource pick/collision radius** 16 → 22.4 plus a 1.5× click pad —
+  trees/gold easier to hit; visual sizes unchanged per user sign-off.
+- [ ] **Aesthetic sign-off outstanding**: world-scale numbers accepted
+  "for now" — revisit only on user request.
+
 Original recon (kept for context):
 
 ### 8.17.1 Towers: combat stats missing from the command card

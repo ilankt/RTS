@@ -206,24 +206,47 @@ class WorkerTaskSystem:
     # long a fleeing worker ignores further triggers (frames).
     FLEE_TRIGGER_FRAMES = 45
     FLEE_COOLDOWN_FRAMES = 300
+    # §8.17 follow-up (user: "make them more cowards"): workers also flee on
+    # SIGHTING enemy military, not just after the first hit — the F6 census
+    # showed the mainline (archers first) farming workers who only start
+    # running once shot, a footrace a 40-speed worker cannot win against a
+    # 60-speed range-200 archer. Scans are throttled per worker.
+    DANGER_SIGHT_RADIUS = 260.0
+    DANGER_SCAN_FRAMES = 30
 
     def _flee_from_attackers(self) -> None:
-        """§8.12: AI workers under attack run to their base instead of
-        gathering while being murdered (raids get counterplay). Human
-        workers stay under player control."""
+        """§8.12 + §8.17: AI workers flee when hit OR when enemy military is
+        sighted nearby, running to shelter instead of gathering while being
+        murdered. Human workers stay under player control."""
         frame = getattr(self.game, "frame_counter", 0)
         for worker in self.game.units:
             if worker.name != "worker" or worker.hp <= 0:
-                continue
-            if getattr(worker, "_last_damage_frame", -1) < frame - self.FLEE_TRIGGER_FRAMES:
                 continue
             if getattr(worker.player, "human", False):
                 continue
             if getattr(worker, "_fleeing_until", 0) > frame:
                 continue
-            attacker = getattr(worker, "last_attacker", None)
-            if attacker is None or getattr(attacker, "hp", 0) <= 0:
-                continue
+
+            threat = None
+            if getattr(worker, "_last_damage_frame", -1) >= frame - self.FLEE_TRIGGER_FRAMES:
+                attacker = getattr(worker, "last_attacker", None)
+                if attacker is not None and getattr(attacker, "hp", 0) > 0:
+                    threat = attacker
+            if threat is None:
+                if frame < getattr(worker, "_next_danger_scan_frame", 0):
+                    continue
+                worker._next_danger_scan_frame = frame + self.DANGER_SCAN_FRAMES + (id(worker) % 8)
+                for other in self.game.collision_system.query_nearby_units(
+                        worker.x, worker.y, self.DANGER_SIGHT_RADIUS, exclude=worker):
+                    if (other.player is not worker.player and other.hp > 0
+                            and getattr(other, "can_attack_flag", False)
+                            # rams can't hit units — not a reason to drop tools
+                            and not getattr(other, "building_only_attack", False)):
+                        threat = other
+                        break
+                if threat is None:
+                    continue
+            attacker = threat
             worker._fleeing_until = frame + self.FLEE_COOLDOWN_FRAMES
             # §8.9: shelter INSIDE the castle/tower when there's room —
             # actual safety instead of loitering next to the walls

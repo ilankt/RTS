@@ -166,6 +166,11 @@ def ranked_resources_for_dropoff(ctx, building_type: str, limit: int = 3) -> lis
     cluster_counts = _cluster_counts(ctx, resource_type, resources)
     scored = []
     for resource in resources:
+        # §8.17 follow-up (user-observed): don't plan a drop-off on a
+        # contested cluster — the assigned builder walks straight into the
+        # fight. The cluster comes back into play when the threat clears.
+        if ctx.threat_at(resource.x, resource.y) > 0:
+            continue
         _, nearest_dist = find_nearest_dropoff_ctx(
             ctx, resource_type, (resource.x, resource.y), include_pending=True
         )

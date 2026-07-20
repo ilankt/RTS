@@ -80,8 +80,12 @@ class SelectionManager:
             # Use different tolerance for units vs. buildings
             if obj in self.game.units:
                 click_radius = obj.radius * self.game.camera.zoom * 2.0  # 100% larger hitbox for units
+            elif obj in self.game.resources:
+                # §8.17.3 follow-up (user): resources were hard to pinpoint —
+                # pad the pick circle; the sprite is far wider than the radius
+                click_radius = obj.radius * self.game.camera.zoom * 1.5
             else:
-                click_radius = obj.radius * self.game.camera.zoom * 1.0  # Normal hitbox for buildings/resources
+                click_radius = obj.radius * self.game.camera.zoom * 1.0  # Normal hitbox for buildings
 
             if distance <= click_radius:
                 clicked_object = obj

@@ -93,8 +93,11 @@ def load_game_data():
         )
 
     for r in resources_data:
-        # Resources have a fixed size of [1,1] in the current Resource class, so radius will be TILE_WIDTH / 4 (reduced for better pathfinding)
-        radius = TILE_WIDTH / 4
+        # Resources are [1,1]; radius 16 → 22.4 (§8.17.3 follow-up, user):
+        # trees/gold were hard to pinpoint with the mouse — the click test is
+        # radius-based — and the fatter footprint also reads better against
+        # the 1.6x sprites. Nav/gather distances derive from this radius.
+        radius = TILE_WIDTH * 0.35
         # render_scale (§8.17.3) is consumed by the rendering system's scale
         # table, not the entity — strip presentation keys before the splat
         fields = {k: v for k, v in r.items() if k != 'render_scale'}
