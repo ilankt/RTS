@@ -191,35 +191,47 @@ get the same treatment. Combat buildings should render the same glyph row.
 - Where: `ui/components/command_card.py` — the building selection path skips
   the unit-stat glyph header; glyphs come from `icon_loader` (`GLYPH_NAMES`:
   attack/armor/range/speed exist already, nothing new to draw).
-- Watch: castle has no attack; farm/house have armor only — decide whether
-  non-attacking buildings show a reduced row (armor glyph alone) or none.
+- **Decided (user, 2026-07-20): non-attacking buildings show an armor-only
+  row.** Attacking buildings (watchtower) get the full unit-style row.
   Data source is the same template fields units use (`can_attack`,
   `min_damage`/`max_damage`, `attack_range`, `attack_speed`, `armor_*`).
 
-### 8.17.2 Construction sites read as "0 hp" (and die too easily?)
+### 8.17.2 Foundation-spam is unanswerable: nothing ever attacks enemy construction sites
 
-User: *"Build sites can be destroyed. Even ones with 0hp. Maybe set them as
-1hp? not sure."*
+**The exploit (user-clarified 2026-07-20):** construction sites become nav
+blockers the moment they're placed (`notify_blocker_added`), and you can
+spam cheap foundations (house 50w, farm 75w) to wall off chokes or an
+enemy's base — **and the enemy can't do anything about it**:
 
-Recon: `entities/construction_site.py` hardcodes **hp=100 flat** for every
-site regardless of building or progress, and nothing scales it while
-building (`systems/building_system.py` only reads the final hp at
-completion). So a castle site shows **100/5000 on its health bar ≈ an
-empty bar** — that's the "0 hp" sighting — and razing ANY foundation takes
-100 damage (~4 s of one warrior), whether it's a farm at 0 % or a castle at
-95 %.
+- All three combat acquisition scans pass `include_construction_sites=False`
+  (`systems/combat_system.py:61` idle units, `:143` moving units, `:480`
+  towers) — units NEVER auto-attack an enemy foundation; only a manual
+  right-click does (`is_valid_attack_target` allows it, nothing scans it).
+- The AI is fully blind: `ctx.construction_sites` collects only the
+  player's OWN sites (`systems/ai/utility/context.py:130`); enemy sites
+  appear nowhere in the blackboard, so no goal, raid, or target-finder can
+  ever select one.
 
-Candidate fix (decide next session): the AoE-style model — site hp **grows
-with construction progress** (e.g. `10 % + 90 % × progress` of the final
-building's hp), so fresh foundations stay cheap to deny but a nearly-done
-castle is a real object; health bar denominator = the same moving max, so
-the bar reads honestly. The flat-100 constant dates from when sites weren't
-attackable at all (armor fields were added later — see the crash comment in
-the file). Sites are deliberately soft (`armor light/0`) — keep that.
-- Touches: construction_site hp init + a max-hp notion, building_system
-  progress tick, health-bar rendering, AI raid targeting (site hp feeds
-  threat/target scoring), save/load (site hp persists — v5 loads must not
-  break), `tests/test_phase*` site expectations.
+**Fix (next session): sites are targets like anything else.**
+1. Acquisition scans include enemy construction sites (flip the flag at the
+   three call sites; watch scan cost — sites are in the static index).
+2. Blackboard gains `ctx.enemy_construction_sites` (fog-explored, like
+   enemy buildings); `military_brain._find_attack_target` and raid targeting
+   treat them as low-value razeable targets; DefendBase should clear
+   foundations planted inside the defense radius.
+3. Battlefield-awareness (§8.12 move-engagement) should include sites so a
+   marching army razes a spam-wall in its path instead of pathing around it.
+
+**Related (kept from recon, now secondary):** every site is a flat
+hardcoded **100 hp** regardless of building/progress
+(`entities/construction_site.py` — nothing scales it in building_system),
+which (a) renders as an empty health bar on big buildings (castle site =
+100/5000 — the original "0 hp" sighting) and (b) prices all denial equally.
+Once sites are attackable, consider progress-scaled hp
+(`~10% + 90% × progress` of final hp) with the health-bar max following,
+so spam-foundations die to one hit-squad pass but a 95% castle is a real
+object. Touches: site hp init/max, building_system tick, health bar, AI
+target scoring, save v5 site hp, `tests/test_phase*`.
 
 ### 8.17.3 World scale pass: trees are unit-sized (the "ridiculous Dead Tree")
 
