@@ -226,13 +226,21 @@ class UnitPanel:
 
         # Building or resource
         hp = (obj.hp, self._get_object_max_hp(obj), None) if hasattr(obj, 'hp') else None
-        if stype == "Building" and getattr(obj, 'can_attack', False):
-            lines.append((
-                f"DMG {obj.get_effective_min_damage()}-{obj.get_effective_max_damage()}"
-                f" {obj.attack_type.title()}  RNG {int(obj.get_effective_attack_range())}",
-                (255, 200, 100)))
-            lines.append((f"ARM {obj.get_effective_armor_value()} {obj.armor_type.title()}"
-                          f"  SPD {obj.attack_speed:.1f}/s", (200, 200, 200)))
+        if stype == "Building":
+            # §8.17.1 (user decision 2026-07-20): buildings read like units —
+            # the same glyph rows, not the old "DMG 14-18 Pierce" label soup.
+            # Combat buildings (watchtower) get the full row set; everything
+            # else shows the armor-only row.
+            if getattr(obj, 'can_attack', False):
+                lines.append([
+                    ('attack',
+                     f"{obj.get_effective_min_damage()}-{obj.get_effective_max_damage()}",
+                     (255, 210, 130))])
+                lines.append([('speed', f"{obj.attack_speed:.1f}/s", (200, 210, 235))])
+                lines.append([('armor', str(obj.get_effective_armor_value()), (225, 205, 160))])
+                lines.append([('range', str(int(obj.get_effective_attack_range())), (170, 215, 160))])
+            elif hasattr(obj, 'armor_value'):
+                lines.append([('armor', str(obj.get_effective_armor_value()), (225, 205, 160))])
         if stype == "Resource":
             lines.append((f"Remaining: {int(obj.amount_remaining)}", (100, 255, 100)))
         return ('building' if stype == "Building" else None), hp, lines
@@ -265,7 +273,10 @@ class UnitPanel:
         # with the stat column to its right; everything else keeps the
         # centered portrait with lines underneath.
         avail = self.HEADER_HEIGHT - sprite_top - 2
-        side_layout = stype == "Unit"
+        # §8.17.1: buildings with stat rows use the unit layout (portrait
+        # left, glyph column right) — the below-sprite layout caps at 3
+        # lines and a watchtower carries 4.
+        side_layout = stype == "Unit" or (stype == "Building" and bool(lines))
         if side_layout:
             sprite = max(48, min(68, avail - 4))
         else:

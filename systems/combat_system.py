@@ -139,8 +139,11 @@ class CombatSystem:
                 if distance <= search_range and is_valid_attack_target(unit, other_unit):
                     potential_targets.append((other_unit, distance))
 
+        # §8.17.2: construction sites ARE acquirable — they block navigation
+        # from placement, and excluding them made foundation-spam walls
+        # unanswerable (nothing ever attacked them without a manual order).
         for building in [] if units_only else collision.query_nearby_static(
-            unit.x, unit.y, search_range, include_construction_sites=False, include_resources=False
+            unit.x, unit.y, search_range, include_construction_sites=True, include_resources=False
         ):
             if building.player != unit.player and building.hp > 0:
                 distance = unit.get_distance_to(building)
@@ -472,12 +475,13 @@ class CombatSystem:
                                 if dist_sq <= reach * reach:
                                     potential_targets.append((unit, dist_sq))
 
-                        # Check enemy buildings
+                        # Check enemy buildings (§8.17.2: incl. construction
+                        # sites — a tower denies forward-building in range)
                         for other_building in collision.query_nearby_static(
                             building.x,
                             building.y,
                             attack_range + 96,
-                            include_construction_sites=False,
+                            include_construction_sites=True,
                             include_resources=False,
                         ):
                             if other_building.player != building.player and other_building.hp > 0:

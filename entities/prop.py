@@ -15,8 +15,9 @@ PROP_SPRITE_DIR = os.path.join("assets", "sprites", "Props")
 PROP_TYPES = {
     # small blocking outcrop scattered on open ground — tactical texture
     "rocks": {"file": "Rocks.png", "blocks": True, "radius": 30, "tiles": 2},
-    # non-blocking swamp atmosphere
-    "dead_tree": {"file": "DeadTree.png", "blocks": False, "radius": 26, "tiles": 2},
+    # non-blocking swamp atmosphere. tiles 2 -> 1.7 (§8.17.3): at 2 tiles it
+    # dwarfed live trees and even houses; non-blocking, so purely visual.
+    "dead_tree": {"file": "DeadTree.png", "blocks": False, "radius": 26, "tiles": 1.7},
     # rare blocking landmark
     "ruins": {"file": "Ruins.png", "blocks": True, "radius": 55, "tiles": 3},
 }

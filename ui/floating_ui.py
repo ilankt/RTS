@@ -94,7 +94,10 @@ class FloatingUI:
         if hasattr(obj, 'hp') and obj.hp > 0:
             # For buildings, get max HP from building data
             if hasattr(obj, 'building_name'):  # Construction site
-                max_hp = obj.building_data.get('hp', 100)
+                # §8.17.2: sites carry a progress-scaled max — dividing by
+                # the FINAL building hp made a fresh castle site render
+                # 100/5000, an empty-looking bar (the "0 hp" sighting)
+                max_hp = getattr(obj, 'max_hp', None) or obj.building_data.get('hp', 100)
                 current_hp = obj.hp
             else:
                 # For units and completed buildings, find max HP from data

@@ -2,10 +2,12 @@
 [
     {
         "name": "gold",
-        "sprite": "assets/sprites/Resources/GOLD_DEPOSIT.png"
+        "sprite": "assets/sprites/Resources/GOLD_DEPOSIT.png",
+        "render_scale": 1.25
     },
     {
         "name": "wood",
-        "sprite": "assets/sprites/Resources/TREE.png"
+        "sprite": "assets/sprites/Resources/TREE.png",
+        "render_scale": 1.6
     }
 ]

@@ -58,6 +58,7 @@ class GoalContext:
     # --- Blackboard (single world scan per tick) ---
     enemy_units: list = field(default_factory=list)
     enemy_buildings: list = field(default_factory=list)
+    enemy_construction_sites: list = field(default_factory=list)  # §8.17.2
     enemies_near_base: list = field(default_factory=list)
     castle_under_attack: bool = False  # §8.11: castle hit in the last ~3s
     fountains: list = field(default_factory=list)  # §8.9: explored fountains
@@ -131,6 +132,12 @@ class GoalContext:
             if site.player is player:
                 ctx.construction_sites.append(site)
                 ctx.site_types.add(site.building_name)
+            elif getattr(site, "hp", 0) > 0:
+                # §8.17.2: enemy foundations are visible world objects and
+                # legal targets — without this the AI was blind to
+                # foundation-spam walls (sites block nav from placement).
+                if not fog_on or fog.is_explored(player, site.x, site.y):
+                    ctx.enemy_construction_sites.append(site)
 
         # §8.9 garrisoned units are out of game.units but still take pop
         for group in ctx.buildings.values():
@@ -150,6 +157,12 @@ class GoalContext:
             ] + [
                 e
                 for e in ctx.enemy_buildings
+                if (e.x - cx) ** 2 + (e.y - cy) ** 2 <= radius_sq
+            ] + [
+                # §8.17.2: a foundation planted inside the defense radius is
+                # an attack in progress — defense clears it like anything else
+                e
+                for e in ctx.enemy_construction_sites
                 if (e.x - cx) ** 2 + (e.y - cy) ** 2 <= radius_sq
             ]
             # §8.11 emergency defense: the castle took a hit within the last

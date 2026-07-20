@@ -95,6 +95,9 @@ def load_game_data():
     for r in resources_data:
         # Resources have a fixed size of [1,1] in the current Resource class, so radius will be TILE_WIDTH / 4 (reduced for better pathfinding)
         radius = TILE_WIDTH / 4
-        game_data["resources"][r['name']] = Resource(x=0, y=0, radius=radius, **r)
+        # render_scale (§8.17.3) is consumed by the rendering system's scale
+        # table, not the entity — strip presentation keys before the splat
+        fields = {k: v for k, v in r.items() if k != 'render_scale'}
+        game_data["resources"][r['name']] = Resource(x=0, y=0, radius=radius, **fields)
 
     return game_data

@@ -726,6 +726,11 @@ class SaveManager:
             site.hp = cdata["hp"]
             site.construction_progress = cdata.get("construction_progress", 0)
             site.construction_duration = cdata.get("construction_duration", template.build_duration)
+            # §8.17.2 progress-scaled site hp: recompute the max from the
+            # restored progress; hp from pre-scaling saves (flat 100) clamps
+            # into the new range instead of exceeding a fresh site's max.
+            site.max_hp = site.scaled_max_hp()
+            site.hp = max(1, min(site.hp, site.max_hp))
             game.construction_sites.append(site)
             restored_sites.append(site)
 

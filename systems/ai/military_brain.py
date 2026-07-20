@@ -1094,6 +1094,12 @@ class MilitaryBrain:
         if ctx.enemy_buildings:
             return min(ctx.enemy_buildings, key=score)
 
+        # §8.17.2: then enemy foundations — a base reduced to construction
+        # sites (or a foundation-spam wall) is still standing enemy presence
+        sites = [s for s in getattr(ctx, "enemy_construction_sites", ()) if s.hp > 0]
+        if sites:
+            return min(sites, key=score)
+
         # Then nearest enemy unit
         if ctx.enemy_units:
             return min(ctx.enemy_units, key=score)

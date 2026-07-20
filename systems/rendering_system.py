@@ -43,6 +43,15 @@ class RenderingSystem:
                     if scale:
                         self._render_scales[building['name']] = float(scale)
                         self._render_scales[f"{building['name']}_construction"] = float(scale)
+            # §8.17.3 world-scale pass: resources take render_scale too —
+            # trees drew at unit size (1 tile) and the world read toy-like.
+            # Visual only: gather/collision radii and nav are untouched, and
+            # the fog-ghost path shares this table so ghosts stay consistent.
+            with open('data/resources.json') as f:
+                for resource in json.load(f):
+                    scale = resource.get('render_scale')
+                    if scale:
+                        self._render_scales[resource['name']] = float(scale)
         except (OSError, ValueError):
             pass
 
