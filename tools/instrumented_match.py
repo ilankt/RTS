@@ -239,6 +239,7 @@ def main():
         "units_lost": flat(game.stats_units_lost),
         "buildings_lost": flat(game.stats_buildings_lost),
         "healing": {k: round(v, 1) for k, v in game.stats_healing.items()},
+        "worker_killers": dict(getattr(game, "stats_worker_killers", {})),
         "resources_gathered": dict(game.stats_resources_gathered),
         "goal_chosen": flat(goal_chosen),
         "goal_top": flat(goal_top),

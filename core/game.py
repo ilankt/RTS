@@ -182,6 +182,7 @@ class Game:
         self.stats_units_lost = {}
         self.stats_buildings_lost = {}
         self.stats_healing = {}         # {player_name: hp restored by healers}
+        self.stats_worker_killers = {}  # {killer unit/building type: worker kills}
         self.sim_time_elapsed = 0.0   # game-time seconds since match start
         # Income-rate HUD (§8.3): human player's recent income events,
         # {resource: [(sim_time, amount), ...]} pruned as it's read
@@ -1329,6 +1330,7 @@ class Game:
         self.stats_units_lost = {}
         self.stats_buildings_lost = {}
         self.stats_healing = {}
+        self.stats_worker_killers = {}
 
         # Reset players resources
         for player in self.players:

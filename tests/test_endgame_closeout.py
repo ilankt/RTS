@@ -69,8 +69,16 @@ def test_overwhelming_true_vs_remnants_false_vs_army(game):
         # A comparable visible enemy force cancels dominance. (Set on the
         # snapshot directly — fog visibility grids only refresh on frame
         # ticks, which these fixture games never run.)
-        ctx.enemy_units = [SimpleNamespace(name="warrior") for _ in range(6)]
+        ctx.enemy_units = [SimpleNamespace(name="warrior", player=enemy) for _ in range(6)]
         assert brain.overwhelming(ctx) is False, "14 vs 6 visible is not 3x dominance"
+
+        # §8.15 FFA close-out: dominance is judged against the WEAKEST enemy —
+        # a second enemy fielding a token force makes mop-up start even
+        # though the combined enemy count would deny 3x.
+        third = SimpleNamespace(name="AI 3")
+        ctx.enemy_units += [SimpleNamespace(name="warrior", player=third) for _ in range(2)]
+        assert brain.overwhelming(ctx) is True, \
+            "14 vs a weakest-enemy force of 2 is dominance (per-player, not summed)"
     finally:
         cleanup(game, spawned)
 
@@ -106,7 +114,7 @@ def test_normal_attack_still_needs_buildings_and_respects_regroup(game):
     castle = next(b for b in game.buildings if b.player is ai and b.name == "castle")
     # Small army (not dominant), a visible enemy fighter but no buildings
     spawned = [spawn(game, ai, "warrior", castle.x + 60 + i * 20, castle.y) for i in range(8)]
-    foes = [SimpleNamespace(name="warrior") for _ in range(4)]
+    foes = [SimpleNamespace(name="warrior", player=enemy) for _ in range(4)]
     try:
         ctx = GoalContext.build(game, ai)
         ctx.enemy_buildings = []

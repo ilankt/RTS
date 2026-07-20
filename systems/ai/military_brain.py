@@ -65,7 +65,11 @@ class MilitaryBrain:
     # remnants instead of waiting for targets that never appear.
     OVERWHELM_MIN_FIGHTERS = 12
     OVERWHELM_RATIO = 3.0      # my fighters vs the enemy's VISIBLE fighters
-    SWEEP_GRID = 3             # sweep anchors per map axis (3x3)
+    # 3 -> 5 (§8.15 residue): on a 70x70 map the 3x3 lattice left ~1.5k px
+    # between anchors — the v3 battery's seed-3044 loser survived with two
+    # buildings parked exactly between them. 5x5 + skipping anchors that are
+    # already visible + a visited-rotation covers the map in corridors.
+    SWEEP_GRID = 5
 
     # §7 P3 back-line march discipline: archers leash to the nearest front
     # fighter while approaching (like healers do) and open fire when the
@@ -114,15 +118,27 @@ class MilitaryBrain:
     def overwhelming(self, ctx) -> bool:
         """§8.16: does this player hold decisive fighting superiority?
         Compares own fighters against VISIBLE enemy fighters — fog hides
-        the rest, but an army this large should be closing regardless."""
+        the rest, but an army this large should be closing regardless.
+
+        §8.15 residue (FFA close-out): measured PER ENEMY PLAYER, against
+        the weakest — in a 4p FFA the old summed count meant a clear leader
+        (57 fighters vs two 30-fighter survivors) never read as dominant
+        and mop-up never started. Being able to crush at least ONE enemy
+        decisively is what starts sequential eliminations; 1v1 semantics
+        are unchanged (a single enemy is its own minimum)."""
         from systems.ai.utility.context import combatants_of
 
         mine = len(combatants_of(ctx.military))
         if mine < self.OVERWHELM_MIN_FIGHTERS:
             return False
         MILITARY = ("warrior", "archer", "spearman", "cavalry", "ram")
-        visible = sum(1 for e in ctx.enemy_units if e.name in MILITARY)
-        return mine >= self.OVERWHELM_RATIO * max(1, visible)
+        per_enemy = {}
+        for e in ctx.enemy_units:
+            owner = getattr(getattr(e, "player", None), "name", None)
+            if e.name in MILITARY and owner is not None:
+                per_enemy[owner] = per_enemy.get(owner, 0) + 1
+        weakest = min(per_enemy.values()) if per_enemy else 0
+        return mine >= self.OVERWHELM_RATIO * max(1, weakest)
 
     def is_regrouping(self, player) -> bool:
         """§8.9: is this player's army re-massing after a retreat?"""
@@ -430,9 +446,10 @@ class MilitaryBrain:
     # --- §8.14: attack musters (group waves, not trickles) ----------------
 
     def _next_sweep_anchor(self, ctx):
-        """§8.16 remnant sweep: rotate through a SWEEP_GRID x SWEEP_GRID
-        lattice of map anchors. Each call advances the cursor, so successive
-        squads fan out over different cells until something becomes visible."""
+        """§8.16 remnant sweep, fog-routed (§8.15 residue): rotate through a
+        SWEEP_GRID x SWEEP_GRID lattice, skipping anchors the player can
+        already SEE — sweeping ground you're looking at is wasted marching.
+        Falls back to plain rotation when everything is somehow visible."""
         game_map = getattr(self.game, "game_map", None)
         if game_map is None:
             return None
@@ -441,7 +458,19 @@ class MilitaryBrain:
         world_w = game_map.width * TILE_WIDTH
         world_h = game_map.height * TILE_HEIGHT
         n = self.SWEEP_GRID
+        fog = getattr(self.game, "fog_of_war", None)
+        fog_on = bool(fog and getattr(fog, "enabled", True))
+
         index = self._sweep_index.get(ctx.player.name, 0)
+        for step in range(n * n):
+            probe = (index + step) % (n * n)
+            row, col = divmod(probe, n)
+            anchor = (world_w * (2 * col + 1) / (2 * n),
+                      world_h * (2 * row + 1) / (2 * n))
+            if not fog_on or not fog.is_visible(ctx.player, anchor[0], anchor[1]):
+                self._sweep_index[ctx.player.name] = (probe + 1) % (n * n)
+                return anchor
+        # everything visible (tiny map / fog off): plain rotation
         self._sweep_index[ctx.player.name] = (index + 1) % (n * n)
         row, col = divmod(index, n)
         return (world_w * (2 * col + 1) / (2 * n),

@@ -66,10 +66,12 @@ class AttackGoal(Goal):
         n = len(combatants_of(ctx.military))
         if n < min_army:
             return 0
-        # Need a target: buildings normally; under dominance, visible
-        # remnant units count too (military_brain's target finder already
-        # falls back to units).
-        if not ctx.enemy_buildings and not (dominant and ctx.enemy_units):
+        # Need a target: buildings or known enemy FOUNDATIONS (§8.17.2 —
+        # a loser rebuilding in fog on explored tiles kept attack at 0 while
+        # its sites were sitting on the blackboard: the raze-rebuild
+        # treadmill); under dominance, visible remnant units count too.
+        has_structures = ctx.enemy_buildings or getattr(ctx, "enemy_construction_sites", None)
+        if not has_structures and not (dominant and ctx.enemy_units):
             return 0
         return 70 + (n - min_army) * self.SCALE
 

@@ -576,6 +576,12 @@ class CombatSystem:
             if kills is not None:
                 key = (killer_player.name, killer.name)
                 kills[key] = kills.get(key, 0) + 1
+            # §8.15 F6 (worker attrition 90%): who does the killing? Keyed by
+            # killer TYPE only — the balance question is towers vs raids.
+            if getattr(victim, 'name', None) == 'worker':
+                worker_killers = getattr(self.game, 'stats_worker_killers', None)
+                if worker_killers is not None:
+                    worker_killers[killer.name] = worker_killers.get(killer.name, 0) + 1
 
     def _update_healer(self, healer, delta_time):
         """Heal the most-wounded friendly unit in range (game-time cadence)."""
