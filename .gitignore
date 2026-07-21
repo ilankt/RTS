@@ -30,6 +30,10 @@ debug.dat
 screenshots/
 tmp/
 
+# Balance/AI batch-run outputs (tools/arena_match.py runs)
+tools/balance_matrix_*/
+tools/personality_battery_*/
+
 # Sprite pipeline scratch: raw generated sheets, tint checks, preview
 # strips/GIFs, and processed intermediates. Keep these locally — the raw
 # sources are the pipeline's INPUT and are not regenerable — but only the
