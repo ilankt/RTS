@@ -49,8 +49,8 @@ just sit back and spectate.
 
 ## Getting Started
 
-**Just want to play?** Download the Windows installer (or portable zip) from the
-[Releases page](https://github.com/ilankt/RTS/releases) — no Python required.
+**Just want to play?** Grab the Windows installer or portable zip from the
+**[Download page](DOWNLOAD.md)** — no Python required.
 
 To run from source, you need **Python 3.10+** (developed on 3.12).
 
@@ -105,3 +105,9 @@ data/       units.json, buildings.json, techs.json — all game content
 Actively developed hobby project. The core game is fully playable end to end;
 current work focuses on performance at 200+ unit battles, wall/gate sprites,
 and world/art polish.
+
+## Disclaimer
+
+Provided **“as is”**, without warranty of any kind; the author accepts no
+liability for any damages arising from its use. Download and run at your own
+risk — full text on the [Download page](DOWNLOAD.md#disclaimer).
