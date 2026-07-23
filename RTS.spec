@@ -15,12 +15,25 @@ import os
 _icon = os.path.join("installer", "app.ico")
 icon = _icon if os.path.exists(_icon) else None
 
+_SKIP_DIRS = {"_gen", ".pytest_cache", "__pycache__"}
+
+
+def _asset_datas():
+    """Bundle assets/ file-by-file, skipping local-only sprite-pipeline
+    scratch (_gen/) and stray caches — a plain ("assets", "assets") tuple
+    ships whatever happens to be on disk, not just the game's art."""
+    out = []
+    for root, dirs, files in os.walk("assets"):
+        dirs[:] = [d for d in dirs if d not in _SKIP_DIRS]
+        out.extend((os.path.join(root, f), root) for f in files)
+    return out
+
+
 a = Analysis(
     ["main.py"],
     pathex=[],
     binaries=[],
-    datas=[
-        ("assets", "assets"),   # sprites, ui art, background music (.ogg)
+    datas=_asset_datas() + [
         ("data", "data"),       # units.json, buildings.json, techs.json, ...
         ("help", "help"),       # the Field Manual the Help button opens
     ],
