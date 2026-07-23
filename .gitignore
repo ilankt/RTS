@@ -1,10 +1,9 @@
-# Byte-compiled / optimized / DLL files
+# Byte-compiled / caches
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
-*.so
+.pytest_cache/
+.ruff_cache/
 
 # Virtual environments
 .venv/
@@ -12,61 +11,45 @@ venv/
 ENV/
 env/
 
-# IDE settings
+# IDE / OS
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS files
 .DS_Store
 Thumbs.db
 
-# Game saves or temporary files
+# Runtime output: saves, logs, user-local settings
+saves/
 *.save
 *.tmp
-saves/
-debug.dat
-screenshots/
 tmp/
-
-# Balance/AI batch-run outputs (tools/arena_match.py runs)
-tools/balance_matrix_*/
-tools/personality_battery_*/
-
-# Sprite pipeline scratch: raw generated sheets, tint checks, preview
-# strips/GIFs, and processed intermediates. Keep these locally — the raw
-# sources are the pipeline's INPUT and are not regenerable — but only the
-# adopted sheet alongside them belongs in the repo.
-_gen/
-
-# Test cache
-.pytest_cache/
-
-# AI settings
-.claude/
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-# PyInstaller / Inno Setup installer output
-installer_output/
-installer/app.ico
-# User-local runtime files (settings + hotkey overrides)
+debug.dat
 settings.json
 keybindings.json
 profile.json
+
+# Packaging output
+build/
+dist/
+installer_output/
+installer/app.ico
+*.egg-info/
+
+# Development-only material, kept local: plans, agent guides, test suite,
+# dev tooling, batch-run outputs, profiling data, scratch assets
+/MASTER_PLAN.md
+/PLAN_ARCHIVE.md
+/CLAUDE.md
+/AGENTS.md
+/AUDIO_GUIDE.md
+/REQUIRED_VISUAL_ASSET_PROMPTS.md
+/tests/
+/tools/*
+!/tools/make_icon.py
+screenshots/
+playtest_screenshots/
+assets_backup/
+_gen/
+*.prof
+.claude/

@@ -49,7 +49,10 @@ just sit back and spectate.
 
 ## Getting Started
 
-Requires **Python 3.10+** (developed on 3.12).
+**Just want to play?** Download the Windows installer (or portable zip) from the
+[Releases page](https://github.com/ilankt/RTS/releases) — no Python required.
+
+To run from source, you need **Python 3.10+** (developed on 3.12).
 
 ```bash
 git clone https://github.com/ilankt/RTS.git
@@ -95,13 +98,7 @@ managers/   selection, sprites, sound, save/load
 ui/         HUD, command card, minimap, menus
 world/      hex map generation + camera
 data/       units.json, buildings.json, techs.json — all game content
-tools/      headless benchmark & AI-vs-AI arena runner
 ```
-
-Development history and design rationale live in
-[MASTER_PLAN.md](MASTER_PLAN.md) (active work) and
-[PLAN_ARCHIVE.md](PLAN_ARCHIVE.md) (completed work, including balance
-experiments and their measured results).
 
 ## Status
 
