@@ -1,3 +1,5 @@
+import math
+
 import pygame
 from core.config import SCREEN_WIDTH, MINIMAP_WIDTH, TOP_BAR_HEIGHT, TOP_BAR_START_X, TOP_BAR_SPACING, TOP_BAR_ROW_Y, TOP_BAR_ITEMS
 from ui.hud_background import NineSliceFrame
@@ -6,12 +8,23 @@ from ui.hud_background import NineSliceFrame
 class ResourceBar:
     """Manages the top resource display bar"""
 
+    # Idle-worker alert tuning (launch feedback: silent idling read as
+    # "workers randomly stopped"). A rise in the human's idle count chimes
+    # once and pulses the badge so a stopped worker gets noticed.
+    IDLE_FLASH_MS = 1200           # how long the badge pulses after a rise
+    IDLE_ALERT_COOLDOWN_MS = 4000  # min gap between chimes (batches deplete together)
+    IDLE_ALERT_WARMUP_S = 2.0      # no alerts this early — match-start settle
+
     def __init__(self, game):
         self.game = game
         self.font = pygame.font.Font(None, 30)
         self.resource_font = pygame.font.Font(None, 32)  # Larger font for resources
         self.info_font = pygame.font.Font(None, 24)      # Smaller font for info row
         self.small_font = pygame.font.Font(None, 20)
+        # Idle-worker alert state
+        self._prev_idle_count = None
+        self._idle_flash_until = 0
+        self._idle_alert_cooldown_until = 0
         # Framed banner art (a full four-sided frame): 9-slice keeps all four
         # rails + corner end-caps crisp. src insets are the ~100 px border in
         # the source; dst draws thinner rails top/bottom (room for resources)
@@ -95,6 +108,9 @@ class ResourceBar:
         the debug speed/fog widgets used to sit), clear of the population
         counter and inside the frame border."""
         idle_count = len(self.game.selection_manager.get_idle_workers())
+        # Detection runs every frame (even at zero) so the baseline tracks and
+        # a rise off zero still alerts.
+        self._update_idle_alert(idle_count)
         if not idle_count:
             return
         badge_w, badge_h = 120, 30
@@ -102,7 +118,47 @@ class ResourceBar:
         x = content.right - badge_w - 6
         y = (bar_h - badge_h) // 2
         bg_rect = pygame.Rect(x, y, badge_w, badge_h)
-        pygame.draw.rect(surface, (70, 55, 20), bg_rect, border_radius=5)
-        pygame.draw.rect(surface, (230, 180, 60), bg_rect, 2, border_radius=5)
+
+        now = pygame.time.get_ticks()
+        if now < self._idle_flash_until:
+            # Shimmer the badge for a moment after a worker goes idle.
+            pulse = 0.5 + 0.5 * math.sin(now * 0.018)
+            bg_color = (int(70 + 45 * pulse), int(55 + 40 * pulse), 20)
+            border_color = (255, int(200 + 40 * pulse), int(90 + 70 * pulse))
+            border_w = 3
+            # Soft outer ring to pull the eye toward the badge.
+            pygame.draw.rect(surface, border_color, bg_rect.inflate(8, 8), 2, border_radius=7)
+        else:
+            bg_color = (70, 55, 20)
+            border_color = (230, 180, 60)
+            border_w = 2
+
+        pygame.draw.rect(surface, bg_color, bg_rect, border_radius=5)
+        pygame.draw.rect(surface, border_color, bg_rect, border_w, border_radius=5)
         text_surface = self.info_font.render(f"Idle: {idle_count} (F1)", True, (255, 210, 90))
         surface.blit(text_surface, text_surface.get_rect(center=bg_rect.center))
+
+    def _update_idle_alert(self, idle_count):
+        """Chime + flash the badge when the human's idle-worker count rises, so
+        a silently-stopped worker (depleted node, failed path, finished job)
+        gets noticed instead of standing forgotten. Launch feedback: players
+        read the silent idle as 'workers randomly stopped gathering'."""
+        now = pygame.time.get_ticks()
+        prev = self._prev_idle_count
+        self._prev_idle_count = idle_count
+
+        # First observation only seeds the baseline; the warmup window keeps the
+        # match-start 'all workers idle' state from blaring on load.
+        if prev is None:
+            return
+        if getattr(self.game, "sim_time_elapsed", 0.0) < self.IDLE_ALERT_WARMUP_S:
+            return
+        if idle_count <= prev:
+            return
+
+        self._idle_flash_until = now + self.IDLE_FLASH_MS
+        if now >= self._idle_alert_cooldown_until:
+            sound = getattr(self.game, "sound_manager", None)
+            if sound is not None:
+                sound.play_idle_worker()
+            self._idle_alert_cooldown_until = now + self.IDLE_ALERT_COOLDOWN_MS

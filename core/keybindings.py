@@ -28,7 +28,6 @@ DEFAULT_BINDINGS = {
     "speed_down": "[",
     "speed_up": "]",
     "cycle_stance": "s",
-    "toggle_gates": "g",
     "cycle_formation": "f",
     "camera_bookmark_set": "b",   # save current camera view (4 rotating slots)
     "camera_bookmark_jump": "n",  # cycle through saved views

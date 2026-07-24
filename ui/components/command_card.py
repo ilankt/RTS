@@ -37,7 +37,7 @@ from ui import fonts as ui_fonts
 # Castle listed last (§8.12): rebuildable after a loss — expensive comeback
 ECONOMY_BUILDINGS = ['farm', 'house', 'lumbermill', 'mine', 'market', 'castle']
 MILITARY_BUILDINGS = ['barracks', 'stable', 'blacksmith', 'siege_workshop', 'temple',
-                      'watchtower', 'wooden_wall', 'wall', 'gate']
+                      'watchtower']
 
 # §8.2.2: only a fallback now — costs render as glyph+number pairs. Kept so a
 # missing glyph degrades to the old abbreviation instead of showing nothing.
@@ -63,6 +63,7 @@ class CommandCard:
     CHIP_H = 22
     GRID_TOP = 150       # same y for every context: fixed anatomy
     STRIP_H = 18
+    DEMOLISH_HOLD_MS = 900   # hold the Demolish tile this long to raze (no refund)
 
     SLOT_ACTIONS = tuple(f"card_slot_{i}" for i in range(GRID_COLS * GRID_ROWS))
 
@@ -85,6 +86,12 @@ class CommandCard:
         self._hovered_slot = None
         self._panel_rect = pygame.Rect(0, 0, 0, 0)
         self._icon_cache = {}         # (kind, name) -> 28px surface
+        # Hold-to-demolish state: which building's Demolish tile is being held,
+        # when the hold began, and the tile's on-screen rect (for the release/
+        # leave check). Cleared on release, leave, or completion.
+        self._demolish_hold_building = None
+        self._demolish_hold_start = 0
+        self._demolish_tile_rect = None
 
         self.buildings_data = {}      # raw JSON dicts, name -> data
         try:
@@ -144,6 +151,10 @@ class CommandCard:
         if human is None:
             return content
 
+        # Drop a hold-to-demolish that's no longer on a single selected building.
+        if self._demolish_hold_building is not None and self._demolish_hold_building not in selected:
+            self._demolish_hold_building = None
+
         own_units = [o for o in selected
                      if o in self.game.units and o.player is human]
         combat_units = [u for u in own_units if not getattr(u, 'can_build', False)]
@@ -161,12 +172,12 @@ class CommandCard:
             if own_sites:
                 self._fill_construction(content, own_sites[0])
             elif own_buildings:
-                if len(own_buildings) == 1 and getattr(own_buildings[0], 'is_gate', False):
-                    self._fill_gate(content, own_buildings[0])
-                elif len(own_buildings) == 1 and own_buildings[0].name == 'market':
+                if len(own_buildings) == 1 and own_buildings[0].name == 'market':
                     self._fill_market(content, own_buildings[0], human)
                 else:
                     self._fill_production(content, own_buildings, human)
+                if len(own_buildings) == 1:
+                    self._add_demolish_slot(content, own_buildings[0])
         return content
 
     # ---- build card (the §8.2.1 headline: no drill-down, ever) ------- #
@@ -392,6 +403,58 @@ class CommandCard:
                         ' its cost.'],
         }
 
+    def _add_demolish_slot(self, content, building):
+        """Bottom-right ✕ that self-destructs a finished building (launch
+        feedback: players want to remove a mis-placed or unit-trapping
+        building). Arm-then-confirm so a stray click never razes a base: the
+        first press arms, the second (mouse or slot key) confirms. Placed in
+        the highest free slot so it doesn't displace production/tech tiles."""
+        slots = content['slots']
+        idx = next((i for i in range(len(slots) - 1, -1, -1) if slots[i] is None), None)
+        if idx is None:
+            return  # card full — no room for the button this frame
+        holding = self._demolish_hold_building is building
+        progress = None
+        if holding:
+            elapsed = pygame.time.get_ticks() - self._demolish_hold_start
+            # Cap below 1.0 so the ring keeps rendering; completion is the
+            # tick's job, not "progress reached full".
+            progress = max(0.0, min(0.999, elapsed / self.DEMOLISH_HOLD_MS))
+        content['slots'][idx] = {
+            'kind': 'self_destruct', 'building': building,
+            'label': 'Demolish',
+            'icon': self._icon('action', 'cancel'),
+            'cost': '', 'enabled': True, 'holding': holding, 'progress': progress,
+            'reason': 'Hold to destroy',
+            'tooltip': ['Demolish building',
+                        'Hold to self-destruct it. No refund.',
+                        'Release early to cancel.'],
+        }
+        # Economy buildings (house/farm/lumbermill/mine) have no production
+        # card, so _fill_production left context None and draw() would skip the
+        # whole card — including this tile. Give it a context so the Demolish
+        # tile (often the only reason to open these cards) actually renders.
+        if content['context'] is None:
+            content['context'] = 'building'
+
+    def _tick_demolish_hold(self):
+        """Advance a hold-to-demolish. While the left button stays pressed on
+        the Demolish tile, the ring fills; release or move off early and it
+        cancels (a tap is a safe no-op); hold the full DEMOLISH_HOLD_MS and the
+        building is razed. Mouse-driven — runs once per frame from draw()."""
+        building = self._demolish_hold_building
+        if building is None:
+            return
+        held = pygame.mouse.get_pressed()[0]
+        rect = self._demolish_tile_rect
+        over = rect is not None and rect.collidepoint(pygame.mouse.get_pos())
+        if not held or not over:
+            self._demolish_hold_building = None       # released or moved off
+            return
+        if pygame.time.get_ticks() - self._demolish_hold_start >= self.DEMOLISH_HOLD_MS:
+            self._demolish_hold_building = None
+            self.game.building_system.demolish_building(building)  # plays the crunch
+
     def _fill_market(self, content, market, human):
         """§8.9 market: sell tiles down the left column, buy tiles down the
         right. Shift-click trades a batch of 5 lots."""
@@ -437,18 +500,6 @@ class CommandCard:
         if glyph is None:
             return self._icon('building', 'market')
         return glyph
-
-    def _fill_gate(self, content, gate):
-        content['context'] = 'gate'
-        is_open = getattr(gate, 'passable', False)  # passable == open
-        label = 'Close Gate' if is_open else 'Open Gate'
-        content['slots'][0] = {
-            'kind': 'gate', 'label': label,
-            'icon': self._icon('building', 'gate'), 'cost': '',
-            'enabled': True, 'reason': 'Ready',
-            'tooltip': [label, 'Open gates let units path through; closed gates'
-                        ' seal the wall.', 'Also on G.'],
-        }
 
     # ------------------------------------------------------------------ #
     # shared helpers                                                     #
@@ -531,6 +582,7 @@ class CommandCard:
 
     def draw(self, panel_surface, ui_x, ui_y, panel_w, panel_h, selected_objects):
         """Draw chips + grid + strip onto the sidebar panel surface."""
+        self._tick_demolish_hold()   # advance/complete a hold using last frame's tile rect
         content = self.refresh(selected_objects)
         self._panel_rect = pygame.Rect(ui_x, ui_y, panel_w, panel_h)
         self._chip_rects = []
@@ -589,6 +641,7 @@ class CommandCard:
             occupied = [(i, s) for i, s in enumerate(content['slots']) if s is not None]
             placements = [(i, visual, s) for visual, (i, s) in enumerate(occupied)]
 
+        self._demolish_tile_rect = None   # re-captured below if the tile is drawn
         for i, visual, slot in placements:
             row, col = divmod(visual, self.GRID_COLS)
             tile = pygame.Rect(grid_x + col * (self.TILE_W + self.TILE_GAP),
@@ -602,6 +655,8 @@ class CommandCard:
                 pygame.draw.rect(panel_surface, (70, 62, 52), tile, 1, border_radius=4)
                 continue
             self._slot_rects.append((i, screen_tile))
+            if slot['kind'] == 'self_destruct':
+                self._demolish_tile_rect = screen_tile
             hovered = screen_tile.collidepoint(mouse_pos)
             if hovered:
                 self._hovered_slot = slot
@@ -638,6 +693,12 @@ class CommandCard:
             fill, border, name_color = (45, 42, 32), (120, 105, 60), (170, 155, 110)
         else:
             fill, border, name_color = (50, 38, 38), (140, 90, 90), (190, 140, 130)
+        if slot.get('holding'):
+            # Reddening danger state while the Demolish tile is held down.
+            pulse = 0.5 + 0.5 * math.sin(pygame.time.get_ticks() * 0.02)
+            fill = (70 + int(35 * pulse), 20, 20)
+            border = (220, 70, 70)
+            name_color = (255, 210, 200)
         if hovered:
             fill = tuple(min(255, c + 25) for c in fill)
             border = (240, 240, 240)
@@ -1039,9 +1100,11 @@ class CommandCard:
             # would have crashed on click — go through the building system)
             self.game.building_system.cancel_construction(slot['site'])
             self._play(True)
-        elif kind == 'gate':
-            self.game._toggle_selected_gates()
-            self._play(True)
+        elif kind == 'self_destruct':
+            # Begin a hold-to-destroy. Completion happens in _tick_demolish_hold
+            # while the button stays pressed on the tile — a tap is a safe no-op.
+            self._demolish_hold_building = slot['building']
+            self._demolish_hold_start = pygame.time.get_ticks()
         elif kind == 'ungarrison':
             from systems import garrison
             garrison.eject_all(self.game, slot['building'])

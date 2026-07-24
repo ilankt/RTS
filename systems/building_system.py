@@ -9,10 +9,6 @@ from utils.debug_logger import debug_log
 class BuildingSystem:
     """Handles building placement, construction, and building management"""
 
-    # §8.10: wall pieces are laid as click-drag lines, one site per slot
-    WALL_DRAG_PIECES = ("wall", "wooden_wall")
-    WALL_SPACING = 56  # matches the AI's sealed-line spacing (radius 32)
-
     def __init__(self, game):
         self.game = game
         self.game_map = game.game_map
@@ -23,8 +19,6 @@ class BuildingSystem:
         self.building_preview_valid = False
         self.building_preview_pos = None
         self.selected_builder = None
-        self.wall_drag_anchor = None  # world pos where a wall drag started
-        self.drag_font = pygame.font.Font(None, 26)  # wall-drag cost readout
 
     def enter_building_placement_mode(self, building_data):
         """Enter building placement mode with the selected building type"""
@@ -56,142 +50,11 @@ class BuildingSystem:
         self.building_preview_valid = False
         self.building_preview_pos = None
         self.selected_builder = None
-        self.wall_drag_anchor = None
         # Cancelled building placement
 
-    # --- Wall drag placement (§8.10) -------------------------------------
-
-    @property
-    def wall_drag_active(self):
-        return self.wall_drag_anchor is not None
-
     def handle_placement_mouse_down(self, mouse_pos):
-        """Mouse down while placing: walls start a drag, others place at once."""
-        if self.building_to_place and self.building_to_place.get('name') in self.WALL_DRAG_PIECES:
-            if self.building_preview_valid and self.building_preview_pos:
-                self.wall_drag_anchor = tuple(self.building_preview_pos)
-            return True
+        """Mouse down while placing: place a construction site at the cursor."""
         return self.handle_building_placement_click(mouse_pos)
-
-    def finish_wall_drag(self, mouse_pos):
-        """Mouse up after a wall drag: place a site at every valid slot on the
-        anchor→cursor line, stopping when resources run out. The selected
-        builder is sent to the first site; the rest wait for workers."""
-        anchor = self.wall_drag_anchor
-        self.wall_drag_anchor = None
-        if not anchor or not self.building_to_place:
-            return False
-        end = self.game.screen_to_world(mouse_pos[0], mouse_pos[1])
-        placed_any = False
-        for slot in self._wall_drag_slots(anchor, end):
-            if not self._wall_slot_valid(slot):
-                continue  # holes are allowed — terrain/statics plug them
-            if not self._place_wall_site(slot, assign_builder=not placed_any):
-                break  # out of resources
-            placed_any = True
-        self.cancel_building_placement()
-        return placed_any
-
-    def _wall_drag_slots(self, start, end):
-        """Points from start to end spaced WALL_SPACING apart (start included)."""
-        dx, dy = end[0] - start[0], end[1] - start[1]
-        length = math.hypot(dx, dy)
-        if length < self.WALL_SPACING / 2:
-            return [start]
-        steps = int(length // self.WALL_SPACING)
-        return [
-            (start[0] + dx * (i * self.WALL_SPACING / length),
-             start[1] + dy * (i * self.WALL_SPACING / length))
-            for i in range(steps + 1)
-        ]
-
-    def _wall_slot_valid(self, world_pos):
-        """is_valid_building_position, but sibling wall pieces may touch —
-        segments 56 px apart overlap by design so the line seals."""
-        hex_coord = self.game_map.world_to_grid(world_pos[0], world_pos[1])
-        if not hex_coord:
-            return False
-        if self.game_map.grid[hex_coord[1]][hex_coord[0]] in BLOCKED_TERRAIN:
-            return False
-        radius = self.building_to_place['size'][0] * TILE_WIDTH / 2
-        wall_names = ("wall", "wooden_wall", "gate")
-        all_objects = (self.game.buildings + self.game.units +
-                       self.game.resources + self.game.construction_sites +
-                       list(getattr(self.game, "fountains", ())) +
-                       list(getattr(self.game, "mountains", ())) +
-                       [p for p in getattr(self.game, "props", ())
-                        if getattr(p, "blocks", False)])
-        for obj in all_objects:
-            if obj is self.selected_builder:
-                continue
-            sibling = (getattr(obj, "name", "") in wall_names
-                       or getattr(obj, "building_name", "") in wall_names)
-            allowed = radius * 0.5 if sibling else radius + obj.radius
-            if math.hypot(world_pos[0] - obj.x, world_pos[1] - obj.y) < allowed:
-                return False
-        return True
-
-    def _place_wall_site(self, world_pos, assign_builder):
-        """Place one wall construction site, paying its cost. False if unaffordable."""
-        human_player = self.game.players[0]
-        if not self.can_player_build(human_player, self.building_to_place):
-            if hasattr(self.game, "sound_manager") and self.game.sound_manager:
-                self.game.sound_manager.play_error()
-            return False
-        for resource, amount in self.building_to_place.get('costs', {}).items():
-            human_player.resources[resource] -= amount
-
-        building_radius = self.building_to_place['size'][0] * TILE_WIDTH / 2
-        site = ConstructionSite(
-            self.building_to_place['name'],
-            self.building_to_place,
-            world_pos[0],
-            world_pos[1],
-            building_radius,
-            human_player,
-        )
-        self.game.construction_sites.append(site)
-        self.game.pathfinder.notify_blocker_added(site)
-        if assign_builder and self.selected_builder:
-            worker_tasks = getattr(self.game, "worker_task_system", None)
-            if worker_tasks:
-                worker_tasks.assign_build(self.selected_builder, site)
-            else:
-                self.game.pathfinder.issue_interact(self.selected_builder, site, "build")
-        return True
-
-    def _draw_wall_drag_cost(self, map_surface, camera, valid_count):
-        """Live '{N} segments · {cost}' readout at the cursor during a wall
-        drag, so the commitment is clear BEFORE releasing (nothing is charged
-        until release). Amber + '(afford K)' when the stockpile can't cover the
-        whole run — mirrors finish_wall_drag stopping when resources run out."""
-        costs = self.building_to_place.get('costs', {})
-        if valid_count <= 0 or not costs:
-            return
-        player = self.game.players[0]
-        affordable = min((int(player.resources.get(r, 0) // c) for r, c in costs.items()),
-                         default=0)
-        placeable = min(valid_count, affordable)
-
-        cost_str = "  ".join(f"{c * valid_count} {r}" for r, c in costs.items())
-        noun = "segment" if valid_count == 1 else "segments"
-        label = f"{valid_count} {noun} · {cost_str}"
-        if placeable < valid_count:
-            label += f"  (afford {placeable})"
-            color = (255, 180, 70)
-        else:
-            color = (170, 255, 170)
-
-        end = self.building_preview_pos
-        sx = int(end[0] * camera.zoom + camera.x) + 16
-        sy = max(4, int(end[1] * camera.zoom + camera.y) - 34)
-        text = self.drag_font.render(label, True, color)
-        backdrop = pygame.Surface((text.get_width() + 10, text.get_height() + 6),
-                                  pygame.SRCALPHA)
-        backdrop.fill((0, 0, 0, 175))
-        map_surface.blit(backdrop, (sx - 5, sy - 3))
-        map_surface.blit(text, (sx, sy))
-
 
     def update_building_preview(self, mouse_pos):
         """Update building preview position and validity"""
@@ -268,22 +131,6 @@ class BuildingSystem:
         if not self.building_preview_pos or not self.building_placement_mode:
             return
 
-        # Wall drag: ghost circles along the anchor→cursor line (§8.10)
-        if self.wall_drag_active and self.building_preview_pos:
-            radius = self.building_to_place['size'][0] * TILE_WIDTH / 2
-            valid_count = 0
-            for slot in self._wall_drag_slots(self.wall_drag_anchor, self.building_preview_pos):
-                ok = self._wall_slot_valid(slot)
-                valid_count += 1 if ok else 0
-                color = (0, 255, 0) if ok else (255, 0, 0)
-                pygame.draw.circle(
-                    map_surface, color,
-                    (int(slot[0] * camera.zoom + camera.x), int(slot[1] * camera.zoom + camera.y)),
-                    max(2, int(radius * camera.zoom)), 2,
-                )
-            self._draw_wall_drag_cost(map_surface, camera, valid_count)
-            return
-            
         # Get building sprite
         sprite_path = self.building_to_place['sprite']
         building_size = self.building_to_place['size']
@@ -540,20 +387,25 @@ class BuildingSystem:
             for resource, amount in construction_site.costs.items():
                 construction_site.player.resources[resource] += amount // 2
             
-            # Free the builder with complete state cleanup
-            if construction_site.builder:
+            # Free the builder with complete state cleanup. Capture it FIRST:
+            # worker_task_system.cancel() clears the site's back-reference
+            # (sets construction_site.builder = None), so every later read of
+            # construction_site.builder would be None — the user-reported
+            # AttributeError crash on Cancel.
+            builder = construction_site.builder
+            if builder:
                 if hasattr(self.game, "worker_task_system"):
-                    self.game.worker_task_system.cancel(construction_site.builder)
-                if hasattr(construction_site.builder, 'clear_all_movement_state'):
-                    construction_site.builder.clear_all_movement_state()
+                    self.game.worker_task_system.cancel(builder)
+                if hasattr(builder, 'clear_all_movement_state'):
+                    builder.clear_all_movement_state()
                 else:
                     # Fallback to manual cleanup
-                    construction_site.builder.is_building = False
-                    construction_site.builder.building_target = None
-                    construction_site.builder.status = "idle"
-                
-                debug_log.log(f"AI: Construction cancelled - worker at ({construction_site.builder.x:.0f},{construction_site.builder.y:.0f}) freed and cleaned", "BUILDING")
-                
+                    builder.is_building = False
+                    builder.building_target = None
+                    builder.status = "idle"
+
+                debug_log.log(f"AI: Construction cancelled - worker at ({builder.x:.0f},{builder.y:.0f}) freed and cleaned", "BUILDING")
+
                 # Invalidate AI memory cache for immediate detection of newly idle worker
                 if hasattr(self.game, 'ai_system') and self.game.ai_system:
                     self.game.ai_system.invalidate_memory_cache(construction_site.player)
@@ -565,7 +417,32 @@ class BuildingSystem:
             self.game.pathfinder.notify_blocker_removed(construction_site)
 
             # Cancelled construction, refunded half resources
-    
+
+    def demolish_building(self, building):
+        """Self-destruct a finished, player-owned building. No refund.
+
+        Reuses the standard razed-building teardown: dropping HP to 0 lets the
+        game loop's per-frame cleanup remove it, free the nav grid, drop any
+        attackers and clear its production — identical to a building destroyed
+        in combat, so there is no second cleanup path to keep in sync."""
+        if building is None or building not in self.game.buildings:
+            return False
+
+        building.hp = 0  # the per-frame cleanup (core/game.py) razes it
+
+        sound = getattr(self.game, "sound_manager", None)
+        if sound is not None:
+            sound.play_death()  # same crunch as a building lost in combat
+
+        debug_log.log(
+            f"Player demolished own {building.name} at "
+            f"({building.x:.0f},{building.y:.0f})", "BUILDING")
+
+        # Let the owner's AI notice the freed footprint / lost building at once
+        if getattr(self.game, "ai_system", None) and building.player:
+            self.game.ai_system.invalidate_memory_cache(building.player)
+        return True
+
     def get_buildings_by_type(self, building_type, player=None):
         """Get all buildings of a specific type, optionally filtered by player"""
         buildings = []

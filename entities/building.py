@@ -55,17 +55,10 @@ class Building(GameObject):
         self.rally_point = None
         self.rally_resource = None
 
-        # Gates (§8.10): open gates are passable (ignored by nav + collision)
-        self.is_gate = name == "gate"
-        self.passable = False  # gates start closed
+        # Walls/gates were removed; `passable` is kept as a generic inert flag
+        # (shared nav/collision code reads it) that no building sets True now.
+        self.passable = False
 
-    def toggle_gate(self):
-        """Open/close a gate. Returns the new passable state (None if not a gate)."""
-        if not self.is_gate:
-            return None
-        self.passable = not self.passable
-        return self.passable
-    
     def _get_production_capabilities(self):
         """Get list of units this building can produce"""
         production_map = {

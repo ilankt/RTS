@@ -443,6 +443,9 @@ class SoundManager:
         self.sounds["ui_click"] = self._make_sound(500, 0.02, "square")
         # Alert / warning
         self.sounds["alert"] = self._make_sound(880, 0.1, "square")
+        # Soft rising chime for "a worker fell idle" — gentle nudge, not an
+        # alarm (launch feedback: silent idling read as "workers just stopped")
+        self.sounds["idle_worker"] = self._make_ascending_sound(520, 690, 0.13)
         # Insufficient resources / invalid command
         self.sounds["error"] = self._make_descending_sound(220, 120, 0.12)
 
@@ -625,6 +628,16 @@ class SoundManager:
         self.play("alert")
         # §8.5: alerts duck the music so they cut through the mix
         music_player.duck(2.5)
+
+    def play_idle_worker(self):
+        """Subtle chime when a worker falls idle. Quieter than a combat alert
+        and deliberately does NOT duck the music — it should nudge, not alarm."""
+        if not self.enabled:
+            return
+        sound = self.sounds.get("idle_worker")
+        if sound:
+            sound.set_volume(self.volume * 0.55)
+            sound.play()
 
     def play_error(self):
         self.play("error")

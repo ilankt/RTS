@@ -29,8 +29,11 @@ class SettingsMenu:
             ("Sound", "sound_enabled"),
             ("Default game speed", "default_game_speed"),
             ("Colorblind team colors", "colorblind_palette"),
+            ("Object shadows", "shadows"),
             ("Adaptive difficulty", "adaptive_difficulty"),
             ("Shift-queue batch size", "batch_queue_size"),
+            ("Show gameplay tips", "show_onboarding"),
+            ("Replay tips next match", "onboarding_force"),
             ("Back", None),
         ]
         self.selected_index = 0
@@ -52,7 +55,8 @@ class SettingsMenu:
             volume = round(self.settings.get(key) + direction * 0.1, 1)
             self.settings.set(key, min(1.0, max(0.0, volume)))
         elif key in ("sound_enabled", "colorblind_palette",
-                     "adaptive_difficulty", "fullscreen"):
+                     "adaptive_difficulty", "fullscreen",
+                     "show_onboarding", "onboarding_force", "shadows"):
             self.settings.set(key, not self.settings.get(key))
         elif key == "default_game_speed":
             speed = self.settings.get("default_game_speed") + direction
@@ -73,8 +77,14 @@ class SettingsMenu:
             return "On" if self.settings.get("sound_enabled") else "Off"
         if key == "colorblind_palette":
             return ("On" if self.settings.get("colorblind_palette") else "Off") + " (restart)"
+        if key == "shadows":
+            return "On" if self.settings.get("shadows") else "Off"
         if key == "adaptive_difficulty":
             return "On" if self.settings.get("adaptive_difficulty") else "Off"
+        if key == "show_onboarding":
+            return "On" if self.settings.get("show_onboarding") else "Off"
+        if key == "onboarding_force":
+            return "Armed" if self.settings.get("onboarding_force") else "Off"
         if key == "default_game_speed":
             return f"{self.settings.get('default_game_speed'):.0f}x"
         if key == "batch_queue_size":

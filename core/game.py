@@ -360,9 +360,6 @@ class Game:
         elif self.keybindings.matches("cycle_stance", event.key):
             # Cycle stance for selected combat units
             self._cycle_selected_unit_stances()
-        elif self.keybindings.matches("toggle_gates", event.key):
-            # Toggle selected own gates open/closed (§8.10)
-            self._toggle_selected_gates()
         elif self.keybindings.matches("cycle_formation", event.key):
             # Cycle formation type
             formation = self.selection_manager.cycle_formation()
@@ -448,7 +445,7 @@ class Game:
                 # Check UI click first
                 if not self.ui_manager.handle_click(mouse_pos):
                     if self.building_system.building_placement_mode:
-                        # Wall pieces start a drag; everything else places now
+                        # Place a construction site at the cursor
                         self.building_system.handle_placement_mouse_down(mouse_pos)
                     elif self.ui_manager.active_command_mode:
                         # Handle command mode click
@@ -485,8 +482,6 @@ class Game:
         if event.button == 1:  # Left click
             if self.minimap.dragging:
                 self.minimap.handle_release()
-            elif self.building_system.wall_drag_active:
-                self.building_system.finish_wall_drag(pygame.mouse.get_pos())
             else:
                 self.selection_manager.handle_left_release(pygame.mouse.get_pos())
     
@@ -677,32 +672,107 @@ class Game:
     # §8.7 onboarding: timed tips during a new player's first matches
     ONBOARDING_MAX_MATCHES = 3  # stop tipping once the profile shows experience
     ONBOARDING_HINTS = (
-        (15, "Right-click a resource to send workers gathering"),
-        (45, "Use the right panel's build menu to place buildings"),
-        (80, "F1 selects idle workers; Ctrl+1 saves a control group"),
-        (120, "Select a production building and right-click to set its rally"),
-        (160, "Press L for the event log, B/N for camera bookmarks"),
-        (200, "S cycles unit stances; [ and ] change game speed"),
+        (8,   "Select a worker, then right-click a resource to start gathering"),
+        (40,  "Open the build menu in the right panel to place buildings"),
+        (75,  "F1 finds idle workers - a chime and the top badge warn when one stops"),
+        (110, "Select a production building and right-click a spot to set its rally"),
+        (140, "Select a building to Cancel its construction, or hold Demolish to remove it"),
+        (175, "Press L for the event log, B and N for camera bookmarks"),
+        (210, "S cycles unit stances; [ and ] change game speed"),
     )
+    REACTIVE_HINT_SPACING = 12.0  # seconds of quiet before a reactive hint fires
 
     def _init_onboarding(self):
-        """Queue timed tips if the profile says this player is still new."""
+        """Queue timed tips + enable reactive hints if the profile says this
+        player is still new."""
         self._onboarding_queue = []
+        self._onboarding_shown = set()       # reactive hint ids already fired
+        self._onboarding_active = False
+        self._last_onboarding_time = -999.0  # sim time the last tip (any kind) fired
+        self._next_reactive_check = 0.0
         if not any(getattr(p, "human", False) for p in self.players):
             return
         try:
             from core.profile import Profile
+            from core.settings import Settings
 
-            if Profile().stats["matches_played"] < self.ONBOARDING_MAX_MATCHES:
+            settings = Settings()
+            if not settings.get("show_onboarding"):
+                return  # disabled in Settings
+            # "Replay tips next match" forces onboarding on for one match even
+            # for an experienced player, then clears itself.
+            force = bool(settings.get("onboarding_force"))
+            new_player = Profile().stats["matches_played"] < self.ONBOARDING_MAX_MATCHES
+            if force or new_player:
                 self._onboarding_queue = list(self.ONBOARDING_HINTS)
+                self._onboarding_active = True
+            if force:
+                settings.set("onboarding_force", False)
+                settings.save()
         except Exception as e:
             debug_log.log(f"Onboarding init failed: {e}", "GENERAL")
 
     def _update_onboarding(self):
-        queue = getattr(self, "_onboarding_queue", None)
-        if queue and self.sim_time_elapsed >= queue[0][0]:
+        if not getattr(self, "_onboarding_active", False):
+            return
+        now = self.sim_time_elapsed
+        queue = self._onboarding_queue
+        # Timed tips take priority - one per due time.
+        if queue and now >= queue[0][0]:
             _due, hint = queue.pop(0)
-            self.ui_manager.add_alert(f"Tip: {hint}")
+            self._fire_onboarding_tip(hint)
+            return
+        # Reactive hints fill the gaps the clock can't see.
+        self._update_reactive_onboarding(now)
+
+    def _fire_onboarding_tip(self, hint):
+        self._last_onboarding_time = self.sim_time_elapsed
+        self.ui_manager.add_alert(f"Tip: {hint}")
+
+    def _update_reactive_onboarding(self, now):
+        """State-triggered new-player hints: fire once when the player hits a
+        situation the timed tips can't catch - idle workers, a fresh farm, or a
+        drop-off with nobody gathering. Throttled to ~1/s and spaced so hints
+        never pile on each other or a timed tip."""
+        if now < self._next_reactive_check:
+            return
+        self._next_reactive_check = now + 1.0
+        if now - self._last_onboarding_time < self.REACTIVE_HINT_SPACING:
+            return
+
+        human = (self.players[0]
+                 if self.players and getattr(self.players[0], "human", False) else None)
+        if human is None:
+            return
+        shown = self._onboarding_shown
+
+        def owns(name):
+            return any(b.name == name and b.player is human and getattr(b, "hp", 1) > 0
+                       for b in self.buildings)
+
+        idle = 0
+        if getattr(self, "ai_system", None) is not None:
+            try:
+                idle = len(self.selection_manager.get_idle_workers())
+            except Exception:
+                idle = 0
+
+        # A fresh farm - the passive-food mechanic that confused testers.
+        if "farm_passive" not in shown and owns("farm"):
+            self._fire_reactive("farm_passive",
+                                "Farms make food on their own - no workers needed to gather it.")
+        # A drop-off building placed, but workers are standing idle.
+        elif "dropoff_idle" not in shown and idle >= 1 and (owns("lumbermill") or owns("mine")):
+            self._fire_reactive("dropoff_idle",
+                                "Right-click your lumbermill or mine to send idle workers gathering nearby.")
+        # Workers went idle mid-game - a resource node most likely ran dry.
+        elif "workers_idle" not in shown and now > 30 and idle >= 2:
+            self._fire_reactive("workers_idle",
+                                "Workers stop when a resource runs out. Press F1 to find them, then right-click a new resource.")
+
+    def _fire_reactive(self, hint_id, message):
+        self._onboarding_shown.add(hint_id)
+        self._fire_onboarding_tip(message)
 
     # §7.2 scouting payoff: buildings whose first sighting is real intel
     INTEL_BUILDINGS = ("castle", "barracks", "stable", "siege_workshop",
@@ -1171,20 +1241,6 @@ class Game:
                 self._record_match_result()
                 return
     
-    def _toggle_selected_gates(self):
-        """Open/close selected own gates; open gates stop blocking nav+collision."""
-        for obj in self.selection_manager.selected_objects:
-            if not getattr(obj, "is_gate", False):
-                continue
-            if not (obj.player and obj.player.human):
-                continue
-            now_open = obj.toggle_gate()
-            if now_open:
-                self.pathfinder.notify_blocker_removed(obj)
-            else:
-                self.pathfinder.notify_blocker_added(obj)
-            debug_log.log(f"Gate {'opened' if now_open else 'closed'}", "GENERAL")
-
     def _cycle_selected_unit_stances(self):
         """Cycle stance for selected human combat units"""
         from entities.unit import (STANCE_AGGRESSIVE, STANCE_DEFENSIVE, 
@@ -1282,6 +1338,7 @@ class Game:
 
         settings = SettingsMenu(self.screen).run()
         settings.apply_audio(self)
+        self.shadows_enabled = settings.get("shadows")  # live toggle, no restart
         self.screen = settings.create_display((SCREEN_WIDTH, SCREEN_HEIGHT))
 
     def _open_save_load_from_pause(self):

@@ -38,6 +38,8 @@ installer/app.ico
 
 # Development-only material, kept local: plans, agent guides, test suite,
 # dev tooling, batch-run outputs, profiling data, scratch assets
+/feedback/
+/shadow_gallery.html
 /MASTER_PLAN.md
 /PLAN_ARCHIVE.md
 /CLAUDE.md

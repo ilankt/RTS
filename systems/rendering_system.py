@@ -23,6 +23,8 @@ class RenderingSystem:
         self._fog_overlay = None  # §8.14: shared per-frame hex fog canvas
         # Cached scaled object sprites keyed by (id(sprite), width, height)
         self._scaled_sprite_cache = {}
+        self._shadow_cache = {}        # (w, h) -> cached soft blob shadow surface
+        self._sprite_bbox_cache = {}   # id(sprite) -> opaque-content bounding box
         # Per-object visual scale from JSON (render_scale): normalizes
         # perceived size across art styles (thin realistic sheets vs chunky
         # cartoons) without touching collision or gameplay size. Buildings
@@ -321,6 +323,12 @@ class RenderingSystem:
                 visible.append(obj)
 
         visible.sort(key=lambda obj: obj.y)
+        # Blob shadows: one flat ellipse under every object's feet, drawn in a
+        # pass BEFORE any sprite so a shadow never lands on top of an object in
+        # front of it. Toggled off in Settings for slower machines.
+        if getattr(self.game, "shadows_enabled", True):
+            for obj in visible:
+                self._draw_shadow(obj, map_surface, camera)
         for obj in visible:
             self._draw_object(obj, map_surface, camera)
 
@@ -374,6 +382,123 @@ class RenderingSystem:
                 self._scaled_sprite_cache[key] = faded
             map_surface.blit(faded, ((x * camera.zoom) + camera.x - width / 2,
                                      (y * camera.zoom) + camera.y - height / 2))
+
+    # Blob-shadow model (the WC3-style grounding pool): everything derives
+    # from the DRAWN SPRITE's opaque pixel bounds, never from gameplay
+    # size/radius (which don't track the art). The ellipse is a soft dark
+    # pool DELIBERATELY LARGER than the art's base, centred on the iso
+    # ground footprint (whose screen depth is about half the art's width),
+    # so a rim shows all around the base — including behind it. That rim is
+    # what reads as "grounded"; without it objects look like they float.
+    # A sun to the NORTH halfway down the sky then biases the pool a bit
+    # SOUTH (screen-down).
+    SHADOW_COLOR = (12, 14, 20)
+    SHADOW_ALPHA = 130
+    SHADOW_WIDTH_FACTOR = 1.5    # ellipse width / drawn opaque width (> 1: rim shows)
+    SHADOW_H_RATIO = 0.36        # flatten: ellipse height / width
+    SHADOW_SUN_SHIFT = 0.12      # southward bias / drawn opaque height, capped
+
+    def _shadow_surface(self, w, h):
+        """Cached soft-edged blob of size (w, h): concentric ellipses fading
+        from a light rim to the full-alpha core (draw overwrites, so the core
+        stays exactly SHADOW_ALPHA)."""
+        key = (w, h)
+        surf = self._shadow_cache.get(key)
+        if surf is None:
+            if len(self._shadow_cache) > 512:
+                self._shadow_cache.clear()
+            surf = pygame.Surface((w, h), pygame.SRCALPHA)
+            for frac, alpha in ((1.0, 0.35), (0.86, 0.7), (0.72, 1.0)):
+                ew, eh = max(2, int(w * frac)), max(2, int(h * frac))
+                rect = pygame.Rect((w - ew) // 2, (h - eh) // 2, ew, eh)
+                pygame.draw.ellipse(
+                    surf, (*self.SHADOW_COLOR, int(self.SHADOW_ALPHA * alpha)), rect)
+            self._shadow_cache[key] = surf
+        return surf
+
+    def _sprite_content_bbox(self, sprite):
+        """Opaque-content bounding box of a sprite frame, cached per surface
+        (get_bounding_rect is O(pixels) — compute once)."""
+        key = id(sprite)
+        bbox = self._sprite_bbox_cache.get(key)
+        if bbox is None:
+            try:
+                rect = sprite.get_bounding_rect(min_alpha=8)
+                if rect.width and rect.height:
+                    bbox = (rect.left, rect.top, rect.width, rect.height)
+                else:
+                    bbox = (0, 0, sprite.get_width(), sprite.get_height())
+            except Exception:
+                bbox = (0, 0, sprite.get_width(), sprite.get_height())
+            if len(self._sprite_bbox_cache) > 1024:
+                self._sprite_bbox_cache.clear()
+            self._sprite_bbox_cache[key] = bbox
+        return bbox
+
+    # Art-specific ground coverage — the one thing the global heuristic can't
+    # know. The default assumes footprint depth ≈ half the art's width; these
+    # sprites deviate: a flat foundation or basin is ALL footprint, a grove's
+    # trees stand across the art's whole depth, the castle's base diamond runs
+    # deeper than the default. Values = pool-centre lift as a fraction of the
+    # drawn content HEIGHT (replacing the default lift).
+    _SHADOW_LIFT = {"castle": 0.34, "wood": 0.35, "fountain": 0.35,
+                    "construction": 0.50}
+
+    def _shadow_lift_override(self, obj):
+        if isinstance(obj, ConstructionSite):
+            return self._SHADOW_LIFT["construction"]
+        if obj.__class__.__name__ == "Fountain":
+            return self._SHADOW_LIFT["fountain"]
+        return self._SHADOW_LIFT.get(getattr(obj, "name", None))
+
+    def _shadow_geometry(self, obj, sprite, camera):
+        """(centre_x, centre_y, w, h) for an object's blob shadow, or None.
+
+        Pure function of the drawn art (see the model comment on the shadow
+        constants): a pool wider than the art, centred on the iso ground
+        footprint, biased slightly south by the northern sun."""
+        if getattr(obj, "radius", 0) <= 0 or sprite is None:
+            return None
+        zoom = camera.zoom
+        draw_x = (obj.x * zoom) + camera.x
+        draw_y = (obj.y * zoom) + camera.y
+        sprite_w, sprite_h = sprite.get_size()
+        scale = (obj.size[0] * TILE_WIDTH) / sprite_w
+        scale *= self._render_scales.get(getattr(obj, "name", None), 1.0)
+        s = scale * zoom
+
+        left, top, bw, bh = self._sprite_content_bbox(sprite)
+        content_w = bw * s
+        content_h = bh * s
+        # Content may sit off the frame centre; mirrored units flip the offset
+        # (units facing left draw a horizontally flipped copy).
+        off_x = (left + bw / 2 - sprite_w / 2) * s
+        if getattr(obj, "facing_left", False):
+            off_x = -off_x
+        bottom_y = draw_y + (top + bh - sprite_h / 2) * s
+
+        w = max(8, int(content_w * self.SHADOW_WIDTH_FACTOR))
+        h = max(4, int(w * self.SHADOW_H_RATIO))
+        # Centre of the iso ground footprint: screen depth is about half the
+        # art's width; the height cap keeps flat/squat art (foundations,
+        # piles) from lifting the pool above their own middle. Art whose
+        # ground coverage deviates from that heuristic overrides its lift.
+        override = self._shadow_lift_override(obj)
+        if override is not None:
+            lift = content_h * override
+        else:
+            lift = min(content_w * 0.25, content_h * 0.5)
+        sun = min(content_h * self.SHADOW_SUN_SHIFT, h * 0.30)
+        return (draw_x + off_x, bottom_y - lift + sun, w, h)
+
+    def _draw_shadow(self, obj, map_surface, camera):
+        """A single blob shadow centred at an object's feet/base."""
+        geo = self._shadow_geometry(obj, self._get_object_sprite(obj), camera)
+        if geo is None:
+            return
+        cx, cy, w, h = geo
+        map_surface.blit(self._shadow_surface(w, h),
+                         (int(cx - w / 2), int(cy - h / 2)))
 
     def _draw_object(self, obj, map_surface, camera):
         """Draw a single game object"""

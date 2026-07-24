@@ -28,6 +28,9 @@ DEFAULTS = {
     "colorblind_palette": False,  # Okabe-Ito team colors (§8.7), on restart
     "adaptive_difficulty": False,  # covert DDA (§7.2): AI reaction-time nudges
     "batch_queue_size": 5,        # Shift+production-tile queues N (§8.2.1 B)
+    "show_onboarding": True,      # new-player tips + reactive hints master switch
+    "onboarding_force": False,    # one-shot: replay tips next match, then self-clears
+    "shadows": True,              # blob shadows under objects (off = cheaper)
 }
 
 
@@ -55,7 +58,8 @@ class Settings:
                 except (TypeError, ValueError):
                     pass
             elif key in ("sound_enabled", "colorblind_palette",
-                         "adaptive_difficulty", "fullscreen"):
+                         "adaptive_difficulty", "fullscreen",
+                         "show_onboarding", "onboarding_force", "shadows"):
                 self.values[key] = bool(value)
             elif key == "default_game_speed":
                 try:
@@ -128,6 +132,7 @@ class Settings:
         game.game_speed = self.values["default_game_speed"]
         game.adaptive_difficulty = self.values["adaptive_difficulty"]
         game.batch_queue_size = self.values["batch_queue_size"]
+        game.shadows_enabled = self.values["shadows"]
 
     def apply_audio(self, game):
         """Audio-only subset — safe to re-apply mid-match from the pause

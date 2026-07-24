@@ -168,9 +168,6 @@ class MilitaryBrain:
         combatants = combatants_of(military)
         healers = [u for u in military if not getattr(u, "can_attack_flag", True)]
 
-        # 0a. Gates (§8.10): open for the economy, slam shut under threat
-        self._manage_gates(ctx)
-
         # 0. Micro: retreat damaged units, kite with archers
         self._apply_micro(military, castle, max_hp_cache)
         self._manage_healers(healers, combatants, castle, max_hp_cache)
@@ -391,28 +388,6 @@ class MilitaryBrain:
             throttle_key=f"telegraph_{ctx.player.name}",
             throttle_ms=45000,
         )
-
-    def _manage_gates(self, ctx):
-        """Keep own gates open so workers path through, closed when enemy
-        strength registers near the gate (coarse threat map, §8.10). The
-        toggle drives the incremental nav notifications, mirroring the
-        human G-key path in core/game.py."""
-        for gate in ctx.buildings.get("gate", []):
-            if gate.hp <= 0:
-                continue
-            should_be_open = ctx.threat_at(gate.x, gate.y) <= 0
-            if should_be_open == gate.passable:
-                continue
-            now_open = gate.toggle_gate()
-            if now_open:
-                self.game.pathfinder.notify_blocker_removed(gate)
-            else:
-                self.game.pathfinder.notify_blocker_added(gate)
-            debug_log.log(
-                f"AI {ctx.player.name}: gate {'opened' if now_open else 'closed'} "
-                f"at ({gate.x:.0f}, {gate.y:.0f})",
-                "AI",
-            )
 
     def _next_squad(self, player, military):
         """Rotating squad view over the army (index-chunked, stable order).
