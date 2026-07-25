@@ -122,7 +122,10 @@ class ResearchManager:
         building.player.upgrades[tech["id"]] = tech
         building.player.upgrades_version = getattr(building.player, "upgrades_version", 0) + 1
         debug_log.log(f"{building.player.name}: completed research {tech['id']}", "PRODUCTION")
-        if hasattr(self.game, "sound_manager") and self.game.sound_manager:
+        # Own research only — an AI finishing an upgrade must not chime in the
+        # human's ears (user-reported "I can hear the enemy's camp").
+        if (getattr(building.player, "human", False)
+                and getattr(self.game, "sound_manager", None)):
             self.game.sound_manager.play_research_complete()
         if getattr(building.player, "human", False) and getattr(self.game, "ui_manager", None):
             name = tech.get("display_name", tech["id"])

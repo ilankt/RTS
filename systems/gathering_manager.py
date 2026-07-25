@@ -133,6 +133,7 @@ class GatheringManager:
         resource.amount_remaining -= actual_gathered
         worker.status = "gather"
         worker.gathering_timer += delta_time
+        self._play_gather_sound(worker, resource_type)
 
         if resource.amount_remaining <= 0:
             return "full" if worker.resource_amount > 0 else "depleted"
@@ -140,6 +141,30 @@ class GatheringManager:
             return "full"
         return "gathering"
     
+    # §8.5 work sounds: how often a gathering worker makes a noise. Jittered
+    # per worker so a crowd on one node doesn't chop in lockstep.
+    GATHER_SOUND_INTERVAL = 0.85
+
+    def _play_gather_sound(self, worker, resource_type=None):
+        """A chop/clink while the worker is actually working — positional, so
+        you only hear the workers the camera is looking at. Uses the
+        per-resource sound (gather_gold / gather_wood) when one is installed,
+        so mining doesn't sound like chopping."""
+        sound = getattr(self.game, "sound_manager", None)
+        if sound is None or not hasattr(sound, "play_world"):
+            return
+        now = getattr(self.game, "sim_time_elapsed", 0.0)
+        if now < getattr(worker, "_next_gather_sound", 0.0):
+            return
+        worker._next_gather_sound = (
+            now + self.GATHER_SOUND_INTERVAL + (id(worker) % 7) * 0.06)
+        key = "gather"
+        if resource_type:
+            specific = f"gather_{resource_type}"
+            if sound.has_real_sound(specific):
+                key = specific
+        sound.play_world(key, worker.x, worker.y, obj=worker)
+
     def _update_gathering_worker(self, worker, delta_time):
         """Update a single gathering worker"""
         if worker.gathering_target and worker.gathering_target.amount_remaining > 0:

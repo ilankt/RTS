@@ -18,6 +18,8 @@ env/
 *.swo
 .DS_Store
 Thumbs.db
+# Office lock files (e.g. ~$SOUND_LIST.xlsx)
+~$*
 
 # Runtime output: saves, logs, user-local settings
 saves/
@@ -40,6 +42,8 @@ installer/app.ico
 # dev tooling, batch-run outputs, profiling data, scratch assets
 /feedback/
 /shadow_gallery.html
+/SOUND_LIST.xlsx
+assets/sfx_incoming/
 /MASTER_PLAN.md
 /PLAN_ARCHIVE.md
 /CLAUDE.md

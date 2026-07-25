@@ -505,10 +505,19 @@ class CombatSystem:
                 # Spawn attack particles at target position
                 if hasattr(self.game, 'particles') and self.game.particles:
                     self.game.particles.spawn_attack_particles(target.x, target.y, count=2)
-                # Play hit sound (only for fights the human can actually see)
-                if (hasattr(self.game, 'sound_manager') and self.game.sound_manager
-                        and self._audible_to_human(target)):
-                    self.game.sound_manager.play_hit()
+                # Hit blip: positional, so only the fight the camera is on is
+                # heard, and throttled so a melee doesn't fire dozens a second
+                if getattr(self.game, 'sound_manager', None):
+                    self.game.sound_manager.play_world(
+                        "hit", target.x, target.y, obj=target, min_interval=0.05)
+                    # The swing itself, from the ATTACKER, using its own bark
+                    # when installed — this is what gives archers a bow and
+                    # rams a boom instead of everyone sharing one sword.
+                    attacker = getattr(target, 'last_attacker', None)
+                    if attacker is not None and getattr(attacker, 'hp', 0) > 0:
+                        self.game.sound_manager.play_world_unit(
+                            "attack", getattr(attacker, 'name', None), "attack",
+                            attacker.x, attacker.y, obj=attacker, min_interval=0.05)
 
         # Under-attack alert for the human player (§7.4): sound + minimap ping,
         # rate-limited so a battle doesn't spam.
@@ -630,9 +639,9 @@ class CombatSystem:
         # Spawn death particles and sound
         if hasattr(self.game, 'particles') and self.game.particles:
             self.game.particles.spawn_death_particles(unit.x, unit.y, count=6)
-        if (hasattr(self.game, 'sound_manager') and self.game.sound_manager
-                and self._audible_to_human(unit)):
-            self.game.sound_manager.play_death()
+        if getattr(self.game, 'sound_manager', None):
+            self.game.sound_manager.play_world(
+                "death", unit.x, unit.y, obj=unit, min_interval=0.08)
         # §8.5 death fade: the unit's last frame ghosts out in place
         renderer = getattr(self.game, 'rendering_system', None)
         if renderer is not None and hasattr(unit, 'get_current_sprite'):
@@ -678,9 +687,13 @@ class CombatSystem:
         if hasattr(self.game, 'particles') and self.game.particles:
             count = 12 if building.name == "castle" else 8
             self.game.particles.spawn_death_particles(building.x, building.y, count=count)
-        if (hasattr(self.game, 'sound_manager') and self.game.sound_manager
-                and self._audible_to_human(building)):
-            self.game.sound_manager.play_death()
+        sound = getattr(self.game, 'sound_manager', None)
+        if sound is not None:
+            # A collapsing building should not play the human death grunt —
+            # use the dedicated collapse when one is installed.
+            key = ("building_destroyed" if sound.has_real_sound("building_destroyed")
+                   else "death")
+            sound.play_world(key, building.x, building.y, obj=building)
         # §8.5 death fade for the building sprite
         renderer = getattr(self.game, 'rendering_system', None)
         if renderer is not None:

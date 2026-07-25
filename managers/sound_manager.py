@@ -145,8 +145,18 @@ class MusicPlayer:
             return self.DUCK_FACTOR + (1.0 - self.DUCK_FACTOR) * t
         return 1.0
 
+    # Music tracks are mastered LOUD — the current set peaks at 0 dBFS with
+    # ~-15 dB RMS, while the SFX average ~-27 dB RMS. Raw, that is a 12 dB gap
+    # in RMS, and music is continuous where SFX are transient, so it swallows
+    # the mix even with the slider near its minimum (user-reported: "music at
+    # 10% is louder than SFX at 30%"). This trim rescales the slider into a
+    # useful range instead of re-encoding the audio, so nothing is re-
+    # compressed and it can be undone with one number. Raise it toward 1.0 if
+    # the tracks are ever remastered to ~-16 LUFS as AUDIO_GUIDE §1.4 asks.
+    MUSIC_HEADROOM = 0.30
+
     def _apply_volume(self, force=False):
-        value = self.volume * self._duck_multiplier()
+        value = self.volume * self._duck_multiplier() * self.MUSIC_HEADROOM
         if not force and self._applied_volume is not None and abs(value - self._applied_volume) < 0.005:
             return
         self._applied_volume = value
@@ -355,20 +365,40 @@ class SoundManager:
     unit barks, and the shared mood-aware music playlist."""
 
     BARK_KINDS = ("select", "move", "attack")
+    # Only real audio files are heard. The synthesized bleeps stay loaded as a
+    # silent scaffold so every trigger, throttle and spatial gate keeps working
+    # — drop assets/sfx/<key>.ogg in and that sound switches itself on. Flip to
+    # False to hear the placeholders again.
+    SILENCE_PLACEHOLDERS = True
+    # File-only sound keys — no synth placeholder, they simply don't exist
+    # until a file is supplied. Per-resource gather sounds fall back to the
+    # generic `gather` when absent.
+    EXTRA_SFX = ("gather_gold", "gather_wood", "gather_food", "building_destroyed")
+    # Looping beds tied to game state, each an optional assets/sfx/<name>.ogg.
+    # Unlike the one-shot keys these have no synth fallback: no file, no loop.
+    LOOP_SFX = ("construction",)
+    LOOP_VOLUME = 0.7          # relative to the SFX volume — beds sit back
 
     def __init__(self, game):
         self.game = game
         self.enabled = True
         self.volume = 0.3          # SFX volume
         self.barks = {}            # (unit_name, kind) -> [Sound, ...]
+        self.loops = {}            # name -> Sound (looping bed)
+        self._loop_channels = {}   # name -> Channel currently looping it
+        self._world_last = {}      # key -> last play time, for world throttles
         # Own RNG for bark variant picks — never the seeded global stream.
         self._rng = random.Random()
 
         try:
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+            # 8 (the default) runs out fast once world sounds overlap — a
+            # skirmish alone can want a dozen at once.
+            pygame.mixer.set_num_channels(32)
             self._generate_sounds()
             self._load_sfx_overrides()
             self._load_barks()
+            self._load_loops()
         except Exception:
             self.enabled = False
 
@@ -377,9 +407,155 @@ class SoundManager:
         self.volume = min(1.0, max(0.0, float(volume)))
         for sound in getattr(self, "sounds", {}).values():
             sound.set_volume(self.volume)
+        # Numbered variants live outside `sounds` (only the first is stored
+        # there), so they need setting explicitly or they play at full volume.
+        for variants in getattr(self, "sfx_variants", {}).values():
+            for sound in variants:
+                sound.set_volume(self.volume)
         for variants in self.barks.values():
             for sound in variants:
                 sound.set_volume(self.volume)
+        for channel in getattr(self, "_loop_channels", {}).values():
+            if channel is not None:
+                try:
+                    channel.set_volume(self.volume * self.LOOP_VOLUME)
+                except Exception:
+                    pass
+
+    # ---- Spatial world audio (§8.5) ---------------------------------- #
+    # World events are heard from the camera's viewpoint: full volume at the
+    # centre of the view, fading to nothing past its edge, panned left/right
+    # by where they sit on screen. Without this the whole map is audible at
+    # once — every worker's axe and every distant skirmish (user-reported).
+    # Zoom falls out for free: the view covers less ground zoomed in, so only
+    # what you are actually looking at can be heard.
+    WORLD_EDGE_MARGIN = 0.30   # extra fraction of the view that still sounds
+    WORLD_MIN_GAIN = 0.05      # quieter than this -> don't bother playing
+    WORLD_PAN = 0.55           # 0 = no stereo spread, 1 = hard panning
+
+    def world_gain(self, x, y):
+        """(left, right) gain for a sound at a world position, or None when it
+        is too far outside the view to be worth playing."""
+        camera = getattr(self.game, "camera", None)
+        if camera is None:
+            return (1.0, 1.0)      # headless / tests: never silence anything
+        # Read the view size off the module so a resolution change is picked up
+        from core import config
+
+        zoom = getattr(camera, "zoom", 1.0) or 1.0
+        half_w = max(1.0, config.MAP_VIEW_WIDTH / 2.0)
+        half_h = max(1.0, config.MAP_VIEW_HEIGHT / 2.0)
+        # Offset from the centre of the view, normalised so 1.0 == the edge
+        dx = ((x * zoom + camera.x) - half_w) / half_w
+        dy = ((y * zoom + camera.y) - half_h) / half_h
+        distance = math.hypot(dx, dy) / (1.0 + self.WORLD_EDGE_MARGIN)
+        if distance >= 1.0:
+            return None
+        gain = (1.0 - distance) ** 1.5
+        if gain < self.WORLD_MIN_GAIN:
+            return None
+        pan = max(-1.0, min(1.0, dx))
+        left = gain * (1.0 - self.WORLD_PAN * max(0.0, pan))
+        right = gain * (1.0 - self.WORLD_PAN * max(0.0, -pan))
+        return (left, right)
+
+    def play_world(self, key, x, y, obj=None, min_interval=0.0):
+        """Play a sound that happens somewhere on the map.
+
+        Attenuated and panned by `world_gain`, skipped entirely when off
+        screen, silent when `obj` is hidden by fog, and optionally rate-limited
+        so a big battle doesn't fire the same blip dozens of times a second.
+        Returns True if it actually played.
+        """
+        if not self.enabled or not self.has_real_sound(key):
+            return False
+        return self._play_positioned(self._pick(key), key, x, y, obj, min_interval)
+
+    def play_world_unit(self, kind, unit_name, fallback_key, x, y,
+                        obj=None, min_interval=0.0):
+        """A per-unit-type world sound: an archer's bow, a ram's boom. Uses the
+        unit's bark variant (assets/sfx/bark_<unit>_<kind>_<n>.ogg) when one is
+        installed, else the shared fallback key — positional either way."""
+        if not self.enabled:
+            return False
+        variants = self.barks.get((unit_name, kind)) if unit_name else None
+        if variants:
+            sound = self._rng.choice(variants)
+            throttle_key = f"{kind}::{unit_name}"
+        elif self.has_real_sound(fallback_key):
+            sound = self._pick(fallback_key)
+            throttle_key = fallback_key
+        else:
+            return False
+        return self._play_positioned(sound, throttle_key, x, y, obj, min_interval)
+
+    def _play_positioned(self, sound, key, x, y, obj=None, min_interval=0.0):
+        """Shared body of the world-sound path: fog gate, distance/pan gain,
+        throttle, then play on its own channel at the computed stereo gain."""
+        if sound is None:
+            return False
+        if obj is not None:
+            fog = getattr(self.game, "fog_of_war", None)
+            if fog is not None and not fog.is_object_visible(obj):
+                return False
+        gains = self.world_gain(x, y)
+        if gains is None:
+            return False
+        now = time.monotonic()
+        if min_interval and now - self._world_last.get(key, -9999.0) < min_interval:
+            return False
+        # Recorded on every play, not just throttled ones, so call sites that
+        # ask for a throttle still see plays made by ones that didn't.
+        self._world_last[key] = now
+        channel = sound.play()
+        if channel is not None:
+            # The Sound already carries self.volume, so these are pure
+            # positional scalars — multiplying by volume again would square it.
+            try:
+                channel.set_volume(*gains)
+            except Exception:
+                pass
+        return True
+
+    def _load_loops(self):
+        """Load the optional looping beds (assets/sfx/<name>.ogg|.wav)."""
+        for name in self.LOOP_SFX:
+            for ext in (".ogg", ".wav"):
+                path = os.path.join(SFX_DIR, name + ext)
+                if os.path.exists(path):
+                    try:
+                        self.loops[name] = pygame.mixer.Sound(path)
+                    except Exception:
+                        pass
+                    break
+
+    def set_loop_active(self, name, active, gain=1.0):
+        """Start/stop a looping bed. Safe to call every frame — it only acts on
+        a change, and no-ops entirely when the sound file isn't installed.
+        `gain` (0-1) attenuates it by distance so the bed fades as the camera
+        pans away from what is making the noise."""
+        sound = self.loops.get(name)
+        if sound is None:
+            return
+        channel = self._loop_channels.get(name)
+        if active and self.enabled:
+            if channel is None or not channel.get_busy():
+                try:
+                    channel = sound.play(loops=-1, fade_ms=250)
+                except Exception:
+                    channel = None
+                self._loop_channels[name] = channel
+            if channel is not None:
+                try:
+                    channel.set_volume(self.volume * self.LOOP_VOLUME * gain)
+                except Exception:
+                    pass
+        elif channel is not None:
+            try:
+                channel.fadeout(300)
+            except Exception:
+                pass
+            self._loop_channels[name] = None
 
     # ---- Background music (§8.5): delegates to the shared player ------ #
 
@@ -451,38 +627,74 @@ class SoundManager:
 
     def _load_sfx_overrides(self):
         """Real files replace synth placeholders: assets/sfx/<key>.ogg|.wav
-        (AUDIO_GUIDE §2 — filenames map to sound keys; synth stays as the
-        fallback when a file is missing or unloadable)."""
-        for key in list(self.sounds.keys()):
-            for ext in (".ogg", ".wav"):
-                path = os.path.join(SFX_DIR, key + ext)
-                if os.path.exists(path):
-                    try:
-                        self.sounds[key] = pygame.mixer.Sound(path)
-                    except Exception:
-                        pass
-                    break
+        (AUDIO_GUIDE §2 — filenames map to sound keys).
+
+        Numbered siblings rotate: `death.ogg` + `death_2.ogg` + `death_3.ogg`
+        register as variants of `death` and one is picked at random each play,
+        which stops the most-repeated sounds (hits, deaths, axe swings) from
+        turning into a metronome. Keys in EXTRA_SFX have no synth placeholder
+        and exist only when a file is supplied."""
+        self.real_sfx = set()
+        self.sfx_variants = {}
+        for key in list(self.sounds.keys()) + list(self.EXTRA_SFX):
+            variants = []
+            for suffix in ("",) + tuple(f"_{i}" for i in range(2, 10)):
+                for ext in (".ogg", ".wav"):
+                    path = os.path.join(SFX_DIR, key + suffix + ext)
+                    if os.path.exists(path):
+                        try:
+                            variants.append(pygame.mixer.Sound(path))
+                        except Exception:
+                            pass
+                        break
+            if variants:
+                self.sounds[key] = variants[0]
+                self.sfx_variants[key] = variants
+                self.real_sfx.add(key)
+
+    def has_real_sound(self, key):
+        """Is this key backed by an actual audio file (not a synth bleep)?"""
+        return not self.SILENCE_PLACEHOLDERS or key in getattr(self, "real_sfx", ())
+
+    def _pick(self, key):
+        """The Sound to play for a key — a random variant when several exist."""
+        variants = getattr(self, "sfx_variants", {}).get(key)
+        if variants:
+            return variants[0] if len(variants) == 1 else self._rng.choice(variants)
+        return self.sounds.get(key)
 
     def _load_barks(self):
-        """Unit response barks: assets/sfx/bark_<unit>_<kind>_<n>.ogg|.wav
-        (kind: select/move/attack). Multiple numbered variants per unit+kind
-        rotate randomly. No files -> per-type pitch variants of the synth
-        blips keep unit types audibly distinct."""
+        """Per-object response barks: assets/sfx/bark_<name>_<kind>[_<n>].ogg|.wav
+        (kind: select/move/attack). `name` is a unit type OR a building type, so
+        clicking a farm can cluck exactly like selecting a warrior grunts.
+        Numbered variants rotate at random. No files -> per-type pitch variants
+        of the synth blips keep unit types audibly distinct.
+
+        The name is read from the MIDDLE of the stem, not a fixed position, so
+        multi-word types survive: bark_siege_workshop_select_1 -> siege_workshop.
+        """
         try:
             paths = glob.glob(os.path.join(SFX_DIR, "bark_*.ogg"))
             paths += glob.glob(os.path.join(SFX_DIR, "bark_*.wav"))
         except Exception:
             paths = []
         for path in sorted(paths):
-            stem = os.path.splitext(os.path.basename(path))[0]
-            parts = stem.split("_")  # bark, unit, kind, n
-            if len(parts) < 3 or parts[2] not in self.BARK_KINDS:
+            parts = os.path.splitext(os.path.basename(path))[0].split("_")
+            if len(parts) < 3:
+                continue
+            if parts[-1] in self.BARK_KINDS:                     # ..._select
+                kind, name = parts[-1], "_".join(parts[1:-1])
+            elif len(parts) >= 4 and parts[-2] in self.BARK_KINDS:  # ..._select_2
+                kind, name = parts[-2], "_".join(parts[1:-2])
+            else:
+                continue
+            if not name:
                 continue
             try:
                 sound = pygame.mixer.Sound(path)
             except Exception:
                 continue
-            self.barks.setdefault((parts[1], parts[2]), []).append(sound)
+            self.barks.setdefault((name, kind), []).append(sound)
 
     @staticmethod
     def _type_pitch_factor(unit_name):
@@ -577,13 +789,16 @@ class SoundManager:
         return pygame.mixer.Sound(buffer=raw_data)
 
     def play(self, sound_name):
-        """Play a sound by name."""
-        if not self.enabled:
-            return
-        sound = self.sounds.get(sound_name)
-        if sound:
-            sound.set_volume(self.volume)
-            sound.play()
+        """Play a sound by name. Returns True if it was actually audible —
+        placeholder-only keys are silently skipped (SILENCE_PLACEHOLDERS)."""
+        if not self.enabled or not self.has_real_sound(sound_name):
+            return False
+        sound = self._pick(sound_name)
+        if not sound:
+            return False
+        sound.set_volume(self.volume)
+        sound.play()
+        return True
 
     def play_attack(self, unit_name=None):
         if not self.enabled:
@@ -605,7 +820,11 @@ class SoundManager:
     def play_select(self, unit_name=None):
         if not self.enabled:
             return
-        if unit_name and (unit_name, "select") not in self.barks:
+        # Per-type pitch variants only make sense while `select` is still a
+        # synth placeholder. Once a real file is installed it must be heard as
+        # recorded, not replaced by a pitch-shifted bleep.
+        if (unit_name and (unit_name, "select") not in self.barks
+                and not self.has_real_sound("select")):
             self.play(self._type_variant("select", unit_name, 600, 0.03))
             return
         self._play_bark_or("select", unit_name, "select")
@@ -613,7 +832,8 @@ class SoundManager:
     def play_move_order(self, unit_name=None):
         if not self.enabled:
             return
-        if unit_name and (unit_name, "move") not in self.barks:
+        if (unit_name and (unit_name, "move") not in self.barks
+                and not self.has_real_sound("move_order")):
             self.play(self._type_variant("move_order", unit_name, 350, 0.04))
             return
         self._play_bark_or("move", unit_name, "move_order")
@@ -632,7 +852,7 @@ class SoundManager:
     def play_idle_worker(self):
         """Subtle chime when a worker falls idle. Quieter than a combat alert
         and deliberately does NOT duck the music — it should nudge, not alarm."""
-        if not self.enabled:
+        if not self.enabled or not self.has_real_sound("idle_worker"):
             return
         sound = self.sounds.get("idle_worker")
         if sound:

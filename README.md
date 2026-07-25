@@ -103,8 +103,13 @@ data/       units.json, buildings.json, techs.json — all game content
 ## Status
 
 Actively developed hobby project. The core game is fully playable end to end;
-current work focuses on performance at 200+ unit battles, wall/gate sprites,
-and world/art polish.
+current work focuses on performance at 200+ unit battles, audio, and
+world/art polish.
+
+## Credits
+
+Sound effects courtesy of [Pixabay](https://pixabay.com/sound-effects/) and
+[Kenney](https://kenney.nl) — see [CREDITS.md](CREDITS.md).
 
 ## Disclaimer
 

@@ -142,7 +142,9 @@ class SelectionManager:
                         self.selected_objects.append(clicked_object)
                 # Note: AI objects are not added to selected_objects (visual selection only)
             if clicked_is_human:
-                self._play_human_sound("select")
+                # Pass the object's name so BUILDINGS get barks too, not just
+                # units — clicking a farm can cluck (bark_farm_select_1.ogg).
+                self._play_human_sound("select", getattr(clicked_object, "name", None))
         else:
             # No object clicked - clear selection unless shift is held
             is_shift_held = pygame.key.get_pressed()[pygame.K_LSHIFT]
@@ -346,26 +348,45 @@ class SelectionManager:
             # Large groups ride ONE shared flow field (Phase 5) instead of
             # issuing a path search per unit (immediate orders only; queued
             # waypoints execute per unit later).
-            if not shift_held and len(movable_units) >= 8 and pathfinder.request_group_move(movable_units, world_pos, slots):
-                for obj in movable_units:
-                    obj.attack_move_target = None  # §8.14: plain move replaces attack-move
-                self._play_human_sound("move")
-            else:
-                for obj, target_pos in zip(movable_units, slots):
-                    self._issue_or_queue(obj, ("move", target_pos), shift_held)
+            self._suppress_unit_sounds = True
+            try:
+                if not shift_held and len(movable_units) >= 8 and pathfinder.request_group_move(movable_units, world_pos, slots):
+                    for obj in movable_units:
+                        obj.attack_move_target = None  # §8.14: plain move replaces attack-move
+                else:
+                    for obj, target_pos in zip(movable_units, slots):
+                        self._issue_or_queue(obj, ("move", target_pos), shift_held)
+            finally:
+                self._suppress_unit_sounds = False
+            self._play_human_sound("move", getattr(movable_units[0], "name", None))
             self._add_order_flash(world_pos, "move")
         else:
             # Command units normally (single unit or clicking on object)
             flash_kind = "move"
-            for obj in movable_units:
-                spec = self._command_spec_for(obj, clicked_object, world_pos)
-                if spec[0] in ("gather", "dropoff", "garrison", "build"):
-                    flash_kind = "gather"
-                elif spec[0] == "attack":
-                    flash_kind = "attack"
-                self._issue_or_queue(obj, spec, shift_held)
+            sound_kind = "move"
+            # ONE acknowledgement per order (§8.5): the per-unit command paths
+            # each play their own, so a 5-unit move stacked five copies of the
+            # same blip, and a gather order layered the move blip over the chop
+            # — which buried it entirely. Suppress those, then play exactly one
+            # sound matching what the order actually was.
+            self._suppress_unit_sounds = True
+            try:
+                for obj in movable_units:
+                    spec = self._command_spec_for(obj, clicked_object, world_pos)
+                    if spec[0] in ("gather", "dropoff", "garrison", "build"):
+                        flash_kind = "gather"
+                    elif spec[0] == "attack":
+                        flash_kind = "attack"
+                    # An ATTACK ORDER acknowledges like any other command — the
+                    # sword swish belongs to the swing itself, which combat
+                    # plays per blow from the attacker's position.
+                    if spec[0] == "gather":
+                        sound_kind = spec[0]
+                    self._issue_or_queue(obj, spec, shift_held)
+            finally:
+                self._suppress_unit_sounds = False
             if movable_units:
-                self._play_human_sound("move")
+                self._play_human_sound(sound_kind, getattr(movable_units[0], "name", None))
                 target = clicked_object if clicked_object is not None else None
                 flash_pos = (target.x, target.y) if target is not None else world_pos
                 self._add_order_flash(flash_pos, flash_kind)
@@ -538,11 +559,13 @@ class SelectionManager:
         if unit.can_attack(target):
             unit.start_attack(target)
             unit.last_task = {"type": "attack", "target": target}
-            self._play_unit_sound(unit, "attack")
+            # Order acknowledgement, NOT the swing: the sword/bow sound is
+            # played per blow by the combat system from the attacker's spot.
+            self._play_unit_sound(unit, "move")
             return
 
         if pathfinder.issue_interact(unit, target, "attack"):
-            self._play_unit_sound(unit, "attack")
+            self._play_unit_sound(unit, "move")
             return
 
         unit.current_target = None
@@ -752,6 +775,10 @@ class SelectionManager:
         self._play_unit_sound(unit, "move")
 
     def _play_unit_sound(self, unit, sound_type):
+        # Batched orders play a single acknowledgement for the whole group
+        # (see _handle_regular_right_click) instead of one per unit.
+        if getattr(self, "_suppress_unit_sounds", False):
+            return
         if not getattr(getattr(unit, "player", None), "human", False):
             return
         # Pass the unit type through so barks / per-type variants play (§8.5)

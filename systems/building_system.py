@@ -358,7 +358,12 @@ class BuildingSystem:
                     
                     # Construction complete
                     debug_log.log(f"AI: Construction of {site.building_name} completed at ({site.x:.0f}, {site.y:.0f})", "BUILD_UPDATE")
-                    if hasattr(self.game, "sound_manager") and self.game.sound_manager:
+                    # Own buildings only: this is a "your building is done"
+                    # notification, so it plays wherever it happened — but an
+                    # AI finishing a hut across the fog must stay silent
+                    # (user-reported: "I can hear the enemy's camp").
+                    if (site.player and getattr(site.player, "human", False)
+                            and getattr(self.game, "sound_manager", None)):
                         self.game.sound_manager.play_build_complete()
                     if (site.player and getattr(site.player, "human", False)
                             and getattr(self.game, "ui_manager", None)):
@@ -379,7 +384,32 @@ class BuildingSystem:
                     self.game.pathfinder.notify_blocker_removed(site)
             for building in completed_buildings:
                 self.game.pathfinder.notify_blocker_added(building)
-    
+
+        self._update_construction_sound()
+
+    def _update_construction_sound(self):
+        """Loop the build-site bed while the HUMAN player has a site actually
+        being worked on. Runs after completions are removed, so finishing the
+        last site stops the loop on the same frame. AI sites are excluded — a
+        four-player match would otherwise drone nonstop."""
+        sound = getattr(self.game, "sound_manager", None)
+        if sound is None or not hasattr(sound, "set_loop_active"):
+            return
+        players = getattr(self.game, "players", None)
+        human = players[0] if players and getattr(players[0], "human", False) else None
+        # Loudest of the sites being worked wins, so the bed swells as the
+        # camera pans onto a build site and fades out as it leaves.
+        gain = 0.0
+        if human is not None:
+            for site in self.game.construction_sites:
+                if (site.player is not human or site.builder is None
+                        or not getattr(site.builder, "is_building", False)):
+                    continue
+                gains = sound.world_gain(site.x, site.y) if hasattr(sound, "world_gain") else (1.0, 1.0)
+                if gains is not None:
+                    gain = max(gain, (gains[0] + gains[1]) / 2.0)
+        sound.set_loop_active("construction", gain > 0.0, gain=gain)
+
     def cancel_construction(self, construction_site):
         """Cancel a construction site and refund half the resources"""
         if construction_site in self.game.construction_sites:
@@ -428,11 +458,10 @@ class BuildingSystem:
         if building is None or building not in self.game.buildings:
             return False
 
-        building.hp = 0  # the per-frame cleanup (core/game.py) razes it
-
-        sound = getattr(self.game, "sound_manager", None)
-        if sound is not None:
-            sound.play_death()  # same crunch as a building lost in combat
+        # The per-frame cleanup (core/game.py) razes it — and the shared
+        # teardown already plays the collapse positionally, so playing one
+        # here too would double up.
+        building.hp = 0
 
         debug_log.log(
             f"Player demolished own {building.name} at "
