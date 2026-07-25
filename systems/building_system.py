@@ -107,8 +107,16 @@ class BuildingSystem:
             if not fog.is_explored(builder_player, world_pos[0], world_pos[1]):
                 return False
         
-        # Check collision with existing objects, including the builder itself
-        all_objects = self.game.buildings + self.game.units + self.game.resources + self.game.construction_sites
+        # Check collision with existing objects, including the builder itself.
+        # Mountains, fountains and blocking props count too (user-reported:
+        # you could place buildings on mountains — the AI path already
+        # collided with them via the shared static index).
+        all_objects = (self.game.buildings + self.game.units + self.game.resources
+                       + self.game.construction_sites
+                       + list(getattr(self.game, "fountains", ()))
+                       + list(getattr(self.game, "mountains", ()))
+                       + [p for p in getattr(self.game, "props", ())
+                          if getattr(p, "blocks", False)])
         for obj in all_objects:
             # Don't check collision with the builder if it's the selected builder
             if self.selected_builder and obj == self.selected_builder:

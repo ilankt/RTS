@@ -2,6 +2,7 @@ import pygame
 import json
 import random
 import math
+from collections import deque
 from perlin_noise import PerlinNoise
 from core.config import TILE_WIDTH, TILE_HEIGHT, SPAWN_SAFE_TERRAIN
 
@@ -48,7 +49,14 @@ class Map:
         self.scaled_transitions = {}
         self.edge_overlays = {}
         self.current_zoom = None
-        self.grid = self.generate_perlin_map()
+        # Regenerate rather than accept a drowned map: the wetter generator
+        # (2026-07-25 — bigger lakes, higher sea level) can on a rare seed
+        # flood so much ground that spawns and economy can't fit. Accept only
+        # when the largest land component still covers most of the world.
+        for _attempt in range(6):
+            self.grid = self.generate_perlin_map()
+            if len(self.largest_land_component()) >= 0.55 * self.width * self.height:
+                break
         self.build_transitions()
         self.scale_tiles(1.0)
 
@@ -288,6 +296,28 @@ class Map:
             return 0
         return (row * 2654435761 + col * 40503) % count
 
+    def water_distance_map(self):
+        """Per-tile hex-BFS distance (in tiles) to the nearest water tile.
+        Water tiles are 0; a map with no water at all is all-infinity."""
+        from core.config import WATER_TERRAIN
+
+        inf = float("inf")
+        dist = [[inf] * self.width for _ in range(self.height)]
+        frontier = deque()
+        for r in range(self.height):
+            for c in range(self.width):
+                if self.grid[r][c] in WATER_TERRAIN:
+                    dist[r][c] = 0
+                    frontier.append((r, c))
+        while frontier:
+            r, c = frontier.popleft()
+            d = dist[r][c] + 1
+            for nr, nc in self.hex_neighbors(r, c):
+                if 0 <= nr < self.height and 0 <= nc < self.width and d < dist[nr][nc]:
+                    dist[nr][nc] = d
+                    frontier.append((nr, nc))
+        return dist
+
     def generate_perlin_map(self):
         """§11.1 simplified roster: 4 grounds + 2 waters. Everything that
         used to be a special tile (forest, mountains, lava) is now a PROP
@@ -329,11 +359,14 @@ class Map:
 
                 moisture = moisture_noise([nx, ny])
 
-                if elevation < -0.12:
+                # Sea level raised -0.12/-0.02 → -0.10/0.0 (2026-07-25,
+                # user: not enough lakes/oceans; spawn selection is now
+                # water-aware so wetter maps stay playable)
+                if elevation < -0.10:
                     grid[r][c] = "water_deep"
-                elif elevation < -0.02:
+                elif elevation < 0.0:
                     grid[r][c] = "water_shallow"
-                elif elevation < 0.05:
+                elif elevation < 0.06:
                     grid[r][c] = "dirt"        # shores and mudflats
                 elif moisture > 0.28 and elevation < 0.22:
                     grid[r][c] = "swamp"       # wet lowlands
@@ -350,22 +383,39 @@ class Map:
         return grid
     
     def _create_lakes(self, grid, seed):
-        """Inland lakes carved into the wet lowlands."""
+        """Inland lakes carved into the wet lowlands. Cores come from
+        low-frequency noise — the very wettest start DEEP, and
+        _ring_deep_water shallows their shores afterward — then the carved
+        set floods two rings outward with falling probability, so lakes
+        read as BODIES of water with ragged shores instead of puddle
+        chains (2026-07-25, user: not enough lakes)."""
         lake_noise = PerlinNoise(octaves=2, seed=seed)
 
+        core = []
         for r in range(2, self.height - 2):
             for c in range(2, self.width - 2):
                 if grid[r][c] in ("grass", "swamp"):
                     lake_val = lake_noise([c / self.width * 3, r / self.height * 3])
-                    if lake_val > 0.35:  # Threshold for lakes
-                        grid[r][c] = "water_shallow"
-                        # Make neighboring tiles more likely to be water
-                        for dr in [-1, 0, 1]:
-                            for dc in [-1, 0, 1]:
-                                if 0 <= r + dr < self.height and 0 <= c + dc < self.width:
-                                    if (grid[r + dr][c + dc] in ("grass", "swamp", "dirt")
-                                            and random.random() < 0.25):
-                                        grid[r + dr][c + dc] = "water_shallow"
+                    if lake_val > 0.32:
+                        core.append((r, c))
+                        grid[r][c] = ("water_deep" if lake_val > 0.42
+                                      else "water_shallow")
+
+        edge = core
+        for chance in (0.45, 0.30):
+            next_edge = []
+            for r, c in edge:
+                for dr in (-1, 0, 1):
+                    for dc in (-1, 0, 1):
+                        rr, cc = r + dr, c + dc
+                        if not (2 <= rr < self.height - 2
+                                and 2 <= cc < self.width - 2):
+                            continue
+                        if (grid[rr][cc] in ("grass", "swamp", "dirt")
+                                and random.random() < chance):
+                            grid[rr][cc] = "water_shallow"
+                            next_edge.append((rr, cc))
+            edge = next_edge
 
     def _ring_deep_water(self, grid):
         """Every deep-water tile that touches land becomes shallow: coasts
@@ -427,20 +477,27 @@ class Map:
             for c in range(self.width):
                 grid[r][c] = new_grid[r][c]
 
+    # Preferred min hex-distance (tiles) from a spawn to ANY water tile
+    # (2026-07-25, user: "the castle is right on the water" — measured 1-2
+    # tiles on every seed before this). Relaxes one tile at a time only
+    # when a wet map leaves too few candidate spawns.
+    SPAWN_WATER_CLEARANCE = 5
+
     def find_spawn_locations(self, num_players):
         """Find safe spawn locations for players, spread as far apart as possible"""
         import math
-        
+
         # Define safe terrain for spawning
         safe_terrain = SPAWN_SAFE_TERRAIN
-        
+
         # §11.2: spawns are confined to the LARGEST land component — a
         # safe-looking pocket sealed off by water stranded whoever spawned
         # there (found by the mountain-reachability BFS, but pre-existing).
         mainland = self.largest_land_component()
+        water_dist = self.water_distance_map()
 
         # Find all potential spawn areas (safe terrain with some space around)
-        potential_spawns = []
+        base_candidates = []
         for r in range(5, self.height - 5):  # Leave border margin
             for c in range(5, self.width - 5):
                 if (r, c) not in mainland:
@@ -452,10 +509,23 @@ class Map:
                         for dc in range(-2, 3):
                             if self.grid[r + dr][c + dc] in safe_terrain:
                                 safe_count += 1
-                    
+
                     if safe_count >= 15:  # At least 15 out of 25 tiles are safe
-                        potential_spawns.append((r, c))
-        
+                        base_candidates.append((r, c))
+
+        # Highest water clearance that still leaves room: prefer a pool big
+        # enough for the max-min-distance spread below (10x players), else
+        # the highest clearance that can seat everyone at all.
+        potential_spawns = []
+        for clearance in range(self.SPAWN_WATER_CLEARANCE, 0, -1):
+            filtered = [(r, c) for r, c in base_candidates
+                        if water_dist[r][c] >= clearance]
+            if not potential_spawns and len(filtered) >= num_players:
+                potential_spawns = filtered
+            if len(filtered) >= num_players * 10:
+                potential_spawns = filtered
+                break
+
         if len(potential_spawns) < num_players:
             # Fallback: just find any safe terrain
             potential_spawns = []

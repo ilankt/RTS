@@ -10,7 +10,10 @@ each type a distinct voice.
 Music: mood-aware playlist streamed through pygame.mixer.music with its own
 volume, independent of SFX. Track conventions (either dir, no code change):
 - assets/music/  (AUDIO_GUIDE layout): menu.ogg, peace_01.ogg.., combat_01.ogg..,
-  victory.ogg / defeat.ogg stingers, ambient.ogg bed
+  victory.ogg / defeat.ogg stingers
+(The ambient.ogg bed was CUT 2026-07-25 — it overpowered the mix in play and
+the user chose removal over re-levelling; don't re-add a bed without a
+per-channel volume slider.)
 - assets/sounds/Background Music/ (legacy): menu.ogg, game_0.ogg.. (peace pool)
 Combat mood switches the pool when combat_* tracks exist; alerts duck the
 music briefly; game-over plays the matching stinger when present.
@@ -38,7 +41,7 @@ class MusicPlayer:
     is a module singleton (`music_player`).
 
     Pools: menu (loops), peace (exploration), combat (battle), stingers
-    (victory/defeat one-shots), ambient (low bed on its own channel).
+    (victory/defeat one-shots).
     The combat pool is optional — without combat_* files the peace pool
     plays regardless of mood.
     """
@@ -52,7 +55,6 @@ class MusicPlayer:
         self.peace_playlist = []
         self.combat_playlist = []
         self.stingers = {}       # 'victory' / 'defeat' -> path
-        self.ambient_track = None
         self.index = 0
         self.volume = 0.4
         self.mode = None  # None | 'menu' | 'game' | 'stinger'
@@ -69,8 +71,6 @@ class MusicPlayer:
         self._pending_track = None
         self._duck_until = 0.0
         self._applied_volume = None
-        self._ambient_channel = None
-        self._ambient_sound = None
 
     @property
     def started(self):
@@ -96,7 +96,6 @@ class MusicPlayer:
         self.peace_playlist = []
         self.combat_playlist = []
         self.stingers = {}
-        self.ambient_track = None
         try:
             for base in (MUSIC_DIR_NEW, MUSIC_DIR):
                 menu_path = os.path.join(base, MENU_TRACK)
@@ -112,9 +111,6 @@ class MusicPlayer:
                     path = os.path.join(base, f"{kind}.ogg")
                     if kind not in self.stingers and os.path.exists(path):
                         self.stingers[kind] = path
-                ambient = os.path.join(base, "ambient.ogg")
-                if self.ambient_track is None and os.path.exists(ambient):
-                    self.ambient_track = ambient
         except Exception:
             pass
 
@@ -164,11 +160,6 @@ class MusicPlayer:
             pygame.mixer.music.set_volume(value)
         except Exception:
             pass
-        if self._ambient_channel is not None:
-            try:
-                self._ambient_channel.set_volume(value * 0.5)
-            except Exception:
-                pass
 
     def duck(self, seconds=2.5):
         """Dip the music under an alert/stinger moment (§8.5)."""
@@ -210,7 +201,6 @@ class MusicPlayer:
         """Loop the dedicated menu theme (safe no-op without tracks/mixer)."""
         if not self._ensure_ready():
             return
-        self._stop_ambient()
         if self.menu_track is None:
             self.play_game()  # no menu theme yet: reuse the game playlist
             return
@@ -249,7 +239,6 @@ class MusicPlayer:
         if self._play(playlist[self.index]):
             self.mode = 'game'
             self._last_game_index = self.index
-            self._start_ambient()
 
     def play_stinger(self, kind):
         """One-shot victory/defeat fanfare over everything else. Falls back
@@ -259,7 +248,6 @@ class MusicPlayer:
         path = self.stingers.get(kind)
         if path is None or not self._ensure_ready():
             return False
-        self._stop_ambient()
         if self._play(path, loops=0, fade_ms=0):
             self.mode = 'stinger'
             return True
@@ -284,28 +272,7 @@ class MusicPlayer:
         if path is not None and self._play(path):
             self._last_game_index = self.index
 
-    def _start_ambient(self):
-        """Low looping bed on its own channel, if ambient.ogg exists."""
-        if self.ambient_track is None:
-            return
-        try:
-            if self._ambient_sound is None:
-                self._ambient_sound = pygame.mixer.Sound(self.ambient_track)
-            self._ambient_channel = self._ambient_sound.play(loops=-1, fade_ms=2000)
-            self._apply_volume(force=True)
-        except Exception:
-            self._ambient_channel = None
-
-    def _stop_ambient(self):
-        if self._ambient_channel is not None:
-            try:
-                self._ambient_channel.fadeout(800)
-            except Exception:
-                pass
-            self._ambient_channel = None
-
     def stop(self):
-        self._stop_ambient()
         self._pending_track = None
         if self.mode is None:
             return

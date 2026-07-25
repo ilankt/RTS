@@ -18,6 +18,14 @@ class FogOfWar:
     SIGHT_RADIUS_BUILDINGS = 250  # Larger sight for buildings
     SIGHT_RADIUS_CASTLE = 400  # Castle has largest sight range
 
+    # Match-start home survey (2026-07-25): every player starts KNOWING the
+    # ground around their castle. The spawn forest sits 7-10 tiles out
+    # (fallback band up to 13 ≈ 624 px) — past the castle's 400 px sight —
+    # and the AI gathers only from EXPLORED nodes, so without this it
+    # sometimes never learned its own forest existed and piled every worker
+    # onto gold (user-reported wood starvation).
+    HOME_SURVEY_RADIUS = 640
+
     UPDATE_INTERVAL = 0.2  # Game-time seconds between visibility rebuilds (~5 Hz)
 
     def __init__(self, game):
@@ -111,6 +119,32 @@ class FogOfWar:
                     key: ghost for key, ghost in self.resource_ghosts.items()
                     if (key[0], key[1]) not in new_visible
                 }
+
+    def reveal_home_area(self, player, wx, wy, radius=None):
+        """Stamp EXPLORED (never VISIBLE) around a world point for `player` —
+        the match-start survey of a base's surroundings. Live sight still
+        comes only from units and buildings."""
+        if radius is None:
+            radius = self.HOME_SURVEY_RADIUS
+        grid = self.visibility_grid.get(player)
+        if grid is None:
+            return
+        game_map = self.game.game_map
+        world_to_grid = getattr(game_map, "world_to_grid_fast", game_map.world_to_grid)
+        center = world_to_grid(wx, wy)
+        if not center:
+            return
+        col_center, row_center = center
+        explored_bump = 0
+        for dr, dc in self._offset_mask(radius, col_center & 1):
+            r = row_center + dr
+            c = col_center + dc
+            if 0 <= r < self.map_height and 0 <= c < self.map_width:
+                if grid[r][c] == self.UNEXPLORED:
+                    grid[r][c] = self.EXPLORED
+                    explored_bump += 1
+        if explored_bump:
+            self._explored_count[player] = self._explored_count.get(player, 0) + explored_bump
 
     def _mark_visible_around(self, player, grid, new_visible, wx: float, wy: float, radius: float):
         """Mark all tiles within radius of (wx, wy) as VISIBLE via offset mask."""

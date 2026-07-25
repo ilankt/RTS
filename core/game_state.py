@@ -42,6 +42,14 @@ class GameState:
             castle.player = player
             self.game.buildings.append(castle)
 
+            # Match-start home survey: you know your own surroundings —
+            # critically the spawn forest, which sits past the castle's
+            # sight line since the 2026-07-25 keep-out round (AI gathers
+            # only from EXPLORED nodes and was starving for wood).
+            fog = getattr(self.game, "fog_of_war", None)
+            if fog is not None:
+                fog.reveal_home_area(player, castle.x, castle.y)
+
             # Find a safe spawn location for the worker near the castle
             worker_template = self.game.game_data["units"]["worker"]
             search_range = (castle.radius + worker_template.radius + 10, castle.radius + worker_template.radius + 50)
@@ -169,8 +177,10 @@ class GameState:
             if not self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 4, 1, amount_override=3000):
                 self._place_resource_near_spawn("gold", spawn_r, spawn_c, 3, 6, 1, amount_override=3000)
 
-            # Wood is left as-is (per-bunch amount is fine) — 8 trees near spawn.
-            self._place_resource_near_spawn("wood", spawn_r, spawn_c, 2, 6, 8, amount_override=250)
+            # Starting wood (2026-07-25, user feedback): one connected FOREST
+            # of 8-10 trees instead of 8 scattered singles. Same per-tree
+            # amount, so early wood income is unchanged; only the shape moved.
+            self._place_spawn_forest(spawn_r, spawn_c, amount_override=250)
         
         # Calculate resource counts based on map size and player count
         map_area = self.game.game_map.width * self.game.game_map.height
@@ -193,7 +203,12 @@ class GameState:
         # they go — that is the point of the swap, so do not fold this back
         # into the base without also re-tuning gold costs.
         extra_gold = int(random.randint(2, 3) * area_factor * player_factor)
-        extra_wood = int(random.randint(20, 30) * area_factor * player_factor)
+        # 20-30 → 30-42 per 1600 tiles (2026-07-25, user: "plenty of wood").
+        # Deliberately generous — the wood economy gets a balance pass later
+        # (gather rate 2/s is suspected too fast), and forests-only placement
+        # below means some of this budget is spent on cluster attempts that
+        # roll back.
+        extra_wood = int(random.randint(30, 42) * area_factor * player_factor)
 
         # Additional gold across the map — 5x richer per node (was 1500).
         for _ in range(extra_gold):
@@ -326,82 +341,117 @@ class GameState:
                 return True
         return False
 
-    def _place_forest_clusters(self, total_trees, spawn_locations):
-        """Place trees in natural forest clusters instead of scattered individual trees"""
-        # Calculate number of forests based on total trees
-        avg_trees_per_forest = 15  # Average 15 trees per forest
-        num_forests = max(2, int(total_trees / avg_trees_per_forest))
-        
-        forests_placed = 0
-        attempts = 0
-        max_attempts = num_forests * 50
-        
-        while forests_placed < num_forests and attempts < max_attempts:
-            attempts += 1
-            
-            # Find a suitable center for the forest
-            center_r = random.randint(5, self.game.game_map.height - 6)
-            center_c = random.randint(5, self.game.game_map.width - 6)
-            
-            # Check if too close to spawn locations
-            too_close_to_spawn = False
-            for spawn_r, spawn_c in spawn_locations:
-                dist = math.sqrt((center_r - spawn_r)**2 + (center_c - spawn_c)**2)
-                if dist < 8:  # Keep forests at least 8 tiles from spawns
-                    too_close_to_spawn = True
-                    break
-            
-            if too_close_to_spawn:
+    # Forests (2026-07-25, user feedback): wood generates ONLY as forests.
+    # A forest is a CONNECTED blob of tiles — one tree per hex tile, grown by
+    # randomized BFS — never a gaussian sprinkle: the old sprinkle left most
+    # trees with no adjacent neighbour, and clusters that failed part-way
+    # kept their 1-4 orphan trees, which is exactly the "single trees
+    # everywhere" the user reported.
+    FOREST_MIN_TREES = 6
+    FOREST_TREE_SPACING = 6  # gap (px) between a tree and non-tree obstacles
+    # Round 2 ("everything is too together"): forest TILES keep ~5 tiles
+    # clear of every castle and every non-wood resource — the same clearance
+    # spawns keep from water (SPAWN_WATER_CLEARANCE). Also strictly covers
+    # the older worry of a forest blocking a gold node's 44 px gathering
+    # ring (ring + tree radius + probe clearance ≈ 98).
+    FOREST_KEEPOUT_PX = 240.0
+
+    def _grow_forest(self, center_r, center_c, target_trees,
+                     amount_override=None, min_trees=None):
+        """Grow one connected forest blob outward from a center tile and
+        place its trees. Returns the list of placed trees — or [] after
+        rolling everything back when fewer than `min_trees` (default
+        FOREST_MIN_TREES) tiles fit (bad terrain/clutter/keep-outs):
+        partial forests never leave orphan singles."""
+        if min_trees is None:
+            min_trees = self.FOREST_MIN_TREES
+        game_map = self.game.game_map
+        wood_terrain = RESOURCE_TERRAIN["wood"]
+        keepout = [(b.x, b.y) for b in self.game.buildings
+                   if b.name == "castle"]
+        keepout += [(res.x, res.y) for res in self.game.resources
+                    if res.name != "wood"]
+        keepout_sq = self.FOREST_KEEPOUT_PX ** 2
+        blob = []
+        frontier = [(center_r, center_c)]
+        seen = {(center_r, center_c)}
+        while frontier and len(blob) < target_trees:
+            # Random frontier pick → organic blob shapes, not hex discs
+            r, c = frontier.pop(random.randrange(len(frontier)))
+            if not (2 <= r < game_map.height - 2 and 2 <= c < game_map.width - 2):
                 continue
-            
-            # Check terrain suitability for forest center
-            terrain = self.game.game_map.grid[center_r][center_c]
-            if terrain not in {"grass", "forest", "plains"}:
+            if game_map.grid[r][c] not in wood_terrain:
                 continue
-            
-            # Place a cluster of trees around this center
-            trees_in_this_forest = random.randint(10, 20)
-            trees_placed = 0
-            
-            # Use a more organic placement pattern
-            for i in range(trees_in_this_forest * 3):  # More attempts for denser forests
-                if trees_placed >= trees_in_this_forest:
-                    break
-                
-                # Use gaussian distribution for more natural clustering
+            x, y = game_map.grid_to_world(c, r)
+            if any((kx - x) ** 2 + (ky - y) ** 2 < keepout_sq
+                   for kx, ky in keepout):
+                continue
+            if self._check_collision_with_objects(x, y, 8,
+                                                  spacing=self.FOREST_TREE_SPACING):
+                continue
+            blob.append((x, y))
+            for neighbor in game_map.hex_neighbors(r, c):
+                if neighbor not in seen:
+                    seen.add(neighbor)
+                    frontier.append(neighbor)
+        if len(blob) < min_trees:
+            return []
+
+        placed = []
+        for x, y in blob:
+            tree = self._create_instance_from_template(
+                self.game.game_data["resources"]["wood"])
+            tree.x, tree.y = x, y
+            if amount_override is not None:
+                tree.amount_remaining = amount_override
+            assign_biome_sprite(tree, game_map)
+            self.game.resources.append(tree)
+            placed.append(tree)
+        return placed
+
+    def _place_spawn_forest(self, spawn_r, spawn_c, amount_override=None):
+        """One starting forest of 10-13 trees per spawn, centered 7-10 tiles
+        out — past the castle/gold keep-out (FOREST_KEEPOUT_PX ≈ 5 tiles),
+        so the base opening stays uncluttered but timber is still a short
+        walk (round 2 feedback: "everything is too together")."""
+        game_map = self.game.game_map
+        wood_terrain = RESOURCE_TERRAIN["wood"]
+        for band_min, band_max in ((7, 10), (6, 13)):  # widen before giving up
+            for _ in range(60):
                 angle = random.uniform(0, 2 * math.pi)
-                # Distance with normal distribution - most trees near center
-                distance = abs(random.gauss(0, 2))  # Mean 0, std dev 2
-                distance = min(distance, 5)  # Cap at 5 tiles from center
-                
-                dr = int(distance * math.sin(angle))
-                dc = int(distance * math.cos(angle))
-                r = center_r + dr
-                c = center_c + dc
-                
-                # Check bounds
-                if not (2 <= r < self.game.game_map.height - 2 and 
-                       2 <= c < self.game.game_map.width - 2):
+                distance = random.uniform(band_min, band_max)
+                r = spawn_r + round(distance * math.sin(angle))
+                c = spawn_c + round(distance * math.cos(angle))
+                if not (3 <= r < game_map.height - 3 and 3 <= c < game_map.width - 3):
                     continue
-                
-                # Check terrain
-                terrain = self.game.game_map.grid[r][c]
-                if terrain not in {"grass", "forest", "plains"}:
+                if game_map.grid[r][c] not in wood_terrain:
                     continue
-                
-                world_pos = self.game.game_map.grid_to_world(c, r)
-                
-                # Use smaller collision radius for trees within forests (allow denser placement)
-                tree_collision_radius = 8  # Reduced from 16 for denser forests
-                if not self._check_collision_with_objects(world_pos[0], world_pos[1], tree_collision_radius):
-                    resource = self._create_instance_from_template(self.game.game_data["resources"]["wood"])
-                    resource.x, resource.y = world_pos
-                    assign_biome_sprite(resource, self.game.game_map)
-                    self.game.resources.append(resource)
-                    trees_placed += 1
-            
-            if trees_placed > 5:  # Only count as successful if we placed at least 5 trees
-                forests_placed += 1
+                if self._grow_forest(r, c, random.randint(10, 13), amount_override):
+                    return True
+        return False
+
+    def _place_forest_clusters(self, total_trees, spawn_locations):
+        """Spend the map's tree budget on big forests of 14-28 trees each
+        (round 2: "even bigger forests" — fewer, larger woods; a map forest
+        that can't reach 10 trees rolls back), at least 8 tiles from every
+        spawn (spawns get their own forest)."""
+        game_map = self.game.game_map
+        wood_terrain = RESOURCE_TERRAIN["wood"]
+        trees_placed = 0
+        attempts = 0
+        max_attempts = 40 + total_trees * 3
+        while trees_placed < total_trees and attempts < max_attempts:
+            attempts += 1
+            center_r = random.randint(4, game_map.height - 5)
+            center_c = random.randint(4, game_map.width - 5)
+            if any(math.hypot(center_r - sr, center_c - sc) < 8
+                   for sr, sc in spawn_locations):
+                continue
+            if game_map.grid[center_r][center_c] not in wood_terrain:
+                continue
+            target = random.randint(14, 28)
+            trees_placed += len(self._grow_forest(center_r, center_c, target,
+                                                  min_trees=10))
     
     def _place_random_resource(self, resource_type, spawn_locations, min_distance, amount_override=None):
         """Place a resource randomly on the map, away from spawn locations"""
@@ -443,15 +493,17 @@ class GameState:
 
             attempts += 1
     
-    def _check_collision_with_objects(self, x, y, radius):
-        """Check if a position would collide with any existing game object"""
+    def _check_collision_with_objects(self, x, y, radius, spacing=20):
+        """Check if a position would collide with any existing game object.
+        `spacing` is the extra breathing room beyond the radii — forests
+        shrink it so trees can pack tiles adjacent to other clutter."""
         for group in (self.game.buildings, self.game.units, self.game.resources,
                       getattr(self.game, "fountains", ()),
                       getattr(self.game, "mountains", ()),
                       getattr(self.game, "props", ())):
             for obj in group:
                 dist = ((obj.x - x) ** 2 + (obj.y - y) ** 2) ** 0.5
-                if dist < (obj.radius + radius + 20):  # Add some extra spacing
+                if dist < (obj.radius + radius + spacing):
                     return True
         return False
 
