@@ -32,6 +32,22 @@ TRANSITION_FEATHER_LAND = 24
 TRANSITION_FEATHER_WATER = 52
 TRANSITION_RAGGEDNESS = 0.95  # 0 = smooth gradient, ~1 = strongly ragged
 
+# §11.5 corner land bias (2026-07-26). The island shaping in
+# generate_perlin_map is ZERO at the corners by construction —
+# `normalized_dist` reaches 1.0 exactly there — so corners drown more often
+# than any other part of the map. That pushed spawns inward: on seed 31007
+# both northern corners came out >80% water and one castle spawned 40 tiles
+# from any corner, almost dead centre, close enough to sit on top of the
+# neutral fountain. These lift the WATER/LAND THRESHOLD near each corner so
+# bases have proper corners to occupy.
+# Radius is deliberately tight. At 20 tiles this dried ~26% of a 70x70 map and
+# dropped whole-map water 21.3% -> 14.7% on a 31-seed A/B, undoing most of the
+# §11.5 "wetter maps" work. 12 tiles still comfortably hosts a base (castle +
+# its 5-tile SPAWN_WATER_CLEARANCE + home gold and forest) while leaving the
+# rest of the map as wet as before.
+CORNER_LAND_RADIUS = 12   # tiles from a corner that get any bias
+CORNER_LAND_LIFT = 0.34   # elevation added at the exact corner, tapering out
+
 
 class Map:
     def __init__(self, width, height, game):
@@ -359,16 +375,23 @@ class Map:
 
                 moisture = moisture_noise([nx, ny])
 
+                # §11.5: dry the corners so bases have corners to spawn in.
+                # Applied to the terrain threshold ONLY — self.elevation above
+                # keeps the natural value, because mountain-ridge placement
+                # reads it and a lifted corner would start growing mountains
+                # exactly where we just made room for a castle.
+                land = elevation + self._corner_land_bias(r, c)
+
                 # Sea level raised -0.12/-0.02 → -0.10/0.0 (2026-07-25,
                 # user: not enough lakes/oceans; spawn selection is now
                 # water-aware so wetter maps stay playable)
-                if elevation < -0.10:
+                if land < -0.10:
                     grid[r][c] = "water_deep"
-                elif elevation < 0.0:
+                elif land < 0.0:
                     grid[r][c] = "water_shallow"
-                elif elevation < 0.06:
+                elif land < 0.06:
                     grid[r][c] = "dirt"        # shores and mudflats
-                elif moisture > 0.28 and elevation < 0.22:
+                elif moisture > 0.28 and land < 0.22:
                     grid[r][c] = "swamp"       # wet lowlands
                 elif moisture < -0.22:
                     grid[r][c] = "desert"
@@ -382,6 +405,21 @@ class Map:
 
         return grid
     
+    def _corner_land_bias(self, r, c):
+        """Elevation bonus near the four map corners, smoothstepped to 0 at
+        CORNER_LAND_RADIUS. Zero everywhere else, so the map's character is
+        unchanged away from the corners."""
+        best = 0.0
+        for corner_r, corner_c in ((0, 0), (0, self.width - 1),
+                                   (self.height - 1, 0),
+                                   (self.height - 1, self.width - 1)):
+            t = 1.0 - math.hypot(r - corner_r, c - corner_c) / CORNER_LAND_RADIUS
+            if t > best:
+                best = t
+        if best <= 0.0:
+            return 0.0
+        return best * best * (3.0 - 2.0 * best) * CORNER_LAND_LIFT
+
     def _create_lakes(self, grid, seed):
         """Inland lakes carved into the wet lowlands. Cores come from
         low-frequency noise — the very wettest start DEEP, and
@@ -391,9 +429,17 @@ class Map:
         chains (2026-07-25, user: not enough lakes)."""
         lake_noise = PerlinNoise(octaves=2, seed=seed)
 
+        # §11.5: lakes must not carve straight back into a corner the land
+        # bias just dried out. Guards the inner half of each corner disc —
+        # enough for a base and its water clearance — while leaving the outer
+        # taper lakeable, so the wetter-maps work is otherwise untouched.
+        corner_keepout = CORNER_LAND_LIFT * 0.5
+
         core = []
         for r in range(2, self.height - 2):
             for c in range(2, self.width - 2):
+                if self._corner_land_bias(r, c) > corner_keepout:
+                    continue
                 if grid[r][c] in ("grass", "swamp"):
                     lake_val = lake_noise([c / self.width * 3, r / self.height * 3])
                     if lake_val > 0.32:
@@ -411,6 +457,8 @@ class Map:
                         if not (2 <= rr < self.height - 2
                                 and 2 <= cc < self.width - 2):
                             continue
+                        if self._corner_land_bias(rr, cc) > corner_keepout:
+                            continue    # don't flood into a protected corner
                         if (grid[rr][cc] in ("grass", "swamp", "dirt")
                                 and random.random() < chance):
                             grid[rr][cc] = "water_shallow"

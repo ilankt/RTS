@@ -7,6 +7,11 @@ from utils.debug_logger import debug_log
 from core.config import (MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, BLOCKED_TERRAIN,
                          RESOURCE_TERRAIN, SPAWN_SAFE_TERRAIN)
 
+# §8.9 healing fountain: minimum WORLD-unit gap from any castle. The design
+# invariant (tests/test_depth3.py) is "> 600px, neutral ground not a base
+# buff"; this sits above it so placement never lands on the boundary.
+FOUNTAIN_MIN_CASTLE_DIST = 640
+
 
 class GameState:
     """Manages game object creation and initial game state setup"""
@@ -222,22 +227,33 @@ class GameState:
 
     def _place_fountain(self, spawn_locations):
         """One healing fountain as near the map center as possible: open
-        walkable terrain, clear of objects, and at least 12 tiles from every
-        spawn so it's genuinely neutral ground."""
+        walkable terrain, clear of objects, and at least
+        FOUNTAIN_MIN_CASTLE_DIST **world units** from every castle so it's
+        genuinely neutral ground rather than somebody's private buff."""
         from entities.fountain import Fountain
 
         game_map = self.game.game_map
         center_r, center_c = game_map.height // 2, game_map.width // 2
+        castles = [b for b in self.game.buildings if b.name == "castle"]
 
         def viable(r, c):
             if not (3 <= r < game_map.height - 3 and 3 <= c < game_map.width - 3):
                 return False
             if game_map.grid[r][c] not in SPAWN_SAFE_TERRAIN:
                 return False
-            for spawn_r, spawn_c in spawn_locations:
-                if math.hypot(r - spawn_r, c - spawn_c) < 12:
-                    return False
             x, y = game_map.grid_to_world(c, r)
+            # Measured in WORLD units against the real castles. The old rule
+            # was "12 grid tiles from the spawn TILE", which broke the
+            # invariant two ways: a hex column is 48px but a row is 56px, so
+            # 12 tiles is 672px vertically and only 576px horizontally (under
+            # the 600 the design wants); and the castle is placed at an offset
+            # from its spawn tile, eating the rest of the margin. Seed 31007
+            # landed a fountain 528px from a castle while passing the old
+            # check. Castles already exist here — setup_game_objects places
+            # them long before resources.
+            for castle in castles:
+                if math.hypot(x - castle.x, y - castle.y) < FOUNTAIN_MIN_CASTLE_DIST:
+                    return False
             if self._check_collision_with_objects(x, y, 80):  # radius 70 + pad
                 return False
             return self._has_open_approach(x, y, ring=100.0, needed=5)
