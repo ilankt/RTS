@@ -65,7 +65,8 @@
     "armor_type": "fortified",
     "armor_value": 1,
     "costs": {
-      "wood": 75
+      "wood": 100,
+      "gold": 25
     }
   },
   {

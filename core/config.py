@@ -143,7 +143,8 @@ PATH_CACHE_MAX_ENTRIES = 4096
 # defense and siege still avoid competing with army gold.
 GATHERING_RATES = {
     "gold": 1,     # Resources per second
-    "wood": 2,
+    "wood": 1.6,   # 2 → 1.6 (2026-07-25 balance package: forests got much
+                   # bigger the same week; user judged 2/s too loose)
     "food": 3      # Food per second from farms
 }
 

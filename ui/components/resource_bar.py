@@ -72,12 +72,16 @@ class ResourceBar:
 
                 # Draw amount/value next to icon
                 if item == "house":
-                    # Housing display
-                    current_pop = len([unit for unit in self.game.units if unit.player == human_player])
-                    max_pop = 20 + (len([building for building in self.game.buildings
-                                      if building.player == human_player and building.name == "house"]) * 5)
+                    # Housing display — same numbers the training gate uses
+                    # (systems/population.py), INCLUDING queued units, so a
+                    # denied train button never contradicts the readout.
+                    from systems.population import population_cap, population_usage
+
+                    current_pop = population_usage(self.game, human_player)
+                    max_pop = population_cap(self.game, human_player)
                     text = f"{current_pop}/{max_pop}"
-                    text_surface = self.info_font.render(text, True, (200, 200, 200))
+                    color = (240, 120, 90) if current_pop >= max_pop else (200, 200, 200)
+                    text_surface = self.info_font.render(text, True, color)
                 else:
                     # Resource amount
                     amount = int(human_player.resources.get(item, 0))

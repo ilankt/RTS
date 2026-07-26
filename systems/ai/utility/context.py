@@ -139,13 +139,25 @@ class GoalContext:
                 if not fog_on or fog.is_explored(player, site.x, site.y):
                     ctx.enemy_construction_sites.append(site)
 
-        # §8.9 garrisoned units are out of game.units but still take pop
+        # §8.9 garrisoned units are out of game.units but still take pop.
+        # Units already ordered (in production / queued) count too — the
+        # engine's order gate counts them (systems/population.py), so the
+        # AI must anticipate the same number or it queues into denials.
         for group in ctx.buildings.values():
             for building in group:
                 pop += len(getattr(building, "garrison", ()))
+                if getattr(building, "current_production", None):
+                    pop += 1
+                pop += len(getattr(building, "production_queue", ()) or ())
 
         ctx.pop_current = pop
-        ctx.pop_max = 5 + 5 * len(ctx.buildings.get("house", []))
+        # One formula for everyone (2026-07-25): POP_BASE + POP_PER_HOUSE ×
+        # houses from systems/population.py — the AI used to self-limit at
+        # base 5 while the human UI displayed base 20 and nothing enforced
+        # either.
+        from systems.population import POP_BASE, POP_PER_HOUSE
+
+        ctx.pop_max = POP_BASE + POP_PER_HOUSE * len(ctx.buildings.get("house", []))
 
         if ctx.castle:
             cx, cy = ctx.castle.x, ctx.castle.y

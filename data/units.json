@@ -62,8 +62,8 @@
     "build_time": 8,
     "icon": "assets/ui/Units/warrior_icon.png",
     "costs": {
-      "gold": 80,
-      "food": 50
+      "gold": 65,
+      "food": 70
     },
     "min_damage": 18,
     "max_damage": 22,
@@ -102,9 +102,9 @@
     "build_time": 7,
     "icon": "assets/ui/Units/archer_icon.png",
     "costs": {
-      "gold": 75,
+      "gold": 60,
       "wood": 50,
-      "food": 40
+      "food": 55
     },
     "min_damage": 12,
     "max_damage": 16,
@@ -144,8 +144,8 @@
     "build_time": 7,
     "icon": "assets/ui/Units/spearman_icon.png",
     "costs": {
-      "gold": 60,
-      "food": 35
+      "gold": 45,
+      "food": 50
     },
     "min_damage": 14,
     "max_damage": 18,
@@ -189,8 +189,8 @@
     "build_time": 10,
     "icon": "assets/ui/Units/cavalry_icon.png",
     "costs": {
-      "gold": 80,
-      "food": 100
+      "gold": 65,
+      "food": 120
     },
     "min_damage": 20,
     "max_damage": 26,
@@ -278,8 +278,8 @@
     "build_time": 8,
     "icon": "assets/ui/Units/healer_icon.png",
     "costs": {
-      "gold": 100,
-      "food": 50
+      "gold": 85,
+      "food": 70
     },
     "min_damage": 0,
     "max_damage": 0,

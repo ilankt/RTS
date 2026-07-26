@@ -35,7 +35,21 @@ class ProductionManager:
         
         unit_data = self.units_data[unit_type]
         costs = unit_data.get('costs', {})
-        
+
+        # Population cap — engine-enforced at ORDER time for everyone
+        # (2026-07-25 battery finding: it never was; the UI number was
+        # decorative and only the AI self-limited, on a different formula).
+        # population_usage counts queued/in-production units, so a draining
+        # queue can never overshoot the cap.
+        from systems.population import population_cap, population_usage
+
+        if population_usage(self.game, building.player) + 1 > \
+                population_cap(self.game, building.player):
+            if (getattr(building.player, "human", False)
+                    and getattr(self.game, "ui_manager", None)):
+                self.game.ui_manager.add_alert("Population limit — build more houses")
+            return False, "Population limit reached"
+
         # Check if player can afford the unit
         if not self._can_afford(building.player, costs):
             return False, "Cannot afford unit"
