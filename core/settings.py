@@ -31,6 +31,7 @@ DEFAULTS = {
     "show_onboarding": True,      # new-player tips + reactive hints master switch
     "onboarding_force": False,    # one-shot: replay tips next match, then self-clears
     "shadows": True,              # blob shadows under objects (off = cheaper)
+    "ambient": True,              # §11.3 tree sway, cloud shadows, smoke
 }
 
 
@@ -59,7 +60,8 @@ class Settings:
                     pass
             elif key in ("sound_enabled", "colorblind_palette",
                          "adaptive_difficulty", "fullscreen",
-                         "show_onboarding", "onboarding_force", "shadows"):
+                         "show_onboarding", "onboarding_force", "shadows",
+                         "ambient"):
                 self.values[key] = bool(value)
             elif key == "default_game_speed":
                 try:
@@ -133,6 +135,7 @@ class Settings:
         game.adaptive_difficulty = self.values["adaptive_difficulty"]
         game.batch_queue_size = self.values["batch_queue_size"]
         game.shadows_enabled = self.values["shadows"]
+        game.ambient_enabled = self.values["ambient"]
 
     def apply_audio(self, game):
         """Audio-only subset — safe to re-apply mid-match from the pause

@@ -1268,33 +1268,39 @@ class Game:
     ]
 
     def _pause_option_rect(self, index):
+        from screens import theme
+
         panel = self._pause_panel_rect()
-        return pygame.Rect(panel.centerx - 150, panel.y + 84 + index * 54, 300, 44)
+        return pygame.Rect(panel.centerx - theme.ROW_W // 2,
+                           panel.y + 84 + index * 54, theme.ROW_W, 44)
 
     def _pause_panel_rect(self):
+        from screens import theme
+
         height = 84 + len(self.PAUSE_OPTIONS) * 54 + 52
-        return pygame.Rect(SCREEN_WIDTH // 2 - 190, (SCREEN_HEIGHT - height) // 2,
-                           380, height)
+        return pygame.Rect(SCREEN_WIDTH // 2 - theme.PANEL_W // 2,
+                           (SCREEN_HEIGHT - height) // 2, theme.PANEL_W, height)
 
     def _draw_pause_overlay(self):
         """The in-game pause menu (§8.2 menu polish): dim the battlefield,
         then a themed panel with clickable options."""
         from screens import theme
 
+        # Keep a CLEAN copy of the battlefield (before the dim and the panel)
+        # so screens opened from here can sit over the match instead of
+        # cutting to the splash art. Reused surface, one blit per paused frame.
+        backdrop = getattr(self, "_pause_backdrop", None)
+        if backdrop is None or backdrop.get_size() != self.screen.get_size():
+            backdrop = self._pause_backdrop = pygame.Surface(self.screen.get_size())
+        backdrop.blit(self.screen, (0, 0))
+
         overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         overlay.fill((0, 0, 0))
-        overlay.set_alpha(140)
+        overlay.set_alpha(theme.PAUSE_DIM)
         self.screen.blit(overlay, (0, 0))
 
         panel = self._pause_panel_rect()
-        theme.draw_panel(self.screen, panel)
-
-        font_title = pygame.font.Font(None, 56)
-        shadow = font_title.render("Paused", True, theme.TITLE_SHADOW)
-        title = font_title.render("Paused", True, theme.TITLE_COLOR)
-        title_rect = title.get_rect(center=(panel.centerx, panel.y + 44))
-        self.screen.blit(shadow, title_rect.move(2, 2))
-        self.screen.blit(title, title_rect)
+        theme.draw_panel_and_title(self.screen, "Paused", panel, title_dy=44)
 
         font_option = pygame.font.Font(None, 36)
         mouse_pos = pygame.mouse.get_pos()
@@ -1333,12 +1339,20 @@ class Game:
     def _open_settings_from_pause(self):
         """Run the settings screen over the paused game and live-apply the
         audio settings (music/SFX volume, mute) and a fullscreen toggle on
-        return (§8.5); resolution still needs a restart."""
+        return (§8.5); resolution still needs a restart.
+
+        Passes the paused battlefield as the backdrop so settings stays a
+        layer over the match — it used to draw the main-menu splash, which
+        read as leaving the game and coming back."""
         from screens.settings_menu import SettingsMenu
 
-        settings = SettingsMenu(self.screen).run()
+        backdrop = getattr(self, "_pause_backdrop", None)
+        if backdrop is None:
+            backdrop = self.screen.copy()
+        settings = SettingsMenu(self.screen, backdrop=backdrop).run()
         settings.apply_audio(self)
         self.shadows_enabled = settings.get("shadows")  # live toggle, no restart
+        self.ambient_enabled = settings.get("ambient")  # §11.3, live toggle
         self.screen = settings.create_display((SCREEN_WIDTH, SCREEN_HEIGHT))
 
     def _open_save_load_from_pause(self):

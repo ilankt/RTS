@@ -1,8 +1,43 @@
 import math
+import random
 import pygame
 from core.config import TILE_WIDTH, TILE_HEIGHT, TOP_BAR_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
 from entities import Building, Unit, Resource, ConstructionSite
 from utils.perf_stats import perf_stats
+
+
+# --- §11.3 ambient wind ------------------------------------------------- #
+# ONE wind vector drives tree sway, cloud drift and smoke lean, so the world
+# agrees with itself. Coherence is what sells "alive"; independently wiggling
+# effects just read as noise.
+#
+# Paced by REAL time, not sim time — deliberately. Wind speed has nothing to
+# do with game speed, and a sim-time wind strobes at 5x. This is NOT a breach
+# of the "game-time, not wall-clock" rule: that rule governs gameplay cadence,
+# and nothing here feeds the simulation. All of it is draw-side, on visible
+# objects only, so headless runs and the perf gate pay exactly nothing.
+WIND_DIR = (0.94, 0.34)      # blowing right and slightly down-screen
+WIND_PERIOD_S = 4.2          # seconds per full sway cycle
+SWAY_MAX_DEG = 1.8           # peak lean. 2.6 was too animated (user); trees
+                             # should breathe, not wave. Finer steps make a
+                             # smaller amplitude read better, not worse — the
+                             # motion stays continuous instead of stepping.
+SWAY_STEPS = 32              # quantized angles => 32 cached surfaces per sprite.
+                             # 8 read as steppy, 16 still did (user); 32 also
+                             # gives 32 distinct per-tree phases, so a forest
+                             # never moves in visible lockstep. Measured cache
+                             # cost stays far under the 2048-entry cap — but
+                             # measure again before raising it further.
+CLOUD_SPEED = 26.0           # world units/sec the cloud shadows drift
+SMOKE_DRIFT = 14.0           # px/sec of sideways lean on smoke particles
+
+# Wind-blown object names, by class. Live trees are `wood` resources; the
+# dead_tree prop is swamp scenery and sways a touch harder (no canopy).
+SWAYING_RESOURCES = {"wood"}
+SWAYING_PROPS = {"dead_tree"}
+# Buildings that read as inhabited/working and earn a hearth wisp.
+HEARTH_BUILDINGS = {"house", "castle", "blacksmith"}
+DAMAGE_SMOKE_AT = 0.65       # below this HP fraction a building starts smoking
 
 
 class RenderingSystem:
@@ -71,6 +106,12 @@ class RenderingSystem:
         self._death_fades = []
         self._DEATH_FADE_MAX = 32
         self._DEATH_FADE_S = 1.1
+
+        # §11.3 ambient: real-time clock driving sway, clouds and smoke lean
+        self._wind_clock = 0.0
+        self._cloud_lumps = {}    # variant -> small soft alpha lump
+        self._cloud_cache = {}    # (variant, screen diameter) -> scaled lump
+        self._cloud_field = None  # cached deterministic cloud layout
     
     def draw_frame(self, screen, map_surface, camera, delta_time=1/60.0):
         """Draw a complete frame"""
@@ -81,12 +122,23 @@ class RenderingSystem:
         camera.x += shake_offset[0]
         camera.y += shake_offset[1]
         
+        # §11.3 wind clock. delta_time here is GAME time (game.py scales it by
+        # game_speed), so divide it back out: wind runs at wall-clock pace and
+        # doesn't strobe when the player hits 5x.
+        speed = getattr(self.game, "game_speed", 1.0) or 1.0
+        self._wind_clock += delta_time / max(abs(speed), 0.01)
+
         # Clear backgrounds
         screen.fill(self.DARK_GRAY)
         map_surface.fill(self.MAP_GRAY)
-        
+
         # Draw map
         self.game.game_map.draw(map_surface, camera)
+
+        # §11.3 cloud shadows fall on the GROUND — drawn after the terrain but
+        # before anything that stands on it, so a passing cloud never dims a
+        # unit or a health bar. Readability first.
+        self._draw_cloud_shadows(map_surface, camera)
 
         # §8.9: fountain healing auras lie under everything alive
         self._draw_fountain_auras(map_surface, camera)
@@ -338,6 +390,7 @@ class RenderingSystem:
         particles = getattr(self.game, 'particles', None)
         if particles:
             frame = self.game.frame_counter
+            ambient = getattr(self.game, "ambient_enabled", True)
             for obj in visible:
                 if (getattr(obj, 'status', None) == 'run'
                         and getattr(obj, 'movement_speed', 0) >= 55
@@ -348,6 +401,41 @@ class RenderingSystem:
                         and frame >= getattr(obj, '_next_sparkle_frame', 0)):
                     obj._next_sparkle_frame = frame + 18
                     particles.spawn_fountain_sparkles(obj.x, obj.y - 14)
+                elif ambient and isinstance(obj, Building):
+                    self._maybe_building_smoke(obj, particles, frame)
+
+    def _maybe_building_smoke(self, obj, particles, frame):
+        """§11.3: hearth smoke from inhabited buildings, darker smoke from
+        badly damaged ones. Damage wins when both apply — a burning building
+        shouldn't also look cosy.
+
+        Same draw-side, visible-only contract as movement dust: this runs from
+        the render pass over fog-filtered objects, so headless sims never
+        reach it and the perf gate pays nothing."""
+        max_hp = None
+        templates = getattr(self.game, "game_data", {}).get("buildings")
+        if templates:
+            template = templates.get(obj.name)
+            max_hp = getattr(template, "hp", None) if template else None
+
+        if max_hp and obj.hp < max_hp * DAMAGE_SMOKE_AT:
+            if frame >= getattr(obj, '_next_damage_smoke_frame', 0):
+                ratio = max(0.0, obj.hp / max_hp)
+                # The worse the wound, the faster it smokes. Two puffs per
+                # emission: one at a time reads as a lone drifting blob rather
+                # than a column.
+                obj._next_damage_smoke_frame = frame + 5 + int(ratio * 18) + (id(obj) % 4)
+                particles.spawn_damage_smoke(
+                    obj.x,
+                    obj.y - obj.size[1] * TILE_HEIGHT * 0.30,
+                    count=2, wind_x=WIND_DIR[0] * SMOKE_DRIFT)
+        elif (obj.name in HEARTH_BUILDINGS
+                and frame >= getattr(obj, '_next_hearth_frame', 0)):
+            obj._next_hearth_frame = frame + 34 + (id(obj) % 16)
+            particles.spawn_chimney_smoke(
+                obj.x + obj.size[0] * TILE_WIDTH * 0.16,
+                obj.y - obj.size[1] * TILE_HEIGHT * 0.42,
+                wind_x=WIND_DIR[0] * SMOKE_DRIFT)
     
     GHOST_ALPHA = 130  # remembered-but-gone resources draw see-through
 
@@ -499,6 +587,123 @@ class RenderingSystem:
         cx, cy, w, h = geo
         map_surface.blit(self._shadow_surface(w, h),
                          (int(cx - w / 2), int(cy - h / 2)))
+
+    # Tuned against rendered frames, not in the abstract. The first attempt
+    # used a radial falloff (alpha * cover**2) and was invisible in a real
+    # frame: a radial ramp only reaches full strength at a POINT, so measured
+    # darkening was ~5% even at a nominal alpha of 70. A real cloud shadow is
+    # a broad, evenly shaded patch with a soft rim, so the lump is built that
+    # way — a flat core, smoothstepped out over the outer CLOUD_RIM of each
+    # lobe. Nominal alpha now means what it says.
+    CLOUD_ALPHA = 64        # darkness of the (flat) shadow core (58 +10%, user)
+    CLOUD_RIM = 0.45        # fraction of the lobe spent fading out
+    # Clouds must be SMALLER than the viewport (~1050x580 world units at zoom
+    # 1.0, ~1470x830 at the default 0.75). The first tuning used 900-1500 and
+    # a single cloud swallowed the whole screen — which reads as the display
+    # dimming, not as a shadow passing. What sells it is seeing the EDGE, so
+    # several modest patches beat one big one. Coverage stays ~30% either way.
+    CLOUD_SPACING = 750     # world units between cloud centres
+    CLOUD_MIN_D = 340       # world-unit diameter range (~7-13 tiles)
+    CLOUD_MAX_D = 620
+
+    def _cloud_lump(self, variant):
+        """A small soft alpha lump, built once per variant and upscaled per
+        zoom. Generated at 48px on purpose: `smoothscale` turns a coarse
+        three-lobe blob into a soft-edged cloud far more cheaply than drawing
+        gradients at full size, and the alpha is baked in so nothing ever
+        mutates a cached surface."""
+        lump = self._cloud_lumps.get(variant)
+        if lump is not None:
+            return lump
+        size = 64
+        lump = pygame.Surface((size, size), pygame.SRCALPHA)
+        rng = random.Random(1000 + variant)
+        lobes = [(rng.uniform(0.34, 0.66), rng.uniform(0.34, 0.66),
+                  rng.uniform(0.21, 0.34)) for _ in range(3)]
+        for py in range(size):
+            ny = py / size
+            for px in range(size):
+                nx = px / size
+                cover = 0.0
+                for lx, ly, lr in lobes:
+                    distance = math.hypot(nx - lx, ny - ly)
+                    if distance >= lr:
+                        continue
+                    # 0 at the lobe edge, 1 at its centre...
+                    depth = 1.0 - distance / lr
+                    # ...held FLAT once past the rim, smoothstepped within it.
+                    edge = min(1.0, depth / self.CLOUD_RIM)
+                    cover = max(cover, edge * edge * (3.0 - 2.0 * edge))
+                if cover > 0.0:
+                    lump.set_at((px, py),
+                                (0, 0, 0, int(self.CLOUD_ALPHA * cover)))
+        self._cloud_lumps[variant] = lump
+        return lump
+
+    def _cloud_layout(self):
+        """Deterministic cloud positions over the whole map, on a jittered
+        grid. Built once; the drift is applied at draw time."""
+        if self._cloud_field is not None:
+            return self._cloud_field
+        game_map = self.game.game_map
+        world_w = game_map.width * TILE_WIDTH * 0.75
+        world_h = game_map.height * TILE_HEIGHT
+        # Wrap over a field LARGER than the map so clouds drift off one edge
+        # and return from the other without ever popping inside the view.
+        period_x = world_w + self.CLOUD_SPACING
+        period_y = world_h + self.CLOUD_SPACING
+        rng = random.Random(4711)
+        clouds = []
+        for gy in range(max(1, int(period_y // self.CLOUD_SPACING))):
+            for gx in range(max(1, int(period_x // self.CLOUD_SPACING))):
+                clouds.append((
+                    gx * self.CLOUD_SPACING + rng.uniform(0, self.CLOUD_SPACING),
+                    gy * self.CLOUD_SPACING + rng.uniform(0, self.CLOUD_SPACING),
+                    rng.randint(0, 5),                                  # variant
+                    rng.uniform(self.CLOUD_MIN_D, self.CLOUD_MAX_D),    # diameter
+                ))
+        self._cloud_field = (clouds, period_x, period_y)
+        return self._cloud_field
+
+    def _draw_cloud_shadows(self, map_surface, camera):
+        """Slow cloud shadows drifting across the terrain (§11.3).
+
+        Cheap by construction: the clouds live in WORLD space and are culled
+        to the viewport, so a typical frame blits a handful, not a full-screen
+        alpha layer — which is the cost that makes a global tint expensive."""
+        if not getattr(self.game, "ambient_enabled", True):
+            return
+        game_map = getattr(self.game, "game_map", None)
+        if game_map is None:
+            return
+
+        clouds, period_x, period_y = self._cloud_layout()
+        zoom = camera.zoom
+        drift = self._wind_clock * CLOUD_SPEED
+        offset_x = WIND_DIR[0] * drift
+        offset_y = WIND_DIR[1] * drift
+        view_w, view_h = map_surface.get_size()
+
+        for base_x, base_y, variant, diameter in clouds:
+            screen_d = int(diameter * zoom)
+            if screen_d < 8:
+                continue
+            world_x = (base_x + offset_x) % period_x
+            world_y = (base_y + offset_y) % period_y
+            screen_x = world_x * zoom + camera.x - screen_d / 2
+            screen_y = world_y * zoom + camera.y - screen_d / 2
+            if (screen_x + screen_d < 0 or screen_x > view_w
+                    or screen_y + screen_d < 0 or screen_y > view_h):
+                continue
+            key = (variant, screen_d)
+            scaled = self._cloud_cache.get(key)
+            if scaled is None:
+                if len(self._cloud_cache) > 64:
+                    self._cloud_cache.clear()
+                scaled = pygame.transform.smoothscale(
+                    self._cloud_lump(variant), (screen_d, screen_d))
+                self._cloud_cache[key] = scaled
+            map_surface.blit(scaled, (screen_x, screen_y))
 
     def _draw_object(self, obj, map_surface, camera):
         """Draw a single game object"""
@@ -699,10 +904,75 @@ class RenderingSystem:
         else:
             scaled_sprite = sprite
 
+        step = self._sway_step(obj)
+        if step is not None:
+            self._blit_swaying(scaled_sprite, step, draw_x, draw_y,
+                               scaled_height, map_surface)
+            return
+
         blit_x = draw_x - (scaled_width / 2)
         blit_y = draw_y - (scaled_height / 2)
 
         map_surface.blit(scaled_sprite, (blit_x, blit_y))
+
+    def _sway_step(self, obj):
+        """Quantized wind-sway step for a tree, or None if `obj` doesn't sway.
+
+        Phase comes from world POSITION, not `id(obj)`: a tree then keeps the
+        same lean across save/load and across processes, where id() would
+        reshuffle every canopy on load."""
+        if not getattr(self.game, "ambient_enabled", True):
+            return None
+        if isinstance(obj, Resource):
+            if obj.name not in SWAYING_RESOURCES:
+                return None
+        elif obj.__class__.__name__ == "Prop":
+            if obj.name not in SWAYING_PROPS:
+                return None
+        else:
+            return None
+        phase = ((int(obj.x) * 31 + int(obj.y) * 17) % SWAY_STEPS) / SWAY_STEPS
+        value = math.sin((self._wind_clock / WIND_PERIOD_S + phase) * 2.0 * math.pi)
+        step = int((value + 1.0) * 0.5 * (SWAY_STEPS - 1) + 0.5)
+        return max(0, min(SWAY_STEPS - 1, step))
+
+    def _blit_swaying(self, scaled_sprite, step, draw_x, draw_y,
+                      scaled_height, map_surface):
+        """Blit a tree rotated by its current sway step, pivoting about the
+        TRUNK rather than the sprite centre.
+
+        pygame rotates about the centre and returns a larger surface, so a
+        naive centred blit swings the base sideways and the tree looks like
+        it's skating across the ground. Offsetting so the base point maps to
+        itself is what turns a rotation into a sway.
+
+        Only SWAY_STEPS distinct angles exist, so this adds 8 cached surfaces
+        per (sprite, zoom) — deliberately coarse, because `_scaled_sprite_cache`
+        is capped at 2048 and cleared WHOLESALE on overflow (§11.3 warning)."""
+        # Negated because pygame rotates COUNTER-clockwise, which carries a
+        # canopy to the LEFT, while WIND_DIR blows right: without the flip the
+        # trees lean upwind and visibly fight the clouds and the smoke.
+        downwind = 1.0 if WIND_DIR[0] >= 0 else -1.0
+        angle = -SWAY_MAX_DEG * downwind * (step / (SWAY_STEPS - 1) * 2.0 - 1.0)
+        key = (scaled_sprite, 'sway', step)
+        rotated = self._scaled_sprite_cache.get(key)
+        if rotated is None:
+            if len(self._scaled_sprite_cache) > 2048:
+                self._scaled_sprite_cache.clear()
+            rotated = pygame.transform.rotate(scaled_sprite, angle)
+            self._scaled_sprite_cache[key] = rotated
+
+        # Base sits at (0, +h/2) from centre; a visual CCW rotation by `angle`
+        # carries it to (sin, cos)*h/2. Place the rotated centre so the base
+        # lands back where it started. At angle 0 this reduces exactly to the
+        # normal centred blit.
+        rad = math.radians(angle)
+        half_h = scaled_height / 2.0
+        rot_w, rot_h = rotated.get_size()
+        map_surface.blit(rotated, (
+            draw_x - math.sin(rad) * half_h - rot_w / 2.0,
+            draw_y + half_h - math.cos(rad) * half_h - rot_h / 2.0,
+        ))
     
     def _draw_ui_overlays(self, map_surface, camera):
         """Draw UI overlays on the map surface"""

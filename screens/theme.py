@@ -31,6 +31,14 @@ PRIMARY_BORDER = (120, 200, 130)
 
 SETTING_VALUE_INSET = 58  # value's right inset, clears the frame end cap
 
+# ONE width for the in-game modal screens (pause menu, settings) so a screen
+# opened from the pause menu doesn't change size under the player. Sized from
+# the widest settings row — measured at 397px with the current labels, so 420
+# leaves margin; the pause menu's own labels are far shorter and just centre.
+PANEL_W = 500
+ROW_W = 420
+PAUSE_DIM = 140           # how far the battlefield dims behind a modal
+
 
 def splash_background(size=None):
     """The splash art cover-scaled + center-cropped to `size` (defaults to
@@ -159,6 +167,18 @@ def _button_frame(size, variant):
     return frame
 
 
+def draw_panel_and_title(screen, title, panel_rect, title_dy=52):
+    """Scrim panel + shadowed gold title inside its top."""
+    draw_panel(screen, panel_rect)
+
+    font = pygame.font.Font(None, 56)
+    shadow = font.render(title, True, TITLE_SHADOW)
+    text = font.render(title, True, TITLE_COLOR)
+    rect = text.get_rect(center=(panel_rect.centerx, panel_rect.y + title_dy))
+    screen.blit(shadow, rect.move(2, 2))
+    screen.blit(text, rect)
+
+
 def draw_menu_scene(screen, title, panel_rect):
     """Splash backdrop + scrim panel + shadowed gold title inside its top."""
     background = splash_background(screen.get_size())
@@ -166,14 +186,22 @@ def draw_menu_scene(screen, title, panel_rect):
         screen.blit(background, (0, 0))
     else:
         screen.fill((20, 20, 30))
-    draw_panel(screen, panel_rect)
+    draw_panel_and_title(screen, title, panel_rect)
 
-    font = pygame.font.Font(None, 56)
-    shadow = font.render(title, True, TITLE_SHADOW)
-    text = font.render(title, True, TITLE_COLOR)
-    rect = text.get_rect(center=(panel_rect.centerx, panel_rect.y + 52))
-    screen.blit(shadow, rect.move(2, 2))
-    screen.blit(text, rect)
+
+def draw_modal_scene(screen, title, panel_rect, backdrop, dim=PAUSE_DIM):
+    """Panel over a DIMMED SNAPSHOT of what was already on screen.
+
+    The in-game look: a screen opened from the pause menu keeps the paused
+    battlefield behind it instead of cutting to the splash art, so it reads as
+    a layer over the match rather than a trip back to the main menu.
+    """
+    screen.blit(backdrop, (0, 0))
+    shade = pygame.Surface(screen.get_size())
+    shade.fill((0, 0, 0))
+    shade.set_alpha(dim)
+    screen.blit(shade, (0, 0))
+    draw_panel_and_title(screen, title, panel_rect)
 
 
 def _arrow(screen, x, y, direction, color):
