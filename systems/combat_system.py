@@ -305,8 +305,19 @@ class CombatSystem:
                     and self.game.frame_counter >= getattr(unit, "_retreating_until", 0)
                 ):
                     engaged = False
-                    # (1) Hit while moving -> turn on the attacker (§8.11)
-                    if getattr(unit, "_last_damage_frame", -1_000_000) >= self.game.frame_counter - 45:
+                    # (1) Hit while moving -> turn on the attacker (§8.11).
+                    # NOT for a human unit walking under a plain move order:
+                    # the order is literal, and a chasing enemy would other-
+                    # wise re-hijack the unit a fraction of a second after
+                    # the player told it to disengage (§8.9 command-preemption
+                    # bug). Attack-move opts back in; AI units always answer.
+                    literal_move = (
+                        getattr(unit, "attack_move_target", None) is None
+                        and getattr(unit.player, "human", False)
+                    )
+                    if (not literal_move
+                            and getattr(unit, "_last_damage_frame", -1_000_000)
+                            >= self.game.frame_counter - 45):
                         attacker = getattr(unit, "last_attacker", None)
                         if (
                             attacker is not None

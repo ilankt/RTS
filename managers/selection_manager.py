@@ -5,7 +5,14 @@ from core.config import MINIMAP_WIDTH, MINIMAP_HEIGHT, TOP_BAR_HEIGHT, MAP_VIEW_
 
 class SelectionManager:
     """Manages object selection and selection visualization"""
-    
+
+    # A player command preempts the fight it interrupts (§8.9 bug, reported
+    # 2026-07-23). Re-acquisition is suppressed for this many frames so an
+    # aggressive unit can't re-grab the enemy it was just told to leave
+    # before it has taken a single step — the same protocol the AI's
+    # `_commit_flee` uses (military_brain.py).
+    COMMAND_DISENGAGE_FRAMES = 45
+
     def __init__(self, game):
         self.game = game
         self.selected_objects = []
@@ -353,6 +360,9 @@ class SelectionManager:
                 if not shift_held and len(movable_units) >= 8 and pathfinder.request_group_move(movable_units, world_pos, slots):
                     for obj in movable_units:
                         obj.attack_move_target = None  # §8.14: plain move replaces attack-move
+                        # The flow field is no help to a unit still swinging:
+                        # start_attack() drops the field every frame.
+                        self._release_combat_for_order(obj)
                 else:
                     for obj, target_pos in zip(movable_units, slots):
                         self._issue_or_queue(obj, ("move", target_pos), shift_held)
@@ -488,10 +498,54 @@ class SelectionManager:
             or unit.is_engaging
         )
 
+    def _release_combat_for_order(self, unit, suppress=True):
+        """Drop combat state so a fresh player order actually takes effect.
+
+        Clearing the target is what makes the order stick: a live
+        `current_target` stomps a brand-new path, because
+        `movement_system._handle_combat_movement` re-enters `start_attack()`
+        as soon as the target is in range and `start_attack` calls
+        `release_movement()`. Most command paths get that for free
+        (`pathfinding._clear_task_state_for_move/_gather/_build`) — but NOT
+        all of them (`_garrison_worker` paths by hand), so preemption is
+        stated here at the command layer instead of being an accident of
+        which downstream call a spec happens to use.
+
+        `suppress` is the half that actually fixed the reported bug: without
+        a re-acquisition window, §8.11 retaliation re-grabbed the attacker on
+        the very next frame and dragged the unit straight back into the fight
+        it had just been ordered out of. Same protocol as the AI's
+        `military_brain._commit_flee`. Attack-move passes suppress=False — it
+        is an order to fight on the way, so re-engaging is the point.
+
+        Player commands only: AI orders route through `_move_unit_to_position`
+        / `pathfinder` directly and keep their own disengage protocol.
+        """
+        if not (getattr(unit, "current_target", None)
+                or getattr(unit, "in_combat", False)
+                or getattr(unit, "is_engaging", False)):
+            return
+        unit.current_target = None
+        unit.in_combat = False
+        unit.is_engaging = False
+        if unit.status == "attack":
+            unit.status = "idle"  # the command below sets "run" if it moves
+        if not suppress:
+            return
+        frame = getattr(self.game, "frame_counter", 0)
+        until = frame + self.COMMAND_DISENGAGE_FRAMES
+        unit._next_target_scan_frame = max(
+            getattr(unit, "_next_target_scan_frame", 0), until)
+        unit._retreating_until = max(getattr(unit, "_retreating_until", 0), until)
+
     def _execute_command_spec(self, unit, spec):
         """Run one (kind, payload) command spec."""
         kind, payload = spec
         pathfinder = self.game.pathfinder
+        # Every order but "attack" means "stop fighting and do this instead".
+        # ("attack" sets its own target immediately, via _attack_target.)
+        if kind != "attack":
+            self._release_combat_for_order(unit)
         if kind == "move":
             self._move_unit_to_position(unit, payload, pathfinder)
         elif kind == "gather":
@@ -700,7 +754,15 @@ class SelectionManager:
     def _execute_command_mode_action(self, command_mode, valid_units, world_pos, clicked_object):
         """Execute the command mode action"""
         pathfinder = self.game.pathfinder
-        
+
+        # Hotkey command modes are player orders too, and bypass
+        # _execute_command_spec — they need the same preemption (see
+        # _release_combat_for_order). 'attack' sets its own target.
+        if command_mode != 'attack':
+            for unit in valid_units:
+                self._release_combat_for_order(
+                    unit, suppress=command_mode != 'attack_move')
+
         if command_mode == 'move':
             # Use existing movement logic from right-click
             if len(valid_units) > 1 and not clicked_object:
