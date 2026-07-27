@@ -11,6 +11,23 @@ STEER_SLOT_DIRS = tuple(
     (math.cos(2 * math.pi * i / NUM_STEER_SLOTS), math.sin(2 * math.pi * i / NUM_STEER_SLOTS))
     for i in range(NUM_STEER_SLOTS)
 )
+# Danger only ever lands on slots within ±0.6 alignment of a neighbour, i.e.
+# inside 53.13°. The nearest slot to any direction is within half a step
+# (11.25°), so every qualifying slot sits within (53.13+11.25)/22.5 = 2.86
+# steps of it — a ±3 window is a strict superset. Scanning that window instead
+# of all 16 slots is what makes the per-neighbour loop cheap; the
+# `alignment > 0.6` test below is unchanged, so results are identical.
+STEER_SLOT_WINDOW = 3
+STEER_WINDOW_OFFSETS = tuple(range(-STEER_SLOT_WINDOW, STEER_SLOT_WINDOW + 1))
+STEER_SLOTS_PER_RADIAN = NUM_STEER_SLOTS / (2 * math.pi)
+# atan2 returns [-pi, pi], so the scaled angle lands in [-8, 8]. Biasing it
+# positive makes int() truncation equal floor(), i.e. an exact round-half-up;
+# plain int() would round negative angles the wrong way. ⚠ The bias MUST be a
+# whole number of slots (+0.5), never half a turn — a NUM_STEER_SLOTS/2 bias
+# survives the `% NUM_STEER_SLOTS` below and silently picks the slot on the
+# OPPOSITE side for every negative angle (caught by
+# tests/test_crowd_query_equivalence.py, which is why that test exists).
+STEER_SLOT_BIAS = NUM_STEER_SLOTS + 0.5
 
 
 class MovementSystem:
@@ -927,15 +944,31 @@ class MovementSystem:
         desired_y = desired_dir.y
         danger = [0.0] * NUM_STEER_SLOTS
         any_danger = False
+        unit_radius = unit.radius
+        pos_x = pos.x
+        pos_y = pos.y
+        slot_dirs = STEER_SLOT_DIRS
         for other in neighbors:
-            if other in excluded or not getattr(other, "collision", True):
+            # `neighbors` comes from the unit buckets, so every entry is a Unit
+            # and always carries `.collision` — direct access, not getattr.
+            if other in excluded or not other.collision:
                 continue
-            offset_x = other.x - pos.x
-            offset_y = other.y - pos.y
+            offset_x = other.x - pos_x
+            offset_y = other.y - pos_y
+            # The bucket query returns everything in the 96 px cells the circle
+            # touches, so most candidates sit well outside `lookahead` and are
+            # discarded below. Reject those on an exact |dx|/|dy| box first —
+            # |dx| > reach implies hypot > reach — so the square root is only
+            # paid for candidates that can actually matter. (A squared-distance
+            # compare would be faster still, but sqrt(dx*dx+dy*dy) is not
+            # correctly rounded the way hypot is, and could disagree by an ULP.)
+            reach = lookahead + unit_radius + other.radius + 1e-6
+            if offset_x > reach or offset_x < -reach or offset_y > reach or offset_y < -reach:
+                continue
             dist = math.hypot(offset_x, offset_y)
             if dist < 1e-6:
                 continue
-            clearance = dist - unit.radius - other.radius
+            clearance = dist - unit_radius - other.radius
             if clearance > lookahead:
                 continue
             toward_x = offset_x / dist
@@ -945,7 +978,13 @@ class MovementSystem:
                 continue
             weight = 1.0 - max(0.0, clearance) / lookahead
             any_danger = True
-            for i, (slot_x, slot_y) in enumerate(STEER_SLOT_DIRS):
+            # Only the slots that can possibly clear the 0.6 alignment gate
+            # (see STEER_SLOT_WINDOW) — 7 of 16 instead of all of them.
+            centre = int(math.atan2(toward_y, toward_x) * STEER_SLOTS_PER_RADIAN
+                         + STEER_SLOT_BIAS)
+            for offset in STEER_WINDOW_OFFSETS:
+                i = (centre + offset) % NUM_STEER_SLOTS
+                slot_x, slot_y = slot_dirs[i]
                 alignment = slot_x * toward_x + slot_y * toward_y
                 if alignment > 0.6:
                     value = weight * alignment
@@ -962,7 +1001,26 @@ class MovementSystem:
         # mover then rejected at ±radius, livelocking crowds at water.
         terrain_check = getattr(collision, "_is_on_unwalkable_terrain", None)
         probe_distance = unit.radius * 2 + 12
-        scored = []
+
+        def slot_ok(slot_x, slot_y):
+            # Never steer into blocked terrain: a wiped-out move order is far
+            # worse than a slightly more crowded slot.
+            probe_x = pos_x + slot_x * probe_distance
+            probe_y = pos_y + slot_y * probe_distance
+            if terrain_check is not None:
+                return not terrain_check(probe_x, probe_y, unit_radius)
+            if terrain_probe is not None:
+                return terrain_probe(probe_x, probe_y)
+            return True
+
+        # Scoring used to build a 13-16 tuple list and sort it on EVERY call
+        # (~95 k per 200-unit run) even though the top slot is accepted almost
+        # every time. Take one linear pass for the winner and only fall back to
+        # the full sorted walk if terrain rejects it. Ties break toward the
+        # higher slot index, exactly as `sort(reverse=True)` on
+        # (score, i, ...) tuples did — i is unique, so there are no other ties.
+        best_score = None
+        best_i = -1
         for i, (slot_x, slot_y) in enumerate(STEER_SLOT_DIRS):
             interest = slot_x * desired_x + slot_y * desired_y
             if interest < -0.2:
@@ -970,17 +1028,33 @@ class MovementSystem:
             score = interest - danger[i] * 1.6
             if i == last_slot:
                 score += 0.08  # hysteresis against slot flip-flop
+            if best_score is None or score > best_score or (
+                    score == best_score and i > best_i):
+                best_score = score
+                best_i = i
+        if best_i < 0:
+            return desired_dir
+
+        slot_x, slot_y = STEER_SLOT_DIRS[best_i]
+        if slot_ok(slot_x, slot_y):
+            unit._steer_last_slot = best_i
+            return pygame.math.Vector2((slot_x, slot_y))
+
+        # Rare path: rebuild the ranked list and walk the rest in order.
+        scored = []
+        for i, (slot_x, slot_y) in enumerate(STEER_SLOT_DIRS):
+            if i == best_i:
+                continue
+            interest = slot_x * desired_x + slot_y * desired_y
+            if interest < -0.2:
+                continue
+            score = interest - danger[i] * 1.6
+            if i == last_slot:
+                score += 0.08
             scored.append((score, i, slot_x, slot_y))
         scored.sort(reverse=True)
         for score, i, slot_x, slot_y in scored:
-            # Never steer into blocked terrain: a wiped-out move order is far
-            # worse than a slightly more crowded slot.
-            probe_x = pos.x + slot_x * probe_distance
-            probe_y = pos.y + slot_y * probe_distance
-            if terrain_check is not None:
-                if terrain_check(probe_x, probe_y, unit.radius):
-                    continue
-            elif terrain_probe is not None and not terrain_probe(probe_x, probe_y):
+            if not slot_ok(slot_x, slot_y):
                 continue
             unit._steer_last_slot = i
             return pygame.math.Vector2((slot_x, slot_y))

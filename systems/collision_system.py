@@ -7,6 +7,14 @@ from utils.perf_stats import perf_stats
 
 SPATIAL_BUCKET_SIZE = 96
 
+# Distance loops reject far candidates with an |dx|/|dy| box before paying for
+# a square root — the bucket query hands back a whole 96 px cell and most of it
+# is out of range. The margin exists so the cheap test can NEVER disagree with
+# the exact test it guards: float rounding in sqrt/hypot is worth a few ULPs
+# (~1e-14 px at these magnitudes), and 1e-6 px is nine orders of magnitude more
+# slack than that while being far below any distance the game can resolve.
+BOX_REJECT_MARGIN = 1e-6
+
 
 class CollisionSystem:
     """Handles collision detection, resolution, and unit separation"""
@@ -104,15 +112,48 @@ class CollisionSystem:
         for unit in self.game.units:
             self._index_object(self._unit_buckets, unit)
 
-    def _iter_bucket_objects(self, buckets, x, y, radius):
-        seen = set()
-        for cell in self._cells_for_bounds(x, y, radius):
-            for obj in buckets.get(cell, ()):
-                obj_id = id(obj)
-                if obj_id in seen:
+    def _bucket_objects(self, buckets, x, y, radius):
+        """Candidates from every bucket the query circle touches.
+
+        ⚠ **Read-only, and it may be a live bucket list** — the single-cell
+        case returns the stored list itself rather than copying it. Every
+        public entry point (`_nearby_units` / `_nearby_static` / `query_*`)
+        hands out a fresh list, so nothing outside this class can mutate one.
+
+        Perf (2026-07-26): this used to be a generator that allocated a `set`
+        and called `id()` on **every** candidate. It is the hottest query in
+        the game — the 200-unit profile logged 9.2 M generator resumptions and
+        25.9 M `id()` calls (1.5 s) — and most queries touch exactly one
+        96 px bucket, where dedup is provably unnecessary because
+        `_index_object` appends an object at most once per cell. So: dedup
+        only when the query actually spans cells.
+        """
+        size = self.bucket_size
+        min_x = int((x - radius) // size)
+        max_x = int((x + radius) // size)
+        min_y = int((y - radius) // size)
+        max_y = int((y + radius) // size)
+        if min_x == max_x and min_y == max_y:
+            return buckets.get((min_x, min_y), ())
+        result = []
+        seen = None
+        for cell_x in range(min_x, max_x + 1):
+            for cell_y in range(min_y, max_y + 1):
+                bucket = buckets.get((cell_x, cell_y))
+                if not bucket:
                     continue
-                seen.add(obj_id)
-                yield obj
+                if not result:
+                    # First non-empty bucket: nothing to dedup against yet.
+                    result.extend(bucket)
+                    continue
+                if seen is None:
+                    seen = {id(obj) for obj in result}
+                for obj in bucket:
+                    obj_id = id(obj)
+                    if obj_id not in seen:
+                        seen.add(obj_id)
+                        result.append(obj)
+        return result
 
     def _nearby_static(
         self,
@@ -124,32 +165,60 @@ class CollisionSystem:
         include_construction_sites=True,
         include_resources=True,
     ):
+        """Static blockers near a point, as a fresh list."""
         self._ensure_static_index()
         kinds = self._static_kinds
-        for obj in self._iter_bucket_objects(self._static_buckets, x, y, radius + 2):
+        result = []
+        for obj in self._bucket_objects(self._static_buckets, x, y, radius + 2):
             kind = kinds.get(id(obj))
             if kind == "building":
                 if include_buildings:
-                    yield obj
+                    result.append(obj)
             elif kind == "site":
                 if include_construction_sites:
-                    yield obj
+                    result.append(obj)
             elif include_resources:
-                yield obj
+                result.append(obj)
+        return result
+
+    def _nearby_static_split(self, x, y, radius):
+        """One bucket query, partitioned into (blockers, resources).
+
+        `check_unit_collision_and_adjust` needs both groups at the same point
+        and used to run two identical queries to get them. Order within each
+        group is the bucket order, exactly as the two separate passes saw it.
+        """
+        self._ensure_static_index()
+        kinds = self._static_kinds
+        blockers = []
+        resources = []
+        for obj in self._bucket_objects(self._static_buckets, x, y, radius + 2):
+            kind = kinds.get(id(obj))
+            if kind == "building" or kind == "site":
+                blockers.append(obj)
+            else:
+                resources.append(obj)
+        return blockers, resources
 
     def _nearby_units(self, x, y, radius, exclude=None):
+        """Units near a point, as a fresh list (safe for callers to extend)."""
         self.begin_frame()
-        for unit in self._iter_bucket_objects(self._unit_buckets, x, y, radius + 2):
-            if unit is not exclude:
-                yield unit
+        objects = self._bucket_objects(self._unit_buckets, x, y, radius + 2)
+        if exclude is None:
+            return list(objects)
+        return [unit for unit in objects if unit is not exclude]
 
     # ------------------------------------------------------------------
     # Shared spatial queries (Phase 1): the single index other systems use
     # instead of rescanning game.units / game.buildings.
     # ------------------------------------------------------------------
     def query_nearby_units(self, x, y, radius, exclude=None):
-        """Units whose padded bounds may overlap the circle at (x, y)."""
-        return list(self._nearby_units(x, y, radius, exclude=exclude))
+        """Units whose padded bounds may overlap the circle at (x, y).
+
+        `_nearby_units` already returns a fresh list, so this does NOT copy
+        again — it is on the steering hot path (~100 k calls per 200-unit run).
+        """
+        return self._nearby_units(x, y, radius, exclude=exclude)
 
     def query_nearby_static(
         self,
@@ -187,7 +256,11 @@ class CollisionSystem:
         return obstacles
 
     def _record_collision_check(self):
-        perf_stats.increment("collision_checks")
+        # Hot enough to matter (millions of calls per benchmark run): check the
+        # flag here so a disabled build pays one attribute load, not a second
+        # call into perf_stats.
+        if perf_stats.enabled:
+            perf_stats.increment("collision_checks")
         
     def check_unit_collision_and_adjust(self, unit, new_pos, direction):
         """Smart collision detection with sliding behavior"""
@@ -197,14 +270,17 @@ class CollisionSystem:
 
         original_pos = pygame.math.Vector2(unit.x, unit.y)
         final_pos = new_pos
-        
+
+        # Both static passes below query the same point *unless* the first one
+        # slides the unit, which is the rare case — so query once and reuse.
+        # (Two separate queries at the same centre was pure duplicate work;
+        # ~200 k of them per 200-unit run.)
+        query_x, query_y = final_pos.x, final_pos.y
+        nearby_blockers, nearby_resources = self._nearby_static_split(
+            query_x, query_y, unit.radius)
+
         # First, check for collisions with static objects (buildings, construction sites)
-        for building in self._nearby_static(
-            final_pos.x,
-            final_pos.y,
-            unit.radius,
-            include_resources=False,
-        ):
+        for building in nearby_blockers:
             # Open gates are passable (§8.10)
             if getattr(building, "passable", False):
                 continue
@@ -223,8 +299,13 @@ class CollisionSystem:
             dx = final_pos.x - building.x
             dy = final_pos.y - building.y
             self._record_collision_check()
+            # Cheap box reject before the root (see BOX_REJECT_MARGIN);
+            # `distance` is only needed inside the branch below.
+            box = min_distance + BOX_REJECT_MARGIN
+            if dx >= box or dx <= -box or dy >= box or dy <= -box:
+                continue
             distance = math.sqrt(dx * dx + dy * dy)
-            
+
             if distance < min_distance:
                 # Calculate overlap amount
                 overlap = min_distance - distance
@@ -234,14 +315,17 @@ class CollisionSystem:
                                                          min_distance,
                                                          unit, overlap)
         
-        # Check resources
-        for resource in self._nearby_static(
-            final_pos.x,
-            final_pos.y,
-            unit.radius,
-            include_buildings=False,
-            include_construction_sites=False,
-        ):
+        # Check resources — re-query only if the slide above actually moved us,
+        # so the candidate set is identical to the old two-query version.
+        if final_pos.x != query_x or final_pos.y != query_y:
+            nearby_resources = self._nearby_static(
+                final_pos.x,
+                final_pos.y,
+                unit.radius,
+                include_buildings=False,
+                include_construction_sites=False,
+            )
+        for resource in nearby_resources:
             dx = final_pos.x - resource.x
             dy = final_pos.y - resource.y
             self._record_collision_check()
@@ -313,10 +397,21 @@ class CollisionSystem:
         # unit proceeds and parts the crowd, the lower-priority one yields.
         # Context steering already avoids most of these contacts proactively.
         for other_unit in self._nearby_units(final_pos.x, final_pos.y, unit.radius, exclude=unit):
-            if not getattr(other_unit, "collision", True):
+            if not other_unit.collision:  # unit buckets hold Units only
                 continue
             self._record_collision_check()
             min_distance = unit.radius + other_unit.radius + 2
+            # Bounding-box reject first: the bucket query hands back a whole
+            # 96 px cell's worth of units and nearly all of them are far
+            # outside `min_distance`, so the square root is wasted on them.
+            # ⚠ Deliberately an |dx|/|dy| box, NOT a squared-distance compare:
+            # hypot is correctly rounded and sqrt(dx*dx+dy*dy) is not, so the
+            # squared form can disagree with the exact test below at the
+            # boundary. See BOX_REJECT_MARGIN.
+            box = min_distance + BOX_REJECT_MARGIN
+            if (abs(final_pos.x - other_unit.x) >= box
+                    or abs(final_pos.y - other_unit.y) >= box):
+                continue
             new_distance = math.hypot(final_pos.x - other_unit.x, final_pos.y - other_unit.y)
             if new_distance >= min_distance:
                 continue
@@ -518,6 +613,22 @@ class CollisionSystem:
         """Lightweight 9-point terrain check. Returns True if any point is on water/lava."""
         probe = getattr(self.game_map, "nav_terrain_walkable", None)
         diag = radius * 0.7
+        if probe is not None:
+            # Straight-line short-circuit chain, same probe order as the
+            # fallback below. This runs ~400 k times per 200-unit run and the
+            # old `any(genexpr)` form allocated a 9-tuple of 2-tuples plus a
+            # generator on EVERY call, just to reach the same answer.
+            return not (
+                probe(x, y)
+                and probe(x + radius, y)
+                and probe(x - radius, y)
+                and probe(x, y + radius)
+                and probe(x, y - radius)
+                and probe(x + diag, y + diag)
+                and probe(x - diag, y + diag)
+                and probe(x + diag, y - diag)
+                and probe(x - diag, y - diag)
+            )
         check_points = (
             (x, y),
             (x + radius, y), (x - radius, y),
@@ -525,8 +636,6 @@ class CollisionSystem:
             (x + diag, y + diag), (x - diag, y + diag),
             (x + diag, y - diag), (x - diag, y - diag),
         )
-        if probe is not None:
-            return any(not probe(cx, cy) for cx, cy in check_points)
         for cx, cy in check_points:
             hex_coord = self.game_map.world_to_grid(cx, cy)
             if hex_coord:
@@ -543,20 +652,42 @@ class CollisionSystem:
     SEPARATION_MAX_PUSH = 1.5
 
     def separate_overlapping_units(self):
-        """Gently push apart units that are deeply overlapping."""
+        """Gently push apart units that are deeply overlapping.
+
+        Perf (2026-07-26): this was **O(N²) with a list copy per unit** — it
+        built the spatial neighbour set correctly and then threw the benefit
+        away by scanning `game.units[i+1:]` (a fresh slice, every unit, every
+        frame) and testing membership. At 200 units that is 200 slice copies
+        and 20 000 membership tests per frame; it profiled at 5.6 s of the
+        26.6 s spent in `update`, ~8.5 ms per single call.
+
+        Now it walks the neighbours directly. The pair SET is identical (same
+        query, same radius) and pairs are still visited in ascending index
+        order, so the immediate-push behaviour is unchanged — the ordering is
+        reconstructed explicitly rather than inherited from the scan, because
+        pushes are applied as they are found and order would otherwise drift.
+        """
         self.begin_frame()
-        for i, unit1 in enumerate(self.game.units):
+        units = self.game.units
+        index_of = {id(unit): i for i, unit in enumerate(units)}
+        checks = 0
+        for i, unit1 in enumerate(units):
             if not unit1.collision:
                 continue
-            nearby_units = {id(unit) for unit in self._nearby_units(unit1.x, unit1.y, unit1.radius, exclude=unit1)}
-            for unit2 in self.game.units[i + 1:]:
-                if id(unit2) not in nearby_units:
-                    continue
+            partners = [
+                unit for unit in self._nearby_units(
+                    unit1.x, unit1.y, unit1.radius, exclude=unit1)
+                if index_of.get(id(unit), -1) > i
+            ]
+            if not partners:
+                continue
+            partners.sort(key=lambda unit: index_of[id(unit)])
+            for unit2 in partners:
                 if not unit2.collision:
                     continue
                 dx = unit2.x - unit1.x
                 dy = unit2.y - unit1.y
-                self._record_collision_check()
+                checks += 1
                 distance = math.sqrt(dx * dx + dy * dy)
 
                 trigger_distance = (unit1.radius + unit2.radius) * self.SEPARATION_TRIGGER_FACTOR
@@ -580,7 +711,11 @@ class CollisionSystem:
                 if not self._is_on_unwalkable_terrain(cand2_x, cand2_y, unit2.radius):
                     unit2.x = cand2_x
                     unit2.y = cand2_y
-    
+        # One counter update instead of ~20 000 method calls per frame; the
+        # reported total is identical.
+        if checks and perf_stats.enabled:
+            perf_stats.increment("collision_checks", checks)
+
     def _ensure_unit_on_walkable_terrain(self, unit):
         """Safety net: move unit out of unwalkable terrain using 9-point check"""
         if not self._is_on_unwalkable_terrain(unit.x, unit.y, unit.radius):
