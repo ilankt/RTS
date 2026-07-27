@@ -1,14 +1,19 @@
 # Download
 
-Latest version: **0.11.0-beta** — Windows 64-bit.
+Latest version: **0.12.0-beta** — Windows 64-bit.
+[What's new in this version](CHANGELOG.md#0120-beta--2026-07-27)
 
 | Download | What you get |
 |---|---|
-| **[Installer](https://github.com/ilankt/RTS/releases/download/v0.11.0-beta/RTS_Setup_0.11.0-beta.exe)** — `RTS_Setup_0.11.0-beta.exe` | Familiar setup wizard. Installs per-user (no admin prompt), adds a Start-menu shortcut and an uninstaller. |
-| **[Portable](https://github.com/ilankt/RTS/releases/download/v0.11.0-beta/RTS_0.11.0-beta_win64_portable.zip)** — `RTS_0.11.0-beta_win64_portable.zip` | No installation: unzip anywhere and run `RTS.exe`. |
+| **[Installer](https://github.com/ilankt/RTS/releases/download/v0.12.0-beta/RTS_Setup_0.12.0-beta.exe)** — `RTS_Setup_0.12.0-beta.exe` | Familiar setup wizard. Installs per-user (no admin prompt), adds a Start-menu shortcut and an uninstaller. |
+| **[Portable](https://github.com/ilankt/RTS/releases/download/v0.12.0-beta/RTS_0.12.0-beta_win64_portable.zip)** — `RTS_0.12.0-beta_win64_portable.zip` | No installation: unzip anywhere and run `RTS.exe`. |
 | **[Source code](https://github.com/ilankt/RTS/archive/refs/heads/main.zip)** — `src.zip` | The latest source. Runs on any OS with Python 3.10+ — see [Getting Started](README.md#getting-started). |
 
-All releases: <https://github.com/ilankt/RTS/releases>
+All releases: <https://github.com/ilankt/RTS/releases> ·
+Full version history: **[CHANGELOG.md](CHANGELOG.md)**
+
+Upgrading from 0.11.0-beta? The installer replaces the old version in place, and
+your saves and settings are kept (they live outside the install folder).
 
 Good to know:
 

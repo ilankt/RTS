@@ -15,12 +15,23 @@ just sit back and spectate.
   slash/pierce/siege damage types vs light/heavy/fortified armor and
   counter-unit bonuses
 - **12 buildings** including production, defense towers, and the temple's
-  auto-healing support unit; walls & gates are implemented behind a flag
-- **6 blacksmith technologies** (gathering, armor, melee/ranged/siege damage)
+  auto-healing support unit
+- **6 blacksmith technologies** (gathering, armor, melee/ranged/siege damage),
+  each a three-level chain
 - Fog of war with explored-terrain memory and last-seen resource ghosts
 - Formations, unit stances, attack-move, shift-queued orders, control groups,
-  rally points, camera bookmarks, save/load
+  rally points, camera bookmarks, demolish, save/load
+- Enforced population cap, idle-worker alerts, and reactive onboarding hints
+  that fire when you're actually stuck
 - Adjustable game speed (1–5×), match setup with map-size choice
+
+**Presentation**
+- **Spatial audio**: hits, deaths, gathering and collapses are heard from the
+  camera's viewpoint — panned, distance-faded, silent off-screen — with
+  per-unit barks and rotating variants so repeated sounds don't loop audibly
+- **Ambient world**: swaying trees, drifting cloud shadows and chimney smoke,
+  all driven by one shared wind direction; wounded buildings smoke visibly
+- Blob shadows under every object, shaped from each sprite's own outline
 
 **AI**
 - Utility-goal AI: every 0.5 s each AI scores 30+ goals (economy, military,
@@ -50,7 +61,8 @@ just sit back and spectate.
 ## Getting Started
 
 **Just want to play?** Grab the Windows installer or portable zip from the
-**[Download page](DOWNLOAD.md)** — no Python required.
+**[Download page](DOWNLOAD.md)** — no Python required. What changed recently is
+in the **[Changelog](CHANGELOG.md)**.
 
 To run from source, you need **Python 3.10+** (developed on 3.12).
 
@@ -102,9 +114,10 @@ data/       units.json, buildings.json, techs.json — all game content
 
 ## Status
 
-Actively developed hobby project. The core game is fully playable end to end;
-current work focuses on performance at 200+ unit battles, audio, and
-world/art polish.
+Actively developed hobby project — currently **0.12.0-beta**
+([changelog](CHANGELOG.md)). The core game is fully playable end to end; current
+work focuses on performance at 200+ unit battles, remaining audio cues, and
+world/atmosphere polish.
 
 ## Credits
 
