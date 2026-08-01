@@ -36,7 +36,7 @@ if settings.get("fullscreen"):
         _resolution = list(pygame.display.get_desktop_sizes()[0])
     except pygame.error:
         pass
-_config.apply_resolution(*_resolution)
+_config.apply_resolution(*_resolution, ui_scale=settings.get("ui_scale"))
 if settings.get("colorblind_palette"):
     # In-place so modules that imported the list by value see the swap too
     _config.PLAYER_COLORS[:] = _config.PLAYER_COLORS_COLORBLIND

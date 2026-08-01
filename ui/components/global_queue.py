@@ -12,11 +12,12 @@ queue too.
 """
 import pygame
 
-from core.config import TOP_BAR_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
+from core.config import TOP_BAR_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, px
 from ui.fonts import fit_text
 
 
 class GlobalQueueStrip:
+    # Design px at UI scale 1.0; __init__ re-binds them scaled (§8.2.2).
     ROW_W = 170
     ROW_H = 26
     ROW_GAP = 3
@@ -29,7 +30,13 @@ class GlobalQueueStrip:
         self.game = game
         self.icon_loader = icon_loader
         self.tech_icons = tech_icons  # shared with the command card
-        self.name_font = pygame.font.Font(None, 16)
+        self.ROW_W = px(self.ROW_W)
+        self.ROW_H = max(px(self.ROW_H), 0)
+        self.ROW_GAP = px(self.ROW_GAP)
+        self.ICON = px(self.ICON)
+        self.X = px(self.X)
+        self.TOP = TOP_BAR_HEIGHT + px(170)
+        self.name_font = pygame.font.Font(None, px(16))
         self._icon_cache = {}
         self._rows = []  # [(screen rect, item)]
 
@@ -100,18 +107,21 @@ class GlobalQueueStrip:
 
             icon = self._icon(item['kind'], item['key'])
             if icon is not None:
-                row.blit(icon, (3, (self.ROW_H - self.ICON) // 2 - 1))
+                row.blit(icon, (px(3), (self.ROW_H - self.ICON) // 2 - px(1)))
             # The +N badge survives truncation — the name gives way, not it
             suffix = f" +{item['queued']}" if item['queued'] else ""
-            avail = self.ROW_W - (self.ICON + 8) - 4 - self.name_font.size(suffix)[0]
+            text_x = self.ICON + px(8)
+            avail = self.ROW_W - text_x - px(4) - self.name_font.size(suffix)[0]
             label = fit_text(self.name_font, item['label'], avail) + suffix
             text = self.name_font.render(label, True, (235, 235, 235))
-            row.blit(text, (self.ICON + 8, 5))
+            row.blit(text, (text_x, (self.ROW_H - text.get_height()) // 2 - px(1)))
 
             # Progress bar along the bottom edge
-            bar_w = int((self.ROW_W - 4) * min(1.0, item['progress']))
-            pygame.draw.rect(row, (60, 60, 60), (2, self.ROW_H - 5, self.ROW_W - 4, 3))
-            pygame.draw.rect(row, color, (2, self.ROW_H - 5, bar_w, 3))
+            bar_h = max(2, px(3))
+            bar_y = self.ROW_H - bar_h - px(2)
+            bar_w = int((self.ROW_W - px(4)) * min(1.0, item['progress']))
+            pygame.draw.rect(row, (60, 60, 60), (px(2), bar_y, self.ROW_W - px(4), bar_h))
+            pygame.draw.rect(row, color, (px(2), bar_y, bar_w, bar_h))
             if hovered:
                 pygame.draw.rect(row, (220, 220, 220), row.get_rect(), 1)
 
@@ -121,7 +131,7 @@ class GlobalQueueStrip:
         if len(items) > self.MAX_ROWS:
             more = self.name_font.render(f"+{len(items) - self.MAX_ROWS} more",
                                          True, (180, 180, 180))
-            screen.blit(more, (self.X + 4, y + 1))
+            screen.blit(more, (self.X + px(4), y + px(1)))
 
     def handle_click(self, pos):
         """Click = jump camera to + select the producer; Ctrl+click = cancel

@@ -17,8 +17,15 @@ SETTINGS_FILE = user_path("settings.json")
 
 RESOLUTION_CHOICES = [[1280, 720], [1600, 900], [1920, 1080]]
 
+# HUD scale (§8.2.2). "auto" matches the 720p design point by screen HEIGHT;
+# the explicit steps exist because that is the wrong answer on a wide display —
+# at 21:9 the height-matched scale is a third smaller than the width-matched
+# one, and which reads "right" is the player's call, not a formula's.
+UI_SCALE_CHOICES = ["auto", 1.0, 1.25, 1.5, 1.75, 2.0]
+
 DEFAULTS = {
     "resolution": [1920, 1080],
+    "ui_scale": "auto",          # HUD scale; applies on restart like resolution
     "fullscreen": True,          # fullscreen at the DESKTOP resolution (main.py
     # queries it at startup); the resolution setting governs windowed mode
     "volume": 0.3,               # SFX volume, 0.0 - 1.0
@@ -73,6 +80,14 @@ class Settings:
                     self.values[key] = min(10, max(1, int(value)))
                 except (TypeError, ValueError):
                     pass
+            elif key == "ui_scale":
+                if value in UI_SCALE_CHOICES:
+                    self.values[key] = value
+                else:
+                    try:
+                        self.values[key] = min(2.0, max(1.0, float(value)))
+                    except (TypeError, ValueError):
+                        pass
 
     def save(self):
         """Persist only entries that differ from the defaults."""

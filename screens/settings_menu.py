@@ -13,7 +13,7 @@ import time until the §8.2 resolution-independence rework).
 import pygame
 
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
-from core.settings import Settings, RESOLUTION_CHOICES
+from core.settings import Settings, RESOLUTION_CHOICES, UI_SCALE_CHOICES
 from screens import theme
 
 
@@ -30,6 +30,7 @@ CATEGORIES = [
     ("Video", [
         ("Resolution", "resolution"),
         ("Fullscreen", "fullscreen"),
+        ("HUD scale", "ui_scale"),
         ("Object shadows", "shadows"),
         ("Ambient effects", "ambient"),
         ("Colorblind colors", "colorblind_palette"),
@@ -114,6 +115,12 @@ class SettingsMenu:
             self.settings.set("resolution", list(
                 RESOLUTION_CHOICES[(index + direction) % len(RESOLUTION_CHOICES)]
             ))
+        elif key == "ui_scale":
+            current = self.settings.get("ui_scale")
+            index = (UI_SCALE_CHOICES.index(current)
+                     if current in UI_SCALE_CHOICES else 0)
+            self.settings.set("ui_scale",
+                              UI_SCALE_CHOICES[(index + direction) % len(UI_SCALE_CHOICES)])
         elif key in ("volume", "music_volume"):
             volume = round(self.settings.get(key) + direction * 0.1, 1)
             self.settings.set(key, min(1.0, max(0.0, volume)))
@@ -133,6 +140,19 @@ class SettingsMenu:
         if key == "resolution":
             w, h = self.settings.get("resolution")
             return f"{w} x {h} *"
+        if key == "ui_scale":
+            # Shows what the screen will ACTUALLY render: a short display has a
+            # hard ceiling (minimap + command card stack vertically), so a
+            # requested 200% can resolve lower — say so rather than lie.
+            from core.config import SCREEN_HEIGHT, resolve_ui_scale
+
+            value = self.settings.get("ui_scale")
+            effective = resolve_ui_scale(SCREEN_HEIGHT, value)
+            if value in (None, "auto"):
+                return f"Auto ({effective:.0%}) *"
+            if abs(effective - float(value)) > 1e-6:
+                return f"{float(value):.0%} (max {effective:.0%}) *"
+            return f"{float(value):.0%} *"
         if key in ("volume", "music_volume"):
             return f"{int(self.settings.get(key) * 100)}%"
         if key == "fullscreen":

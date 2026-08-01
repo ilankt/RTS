@@ -1,5 +1,8 @@
 import pygame
-from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
+import core.config as config
+from core.config import (SCREEN_WIDTH, SCREEN_HEIGHT, SIDEBAR_WIDTH,
+                         MINIMAP_HEIGHT, px)
+from ui import fonts as ui_fonts
 from ui.fonts import fit_text
 
 # Import UI components
@@ -24,10 +27,12 @@ class UIManager:
 
     def __init__(self, game):
         self.game = game
-        self.font = pygame.font.Font(None, 30)
-        self.small_font = pygame.font.Font(None, 20)
-        self.button_font = pygame.font.Font(None, 24)
-        self.stat_font = pygame.font.Font(None, 18)
+        # Default pygame face kept here (these are the alert/event-log
+        # surfaces, not the §8.2.2 sidebar); only the SIZE takes the HUD scale.
+        self.font = pygame.font.Font(None, px(30))
+        self.small_font = pygame.font.Font(None, px(20))
+        self.button_font = pygame.font.Font(None, px(24))
+        self.stat_font = pygame.font.Font(None, px(18))
 
         # Initialize UI components
         self.icon_loader = IconLoader()
@@ -43,7 +48,7 @@ class UIManager:
         # and 4-wide multi-select icons to sit INSIDE the frame, not over it.
         self.sidebar_frame = NineSliceFrame("assets/ui/hud_side_panel.png",
                                             src_inset=(150, 125, 45, 125),
-                                            dst_inset=(14, 16, 6, 16))
+                                            dst_inset=config.SIDEBAR_FRAME_INSET)
 
         # Alert feed (§7.4): fading toasts under the top bar, plus a
         # persistent scrolling log behind them (§8.2, toggled with L)
@@ -83,21 +88,23 @@ class UIManager:
         from core.config import TOP_BAR_HEIGHT, SCREEN_HEIGHT
 
         entries = self.alert_history[-self.LOG_VISIBLE_LINES:]
-        line_height = 20
-        panel_height = max(1, len(entries)) * line_height + 30
-        panel = pygame.Surface((340, panel_height), pygame.SRCALPHA)
+        line_height = max(px(20), self.small_font.get_height())
+        panel_width = px(340)
+        panel_height = max(1, len(entries)) * line_height + px(30)
+        panel = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
         panel.fill((0, 0, 0, 170))
         title = self.small_font.render("Event log (L)", True, (200, 180, 100))
-        panel.blit(title, (8, 5))
-        y = 26
+        panel.blit(title, (px(8), px(5)))
+        y = px(26)
         for text, sim_time in entries:
             minutes, seconds = divmod(int(sim_time), 60)
             line = self.small_font.render(
-                fit_text(self.small_font, f"{minutes:02d}:{seconds:02d}  {text}", 324),
+                fit_text(self.small_font, f"{minutes:02d}:{seconds:02d}  {text}",
+                         panel_width - px(16)),
                 True, (220, 220, 220))
-            panel.blit(line, (8, y))
+            panel.blit(line, (px(8), y))
             y += line_height
-        screen.blit(panel, (10, SCREEN_HEIGHT - panel_height - 40))
+        screen.blit(panel, (px(10), SCREEN_HEIGHT - panel_height - px(40)))
 
     def draw_alerts(self, screen):
         """Stacked fading alert toasts below the top bar."""
@@ -107,18 +114,19 @@ class UIManager:
 
         now = pygame.time.get_ticks()
         self.alerts = [a for a in self.alerts if now - a[1] <= self.ALERT_DURATION_MS]
-        y = TOP_BAR_HEIGHT + 8
+        y = TOP_BAR_HEIGHT + px(8)
         for text, start in self.alerts:
             age = now - start
             fade_window = self.ALERT_DURATION_MS - 1000
             alpha = 255 if age < fade_window else max(0, int(255 * (1 - (age - fade_window) / 1000)))
             surface = self.font.render(text, True, (255, 230, 120))
             surface.set_alpha(alpha)
-            backdrop = pygame.Surface((surface.get_width() + 16, surface.get_height() + 6), pygame.SRCALPHA)
+            backdrop = pygame.Surface((surface.get_width() + px(16),
+                                       surface.get_height() + px(6)), pygame.SRCALPHA)
             backdrop.fill((0, 0, 0, min(150, alpha)))
-            screen.blit(backdrop, (10, y - 3))
-            screen.blit(surface, (18, y))
-            y += surface.get_height() + 10
+            screen.blit(backdrop, (px(10), y - px(3)))
+            screen.blit(surface, (px(18), y))
+            y += surface.get_height() + px(10)
 
     # Delegate cursor methods to cursor manager
     def set_command_mode(self, command_mode):
@@ -171,9 +179,9 @@ class UIManager:
         fills the WHOLE right column below the minimap — the old inset
         margins let the screen's background gray show around it as a
         second, offset rectangle (user-reported)."""
-        ui_x = SCREEN_WIDTH - MINIMAP_WIDTH
+        ui_x = SCREEN_WIDTH - SIDEBAR_WIDTH
         ui_y = MINIMAP_HEIGHT
-        ui_width = MINIMAP_WIDTH
+        ui_width = SIDEBAR_WIDTH
         ui_height = SCREEN_HEIGHT - MINIMAP_HEIGHT
 
         panel_surface = pygame.Surface((ui_width, ui_height))

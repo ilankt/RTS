@@ -1,6 +1,7 @@
 import pygame
 import math
-from core.config import MINIMAP_WIDTH, MINIMAP_HEIGHT, TOP_BAR_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
+from core.config import (MINIMAP_WIDTH, MINIMAP_HEIGHT, MINIMAP_X, TOP_BAR_HEIGHT,
+                         MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT)
 
 
 class SelectionManager:
@@ -32,7 +33,8 @@ class SelectionManager:
     def handle_left_click(self, mouse_pos):
         """Handle left mouse button down"""
         # Check if clicking on minimap
-        if mouse_pos[0] > self.game.screen.get_width() - MINIMAP_WIDTH and mouse_pos[1] < MINIMAP_HEIGHT:
+        if (MINIMAP_X <= mouse_pos[0] < MINIMAP_X + MINIMAP_WIDTH
+                and mouse_pos[1] < MINIMAP_HEIGHT):
             return False  # Let minimap handle it
         
         self.selection_start_pos = mouse_pos

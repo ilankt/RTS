@@ -10,6 +10,8 @@ the sidebar uses — bump them here, not at 44 scattered call sites.
 """
 import pygame
 
+import core.config as config
+
 _UNSET = "__unset__"
 _face_path = _UNSET
 
@@ -26,7 +28,12 @@ def _face():
 
 
 def font(size, bold=False):
-    """A font at `size` px — the clean face, default as fallback.
+    """A font at `size` DESIGN px — the clean face, default as fallback.
+
+    `size` is multiplied by `config.UI_SCALE` (§8.2.2), which is what makes one
+    edit here resize every migrated call site. config is imported as a MODULE,
+    not by value, so the scale that apply_resolution() computed at startup is
+    the one used here.
 
     Deliberately NOT cached at module level: a pygame.font.quit()/init cycle
     (which some tests and the main menu trigger) would leave a module-cached
@@ -37,7 +44,8 @@ def font(size, bold=False):
     if not pygame.font.get_init():
         pygame.font.init()
     path = _face()
-    f = pygame.font.Font(path, int(size)) if path else pygame.font.Font(None, int(size))
+    scaled = max(1, int(round(size * config.UI_SCALE)))
+    f = pygame.font.Font(path, scaled) if path else pygame.font.Font(None, scaled)
     f.set_bold(bool(bold))
     return f
 

@@ -1,5 +1,6 @@
 import pygame
-from core.config import SCREEN_WIDTH, TILE_WIDTH, TILE_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
+from core.config import (SCREEN_WIDTH, TILE_WIDTH, TILE_HEIGHT, MAP_VIEW_WIDTH,
+                         MAP_VIEW_HEIGHT, MINIMAP_X, px)
 
 # Colorblind-safe resource palette (§8.1): amber / green
 RESOURCE_COLORS = {
@@ -14,6 +15,10 @@ class Minimap:
         self.game = game
         self.width = width
         self.height = height
+        # Marker sizes scale with the HUD so a 2x minimap doesn't read as the
+        # same sprinkle of 2px dots on a much larger surface.
+        self.dot = max(2, px(2))
+        self.blip = max(3, px(3))
         self.surface = pygame.Surface((width, height))
         self.map_texture = self.create_map_texture()
         self.dragging = False
@@ -51,7 +56,9 @@ class Minimap:
     def handle_drag(self, mouse_pos):
         if self.dragging:
             mini_x, mini_y = mouse_pos
-            mini_x -= (SCREEN_WIDTH - self.width)
+            # MINIMAP_X, not SCREEN_WIDTH - width: at high HUD scales the map
+            # is narrower than the sidebar and sits CENTRED in the column.
+            mini_x -= MINIMAP_X
             
             # Convert minimap coordinates to world coordinates
             world_x = (mini_x / self.width) * (self.game.game_map.width * TILE_WIDTH * 0.75)
@@ -88,7 +95,7 @@ class Minimap:
                 continue
             mini_x, mini_y = self.world_to_mini(resource.x, resource.y)
             color = RESOURCE_COLORS.get(resource.name, (200, 200, 120))
-            pygame.draw.rect(self._dots_surface, color, (mini_x, mini_y, 2, 2))
+            pygame.draw.rect(self._dots_surface, color, (mini_x, mini_y, self.dot, self.dot))
 
         # Ghosts of resources depleted out of sight: the player still
         # believes they're there, so the dot stays until the spot is revealed
@@ -96,7 +103,8 @@ class Minimap:
             for ghost in getattr(fog, "resource_ghosts", {}).values():
                 mini_x, mini_y = self.world_to_mini(ghost["x"], ghost["y"])
                 color = RESOURCE_COLORS.get(ghost["name"], (200, 200, 120))
-                pygame.draw.rect(self._dots_surface, color, (mini_x, mini_y, 2, 2))
+                pygame.draw.rect(self._dots_surface, color,
+                                 (mini_x, mini_y, self.dot, self.dot))
 
         # Buildings: owner color, larger than units; enemies only when their
         # tile has been explored (they don't move). Thin DARK outline for
@@ -108,8 +116,11 @@ class Minimap:
                 continue
             mini_x, mini_y = self.world_to_mini(building.x, building.y)
             color = getattr(building.player, "color", (220, 220, 220))
-            pygame.draw.rect(self._dots_surface, (25, 25, 25), (mini_x - 2, mini_y - 2, 5, 5))
-            pygame.draw.rect(self._dots_surface, color, (mini_x - 1, mini_y - 1, 3, 3))
+            outer, inner = self.blip + self.dot, self.blip
+            pygame.draw.rect(self._dots_surface, (25, 25, 25),
+                             (mini_x - outer // 2, mini_y - outer // 2, outer, outer))
+            pygame.draw.rect(self._dots_surface, color,
+                             (mini_x - inner // 2, mini_y - inner // 2, inner, inner))
 
         # §11.2 landmark props (ruins): brown dot, explored-gated; small
         # props (rocks, dead trees) stay off the minimap — noise at 2px
@@ -119,15 +130,16 @@ class Minimap:
             if fog_on and human and not fog.is_explored(human, prop.x, prop.y):
                 continue
             mini_x, mini_y = self.world_to_mini(prop.x, prop.y)
+            side = self.dot * 2
             pygame.draw.rect(self._dots_surface, (128, 108, 82),
-                             (mini_x - 1, mini_y - 1, 4, 4))
+                             (mini_x - side // 2, mini_y - side // 2, side, side))
 
         # §11.2 mountains: dark-gray landmark blobs, explored-gated
         for mountain in getattr(game, "mountains", ()):
             if fog_on and human and not fog.is_explored(human, mountain.x, mountain.y):
                 continue
             mini_x, mini_y = self.world_to_mini(mountain.x, mountain.y)
-            side = max(3, int(mountain.radius / 24))
+            side = max(self.blip, int(mountain.radius / 24))
             pygame.draw.rect(self._dots_surface, (78, 74, 70),
                              (mini_x - side // 2, mini_y - side // 2, side, side))
 
@@ -137,8 +149,11 @@ class Minimap:
             if fog_on and human and not fog.is_explored(human, fountain.x, fountain.y):
                 continue
             mini_x, mini_y = self.world_to_mini(fountain.x, fountain.y)
-            pygame.draw.rect(self._dots_surface, (25, 25, 25), (mini_x - 2, mini_y - 2, 6, 6))
-            pygame.draw.rect(self._dots_surface, (90, 205, 245), (mini_x - 1, mini_y - 1, 4, 4))
+            outer, inner = self.dot * 3, self.dot * 2
+            pygame.draw.rect(self._dots_surface, (25, 25, 25),
+                             (mini_x - outer // 2, mini_y - outer // 2, outer, outer))
+            pygame.draw.rect(self._dots_surface, (90, 205, 245),
+                             (mini_x - inner // 2, mini_y - inner // 2, inner, inner))
 
         # Units: owner color; enemies only while currently visible
         for unit in game.units:
@@ -147,7 +162,7 @@ class Minimap:
                 continue
             mini_x, mini_y = self.world_to_mini(unit.x, unit.y)
             color = getattr(unit.player, "color", (220, 220, 220))
-            pygame.draw.rect(self._dots_surface, color, (mini_x, mini_y, 2, 2))
+            pygame.draw.rect(self._dots_surface, color, (mini_x, mini_y, self.dot, self.dot))
 
     def _render_fog_mask(self):
         """Black out unexplored terrain and dim explored-but-unseen terrain,
@@ -186,8 +201,9 @@ class Minimap:
                 continue
             alive.append((mini_x, mini_y, started))
             progress = age / PING_DURATION_MS
-            radius = 3 + int(progress * 10)
-            pygame.draw.circle(self.surface, (255, 60, 60), (mini_x, mini_y), radius, 1)
+            radius = px(3) + int(progress * px(10))
+            pygame.draw.circle(self.surface, (255, 60, 60), (mini_x, mini_y), radius,
+                               max(1, px(1)))
         self._pings = alive
 
     def draw(self, screen):
@@ -210,6 +226,6 @@ class Minimap:
             (MAP_VIEW_WIDTH / (self.game.game_map.width * TILE_WIDTH * 0.75 * self.game.camera.zoom)) * self.width,
             (MAP_VIEW_HEIGHT / (self.game.game_map.height * TILE_HEIGHT * self.game.camera.zoom)) * self.height
         )
-        pygame.draw.rect(self.surface, (255, 255, 255), cam_rect, 1)
+        pygame.draw.rect(self.surface, (255, 255, 255), cam_rect, max(1, px(1)))
 
-        screen.blit(self.surface, (SCREEN_WIDTH - self.width, 0))
+        screen.blit(self.surface, (MINIMAP_X, 0))

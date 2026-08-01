@@ -8,6 +8,91 @@ SCREEN_HEIGHT = 720
 MAP_VIEW_WIDTH = 1102
 MAP_VIEW_HEIGHT = 620
 
+# ------------------------------------------------------------------ #
+# HUD scale (§8.2.2 "scale the sidebar with resolution")             #
+# ------------------------------------------------------------------ #
+# The HUD was laid out at 1280x720 in FIXED pixels, but fullscreen renders at
+# the DESKTOP resolution (main.py). On anything larger the sidebar, top bar and
+# every font shrink as a fraction of the screen: at 2752x1152 the 200 px sidebar
+# is 7 % of the width against the 15.6 % it was designed as, which is what
+# "icons and text are too small" actually is.
+#
+# UI_SCALE multiplies every HUD metric. The *_BASE numbers below are the
+# scale-1.0 design values and 720p MUST resolve to exactly them — the command
+# card already fills the sidebar height there, so there is no room to grow.
+HUD_DESIGN_HEIGHT = 720
+UI_SCALE_MIN = 1.0
+UI_SCALE_MAX = 2.0
+UI_SCALE_STEP = 0.25
+UI_SCALE = 1.0
+
+SIDEBAR_WIDTH_BASE = 200
+MINIMAP_SIZE_BASE = 200       # square, and always the FULL sidebar width
+TOP_BAR_HEIGHT_BASE = 100
+TOP_BAR_START_X_BASE = 48
+TOP_BAR_SPACING_BASE = 185
+TOP_BAR_ROW_Y_BASE = 25
+# ui_manager's sidebar NineSliceFrame insets (left, top, right, bottom). They
+# live here because the vertical budget below has to account for them.
+SIDEBAR_FRAME_INSET_BASE = (14, 16, 6, 16)
+# The command card's fixed vertical stack in design px: GRID_TOP (150, which
+# covers the selection header + tab chips) + 4 rows of (TILE_H 74 + GAP 4) +
+# the status strip (18).
+CARD_GRID_TOP_BASE = 150
+CARD_TILE_H_BASE = 74
+CARD_TILE_MIN_BASE = 48       # floor before a tile stops being a usable target
+CARD_TILE_GAP_BASE = 4
+CARD_STRIP_H_BASE = 18
+CARD_GRID_ROWS = 4
+CARD_STACK_BASE = (CARD_GRID_TOP_BASE + CARD_GRID_ROWS *
+                   (CARD_TILE_H_BASE + CARD_TILE_GAP_BASE) + CARD_STRIP_H_BASE)
+# The most compressed the sidebar can be and still render: floor-size minimap,
+# floor-height tiles, frame. Divides the screen height into the largest scale
+# that physically fits (see resolve_ui_scale).
+_MIN_CARD_STACK_BASE = (CARD_GRID_TOP_BASE + CARD_GRID_ROWS *
+                        (CARD_TILE_MIN_BASE + CARD_TILE_GAP_BASE) + CARD_STRIP_H_BASE)
+_MIN_SIDEBAR_BUDGET_BASE = (MINIMAP_SIZE_BASE + SIDEBAR_FRAME_INSET_BASE[1]
+                            + SIDEBAR_FRAME_INSET_BASE[3] + _MIN_CARD_STACK_BASE)
+
+# Derived by apply_resolution(); defaults are the 720p / scale-1.0 values.
+SIDEBAR_WIDTH = 200
+SIDEBAR_FRAME_INSET = SIDEBAR_FRAME_INSET_BASE
+MINIMAP_X = 1080
+CARD_TILE_HEIGHT = 74
+
+
+def px(value):
+    """Design pixels -> screen pixels at the current UI scale."""
+    return int(round(value * UI_SCALE))
+
+
+def resolve_ui_scale(screen_height, requested=None):
+    """The HUD scale to use: an explicit setting, or auto-derived from height.
+
+    Auto matches the HUD's physical size to the 720p design point, quantised to
+    UI_SCALE_STEP so nine-slice rails and glyphs land on tidy sizes. Note that
+    auto is derived from HEIGHT: on a 21:9 display, height-matched (1.6x at
+    1152p) and width-matched (2.15x) scaling are far apart, which is why the
+    setting can override it.
+    """
+    if requested in (None, "auto", ""):
+        raw = screen_height / float(HUD_DESIGN_HEIGHT)
+        steps = int(raw / UI_SCALE_STEP)          # floor: never overshoot the budget
+        scale = steps * UI_SCALE_STEP
+    else:
+        try:
+            scale = float(requested)
+        except (TypeError, ValueError):
+            scale = UI_SCALE_MIN
+    # A scale the screen cannot physically render is not an option, however it
+    # was asked for: the sidebar stacks minimap + card vertically, so a short
+    # display has a hard ceiling. Clamped here rather than at the call sites so
+    # a hand-edited settings.json can't produce a card hanging off the screen.
+    max_fit = screen_height / float(_MIN_SIDEBAR_BUDGET_BASE)
+    max_fit = int(max_fit / UI_SCALE_STEP) * UI_SCALE_STEP
+    ceiling = max(UI_SCALE_MIN, min(UI_SCALE_MAX, max_fit))
+    return max(UI_SCALE_MIN, min(ceiling, scale))
+
 
 MAP_WIDTH = 70
 MAP_HEIGHT = 70
@@ -73,7 +158,9 @@ MAX_ZOOM = 2.0
 ZOOM_STEP = 0.25
 DEFAULT_ZOOM = 1.25
 
-# Minimap
+# Minimap — square, sitting at the top of the sidebar column. Derived by
+# apply_resolution(): it scales with the HUD but yields height back to the
+# command card when the screen is too short for both at full scale.
 MINIMAP_WIDTH = 200
 MINIMAP_HEIGHT = 200
 
@@ -180,12 +267,15 @@ DROP_OFF_BUILDINGS = {
 # Gather/drop-off proximity lives in gathering_manager.get_gathering_distance
 # and get_drop_off_distance: combined radii + 10% + 5 px.)
 
-# Top Bar UI Configuration
+# Top Bar UI Configuration — all derived by apply_resolution() from the
+# *_BASE values at the top of this file; these defaults are the 720p ones.
 TOP_BAR_HEIGHT = 100
 TOP_BAR_START_X = 48   # clears the framed banner's left end-cap
 TOP_BAR_SPACING = 185  # keeps the 5th item clear of the right-side Idle badge
 TOP_BAR_ROW_Y = 25
 TOP_BAR_ITEMS = ["food", "gold", "wood", "house"]
+TOP_BAR_ICON_BASE = 48
+TOP_BAR_ICON = 48
 # Top bar width will be MAP_VIEW_WIDTH (to not overlap minimap)
 
 # Building Menu Configuration
@@ -301,13 +391,59 @@ MAX_GAME_SPEED = 5.0
 GAME_SPEED_INCREMENT = 1.0
 
 
-def apply_resolution(width, height):
-    """Set the screen size and recompute the derived layout constants
-    (§8.2.1 Phase D resolution independence). Must run before the game/UI
-    modules import these constants by value — main.py calls it at startup
-    with the persisted settings resolution."""
+def apply_resolution(width, height, ui_scale=None):
+    """Set the screen size + HUD scale and recompute every derived layout
+    constant (§8.2.1 Phase D resolution independence, §8.2.2 HUD scale).
+
+    Must run before the game/UI modules import these constants by value —
+    main.py calls it at startup with the persisted settings. `ui_scale` is
+    None/"auto" or an explicit multiplier.
+    """
     global SCREEN_WIDTH, SCREEN_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT
+    global UI_SCALE, SIDEBAR_WIDTH, SIDEBAR_FRAME_INSET
+    global MINIMAP_WIDTH, MINIMAP_HEIGHT, MINIMAP_X, CARD_TILE_HEIGHT
+    global TOP_BAR_HEIGHT, TOP_BAR_START_X, TOP_BAR_SPACING, TOP_BAR_ROW_Y
+    global TOP_BAR_ICON, BUILDING_BUTTON_HEIGHT, BUILDING_ICON_SIZE
+
     SCREEN_WIDTH = int(width)
     SCREEN_HEIGHT = int(height)
-    MAP_VIEW_WIDTH = SCREEN_WIDTH - (MINIMAP_WIDTH - 22)
+    UI_SCALE = resolve_ui_scale(SCREEN_HEIGHT, ui_scale)
+
+    SIDEBAR_WIDTH = px(SIDEBAR_WIDTH_BASE)
+    SIDEBAR_FRAME_INSET = tuple(px(v) for v in SIDEBAR_FRAME_INSET_BASE)
+    frame_v = SIDEBAR_FRAME_INSET[1] + SIDEBAR_FRAME_INSET[3]
+
+    # The minimap is a square filling the FULL sidebar width, flush to the top
+    # right — it is the head of the sidebar column, not a floating panel, and
+    # letting it shrink independently read as misplaced (user, 2026-08-01).
+    MINIMAP_WIDTH = MINIMAP_HEIGHT = SIDEBAR_WIDTH
+    MINIMAP_X = SCREEN_WIDTH - SIDEBAR_WIDTH
+
+    # Vertical budget. The sidebar stacks minimap + command card, but only the
+    # HUD scales — the screen's height is whatever the monitor is. With the
+    # minimap fixed, the CARD's tile height is the release valve: it takes its
+    # scaled size when there is room and compresses when there isn't. That
+    # compression is also why resolve_ui_scale refuses a scale this can't take.
+    rows_room = (SCREEN_HEIGHT - MINIMAP_HEIGHT - frame_v
+                 - px(CARD_GRID_TOP_BASE) - px(CARD_STRIP_H_BASE))
+    CARD_TILE_HEIGHT = max(px(CARD_TILE_MIN_BASE), min(
+        px(CARD_TILE_H_BASE), rows_room // CARD_GRID_ROWS - px(CARD_TILE_GAP_BASE)))
+
+    TOP_BAR_HEIGHT = px(TOP_BAR_HEIGHT_BASE)
+    TOP_BAR_START_X = px(TOP_BAR_START_X_BASE)
+    TOP_BAR_SPACING = px(TOP_BAR_SPACING_BASE)
+    TOP_BAR_ROW_Y = px(TOP_BAR_ROW_Y_BASE)
+    TOP_BAR_ICON = px(TOP_BAR_ICON_BASE)
+    BUILDING_BUTTON_HEIGHT = px(60)
+    BUILDING_ICON_SIZE = px(48)
+
+    # The map view extends px(22) under the sidebar (unchanged behaviour: the
+    # world tucks beneath the panel's outer lip so no gap shows at the seam).
+    MAP_VIEW_WIDTH = SCREEN_WIDTH - SIDEBAR_WIDTH + px(22)
     MAP_VIEW_HEIGHT = SCREEN_HEIGHT - TOP_BAR_HEIGHT
+
+
+# Bake the 720p / scale-1.0 layout at import, so a module that reads these
+# constants without going through main.py sees a consistent set rather than
+# the hand-written literals drifting from the formulas above.
+apply_resolution(SCREEN_WIDTH, SCREEN_HEIGHT)

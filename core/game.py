@@ -3,8 +3,9 @@ import math
 import traceback
 from core.config import (SCREEN_WIDTH, SCREEN_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
                         CAMERA_SPEED, TILE_WIDTH, TILE_HEIGHT,
-                        MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, MINIMAP_WIDTH, 
-                        MINIMAP_HEIGHT, NUM_PLAYERS, PLAYER_COLORS, TOP_BAR_HEIGHT,
+                        MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, MINIMAP_WIDTH,
+                        MINIMAP_HEIGHT, MINIMAP_X, SIDEBAR_WIDTH, TOP_BAR_ICON, px,
+                        NUM_PLAYERS, PLAYER_COLORS, TOP_BAR_HEIGHT,
                         SMART_CURSORS_ENABLED, DEFAULT_GAME_SPEED, MIN_GAME_SPEED,
                         MAX_GAME_SPEED, GAME_SPEED_INCREMENT, AI_ONLY_MODE,
                         AI_ONLY_PLAYER_COUNT, SPECTATOR_REVEALED_DISPLAY,
@@ -225,8 +226,8 @@ class Game:
             "house": pygame.image.load("assets/ui/house_icon.png").convert_alpha()
         }
         
-        # Scale icons
-        icon_size = 48
+        # Scale icons (§8.2.2: design px through the HUD scale)
+        icon_size = TOP_BAR_ICON
         for resource in self.resource_icons:
             self.resource_icons[resource] = pygame.transform.scale(
                 self.resource_icons[resource], (icon_size, icon_size)
@@ -437,9 +438,11 @@ class Game:
             # Check AI debug panel click first
             if self.ai_debug_panel.handle_click(mouse_pos):
                 pass  # Debug panel handled the click
-            # Check minimap click
-            elif (mouse_pos[0] > SCREEN_WIDTH - MINIMAP_WIDTH and 
-                mouse_pos[1] < MINIMAP_HEIGHT):
+            # Check minimap click (the map is centred in the sidebar column;
+            # at high HUD scales it is narrower than the column itself)
+            elif (mouse_pos[0] >= MINIMAP_X and
+                  mouse_pos[0] < MINIMAP_X + MINIMAP_WIDTH and
+                  mouse_pos[1] < MINIMAP_HEIGHT):
                 self.minimap.handle_click(mouse_pos)
             else:
                 # Check UI click first
@@ -488,7 +491,7 @@ class Game:
     def _update_cursor_for_context(self, mouse_pos):
         """Update cursor appearance based on target validity or smart cursor logic"""
         # Skip if mouse is over UI areas
-        if (mouse_pos[0] > SCREEN_WIDTH - MINIMAP_WIDTH or  # Right panel/minimap
+        if (mouse_pos[0] > SCREEN_WIDTH - SIDEBAR_WIDTH or  # Right panel/minimap
             mouse_pos[1] < TOP_BAR_HEIGHT):  # Top bar
             self.selection_manager.hovered_object = None
             return

@@ -1,7 +1,9 @@
 import math
 
 import pygame
-from core.config import SCREEN_WIDTH, MINIMAP_WIDTH, TOP_BAR_HEIGHT, TOP_BAR_START_X, TOP_BAR_SPACING, TOP_BAR_ROW_Y, TOP_BAR_ITEMS
+from core.config import (SCREEN_WIDTH, SIDEBAR_WIDTH, TOP_BAR_HEIGHT,
+                         TOP_BAR_START_X, TOP_BAR_SPACING, TOP_BAR_ROW_Y,
+                         TOP_BAR_ITEMS, px)
 from ui.hud_background import NineSliceFrame
 
 
@@ -17,10 +19,12 @@ class ResourceBar:
 
     def __init__(self, game):
         self.game = game
-        self.font = pygame.font.Font(None, 30)
-        self.resource_font = pygame.font.Font(None, 32)  # Larger font for resources
-        self.info_font = pygame.font.Font(None, 24)      # Smaller font for info row
-        self.small_font = pygame.font.Font(None, 20)
+        # Sizes are design px through px() (§8.2.2 HUD scale); the face is left
+        # as pygame's default so this pass changes size only, not typography.
+        self.font = pygame.font.Font(None, px(30))
+        self.resource_font = pygame.font.Font(None, px(32))  # Larger font for resources
+        self.info_font = pygame.font.Font(None, px(24))      # Smaller font for info row
+        self.small_font = pygame.font.Font(None, px(20))
         # Idle-worker alert state
         self._prev_idle_count = None
         self._idle_flash_until = 0
@@ -31,7 +35,7 @@ class ResourceBar:
         # and real end-caps left/right so the banner never looks chopped.
         self.frame = NineSliceFrame("assets/ui/hud_top_bar.png",
                                     src_inset=(105, 100, 105, 100),
-                                    dst_inset=(38, 22, 38, 22))
+                                    dst_inset=(px(38), px(22), px(38), px(22)))
 
     def draw(self, screen):
         """Draw the top resource bar"""
@@ -42,7 +46,7 @@ class ResourceBar:
 
         # Top bar dimensions - spans screen width minus minimap
         top_bar_height = TOP_BAR_HEIGHT
-        top_bar_width = SCREEN_WIDTH - MINIMAP_WIDTH  # Leaves space for minimap
+        top_bar_width = SCREEN_WIDTH - SIDEBAR_WIDTH  # Leaves space for the sidebar
 
         # Create a surface for the resource bar — framed panel art if present,
         # else the old flat dark fill + border.
@@ -89,7 +93,7 @@ class ResourceBar:
                     text_surface = self.resource_font.render(text, True, (255, 255, 255))
 
                 # Position text next to icon
-                text_x = x_pos + icon_rect.width + 5  # Small gap between icon and text
+                text_x = x_pos + icon_rect.width + px(5)  # Small gap between icon and text
                 text_y = row_y + (icon_rect.height - text_surface.get_height()) // 2  # Center with icon
                 resource_bar.blit(text_surface, (text_x, text_y))
 
@@ -117,9 +121,9 @@ class ResourceBar:
         self._update_idle_alert(idle_count)
         if not idle_count:
             return
-        badge_w, badge_h = 120, 30
+        badge_w, badge_h = px(120), px(30)
         content = self.frame.content_rect(bar_w, bar_h)
-        x = content.right - badge_w - 6
+        x = content.right - badge_w - px(6)
         y = (bar_h - badge_h) // 2
         bg_rect = pygame.Rect(x, y, badge_w, badge_h)
 
@@ -129,13 +133,14 @@ class ResourceBar:
             pulse = 0.5 + 0.5 * math.sin(now * 0.018)
             bg_color = (int(70 + 45 * pulse), int(55 + 40 * pulse), 20)
             border_color = (255, int(200 + 40 * pulse), int(90 + 70 * pulse))
-            border_w = 3
+            border_w = max(3, px(3))
             # Soft outer ring to pull the eye toward the badge.
-            pygame.draw.rect(surface, border_color, bg_rect.inflate(8, 8), 2, border_radius=7)
+            pygame.draw.rect(surface, border_color, bg_rect.inflate(px(8), px(8)),
+                             max(2, px(2)), border_radius=7)
         else:
             bg_color = (70, 55, 20)
             border_color = (230, 180, 60)
-            border_w = 2
+            border_w = max(2, px(2))
 
         pygame.draw.rect(surface, bg_color, bg_rect, border_radius=5)
         pygame.draw.rect(surface, border_color, bg_rect, border_w, border_radius=5)

@@ -96,9 +96,10 @@ class RenderingSystem:
         # the map + minimap, matching the top-bar/sidebar look. Falls back to a
         # drawn bevel if the art is missing.
         from ui.hud_background import NineSliceFrame
+        from core.config import px
         self.hud_frame = NineSliceFrame("assets/ui/hud_top_bar.png",
                                         src_inset=(105, 100, 105, 100),
-                                        dst_inset=(24, 24, 24, 24))
+                                        dst_inset=(px(24),) * 4)
 
         # §8.5 death fades: brief alpha-fading ghosts of freshly dead units/
         # buildings (no death sprite sheets exist). Capped so headless sims —
@@ -199,15 +200,16 @@ class RenderingSystem:
     def _draw_map_border(self, screen):
         """Frame the play area and the minimap with the ornate frame art
         (border only, transparent centre), falling back to a drawn bevel."""
+        from core.config import SIDEBAR_WIDTH, MINIMAP_X, px
+
         map_rect = pygame.Rect(0, TOP_BAR_HEIGHT,
-                               SCREEN_WIDTH - MINIMAP_WIDTH,
+                               SCREEN_WIDTH - SIDEBAR_WIDTH,
                                SCREEN_HEIGHT - TOP_BAR_HEIGHT)
-        mini_rect = pygame.Rect(SCREEN_WIDTH - MINIMAP_WIDTH, 0,
-                                MINIMAP_WIDTH, MINIMAP_HEIGHT)
+        mini_rect = pygame.Rect(MINIMAP_X, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT)
         map_border = self.hud_frame.render_border(map_rect.width, map_rect.height)
         # Thinner frame on the small minimap so it doesn't swallow the map.
         mini_border = self.hud_frame.render_border(mini_rect.width, mini_rect.height,
-                                                   dst_inset=(16, 16, 16, 16))
+                                                   dst_inset=(px(16),) * 4)
         if map_border is not None:
             screen.blit(map_border, map_rect.topleft)
             screen.blit(mini_border, mini_rect.topleft)

@@ -1,4 +1,5 @@
 import pygame
+from core.config import px
 from entities import ConstructionSite
 from ui import fonts as ui_fonts
 
@@ -9,14 +10,21 @@ class UnitPanel:
     Budget: everything fits above the command card's chips row
     (HEADER_HEIGHT px) — portrait + name + hp bar + a few dense stat lines,
     or grouped icons with count badges for multi-selections.
+
+    The class constants are design px at UI scale 1.0; __init__ re-binds them
+    scaled (§8.2.2), matching the command card.
     """
 
     HEADER_HEIGHT = 118
     PORTRAIT = 64          # §8.2.2: was 48 — "the icon is way too small"
+    STAT_GLYPH = 16        # px, inline beside the number
 
     def __init__(self, game, icon_loader=None):
         self.game = game
         self.icon_loader = icon_loader
+        self.HEADER_HEIGHT = px(self.HEADER_HEIGHT)
+        self.PORTRAIT = px(self.PORTRAIT)
+        self.STAT_GLYPH = px(self.STAT_GLYPH)
         # §8.2.2 shared fonts (clean system face, bigger than the old default)
         self.name_font = ui_fonts.title()       # selection name
         self.small_font = ui_fonts.body()        # multi-select title, misc
@@ -32,7 +40,7 @@ class UnitPanel:
         """Load unit portrait sources; the header scales them on demand
         (§8.2.2 portrait-centric header wants several sizes)."""
         unit_types = ['worker', 'warrior', 'archer', 'spearman', 'cavalry', 'ram', 'healer']
-        sizes = {'single': 64, 'multi': 48, 'group': 40}
+        sizes = {'single': px(64), 'multi': px(48), 'group': px(40)}
         self._unit_icon_sources = {}
         self._unit_icon_cache = {}
 
@@ -130,7 +138,7 @@ class UnitPanel:
             return self._draw_single_selection(panel_surface, ui_width, selected_info)
         else:
             no_selection_text = self.small_font.render("No Selection", True, (120, 120, 120))
-            panel_surface.blit(no_selection_text, (10, 14))
+            panel_surface.blit(no_selection_text, (px(10), px(14)))
             return None, self.HEADER_HEIGHT
     
     def _draw_overlay_bar(self, panel_surface, current, maximum, rect, color=None):
@@ -139,7 +147,7 @@ class UnitPanel:
         The bar grows to fit the value text — "250/250" used to spill past a
         small portrait's bar (user-reported)."""
         value_text = f"{int(current)}/{int(maximum)}"
-        need = self.dense_font.size(value_text)[0] + 10
+        need = self.dense_font.size(value_text)[0] + px(10)
         if need > rect.width:
             rect = rect.inflate(need - rect.width, 0)
         fraction = (current / maximum) if maximum > 0 else 0
@@ -155,21 +163,22 @@ class UnitPanel:
         panel_surface.blit(text, (rect.centerx - text.get_width() // 2,
                                   rect.centery - text.get_height() // 2))
 
-    STAT_GLYPH = 16  # px, inline beside the number
-
-    def _draw_stat_lines(self, panel_surface, lines, start_y, pitch=15, max_lines=3,
-                         start_x=8):
+    def _draw_stat_lines(self, panel_surface, lines, start_y, pitch=None, max_lines=3,
+                         start_x=None):
         """Each line is either (text, color) or a list of (glyph_name, text,
         color) segments — glyph+number pairs drawn inline (§8.2.2: stats read
         as icons, not label soup)."""
+        pitch = px(15) if pitch is None else pitch
+        start_x = px(8) if start_x is None else start_x
+        max_text_w = px(178)
         for line in lines[:max_lines]:
             if isinstance(line, tuple):
                 text, color = line
                 rendered = self.stat_font.render(text, True, color)
-                if rendered.get_width() > 178:
+                if rendered.get_width() > max_text_w:
                     rendered = pygame.transform.smoothscale(
-                        rendered, (178, rendered.get_height()))
-                panel_surface.blit(rendered, (start_x - 2, start_y))
+                        rendered, (max_text_w, rendered.get_height()))
+                panel_surface.blit(rendered, (start_x - px(2), start_y))
                 start_y += pitch
                 continue
             # Glyph and text share a vertical center (they drifted apart
@@ -182,11 +191,11 @@ class UnitPanel:
                          if self.icon_loader else None)
                 if glyph is not None:
                     panel_surface.blit(glyph, (x, start_y + (row_h - self.STAT_GLYPH) // 2))
-                    x += self.STAT_GLYPH + 3
+                    x += self.STAT_GLYPH + px(3)
                 rendered = self.stat_font.render(text, True, color)
                 panel_surface.blit(rendered, (x, start_y + (row_h - rendered.get_height()) // 2))
-                x += rendered.get_width() + 12
-            start_y += max(pitch, self.STAT_GLYPH + 2)
+                x += rendered.get_width() + px(12)
+            start_y += max(pitch, self.STAT_GLYPH + px(2))
 
     def _single_selection_model(self, selected_info):
         """Return (portrait_icon, hp_tuple_or_None, stat_lines) for the
@@ -263,25 +272,26 @@ class UnitPanel:
         name_color = selected_info["player_color"] if selected_info["owner"] != "Neutral" \
             else (225, 225, 225)
         name_text = self.name_font.render(
-            ui_fonts.fit_text(self.name_font, selected_info["name"], ui_width - 8),
+            ui_fonts.fit_text(self.name_font, selected_info["name"], ui_width - px(8)),
             True, name_color)
-        panel_surface.blit(name_text, (cx - name_text.get_width() // 2, 2))
-        sprite_top = 2 + name_text.get_height() + 2
+        panel_surface.blit(name_text, (cx - name_text.get_width() // 2, px(2)))
+        sprite_top = px(2) + name_text.get_height() + px(2)
 
         # Layout (§8.2.2 user design): units put the portrait on the LEFT
         # with the stat column to its right; everything else keeps the
         # centered portrait with lines underneath.
-        avail = self.HEADER_HEIGHT - sprite_top - 2
+        avail = self.HEADER_HEIGHT - sprite_top - px(2)
         # §8.17.1: buildings with stat rows use the unit layout (portrait
         # left, glyph column right) — the below-sprite layout caps at 3
         # lines and a watchtower carries 4.
         side_layout = stype == "Unit" or (stype == "Building" and bool(lines))
         if side_layout:
-            sprite = max(48, min(68, avail - 4))
+            sprite = max(px(48), min(px(68), avail - px(4)))
         else:
-            row_h = self.STAT_GLYPH + 2
-            sprite = min(84, avail) if not lines else min(64, avail - min(2, len(lines)) * row_h)
-            sprite = max(40, sprite)
+            row_h = self.STAT_GLYPH + px(2)
+            sprite = (min(px(84), avail) if not lines
+                      else min(px(64), avail - min(2, len(lines)) * row_h))
+            sprite = max(px(40), sprite)
 
         # Resolve the portrait icon at the chosen size.
         if stype == "Unit":
@@ -294,7 +304,7 @@ class UnitPanel:
             icon = None
 
         if side_layout:
-            sprite_rect = pygame.Rect(12, sprite_top + 2, sprite, sprite)
+            sprite_rect = pygame.Rect(px(12), sprite_top + px(2), sprite, sprite)
         else:
             sprite_rect = pygame.Rect(cx - sprite // 2, sprite_top, sprite, sprite)
         if icon is not None:
@@ -307,7 +317,7 @@ class UnitPanel:
 
         # HP overlaid across the base of the sprite.
         if hp is not None:
-            bar_h = 15
+            bar_h = px(15)
             bar_rect = pygame.Rect(sprite_rect.x, sprite_rect.bottom - bar_h,
                                    sprite_rect.width, bar_h)
             self._draw_overlay_bar(panel_surface, hp[0], hp[1], bar_rect, hp[2])
@@ -316,12 +326,12 @@ class UnitPanel:
             if side_layout:
                 # Single stat column right of the portrait, top-aligned with it
                 self._draw_stat_lines(panel_surface, lines,
-                                      start_y=sprite_rect.y + 1,
-                                      start_x=sprite_rect.right + 16,
+                                      start_y=sprite_rect.y + px(1),
+                                      start_x=sprite_rect.right + px(16),
                                       max_lines=4)
             else:
                 self._draw_stat_lines(panel_surface, lines,
-                                      start_y=sprite_rect.bottom + 3)
+                                      start_y=sprite_rect.bottom + px(3))
         return selected_info, self.HEADER_HEIGHT
 
     def _draw_multi_selection(self, panel_surface, selected_objects):
@@ -346,21 +356,21 @@ class UnitPanel:
         else:
             title_text = f"{total} buildings selected"
         title = self.small_font.render(title_text, True, (230, 230, 230))
-        panel_surface.blit(title, (8, 6))
+        panel_surface.blit(title, (px(8), px(6)))
 
-        icon_size = 40
-        icon_spacing = 4
+        icon_size = px(40)
+        icon_spacing = px(4)
         icons_per_row = 4
-        start_x = 8
+        start_x = px(8)
         # Below the title, whatever its font height — the §8.2.2 font pass
         # grew the title past the old hardcoded 28 and icons drew over it.
-        start_y = 6 + title.get_height() + 6
+        start_y = px(6) + title.get_height() + px(6)
 
         for i, (kind, name, members) in enumerate(groups):
             row = i // icons_per_row
             col = i % icons_per_row
             x = start_x + col * (icon_size + icon_spacing)
-            y = start_y + row * (icon_size + icon_spacing + 8)
+            y = start_y + row * (icon_size + icon_spacing + px(8))
 
             if kind == 'unit':
                 icon = self.unit_panel_icons.get(name, {}).get('group')
@@ -375,22 +385,23 @@ class UnitPanel:
                 panel_surface.blit(placeholder, (x, y))
 
             count_text = self.dense_font.render(f"x{len(members)}", True, (255, 255, 255))
-            badge = pygame.Rect(x + icon_size - count_text.get_width() - 5, y + 1,
-                                count_text.get_width() + 4, count_text.get_height() + 1)
+            badge = pygame.Rect(x + icon_size - count_text.get_width() - px(5), y + px(1),
+                                count_text.get_width() + px(4), count_text.get_height() + px(1))
             pygame.draw.rect(panel_surface, (0, 0, 0), badge)
-            panel_surface.blit(count_text, (badge.x + 2, badge.y + 1))
+            panel_surface.blit(count_text, (badge.x + px(2), badge.y + px(1)))
 
-            bar_y = y + icon_size + 1
+            bar_y = y + icon_size + px(1)
             total_hp = sum(m.hp for m in members)
             if kind == 'unit':
                 total_max = sum(self._get_unit_max_hp(m) for m in members)
             else:
                 total_max = sum(self._get_object_max_hp(m) for m in members)
             hp_percentage = total_hp / total_max if total_max > 0 else 0
-            pygame.draw.rect(panel_surface, (60, 60, 60), (x, bar_y, icon_size, 4))
+            bar_h = px(4)
+            pygame.draw.rect(panel_surface, (60, 60, 60), (x, bar_y, icon_size, bar_h))
             fill_width = int(icon_size * hp_percentage)
             pygame.draw.rect(panel_surface, self._get_health_color(hp_percentage),
-                             (x, bar_y, fill_width, 4))
+                             (x, bar_y, fill_width, bar_h))
 
     def group_selected_units(self, selected_objects):
         """Selected units grouped by type, biggest group first: [(name, [units])]."""
@@ -400,8 +411,9 @@ class UnitPanel:
                 groups.setdefault(obj.name, []).append(obj)
         return sorted(groups.items(), key=lambda item: -len(item[1]))
     
-    def _get_building_icon(self, obj, size=PORTRAIT):
+    def _get_building_icon(self, obj, size=None):
         """Building portrait via the shared icon loader (cached per size)."""
+        size = self.PORTRAIT if size is None else size   # instance = scaled
         name = getattr(obj, 'name', None)
         if name is None or self.icon_loader is None:
             return None

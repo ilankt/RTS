@@ -1,6 +1,8 @@
 import pygame
 import json
 
+from core.config import px
+
 
 # §8.2.2 HUD cost glyphs: bare transparent cut-outs drawn inline beside a
 # number, unlike the framed *_icon.png plates. Kept in a fixed order so the
@@ -58,18 +60,20 @@ class IconLoader:
 
     def _load_action_icons(self):
         """Load action button icons"""
+        # Sizes are design px — px() applies the HUD scale (§8.2.2). The source
+        # art is 1024px square, so scaling up costs nothing in quality.
         action_icon_files = {
-            'move': ('assets/ui/move_icon.png', 60),
-            'stop': ('assets/ui/stop_icon.png', 60),
-            'attack': ('assets/ui/attack_icon.png', 60),
-            'gather': ('assets/ui/gather_icon.png', 60),
-            'deposit': ('assets/ui/deposit_icon.png', 60),
-            'build': ('assets/ui/build_icon.png', 60),
-            'cancel': ('assets/ui/cancel_icon.png', 24),
-            'build_econ': ('assets/ui/build_econ_icon.png', 70),
-            'build_mil': ('assets/ui/build_mil_icon.png', 70)
+            'move': ('assets/ui/move_icon.png', px(60)),
+            'stop': ('assets/ui/stop_icon.png', px(60)),
+            'attack': ('assets/ui/attack_icon.png', px(60)),
+            'gather': ('assets/ui/gather_icon.png', px(60)),
+            'deposit': ('assets/ui/deposit_icon.png', px(60)),
+            'build': ('assets/ui/build_icon.png', px(60)),
+            'cancel': ('assets/ui/cancel_icon.png', px(24)),
+            'build_econ': ('assets/ui/build_econ_icon.png', px(70)),
+            'build_mil': ('assets/ui/build_mil_icon.png', px(70))
         }
-        
+
         for action, (path, size) in action_icon_files.items():
             try:
                 icon = pygame.image.load(path).convert_alpha()
@@ -88,7 +92,7 @@ class IconLoader:
             with open('data/buildings.json', 'r') as f:
                 buildings_data = json.load(f)
             
-            icon_size = 60  # Standard building icon size
+            icon_size = px(60)  # Standard building icon size
             
             for building in buildings_data:
                 try:
@@ -109,35 +113,36 @@ class IconLoader:
     
     def _load_unit_production_icons(self):
         """Load unit production icons from units.json"""
+        size = px(60)
         try:
             with open('data/units.json', 'r') as f:
                 units_data = json.load(f)
-            
+
             for unit in units_data:
                 unit_name = unit['name']
                 icon_path = unit.get('icon', f"assets/ui/Units/{unit_name}_icon.png")
-                
+
                 try:
                     unit_icon = pygame.image.load(icon_path).convert_alpha()
-                    self.unit_production_icons[unit_name] = pygame.transform.smoothscale(unit_icon, (60, 60))
+                    self.unit_production_icons[unit_name] = pygame.transform.smoothscale(unit_icon, (size, size))
                 except:
                     # Create placeholder if icon file not found
-                    placeholder = pygame.Surface((60, 60))
+                    placeholder = pygame.Surface((size, size))
                     placeholder.fill((100, 100, 150))
-                    pygame.draw.rect(placeholder, (150, 150, 200), (0, 0, 60, 60), 2)
+                    pygame.draw.rect(placeholder, (150, 150, 200), (0, 0, size, size), 2)
                     # Add text label
-                    font = pygame.font.Font(None, 20)
+                    font = pygame.font.Font(None, px(20))
                     text = font.render(unit_name[:4].upper(), True, (255, 255, 255))
-                    text_rect = text.get_rect(center=(30, 30))
+                    text_rect = text.get_rect(center=(size // 2, size // 2))
                     placeholder.blit(text, text_rect)
                     self.unit_production_icons[unit_name] = placeholder
-                    
+
         except:
             # Create basic placeholders for common units
             for unit_type in ['worker', 'warrior', 'archer']:
-                placeholder = pygame.Surface((60, 60))
+                placeholder = pygame.Surface((size, size))
                 placeholder.fill((100, 50, 50))
-                pygame.draw.rect(placeholder, (150, 100, 100), (0, 0, 60, 60), 2)
+                pygame.draw.rect(placeholder, (150, 100, 100), (0, 0, size, size), 2)
                 self.unit_production_icons[unit_type] = placeholder
     
     def get_action_icon(self, action):

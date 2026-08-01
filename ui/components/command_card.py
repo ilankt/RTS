@@ -28,7 +28,8 @@ import math
 
 import pygame
 
-from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MINIMAP_WIDTH, MINIMAP_HEIGHT
+import core.config as config
+from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, SIDEBAR_WIDTH, px
 from systems.upgrade_effects import has_required_buildings
 from ui.components.icon_loader import COST_GLYPH_ORDER
 from ui import fonts as ui_fonts
@@ -47,7 +48,10 @@ RESOURCE_LETTER = {"gold": "G", "wood": "W", "food": "F"}
 class CommandCard:
     """The context-sensitive action card in the right sidebar."""
 
-    # Fixed geometry, panel-local (panel is MINIMAP_WIDTH-16 wide)
+    # Design geometry, panel-local (panel is SIDEBAR_WIDTH-16 wide). These are
+    # the scale-1.0 values; __init__ re-binds each one through px() as an
+    # INSTANCE attribute, so `self.TILE_W` is the scaled number everywhere and
+    # the class constants remain the readable design reference.
     GRID_COLS = 2
     GRID_ROWS = 4
     TILE_W = 86
@@ -70,6 +74,26 @@ class CommandCard:
     def __init__(self, game, icon_loader):
         self.game = game
         self.icon_loader = icon_loader
+        # §8.2.2 HUD scale. Tile HEIGHT comes from config rather than px(74):
+        # it is the one metric bounded by the screen, since four rows plus the
+        # minimap have to fit a height that does NOT grow with the scale.
+        self.TILE_W = px(self.TILE_W)
+        self.TILE_H = config.CARD_TILE_HEIGHT
+        self.TILE_GAP = px(self.TILE_GAP)
+        self.TILE_ICON = px(self.TILE_ICON)
+        self.TILE_ICON_FILL = min(px(self.TILE_ICON_FILL), self.TILE_H - px(4))
+        self.COST_GLYPH = px(self.COST_GLYPH)
+        self.CHIPS_TOP = px(self.CHIPS_TOP)
+        self.CHIP_H = px(self.CHIP_H)
+        self.GRID_TOP = px(self.GRID_TOP)
+        self.STRIP_H = px(self.STRIP_H)
+        self.TOOLTIP_WIDTH = px(self.TOOLTIP_WIDTH)
+        self.TOOLTIP_PAD_X = px(self.TOOLTIP_PAD_X)
+        self.TOOLTIP_PAD_Y = px(self.TOOLTIP_PAD_Y)
+        self.TOOLTIP_GLYPH = px(self.TOOLTIP_GLYPH)
+        self.TIP_BODY_STEP = px(self.TIP_BODY_STEP)
+        self.TIP_COST_H = px(self.TIP_COST_H)
+        self.TIP_RULE_H = px(self.TIP_RULE_H)
         # §8.2.2 shared fonts: a clean system face, larger than the old
         # default-font literals (which read small and uneven at these sizes).
         self.name_font = ui_fonts.label()       # chip + action-tile labels
@@ -496,7 +520,7 @@ class CommandCard:
 
     def _trade_icon(self, resource):
         """Resource glyph sized for a tile; market icon as a fallback."""
-        glyph = self.icon_loader.get_cost_glyph(resource, self.TILE_ICON_FILL - 14)
+        glyph = self.icon_loader.get_cost_glyph(resource, self.TILE_ICON_FILL - px(14))
         if glyph is None:
             return self._icon('building', 'market')
         return glyph
@@ -623,9 +647,9 @@ class CommandCard:
             hint = self.key_font.render(hint_text, True, (185, 185, 160))
             # Clamp inside the panel — "TAB" is wider than the old "Spc"
             # and the fixed offset pushed it off the right edge (§8.14)
-            hint_x = min(grid_x + 2 * self.TILE_W + self.TILE_GAP - 8,
-                         panel_w - hint.get_width() - 8)
-            panel_surface.blit(hint, (hint_x, self.CHIPS_TOP - 12))
+            hint_x = min(grid_x + 2 * self.TILE_W + self.TILE_GAP - px(8),
+                         panel_w - hint.get_width() - px(8))
+            panel_surface.blit(hint, (hint_x, self.CHIPS_TOP - hint.get_height()))
 
         # Tile grid. The BUILD card keeps its fixed 2x4 sockets — tiles come
         # and go there as requirements change, and the position-mapped
@@ -667,9 +691,9 @@ class CommandCard:
         strip = content.get('strip')
         if strip:
             bar = pygame.Rect(grid_x, self.GRID_TOP + self.GRID_ROWS *
-                              (self.TILE_H + self.TILE_GAP) + 2,
+                              (self.TILE_H + self.TILE_GAP) + px(2),
                               self.GRID_COLS * self.TILE_W + self.TILE_GAP,
-                              self.STRIP_H - 4)
+                              self.STRIP_H - px(4))
             pygame.draw.rect(panel_surface, (50, 50, 50), bar)
             fill_w = int(bar.width * min(1.0, strip['progress']))
             pygame.draw.rect(panel_surface, strip['color'],
@@ -735,18 +759,19 @@ class CommandCard:
                     label_color = (235, 235, 220) if slot['enabled'] else (210, 140, 130)
                 self._draw_tile_scrim(surface, tile, 1, self.name_font.get_height())
                 text = self.name_font.render(label, True, label_color)
-                if text.get_width() > tile.width - 6:
+                if text.get_width() > tile.width - px(6):
                     text = pygame.transform.smoothscale(
-                        text, (tile.width - 6, text.get_height()))
+                        text, (tile.width - px(6), text.get_height()))
                 surface.blit(text, (tile.centerx - text.get_width() // 2,
-                                    tile.bottom - text.get_height() - 3))
+                                    tile.bottom - text.get_height() - px(3)))
 
         # Border frames the filled icon; badges sit on top of everything.
-        pygame.draw.rect(surface, border, tile, 2, border_radius=4)
+        pygame.draw.rect(surface, border, tile, max(2, px(2)), border_radius=4)
 
         key_name = self._slot_key_name(index)
         if key_name:
-            badge = pygame.Rect(tile.x + 2, tile.y + 2, 16, 16)
+            side = px(16)
+            badge = pygame.Rect(tile.x + px(2), tile.y + px(2), side, side)
             pygame.draw.rect(surface, (15, 15, 18), badge, border_radius=3)
             pygame.draw.rect(surface, (90, 90, 80), badge, 1, border_radius=3)
             key_text = self.key_font.render(key_name.upper()[:1], True, (225, 215, 150))
@@ -755,9 +780,10 @@ class CommandCard:
 
         badge_count = slot.get('badge') or 0
         if badge_count > 1:
-            center = (tile.right - 12, tile.y + 12)
-            pygame.draw.circle(surface, (200, 50, 50), center, 10)
-            pygame.draw.circle(surface, (255, 255, 255), center, 10, 1)
+            radius = px(10)
+            center = (tile.right - radius - px(2), tile.y + radius + px(2))
+            pygame.draw.circle(surface, (200, 50, 50), center, radius)
+            pygame.draw.circle(surface, (255, 255, 255), center, radius, 1)
             count_text = self.key_font.render(str(badge_count), True, (255, 255, 255))
             surface.blit(count_text, (center[0] - count_text.get_width() // 2,
                                       center[1] - count_text.get_height() // 2))
@@ -774,10 +800,10 @@ class CommandCard:
     def _draw_tile_scrim(self, surface, tile, rows, row_h):
         """Dark scrim behind the bottom `rows` of overlay text so numbers stay
         legible over a full-bleed icon (§8.2.2)."""
-        height = min(tile.height - 4, rows * row_h + 4)
-        scrim = pygame.Surface((tile.width - 4, height), pygame.SRCALPHA)
+        height = min(tile.height - px(4), rows * row_h + px(4))
+        scrim = pygame.Surface((tile.width - px(4), height), pygame.SRCALPHA)
         scrim.fill((0, 0, 0, 150))
-        surface.blit(scrim, (tile.x + 2, tile.bottom - 2 - height))
+        surface.blit(scrim, (tile.x + px(2), tile.bottom - px(2) - height))
 
     def _draw_tile_cost_glyphs(self, surface, tile, costs, enabled):
         """Cost as glyph+number pairs, packed centered and bottom-aligned on a
@@ -788,10 +814,10 @@ class CommandCard:
         wraps to two rows — unavoidable in an 86px tile, measured."""
         num_color = self._COST_NUM_OK if enabled else self._COST_NUM_NO
         three = sum(1 for r in COST_GLYPH_ORDER if costs.get(r, 0) > 0) >= 3
-        glyph_px = 10 if three else 14
+        glyph_px = px(10) if three else px(14)
         num_font = self.tile_num_font_sm if three else self.tile_num_font
-        gap, pair_gap = 1, (2 if three else 4)
-        row_h = glyph_px + 4
+        gap, pair_gap = px(1), (px(2) if three else px(4))
+        row_h = glyph_px + px(4)
 
         # Build renderables in the fixed resource order so a cost's layout is
         # stable regardless of dict order.
@@ -810,7 +836,7 @@ class CommandCard:
             width = (glyph_px if glyph is not None else fallback.get_width()) + gap + number.get_width()
             pairs.append((glyph, fallback, number, width))
 
-        usable = tile.width - 6
+        usable = tile.width - px(6)
         rows, current, current_w = [], [], 0
         for pair in pairs:
             add = pair[3] + (pair_gap if current else 0)
@@ -826,7 +852,7 @@ class CommandCard:
 
         self._draw_tile_scrim(surface, tile, len(rows), row_h)
         total_h = len(rows) * row_h
-        y = tile.bottom - 4 - total_h
+        y = tile.bottom - px(4) - total_h
         for row_pairs, row_w in rows:
             x = tile.centerx - row_w // 2
             for glyph, fallback, number, width in row_pairs:
@@ -906,7 +932,7 @@ class CommandCard:
         rows = []
         for index, raw in enumerate(raw_lines):
             if index == 0:  # title + divider
-                rows.append(('title', str(raw), title_font.get_height() + 4))
+                rows.append(('title', str(raw), title_font.get_height() + px(4)))
                 rows.append(('rule', None, self.TIP_RULE_H))
             elif isinstance(raw, dict):
                 if raw.get('costs') or raw.get('duration'):
@@ -918,8 +944,8 @@ class CommandCard:
 
         height = 2 * self.TOOLTIP_PAD_Y + sum(h for _k, _p, h in rows)
         anchor = getattr(self, '_hovered_rect', None) or self._panel_rect
-        y = min(max(6, anchor.y), SCREEN_HEIGHT - height - 6)
-        rect = pygame.Rect(self._panel_rect.x - width - 8, y, width, height)
+        y = min(max(px(6), anchor.y), SCREEN_HEIGHT - height - px(6))
+        rect = pygame.Rect(self._panel_rect.x - width - px(8), y, width, height)
         pygame.draw.rect(screen, (18, 18, 24), rect, border_radius=7)
         pygame.draw.rect(screen, (150, 132, 80), rect, 2, border_radius=7)
 
@@ -930,7 +956,8 @@ class CommandCard:
                 screen.blit(title_font.render(payload, True, (245, 238, 215)), (x, ty))
             elif kind == 'rule':
                 pygame.draw.line(screen, (90, 82, 60),
-                                 (x, ty + 2), (rect.right - self.TOOLTIP_PAD_X, ty + 2))
+                                 (x, ty + px(2)),
+                                 (rect.right - self.TOOLTIP_PAD_X, ty + px(2)))
             elif kind == 'costs':
                 self._draw_tooltip_cost_row(screen, x, ty, payload[0], payload[1])
             else:
@@ -949,14 +976,14 @@ class CommandCard:
             glyph = self.icon_loader.get_cost_glyph(glyph_name, glyph_px)
             if glyph is not None:
                 screen.blit(glyph, (x, mid - glyph_px // 2))
-                x += glyph_px + 3
+                x += glyph_px + px(3)
             else:
                 mark = self.cost_font.render(label, True, tint)
                 screen.blit(mark, (x, mid - mark.get_height() // 2))
-                x += mark.get_width() + 3
+                x += mark.get_width() + px(3)
             number = self.cost_font.render(text, True, num_color)
             screen.blit(number, (x, mid - number.get_height() // 2))
-            x += number.get_width() + 12
+            x += number.get_width() + px(12)
 
         for resource in COST_GLYPH_ORDER:
             amount = costs.get(resource, 0)
@@ -1048,7 +1075,7 @@ class CommandCard:
         if not self._panel_rect.collidepoint(pos):
             # Consume stray right-clicks over the whole right column so no
             # world command fires through the HUD
-            return pos[0] >= SCREEN_WIDTH - MINIMAP_WIDTH
+            return pos[0] >= SCREEN_WIDTH - SIDEBAR_WIDTH
         content = self._content
         for index, rect in self._slot_rects:
             if not rect.collidepoint(pos):
