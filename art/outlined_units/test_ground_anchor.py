@@ -13,7 +13,7 @@ import pytest
 from systems.rendering_system import RenderingSystem
 from managers.selection_manager import SelectionManager
 
-@pytest.mark.parametrize('name',['worker','warrior'])
+@pytest.mark.parametrize('name',['worker','warrior','archer','spearman','healer'])
 @pytest.mark.parametrize('zoom',[.5,1.0,1.5,2.0])
 def test_marker_and_shadow_share_blender_ground_point(name,zoom):
     data=json.loads((ROOT/'data/units.json').read_text())

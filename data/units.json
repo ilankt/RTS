@@ -91,7 +91,7 @@
   },
   {
     "name": "archer",
-    "display_name": "Archer",
+    "display_name": "Slingshot Man",
     "role": "Ranged damage dealer",
     "requires": [
       "barracks"
@@ -110,7 +110,7 @@
     "attack": 7,
     "can_attack": true,
     "build_time": 7,
-    "icon": "assets/ui/Units/archer_icon.png",
+    "icon": "assets/ui/Units/slinger_outlined_icon.png",
     "costs": {
       "gold": 60,
       "wood": 50,
@@ -124,10 +124,16 @@
     "attack_speed": 1.0,
     "attack_range": 200,
     "animations": {
-      "idle": "assets/sprites/Units/Archer/Archer_Idle.png",
-      "run": "assets/sprites/Units/Archer/Archer_Run.png",
-      "shoot": "assets/sprites/Units/Archer/Archer_Shoot.png"
-    }
+      "idle": "assets/sprites/Units/SlingerOutlined/idle.png",
+      "run": "assets/sprites/Units/SlingerOutlined/run.png",
+      "shoot": "assets/sprites/Units/SlingerOutlined/shoot.png"
+    },
+    "animation_directions": 8,
+    "ground_anchor": [
+      0.5,
+      0.730059
+    ],
+    "projectile_type": "stone"
   },
   {
     "name": "spearman",
@@ -152,7 +158,7 @@
     "attack": 8,
     "can_attack": true,
     "build_time": 7,
-    "icon": "assets/ui/Units/spearman_icon.png",
+    "icon": "assets/ui/Units/spearman_outlined_icon.png",
     "costs": {
       "gold": 45,
       "food": 50
@@ -165,12 +171,17 @@
     "attack_speed": 1.1,
     "attack_range": 48,
     "animations": {
-      "idle": "assets/sprites/Units/Spearman/Spearman_Idle.png",
-      "run": "assets/sprites/Units/Spearman/Spearman_Run.png",
-      "attack": "assets/sprites/Units/Spearman/Spearman_Attack.png",
-      "guard": "assets/sprites/Units/Spearman/Spearman_Guard.png"
+      "idle": "assets/sprites/Units/SpearmanOutlined/idle.png",
+      "run": "assets/sprites/Units/SpearmanOutlined/run.png",
+      "attack": "assets/sprites/Units/SpearmanOutlined/attack.png",
+      "guard": "assets/sprites/Units/SpearmanOutlined/idle.png"
     },
-    "render_scale": 1.22
+    "render_scale": 1.0,
+    "animation_directions": 8,
+    "ground_anchor": [
+      0.5,
+      0.730059
+    ]
   },
   {
     "name": "cavalry",
@@ -286,7 +297,7 @@
     "attack": 0,
     "can_attack": false,
     "build_time": 8,
-    "icon": "assets/ui/Units/healer_icon.png",
+    "icon": "assets/ui/Units/healer_outlined_icon.png",
     "costs": {
       "gold": 85,
       "food": 70
@@ -299,9 +310,14 @@
     "attack_speed": 0,
     "attack_range": 0,
     "animations": {
-      "idle": "assets/sprites/Units/Healer/Idle.png",
-      "run": "assets/sprites/Units/Healer/Run.png",
-      "attack": "assets/sprites/Units/Healer/Heal.png"
-    }
+      "idle": "assets/sprites/Units/HealerOutlined/idle.png",
+      "run": "assets/sprites/Units/HealerOutlined/run.png",
+      "attack": "assets/sprites/Units/HealerOutlined/attack.png"
+    },
+    "animation_directions": 8,
+    "ground_anchor": [
+      0.5,
+      0.730059
+    ]
   }
 ]

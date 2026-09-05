@@ -78,6 +78,20 @@ class Projectile:
         pygame.draw.circle(surface, self.color, (int(screen_x), int(screen_y)), 3)
 
 
+class SlingStone(Projectile):
+    """Small outlined stone, using the same flight timing as the ranged slot."""
+    def draw(self, surface, camera):
+        if not self.alive:
+            return
+        center = (round(self.x * camera.zoom + camera.x),
+                  round(self.y * camera.zoom + camera.y))
+        radius = max(2, round(2.5 * camera.zoom))
+        pygame.draw.circle(surface, (32, 39, 60), center, radius + 1)
+        pygame.draw.circle(surface, (175, 159, 126), center, radius)
+        pygame.draw.circle(surface, (232, 217, 181),
+                           (center[0] - radius // 3, center[1] - radius // 3), max(1, radius // 3))
+
+
 class Arrow(Projectile):
     """Arrow projectile for archers"""
     def __init__(self, start_x: float, start_y: float, target_x: float, target_y: float, 
@@ -242,8 +256,9 @@ class ProjectileSystem:
         
         if hasattr(attacker, 'name'):
             if attacker.name == "archer":
-                # Arrows are fast
-                projectile = Arrow(start_x, start_y, target_x, target_y, 300, damage, attacker)
+                template = getattr(self.game, 'game_data', {}).get('units', {}).get('archer')
+                kind = SlingStone if getattr(template, 'projectile_type', 'arrow') == 'stone' else Arrow
+                projectile = kind(start_x, start_y, target_x, target_y, 300, damage, attacker)
             elif attacker.name == "watchtower":
                 # Cannonballs are slower but impactful
                 projectile = CannonBall(start_x, start_y, target_x, target_y, 200, damage, attacker)

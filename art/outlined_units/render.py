@@ -1,4 +1,4 @@
-"""Render the approved outlined cartoon clubman and matching worker with Blender 5.2.
+"""Render the five approved outlined cartoon infantry units with Blender 5.2.
 Run from repository root: blender -b -t 4 --python art/outlined_units/render.py
 """
 import bpy
@@ -13,7 +13,7 @@ OUT=Path(__file__).resolve().parent
 ROOT=OUT.parents[1]
 SOURCE=ROOT/'art/clubman/options/1_cartoon/clubman.blend'
 DIRECTIONS={'E':90,'SE':45,'S':0,'SW':315,'W':270,'NW':225,'N':180,'NE':135}
-UNITS={'clubman':['idle','run','attack'],'worker':['idle','run','gather','build']}
+UNITS={'clubman':['idle','run','attack'],'worker':['idle','run','gather','build'],'slinger':['idle','run','shoot'],'spearman':['idle','run','attack'],'healer':['idle','run','attack']}
 anchors = json.loads((OUT/'manifest.json').read_text()).get('ground_anchors', {}) if (OUT/'manifest.json').exists() else {}
 
 
@@ -64,6 +64,7 @@ for unit,actions in UNITS.items():
     for obj in scene.objects:
         obj.animation_data_clear()
     tools={}
+    animated_props=[]
     if unit=='worker':
         for name in ['Right-hand club','Left-hand wooden buckler','Short beard','Hair cap','Headband']:
             for obj in reversed(descendants(bpy.data.objects[name])):
@@ -87,6 +88,47 @@ for unit,actions in UNITS.items():
         rod('Hammer handle',(0,0,-.1),(0,-.08,.36),.042,.047,mats['wood'],hammer)
         rod('Hammer head',(-.14,-.08,.36),(.14,-.08,.36),.095,.095,metal,hammer)
         tools={'gather':descendants(pick),'build':descendants(hammer)}
+
+    if unit in ('slinger','spearman','healer'):
+        remove=['Right-hand club']
+        if unit!='spearman': remove+=['Left-hand wooden buckler','Short beard']
+        if unit=='healer': remove+=['Hair cap','Headband']
+        for name in remove:
+            for obj in reversed(descendants(bpy.data.objects[name])):
+                bpy.data.objects.remove(obj,do_unlink=True)
+        mats={name:(bpy.data.materials.get('1_cartoon '+name) or bpy.data.materials['1_cartoon wood']) for name in ['blue cloth','linen','wood','dark seam','ochre hide','skin']}
+        if unit=='slinger':
+            ball('Stone pouch',(-.30,.05,.79),(.15,.12,.18),mats['ochre hide'],body)
+            rod('Pouch strap',(-.27,-.23,.82),(.22,-.24,1.23),.035,.035,mats['ochre hide'],body)
+            sling=pivot('Forked wooden slingshot',(-.07,-.17,-.445),arms[0])
+            rod('Grip',(0,0,-.08),(0,0,.19),.047,.046,mats['wood'],sling)
+            for side in [-1,1]:
+                rod('Fork',(0,0,.17),(side*.16,0,.41),.046,.033,mats['wood'],sling)
+            # Separate draw hand and stretchy bands make a real draw/release pose.
+            pull=pivot('Draw hand',(0,0,0),body)
+            animated_props.extend([pull,sling])
+            band_parts=[]
+            for side in [-1,1]:
+                band_parts.append(rod('Sling band',(side*.16,0,.41),(0,.03,.36),.017,.017,mats['linen'],sling))
+            animated_props+=band_parts
+        elif unit=='spearman':
+            spear=pivot('Wooden spear',(.07,-.17,-.445),arms[1])
+            rod('Wood shaft',(0,0,-.48),(0,0,1.20),.035,.029,mats['wood'],spear)
+            rod('Sharpened wooden tip',(0,0,1.18),(0,0,1.44),.058,0,mats['wood'],spear)
+            for z in [1.10,1.14]:
+                rod('Spear binding',(0,0,z),(0,0,z+.025),.041,.041,mats['linen'],spear)
+        else:
+            rod('Cream robe',(0,0,.25),(0,0,1.16),.37,.30,mats['linen'],body)
+            rod('Blue stole left',(-.18,-.30,1.20),(-.16,-.35,.47),.063,.063,mats['blue cloth'],body)
+            rod('Blue stole right',(.18,-.30,1.20),(.16,-.35,.47),.063,.063,mats['blue cloth'],body)
+            ball('Hood',(0,.16,1.79),(.38,.27,.34),mats['linen'],body)
+            # Hood stays behind the existing face; pointed crown reads at game scale.
+            ball('Hood crown',(0,.09,2.01),(.24,.23,.14),mats['linen'],body)
+            staff=pivot('Healing staff',(.07,-.17,-.445),arms[1])
+            rod('Staff shaft',(0,0,-.58),(0,0,1.17),.038,.045,mats['wood'],staff)
+            ball('Staff finial',(0,0,1.20),(.13,.10,.16),mats['blue cloth'],staff)
+            for side in [-1,1]:
+                rod('Finial prong',(side*.07,0,1.07),(side*.17,0,1.30),.033,.024,mats['linen'],staff)
 
     def pose(action,i):
         phase=math.tau*i/8
@@ -115,6 +157,33 @@ for unit,actions in UNITS.items():
             arms[1].rotation_euler.x=swing[i]
             body.rotation_euler.x=[0,-.02,-.04,-.07,.11,.12,.06,.02][i]
             legs[0].rotation_euler.x=.10;legs[1].rotation_euler.x=-.10
+        if unit=='spearman' and action=='attack':
+            arms[1].rotation_euler.x=[0,.35,.85,1.35,1.55,1.35,.65,.15][i]
+            arms[0].rotation_euler.x=.18
+            body.rotation_euler.x=[0,0,-.03,.08,.16,.10,.03,0][i]
+        if unit=='healer' and action=='attack':
+            arms[0].rotation_euler.x=[0,-.25,-.65,-1.05,-1.15,-.9,-.5,-.2][i]
+            arms[1].rotation_euler.x=.08*math.sin(phase)
+            body.rotation_euler.x=0
+        if unit=='slinger':
+            # Left hand aims the fork; the right hand draws back then releases.
+            sling.rotation_euler.x=0
+            if action=='shoot':
+                arms[0].rotation_euler.x=-1.35
+                sling.rotation_euler.x=1.35
+                arms[1].rotation_euler.x=[-1.4,-1.6,-1.85,-2.1,-2.1,-1.4,-1.3,-1.4][i]
+                body.rotation_euler.x=0
+                body.rotation_euler.z=0
+            bpy.context.view_layer.update()
+            hand_world=arms[1].matrix_world @ Vector((.07,-.17,-.445))
+            hand=sling.matrix_world.inverted() @ hand_world
+            if action!='shoot': hand=Vector((0,.03,.36))
+            for side,band in zip([-1,1],band_parts):
+                a=Vector((side*.16,0,.41));b=hand
+                band.location=(a+b)/2
+                band.rotation_euler=(b-a).to_track_quat('Z','Y').to_euler()
+                # Original cone depth is baked into the mesh.
+                band.scale.z=(b-a).length / Vector((side*.16,-.03,.05)).length
         for kind,objects in tools.items():
             visible=(action=='build') if kind=='build' else (action!='build')
             for obj in objects:
@@ -128,7 +197,8 @@ for unit,actions in UNITS.items():
         scene.timeline_markers.new(action,frame=a*8+1)
         for i in range(8):
             pose(action,i)
-            for obj in [body]+arms+legs:
+            for obj in [body]+arms+legs+animated_props:
+                obj.keyframe_insert('scale',frame=a*8+i+1)
                 obj.keyframe_insert('location',frame=a*8+i+1)
                 obj.keyframe_insert('rotation_euler',frame=a*8+i+1)
             for objects in tools.values():
@@ -142,10 +212,11 @@ for unit,actions in UNITS.items():
     bpy.ops.wm.save_as_mainfile(filepath=str(OUT/f'{unit}.blend'))
     for a,action in enumerate(actions):
         for direction,angle in DIRECTIONS.items():
+            if '--preview' in sys.argv and direction!='SE': continue
             root.rotation_euler.z=math.radians(angle)
             folder=OUT/'frames'/unit/action/direction
             folder.mkdir(parents=True,exist_ok=True)
-            for i in range(8):
+            for i in ([0,4] if '--preview' in sys.argv else range(8)):
                 scene.frame_set(a*8+i+1)
                 scene.render.filepath=str(folder/f'{i:02}.png')
                 bpy.ops.render.render(write_still=True)

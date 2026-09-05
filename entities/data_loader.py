@@ -92,6 +92,7 @@ def load_game_data():
             building_only_attack=u.get('building_only_attack', False),
         )
 
+        game_data["units"][u["name"]].projectile_type = u.get("projectile_type", "arrow")
         game_data["units"][u["name"]].animation_directions = u.get("animation_directions", 1)
         game_data["units"][u["name"]].icon = u.get("icon", f"assets/ui/Units/{u['name']}_icon.png")
 

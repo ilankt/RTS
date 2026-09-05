@@ -632,6 +632,7 @@ class CombatSystem:
                 healing = getattr(self.game, 'stats_healing', None)
                 if healing is not None:
                     healing[healer.player.name] = healing.get(healer.player.name, 0.0) + healed
+            healer.face_vector(best.x - healer.x, best.y - healer.y)
             healer.status = "attack"  # plays the healer's cast animation
             if getattr(self.game, "particles", None):
                 self.game.particles.spawn_attack_particles(best.x, best.y, count=1)
