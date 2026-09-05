@@ -217,6 +217,8 @@ def pose(action,i):
         rider.rotation_euler.z=-.06*math.sin(math.pi*i/7)
     else:
         rider.location.z+=.006*math.sin(phase)
+    # Keep the spear grip attached to the hand throughout wind-up/thrust.
+    spear.location = arms[1].location + arms[1].rotation_euler.to_matrix() @ Vector((.07,-.17,-.445))
     # Two-bone IK pins each stance hoof to the ground. Diagonal pairs
     # alternate swing and stance; the rider follows the horse suspension.
     for fore,side,hip,knee in legs:
