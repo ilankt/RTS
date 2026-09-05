@@ -980,8 +980,7 @@ class SelectionManager:
                 obj.y * camera.zoom + camera.y + obj.radius * camera.zoom * 0.55)
 
     def draw_selection_circles(self, surface, camera):
-        """Draw selection circles around selected objects"""
-        self._draw_rally_flags(surface, camera)
+        """Draw ground selection/hover markers before foreground sprites."""
         all_objects = [
             obj for obj in (self.game.units + self.game.buildings +
                             self.game.resources + self.game.construction_sites)

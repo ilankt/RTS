@@ -386,6 +386,9 @@ class RenderingSystem:
         if getattr(self.game, "shadows_enabled", True):
             for obj in visible:
                 self._draw_shadow(obj, map_surface, camera)
+        # Ground markers sit above shadows but below sprites. Feet and other
+        # foreground art naturally hide the rear arc of each ellipse.
+        self.selection_manager.draw_selection_circles(map_surface, camera)
         for obj in visible:
             self._draw_object(obj, map_surface, camera)
 
@@ -999,8 +1002,9 @@ class RenderingSystem:
     
     def _draw_ui_overlays(self, map_surface, camera):
         """Draw UI overlays on the map surface"""
-        # Draw selection circles
-        self.selection_manager.draw_selection_circles(map_surface, camera)
+        # Rally flags stay readable above objects; ground markers are drawn
+        # in _draw_all_objects before the sprites that occlude them.
+        self.selection_manager._draw_rally_flags(map_surface, camera)
         
         # Draw attack target indicators
         self.selection_manager.draw_attack_targets(map_surface, camera)

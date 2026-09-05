@@ -28,3 +28,5 @@ Run `python -m pytest art/outlined_units/test_integration.py tests/test_directio
 The style options remain as historical review artifacts. Factions, ages and balance are unchanged.
 
 The renderer exports a normalized ground anchor from the Blender camera into unit metadata. Selection markers, hover markers and shadows use that shared foot point, independent of animation pose. Gameplay coordinates and unit scale remain as before. The anchor/selection/shadow checks pass at four zoom levels; see foot-alignment.png.
+
+Selection and hover ellipses draw above ground shadows and beneath object sprites, so feet occlude their rear arcs. Rally flags remain above objects. See ring-occlusion.png.
