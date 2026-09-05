@@ -70,6 +70,18 @@ def tint_surface_blue(surface, color):
     return tinted_surface
 
 
+def tint_directional_team(surface, color):
+    result = surface.copy()
+    pixels = pygame.surfarray.pixels3d(result)
+    rgb = pixels.astype(np.float32)
+    mask = (rgb[:, :, 2] > rgb[:, :, 0] * 1.3) & (rgb[:, :, 1] > rgb[:, :, 0] * 1.15) & (rgb[:, :, 2] > rgb[:, :, 1] * 1.1)
+    shade = rgb[:, :, 2] / 200.0
+    for channel in range(3):
+        pixels[:, :, channel][mask] = np.clip(color[channel] * shade[mask], 0, 255).astype(np.uint8)
+    del pixels
+    return result
+
+
 UNIT_TYPE_TINTS = {
     # Multiplicative RGB tint applied after player tint, so units that SHARE
     # a sprite sheet read distinct at a glance. Spearman/cavalry/ram got
@@ -126,7 +138,8 @@ class SpriteManager:
             type_tint = UNIT_TYPE_TINTS.get(unit_name)
             for anim_name, anim_path in unit_data.animations.items():
                 original_sheet = pygame.image.load(anim_path).convert_alpha()
-                player_sheets = [tint_surface_blue(original_sheet, p.color) for p in self.players]
+                tint = tint_directional_team if getattr(unit_data, "animation_directions", 1) == 8 else tint_surface_blue
+                player_sheets = [tint(original_sheet, p.color) for p in self.players]
                 if type_tint:
                     player_sheets = [apply_unit_type_tint(s, type_tint) for s in player_sheets]
                 sprites["units"][unit_name][anim_name] = player_sheets

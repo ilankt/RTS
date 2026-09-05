@@ -92,6 +92,8 @@ def load_game_data():
             building_only_attack=u.get('building_only_attack', False),
         )
 
+        game_data["units"][u["name"]].animation_directions = u.get("animation_directions", 1)
+
     for r in resources_data:
         # Resources are [1,1]; radius 16 → 22.4 (§8.17.3 follow-up, user):
         # trees/gold were hard to pinpoint with the mouse — the click test is

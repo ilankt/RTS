@@ -636,7 +636,7 @@ class SaveManager:
             animations = {}
             for anim_name, anim_path in template.animations.items():
                 sheet = game.sprite_manager.get_unit_animation_sheet(template.name, anim_name, player_idx)
-                animations[anim_name] = Animation(sheet, 192, 192, 100)
+                animations[anim_name] = Animation(sheet, 192, 192, 100, directions=getattr(template, "animation_directions", 1))
             unit.set_animations(animations)
 
             # §8.9: garrisoned units go back INSIDE their building, not the

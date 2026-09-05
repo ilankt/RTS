@@ -1,3 +1,4 @@
+import math
 import pygame
 from entities.game_object import GameObject
 from core.config import WORKER_CAPACITY, DEBUG_MOVEMENT, BLOCKED_TERRAIN
@@ -94,6 +95,8 @@ class Unit(GameObject):
         # Sprite facing: sheets face right; the renderer mirrors when this
         # is True. Updated from real horizontal movement and on attack start.
         self.facing_left = False
+        self.facing_direction = 2  # E, SE, S, SW, W, NW, N, NE
+        self._facing_position = (self.x, self.y)
 
         # Group-move flow field (Phase 5)
         self.flow_field = None
@@ -105,7 +108,24 @@ class Unit(GameObject):
     def set_animations(self, animations):
         self.animations = animations
 
+    @property
+    def sprite_mirrored(self):
+        return self.facing_left and not any(
+            getattr(a, "direction_count", 1) == 8 for a in self.animations.values()
+        )
+
+    def face_vector(self, dx, dy):
+        if dx * dx + dy * dy > 0.0001:
+            self.facing_direction = int(math.floor(math.atan2(dy, dx) / (math.pi / 4) + 0.5)) % 8
+
     def update_animation(self, delta_time=None):
+        previous_x, previous_y = self._facing_position
+        target = self.current_target
+        if self.status == "attack" and target is not None:
+            self.face_vector(target.x - self.x, target.y - self.y)
+        elif self.status == "run":
+            self.face_vector(self.x - previous_x, self.y - previous_y)
+        self._facing_position = (self.x, self.y)
         # Use build animation if building, otherwise use current status
         animation_status = "build" if self.is_building and "build" in self.animations else self.status
         
@@ -135,7 +155,10 @@ class Unit(GameObject):
             animation_status = "shoot"
         
         if animation_status in self.animations:
-            return self.animations[animation_status].get_current_frame()
+            animation = self.animations[animation_status]
+            if getattr(animation, "direction_count", 1) == 8:
+                return animation.get_current_frame(self.facing_direction)
+            return animation.get_current_frame()
         return None
     
     def release_movement(self):
@@ -364,6 +387,7 @@ class Unit(GameObject):
     def start_attack(self, target):
         """Begin attacking a target"""
         self.current_target = target
+        self.face_vector(target.x - self.x, target.y - self.y)
         self.in_combat = True
         self.is_engaging = False  # No longer pursuing, now attacking
         self.status = "attack"

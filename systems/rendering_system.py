@@ -291,7 +291,7 @@ class RenderingSystem:
             "x": obj.x, "y": obj.y,
             "size": tuple(getattr(obj, "size", (1, 1))),
             "name": getattr(obj, "name", None),
-            "facing_left": getattr(obj, "facing_left", False),
+            "facing_left": getattr(obj, "sprite_mirrored", getattr(obj, "facing_left", False)),
             "age": 0.0,
         })
 
@@ -563,7 +563,7 @@ class RenderingSystem:
         # Content may sit off the frame centre; mirrored units flip the offset
         # (units facing left draw a horizontally flipped copy).
         off_x = (left + bw / 2 - sprite_w / 2) * s
-        if getattr(obj, "facing_left", False):
+        if getattr(obj, "sprite_mirrored", getattr(obj, "facing_left", False)):
             off_x = -off_x
         bottom_y = draw_y + (top + bh - sprite_h / 2) * s
 
@@ -888,7 +888,7 @@ class RenderingSystem:
         scale *= self._render_scales.get(getattr(obj, 'name', None), 1.0)
         scaled_width = int(sprite_w * scale * camera.zoom)
         scaled_height = int(sprite_h * scale * camera.zoom)
-        mirrored = getattr(obj, 'facing_left', False)
+        mirrored = getattr(obj, "sprite_mirrored", getattr(obj, 'facing_left', False))
 
         # Only transform if necessary; cache per (sprite, size, mirrored)
         if (scaled_width, scaled_height) != (sprite_w, sprite_h) or mirrored:

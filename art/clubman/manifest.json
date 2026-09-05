@@ -1,0 +1,23 @@
+{
+  "size": 192,
+  "frames": 8,
+  "fps": 10,
+  "directions": [
+    "E",
+    "SE",
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE"
+  ],
+  "actions": [
+    "idle",
+    "run",
+    "attack"
+  ],
+  "source": "clubman.blend",
+  "projection": "orthographic",
+  "mirrored": false
+}

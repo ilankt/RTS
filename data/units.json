@@ -38,7 +38,7 @@
   },
   {
     "name": "warrior",
-    "display_name": "Warrior",
+    "display_name": "Clubman",
     "role": "Generalist front-line infantry",
     "requires": [
       "barracks"
@@ -73,11 +73,12 @@
     "attack_speed": 1.2,
     "attack_range": 48,
     "animations": {
-      "idle": "assets/sprites/Units/Warrior/Warrior_Idle.png",
-      "run": "assets/sprites/Units/Warrior/Warrior_Run.png",
-      "attack": "assets/sprites/Units/Warrior/Warrior_Attack.png",
-      "guard": "assets/sprites/Units/Warrior/Warrior_Guard.png"
-    }
+      "idle": "assets/sprites/Units/Clubman/idle.png",
+      "run": "assets/sprites/Units/Clubman/run.png",
+      "attack": "assets/sprites/Units/Clubman/attack.png",
+      "guard": "assets/sprites/Units/Clubman/idle.png"
+    },
+    "animation_directions": 8
   },
   {
     "name": "archer",

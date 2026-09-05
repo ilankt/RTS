@@ -284,7 +284,7 @@ class ProductionManager:
             )
             
             # Create animation with proper parameters (frame_width, frame_height, animation_speed)
-            unit.animations[anim_name] = Animation(sprite_sheet, 192, 192, 100)
+            unit.animations[anim_name] = Animation(sprite_sheet, 192, 192, 100, directions=unit_data.get("animation_directions", 1))
         
         # Set default status
         unit.status = "idle"

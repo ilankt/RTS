@@ -1,12 +1,24 @@
 import pygame
 
 class Animation:
-    def __init__(self, animation_sheet, frame_width, frame_height, animation_speed):
+    def __init__(self, animation_sheet, frame_width, frame_height, animation_speed, directions=1):
         self.animation_sheet = animation_sheet
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.animation_speed = animation_speed
-        self.frames = self.load_frames()
+        if directions not in (1, 8):
+            raise ValueError("Animation directions must be 1 or 8")
+        self.direction_count = directions
+        all_frames = self.load_frames()
+        if directions == 8:
+            if animation_sheet.get_height() != frame_height * 8 or animation_sheet.get_width() % frame_width:
+                raise ValueError("Directional sheets require eight rows of complete frames")
+            count = animation_sheet.get_width() // frame_width
+            self.direction_frames = [all_frames[i * count:(i + 1) * count] for i in range(8)]
+            self.frames = self.direction_frames[0]
+        else:
+            self.direction_frames = [all_frames]
+            self.frames = all_frames
         self.current_frame_index = 0
         self.time_accumulator = 0.0  # Accumulate time in seconds instead of using real time
 
@@ -41,8 +53,9 @@ class Animation:
                 self.time_accumulator -= speed_to_use
                 self.current_frame_index = (self.current_frame_index + 1) % len(self.frames)
 
-    def get_current_frame(self):
-        return self.frames[self.current_frame_index]
+    def get_current_frame(self, direction=0):
+        row = direction % self.direction_count
+        return self.direction_frames[row][self.current_frame_index]
     
     def set_animation_speed(self, new_speed):
         """Set a new animation speed in milliseconds"""

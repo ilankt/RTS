@@ -72,7 +72,7 @@ class GameState:
             animations = {}
             for anim_name, anim_path in worker.animations.items():
                 sheet = self.game.sprite_manager.get_unit_animation_sheet("worker", anim_name, i)
-                animations[anim_name] = Animation(sheet, 192, 192, 100)
+                animations[anim_name] = Animation(sheet, 192, 192, 100, directions=getattr(worker_template, "animation_directions", 1))
             worker.set_animations(animations)
             
             self.game.units.append(worker)
