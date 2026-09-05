@@ -28,7 +28,7 @@ def mat(name,color):
     ramp=next(n for n in m.node_tree.nodes if n.type=='VALTORGB')
     for e,f in zip(ramp.color_ramp.elements,[.47,.82,1.14]): e.color=(*[min(1,c*f) for c in rgb],1)
     return m
-coat=mat('Warm bay coat','AD7246');muzzle=mat('Soft brown muzzle','815536')
+coat=mat('Warm bay coat','AD7246');muzzle=mat('Cream muzzle','D9C49A')
 mane=mat('Dark mane and tail','49352B');hoof=mat('Charcoal hooves','39312D')
 leather=mat('Plain saddle leather','795333');linen=bpy.data.materials['1_cartoon linen']
 wood=bpy.data.materials['1_cartoon wood'];cloth=bpy.data.materials['1_cartoon blue cloth']
@@ -70,7 +70,7 @@ for polygon in body_mesh.data.polygons:polygon.use_smooth=True
 neck=pivot('Neck nod',(0,-.50,1.48),horse)
 # Broad shoulder attachment tapering along a forward-sloping crest.
 # Elliptical rings form one continuous neck surface rather than stacked balls.
-sections=[(.16,-.06,.31,.35),(-.08,.20,.29,.40),(-.36,.47,.23,.34),(-.67,.72,.17,.22),(-.83,.79,.15,.17)]
+sections=[(.16,-.06,.31,.35),(-.08,.20,.29,.40),(-.36,.47,.23,.34),(-.54,.67,.20,.25),(-.68,.73,.17,.19)]
 verts=[];faces=[];segments=20
 for y,z,rx,rz in sections:
     for j in range(segments):
@@ -86,7 +86,8 @@ mesh=bpy.data.meshes.new('Anatomical neck mesh');mesh.from_pydata(verts,[],faces
 obj=bpy.data.objects.new('Sloping horse neck',mesh);bpy.context.collection.objects.link(obj);obj.parent=neck;obj.data.materials.append(coat)
 for polygon in mesh.polygons:polygon.use_smooth=True
 sub=obj.modifiers.new('Smooth neck contour','SUBSURF');sub.levels=2
-head=pivot('Head',(0,-.83,.79),neck)
+head=pivot('Head',(0,-.68,.73),neck)
+head.scale=(1.13,1.06,1.10)
 ball('Horse poll',(0,-.04,0),(.19,.23,.22),coat,head)
 rod('Elongated face',(0,-.08,-.04),(0,-.45,-.27),.17,.135,coat,head)
 ball('Long muzzle',(0,-.49,-.28),(.155,.21,.135),muzzle,head)
@@ -102,24 +103,44 @@ rod('Nose strap',(-.15,-.49,-.24),(.15,-.49,-.24),.020,.020,leather,head)
 # A clean crest of mane follows the back of the neck.
 for i in range(7):
     t=i/6
-    ball('Mane lock',(0,.06-.79*t,.35+.57*t),(.075,.12,.105),mane,neck)
+    ball('Mane lock',(0,.09-.66*t,.36+.51*t),(.125,.17,.15),mane,neck)
 ball('Forelock',(0,-.03,.24),(.14,.14,.12),mane,head)
 tail=pivot('Tail sway',(0,1.33,1.66),horse)
 rod('Tail root',(0,0,0),(0,.10,-.36),.09,.075,mane,tail)
-ball('Tail fall',(0,.12,-.79),(.105,.11,.49),mane,tail)
+ball('Tail fall',(0,.20,-.66),(.18,.17,.48),mane,tail)
 
 # Four independent hip/shoulder and knee/hock chains: diagonal pairs trot.
 legs=[]
 for fore,y in [(True,-.62),(False,1.00)]:
     for side in [-1,1]:
         hip=pivot(('Fore' if fore else 'Hind')+(' left' if side<0 else ' right'),(side*.25,y,1.35),horse)
-        rod('Upper horse leg',(0,0,0),(0,0,-.65),.14,.072,coat,hip)
+        rod('Upper horse leg',(0,0,0),(0,0,-.65),.16,.084,coat,hip)
         ball('Knee',(0,0,-.65),(.073,.075,.072),coat,hip)
         knee=pivot('Knee flex',(0,0,-.65),hip)
-        rod('Lower horse leg',(0,0,0),(0,0,-.60),.063,.050,coat,knee)
-        ball('Hoof',(0,-.035,-.65),(.085,.115,.08),hoof,knee)
+        rod('Lower horse leg',(0,0,0),(0,0,-.60),.077,.063,coat,knee)
+        rod('Cream fetlock',(0,0,-.43),(0,0,-.60),.085,.10,linen,knee)
+        ball('Hoof',(0,-.035,-.65),(.115,.145,.09),hoof,knee)
         legs.append((fore,side,hip,knee))
-# Saddle only: no barding, blanket, plate or helmet.
+# Decorative cloth is player-colored, with gold edging; no horse armor.
+gold=mat('Warm gold trim','D5B36A')
+def panel(name,vertices,material,parent):
+    mesh=bpy.data.meshes.new(name);mesh.from_pydata(vertices,[],[tuple(range(len(vertices)))]);mesh.update()
+    obj=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(obj);obj.parent=parent;obj.data.materials.append(material)
+    solid=obj.modifiers.new('Cloth thickness','SOLIDIFY');solid.thickness=.022
+    bevel=obj.modifiers.new('Soft cloth edge','BEVEL');bevel.width=.025;bevel.segments=2
+    return obj
+for side in [-1,1]:
+    corners=[(side*.34,-.19,1.79),(side*.35,.69,1.79),(side*.41,.65,1.05),(side*.42,-.23,1.08)]
+    panel('Blue saddle cloth',corners,cloth,horse)
+    for i in range(4):rod('Gold saddle edging',corners[i],corners[(i+1)%4],.025,.025,gold,horse)
+    rod('Blue breast strap',(side*.33,-.51,1.63),(side*.30,-.83,1.29),.075,.075,cloth,horse)
+    rod('Breast strap edging',(side*.34,-.53,1.58),(side*.31,-.85,1.24),.021,.021,gold,horse)
+panel('Blue chest pendant',[(-.26,-.85,1.43),(.26,-.85,1.43),(.19,-.88,1.04),(0,-.90,.95),(-.19,-.88,1.04)],cloth,horse)
+ball('Breast medallion',(0,-.91,1.39),(.115,.035,.12),gold,horse)
+ball('Forehead blaze',(0,-.24,-.04),(.055,.06,.15),linen,head)
+for side in [-1,1]:
+    ball('Bridle button',(side*.20,-.10,.035),(.035,.045,.045),gold,head)
+
 ball('Leather saddle',(0,.15,1.86),(.35,.35,.075),leather,horse)
 ball('Saddle pommel',(0,-.13,1.92),(.30,.07,.08),leather,horse)
 ball('Saddle cantle',(0,.43,1.91),(.32,.07,.09),leather,horse)
@@ -135,9 +156,10 @@ for side in [-1,1]:
     ball('Rider boot',(side*.49,-.19,-.25),(.14,.22,.13),hoof,rider)
     rod('Stirrup strap',(side*.50,.02,.50),(side*.51,-.10,-.32),.021,.021,leather,rider)
     rod('Wood stirrup',(side*.38,-.11,-.34),(side*.62,-.11,-.34),.024,.024,wood,rider)
-spear=pivot('Rider wooden spear',(.07,-.17,-.445),arms[1])
+spear=pivot('Rider wooden spear',(.36,-.32,1.05),rider)
 rod('Long wood shaft',(0,0,-.50),(0,0,1.55),.038,.032,wood,spear)
 rod('Wood spear point',(0,0,1.53),(0,0,1.85),.062,0,wood,spear)
+panel('Blue spear ribbon',[(-.01,0,1.44),(-.01,0,1.24),(-.01,.26,1.08),(-.01,.20,1.37)],cloth,spear)
 # Reins follow the left hand and both sides of the bit each rendered pose.
 reins=[]
 for side in [-1,1]:
@@ -156,16 +178,17 @@ def pose(action,i):
     tail.rotation_euler.x=.10;tail.rotation_euler.y=.10*math.sin(phase)
     rider.location=(0,.12,1.45);rider.rotation_euler=(0,0,0)
     arms[0].rotation_euler=( -.80,0,.15)
-    arms[1].rotation_euler=(0,0,0);spear.rotation_euler=(0,0,0)
+    arms[1].rotation_euler=(-.90,0,0);spear.rotation_euler=(.35,0,0)
     if action=='run':
         horse.location.z=.035*(1-math.cos(phase*2))
         rider.location.z+=.022*math.cos(phase*2)
         rider.rotation_euler.x=.07
         neck.rotation_euler.x=.035*math.sin(phase*2)
-        arms[1].rotation_euler.x=.07*math.sin(phase)
+        arms[1].rotation_euler.x=-.90+.07*math.sin(phase)
     elif action=='attack':
         reach=[0,.22,.65,1.12,1.43,1.08,.50,.12][i]
-        arms[1].rotation_euler.x=reach
+        arms[1].rotation_euler.x=-.90+reach*.60
+        spear.rotation_euler.x=.35+reach*.60
         rider.rotation_euler.x=.10*math.sin(math.pi*i/7)
         rider.rotation_euler.z=-.06*math.sin(math.pi*i/7)
     else:
@@ -224,4 +247,13 @@ if preview:
     scene.render.resolution_x=768;scene.render.resolution_y=512
     scene.camera.data.ortho_scale=6.0
     scene.render.filepath=str(OUT/'reference-side.png')
+    bpy.ops.render.render(write_still=True)
+
+if preview:
+    root.rotation_euler.z=math.radians(315)
+    scene.camera.location=(0,-7,5.6)
+    scene.camera.rotation_euler=(Vector((0,0,1.40))-scene.camera.location).to_track_quat('-Z','Y').to_euler()
+    scene.render.resolution_x=640;scene.render.resolution_y=640
+    scene.camera.data.ortho_scale=6.0
+    scene.render.filepath=str(OUT/'decorated-detail.png')
     bpy.ops.render.render(write_still=True)

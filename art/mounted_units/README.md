@@ -19,3 +19,5 @@ python art/mounted_units/preview.py
 Next: user feedback on revised proportions and gait, then install the approved cavalry sprites, portrait, selection footprint and demo group. Armored horses and iron weapons belong to later ages.
 
 Current review: the user supplied a horse photograph to guide proportions. The latest model has a longer, deeper continuous torso, a forward-sloping tapered neck, elongated face and stronger upper legs. `reference-review.png` is the latest true side profile; `first-model.png` contains the latest gameplay-angle stills. Existing animation GIFs show the previous revision and will be regenerated after proportion feedback.
+
+Latest style pass follows the user-supplied ChatGPT cartoon reference: larger head, fuller mane/tail, sturdy legs with cream fetlocks, cream muzzle/blaze, decorative saddle cloth and chest pendant with gold trim. These are cloth decorations, not armor. Spear remains wooden for tier one. decorated-review.png compares three player colors using the actual game tint function; preview_colors.py verifies recoloring and alpha preservation. Current animation GIFs still predate this review pass.
