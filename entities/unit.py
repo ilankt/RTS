@@ -17,6 +17,9 @@ STANCE_DEFENSIVE = "defensive"
 STANCE_STAND_GROUND = "stand_ground"
 STANCE_NO_ATTACK = "no_attack"
 
+# Extra angle beyond a 45-degree sector edge before switching sprite rows.
+FACING_HYSTERESIS = math.radians(8)
+
 class Unit(GameObject):
     """Unit entity class"""
     def __init__(self, name, size, hp, movement_speed, attack, animations, x=0, y=0, radius=0, player=None, can_build=False, can_attack=False,
@@ -115,8 +118,16 @@ class Unit(GameObject):
         )
 
     def face_vector(self, dx, dy):
-        if dx * dx + dy * dy > 0.0001:
-            self.facing_direction = int(math.floor(math.atan2(dy, dx) / (math.pi / 4) + 0.5)) % 8
+        if dx * dx + dy * dy <= 0.0001:
+            return
+        angle = math.atan2(dy, dx)
+        sector = math.pi / 4
+        # Retain the current row near its boundary: tiny steering corrections
+        # must not alternate adjacent sprites. Wrap the difference at +/- pi
+        # so the same rule works across N/NE/E as in every other direction.
+        difference = (angle - self.facing_direction * sector + math.pi) % math.tau - math.pi
+        if abs(difference) > sector / 2 + FACING_HYSTERESIS:
+            self.facing_direction = int(math.floor(angle / sector + 0.5)) % 8
 
     def update_animation(self, delta_time=None):
         previous_x, previous_y = self._facing_position
