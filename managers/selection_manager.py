@@ -88,7 +88,7 @@ class SelectionManager:
             
             # Use different tolerance for units vs. buildings
             if obj in self.game.units:
-                click_radius = obj.radius * self.game.camera.zoom * 2.0  # 100% larger hitbox for units
+                click_radius = self._unit_pick_radius(obj) * self.game.camera.zoom
             elif obj in self.game.resources:
                 # §8.17.3 follow-up (user): resources were hard to pinpoint —
                 # pad the pick circle; the sprite is far wider than the radius
@@ -930,6 +930,11 @@ class SelectionManager:
             row += 1
         return offsets[:count]
 
+    @staticmethod
+    def _unit_pick_radius(unit):
+        """UI tolerance only: keep physical collision radii unchanged."""
+        return unit.radius * 2.75
+
     def _get_object_at_position(self, world_pos):
         """Get the topmost object at a world position"""
         all_objects = [
@@ -940,7 +945,8 @@ class SelectionManager:
         
         for obj in sorted(all_objects, key=lambda o: o.y, reverse=True):
             distance = math.sqrt((world_pos[0] - obj.x)**2 + (world_pos[1] - obj.y)**2)
-            if distance <= obj.radius:
+            radius = self._unit_pick_radius(obj) if obj in self.game.units else obj.radius
+            if distance <= radius:
                 return obj
         
         return None

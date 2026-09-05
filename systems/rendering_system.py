@@ -404,7 +404,11 @@ class RenderingSystem:
                         and getattr(obj, 'movement_speed', 0) >= 55
                         and frame >= getattr(obj, '_next_dust_frame', 0)):
                     obj._next_dust_frame = frame + 14 + (id(obj) % 8)
-                    particles.spawn_move_dust(obj.x, obj.y + obj.radius * 0.5)
+                    feet_x, feet_y = self.ground_position(obj, camera)
+                    # Particles store world positions; share the rendered foot
+                    # anchor, then undo the camera transform before emitting.
+                    particles.spawn_move_dust((feet_x - camera.x) / camera.zoom,
+                                              (feet_y - camera.y) / camera.zoom)
                 elif (obj.__class__.__name__ == "Fountain"
                         and frame >= getattr(obj, '_next_sparkle_frame', 0)):
                     obj._next_sparkle_frame = frame + 18
