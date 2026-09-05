@@ -90,14 +90,21 @@ head=pivot('Head',(0,-.68,.73),neck)
 head.scale=(1.13,1.06,1.10)
 ball('Horse poll',(0,-.04,0),(.19,.23,.22),coat,head)
 rod('Elongated face',(0,-.08,-.04),(0,-.45,-.27),.17,.135,coat,head)
-ball('Long muzzle',(0,-.49,-.28),(.155,.21,.135),muzzle,head)
+# Smaller, flattened muzzle with softened corners rather than a round ball.
+bpy.ops.mesh.primitive_cube_add(size=1)
+nose=bpy.context.object;nose.name='Compact flattened muzzle';nose.parent=head
+nose.location=(0,-.48,-.28);nose.scale=(.255,.265,.185)
+nose.data.materials.append(muzzle)
+bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+bevel=nose.modifiers.new('Soft muzzle corners','BEVEL');bevel.width=.055;bevel.segments=3
+for polygon in nose.data.polygons:polygon.use_smooth=True
 for side in [-1,1]:
     ear=ball('Upright ear',(side*.12,.015,.24),(.052,.065,.125),coat,head)
     ear.rotation_euler.y=side*.16
     ball('Inner ear',(side*.12,-.042,.25),(.026,.018,.073),muzzle,head)
     ball('Horse eye',(side*.182,-.10,.045),(.031,.054,.042),eye,head)
     ball('Eye highlight',(side*.200,-.116,.060),(.010,.018,.015),glint,head)
-    ball('Nostril',(side*.125,-.625,-.245),(.033,.028,.027),hoof,head)
+    ball('Nostril',(side*.090,-.609,-.265),(.022,.014,.021),hoof,head)
 # A clean crest of mane follows the back of the neck.
 for i in range(7):
     t=i/6
@@ -191,9 +198,17 @@ spear=pivot('Rider wooden spear',(.36,-.32,1.05),rider)
 rod('Long wood shaft',(0,0,-.50),(0,0,1.55),.038,.032,wood,spear)
 rod('Wood spear point',(0,0,1.53),(0,0,1.85),.062,0,wood,spear)
 panel('Blue spear ribbon',[(-.01,0,1.44),(-.01,0,1.24),(-.01,.26,1.08),(-.01,.20,1.37)],cloth,spear)
+# A two-segment right arm lets the hand thrust forward instead of swinging.
+for child in list(arms[1].children):
+    for obj in reversed(descendants(child)):bpy.data.objects.remove(obj,do_unlink=True)
+skin=bpy.data.materials['1_cartoon skin']
+thrust_upper=rod('Rider upper arm',(0,0,0),(0,0,1),.12,.10,skin,rider)
+thrust_fore=rod('Rider forearm',(0,0,0),(0,0,1),.10,.085,skin,rider)
+thrust_wrist=rod('Rider wrist wrap',(0,0,0),(0,0,1),.094,.092,linen,rider)
+thrust_hand=ball('Rider spear hand',(0,0,0),(.105,.105,.11),skin,rider)
 DIRECTIONS={'E':90,'SE':45,'S':0,'SW':315,'W':270,'NW':225,'N':180,'NE':135}
 actions=['idle','run','attack']
-animated=[horse,neck,tail,rider,spear]+arms+[joint for _,_,h,k in legs for joint in (h,k)]
+animated=[horse,neck,tail,rider,spear,thrust_upper,thrust_fore,thrust_wrist,thrust_hand]+arms+[joint for _,_,h,k in legs for joint in (h,k)]
 
 def pose(action,i):
     phase=math.tau*i/8
@@ -210,15 +225,23 @@ def pose(action,i):
         neck.rotation_euler.x=.035*math.sin(phase*2)
         arms[1].rotation_euler.x=-.90+.07*math.sin(phase)
     elif action=='attack':
-        reach=[0,.22,.65,1.12,1.43,1.08,.50,.12][i]
-        arms[1].rotation_euler.x=-.90+reach*.60
-        spear.rotation_euler.x=.35+reach*.60
-        rider.rotation_euler.x=.10*math.sin(math.pi*i/7)
-        rider.rotation_euler.z=-.06*math.sin(math.pi*i/7)
+        # The shaft stays level for the whole cycle: draw back, poke, retract.
+        spear.rotation_euler.x=math.pi/2
     else:
         rider.location.z+=.006*math.sin(phase)
     # Keep the spear grip attached to the hand throughout wind-up/thrust.
     spear.location = arms[1].location + arms[1].rotation_euler.to_matrix() @ Vector((.07,-.17,-.445))
+    if action=='attack':
+        spear.location=(.425,[-.36,-.24,-.20,-.44,-.65,-.63,-.43,-.36][i],1.10)
+    shoulder=Vector(arms[1].location)
+    hand=Vector(spear.location)
+    delta=hand-shoulder;distance=delta.length
+    direction=delta.normalized()
+    bend_dir=Vector((1,0,0));bend_dir=(bend_dir-direction*bend_dir.dot(direction)).normalized()
+    elbow=(shoulder+hand)/2+bend_dir*math.sqrt(max(0,.34**2-(distance/2)**2))
+    for obj,a,b in [(thrust_upper,shoulder,elbow),(thrust_fore,elbow,hand),(thrust_wrist,elbow.lerp(hand,.82),hand)]:
+        obj.location=(a+b)/2;obj.rotation_euler=(b-a).to_track_quat('Z','Y').to_euler();obj.scale.z=(b-a).length
+    thrust_hand.location=hand
     # Two-bone IK pins each stance hoof to the ground. Diagonal pairs
     # alternate swing and stance; the rider follows the horse suspension.
     for fore,side,hip,knee in legs:

@@ -27,3 +27,5 @@ Decoration revision: continuous rounded saddle blanket wraps the back/flanks; cu
 Latest revision removes all reins, nose/cheek straps and bridle buttons. Dark leather, a fine gold seat rim and a deeper team-colored saddle blanket separate the rider from the saddle. Three-color preview regenerated and tint/alpha checks pass.
 
 Animation review refreshed for the approved rope-free decorated design: idle, trot and mounted spear thrust, each with eight frames in eight directions. Spear grip follows the right hand. review.py verifies at least four distinct poses per direction/action and checks all 192 frames for clipping. idle-preview.gif, run-preview.gif and attack-preview.gif now show the current model.
+
+Muzzle/thrust refinement: reduced flattened muzzle with soft corners and smaller nostrils. The mounted attack holds the spear level, draws back and pokes along one fixed axis before recovery; a two-segment arm follows the grip. verify_thrust.py checks the saved Blender timeline for constant direction, axial travel, grip attachment and return to the starting pose.
