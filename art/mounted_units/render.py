@@ -52,53 +52,82 @@ def rod(name,a,b,r1,r2,material,parent):
     return o
 
 horse=pivot('Horse body suspension',(0,0,0),root)
-ball('Horse barrel',(0,.16,1.44),(.33,.88,.30),coat,horse)
-ball('Horse chest',(0,-.43,1.47),(.30,.35,.34),coat,horse)
-ball('Horse rump',(0,.77,1.48),(.32,.35,.32),coat,horse)
-neck=pivot('Neck nod',(0,-.48,1.56),horse)
-rod('Sloping neck',(0,0,0),(0,-.40,.70),.24,.17,coat,neck)
-ball('Neck crest',(0,-.20,.38),(.19,.22,.43),coat,neck)
-head=pivot('Head',(0,-.43,.74),neck)
-ball('Horse head',(0,-.09,0),(.19,.31,.22),coat,head)
-ball('Long muzzle',(0,-.39,-.13),(.16,.29,.14),muzzle,head)
+ball('Horse barrel',(0,.22,1.40),(.38,1.03,.43),coat,horse)
+ball('Horse chest',(0,-.52,1.44),(.35,.42,.44),coat,horse)
+ball('Horse rump',(0,.99,1.45),(.38,.43,.43),coat,horse)
+# Fuse the barrel, shoulder and hindquarter into one flowing silhouette.
+bpy.ops.object.select_all(action='DESELECT')
+for name in ['Horse barrel','Horse chest','Horse rump']:bpy.data.objects[name].select_set(True)
+bpy.context.view_layer.objects.active=bpy.data.objects['Horse barrel']
+bpy.ops.object.join()
+body_mesh=bpy.context.object
+bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+remesh=body_mesh.modifiers.new('Continuous torso','REMESH');remesh.mode='VOXEL';remesh.voxel_size=.055
+bpy.ops.object.modifier_apply(modifier=remesh.name)
+smooth=body_mesh.modifiers.new('Soft anatomy','SMOOTH');smooth.factor=1.0;smooth.iterations=4
+bpy.ops.object.modifier_apply(modifier=smooth.name)
+for polygon in body_mesh.data.polygons:polygon.use_smooth=True
+neck=pivot('Neck nod',(0,-.50,1.48),horse)
+# Broad shoulder attachment tapering along a forward-sloping crest.
+# Elliptical rings form one continuous neck surface rather than stacked balls.
+sections=[(.16,-.06,.31,.35),(-.08,.20,.29,.40),(-.36,.47,.23,.34),(-.67,.72,.17,.22),(-.83,.79,.15,.17)]
+verts=[];faces=[];segments=20
+for y,z,rx,rz in sections:
+    for j in range(segments):
+        t=math.tau*j/segments
+        verts.append((rx*math.cos(t),y,z+rz*math.sin(t)))
+for ring in range(len(sections)-1):
+    for j in range(segments):
+        k=ring*segments+j;n=ring*segments+(j+1)%segments
+        faces.append((k,n,n+segments,k+segments))
+faces.append(tuple(reversed(range(segments))))
+faces.append(tuple(range((len(sections)-1)*segments,len(sections)*segments)))
+mesh=bpy.data.meshes.new('Anatomical neck mesh');mesh.from_pydata(verts,[],faces);mesh.update()
+obj=bpy.data.objects.new('Sloping horse neck',mesh);bpy.context.collection.objects.link(obj);obj.parent=neck;obj.data.materials.append(coat)
+for polygon in mesh.polygons:polygon.use_smooth=True
+sub=obj.modifiers.new('Smooth neck contour','SUBSURF');sub.levels=2
+head=pivot('Head',(0,-.83,.79),neck)
+ball('Horse poll',(0,-.04,0),(.19,.23,.22),coat,head)
+rod('Elongated face',(0,-.08,-.04),(0,-.45,-.27),.17,.135,coat,head)
+ball('Long muzzle',(0,-.49,-.28),(.155,.21,.135),muzzle,head)
 for side in [-1,1]:
     ear=ball('Upright ear',(side*.12,.015,.24),(.052,.065,.125),coat,head)
     ear.rotation_euler.y=side*.16
     ball('Inner ear',(side*.12,-.042,.25),(.026,.018,.073),muzzle,head)
-    ball('Horse eye',(side*.182,-.16,.09),(.031,.054,.042),eye,head)
-    ball('Eye highlight',(side*.200,-.176,.106),(.010,.018,.015),glint,head)
-    ball('Nostril',(side*.125,-.605,-.10),(.033,.028,.027),hoof,head)
-    rod('Bridle cheek',(side*.19,-.04,.13),(side*.19,-.45,-.10),.020,.020,leather,head)
-rod('Nose strap',(-.19,-.45,-.10),(.19,-.45,-.10),.020,.020,leather,head)
+    ball('Horse eye',(side*.182,-.10,.045),(.031,.054,.042),eye,head)
+    ball('Eye highlight',(side*.200,-.116,.060),(.010,.018,.015),glint,head)
+    ball('Nostril',(side*.125,-.625,-.245),(.033,.028,.027),hoof,head)
+    rod('Bridle cheek',(side*.19,-.04,.13),(side*.15,-.49,-.24),.020,.020,leather,head)
+rod('Nose strap',(-.15,-.49,-.24),(.15,-.49,-.24),.020,.020,leather,head)
 # A clean crest of mane follows the back of the neck.
 for i in range(7):
     t=i/6
-    ball('Mane lock',(0,.12-.33*t,.06+.66*t),(.10,.13,.15),mane,neck)
+    ball('Mane lock',(0,.06-.79*t,.35+.57*t),(.075,.12,.105),mane,neck)
 ball('Forelock',(0,-.03,.24),(.14,.14,.12),mane,head)
-tail=pivot('Tail sway',(0,1.04,1.55),horse)
-rod('Tail root',(0,0,0),(0,.30,-.20),.10,.085,mane,tail)
-ball('Tail fall',(0,.33,-.42),(.12,.12,.31),mane,tail)
+tail=pivot('Tail sway',(0,1.33,1.66),horse)
+rod('Tail root',(0,0,0),(0,.10,-.36),.09,.075,mane,tail)
+ball('Tail fall',(0,.12,-.79),(.105,.11,.49),mane,tail)
 
 # Four independent hip/shoulder and knee/hock chains: diagonal pairs trot.
 legs=[]
-for fore,y in [(True,-.43),(False,.77)]:
+for fore,y in [(True,-.62),(False,1.00)]:
     for side in [-1,1]:
         hip=pivot(('Fore' if fore else 'Hind')+(' left' if side<0 else ' right'),(side*.25,y,1.35),horse)
-        rod('Upper horse leg',(0,0,0),(0,0,-.65),.105,.065,coat,hip)
+        rod('Upper horse leg',(0,0,0),(0,0,-.65),.14,.072,coat,hip)
         ball('Knee',(0,0,-.65),(.073,.075,.072),coat,hip)
         knee=pivot('Knee flex',(0,0,-.65),hip)
-        rod('Lower horse leg',(0,0,0),(0,0,-.60),.055,.048,coat,knee)
+        rod('Lower horse leg',(0,0,0),(0,0,-.60),.063,.050,coat,knee)
         ball('Hoof',(0,-.035,-.65),(.085,.115,.08),hoof,knee)
         legs.append((fore,side,hip,knee))
 # Saddle only: no barding, blanket, plate or helmet.
-ball('Leather saddle',(0,.15,1.76),(.32,.35,.075),leather,horse)
-ball('Saddle pommel',(0,-.13,1.82),(.28,.07,.08),leather,horse)
-ball('Saddle cantle',(0,.43,1.81),(.30,.07,.09),leather,horse)
+ball('Leather saddle',(0,.15,1.86),(.35,.35,.075),leather,horse)
+ball('Saddle pommel',(0,-.13,1.92),(.30,.07,.08),leather,horse)
+ball('Saddle cantle',(0,.43,1.91),(.32,.07,.09),leather,horse)
 for side in [-1,1]:
-    rod('Saddle girth',(side*.33,.20,1.64),(side*.31,.20,1.20),.033,.033,leather,horse)
-    ball('Saddle flap',(side*.30,.15,1.68),(.035,.22,.18),leather,horse)
+    rod('Saddle girth',(side*.38,.20,1.72),(side*.36,.20,1.08),.033,.033,leather,horse)
+    ball('Saddle flap',(side*.34,.15,1.77),(.035,.22,.18),leather,horse)
 
-rider.parent=horse;rider.scale=(.78,)*3;rider.location=(0,.12,1.35)
+rider.parent=horse;rider.scale=(.78,)*3;rider.location=(0,.12,1.45)
 # Seated thighs and hanging shins replace the standing infantry leg chain.
 for side in [-1,1]:
     rod('Rider thigh',(side*.18,0,.64),(side*.48,-.19,.28),.14,.12,cloth,rider)
@@ -125,7 +154,7 @@ def pose(action,i):
     horse.location.z=0
     neck.rotation_euler.x=.015*math.sin(phase)
     tail.rotation_euler.x=.10;tail.rotation_euler.y=.10*math.sin(phase)
-    rider.location=(0,.12,1.35);rider.rotation_euler=(0,0,0)
+    rider.location=(0,.12,1.45);rider.rotation_euler=(0,0,0)
     arms[0].rotation_euler=( -.80,0,.15)
     arms[1].rotation_euler=(0,0,0);spear.rotation_euler=(0,0,0)
     if action=='run':
@@ -158,12 +187,12 @@ def pose(action,i):
     bpy.context.view_layer.update()
     hand=horse.matrix_world.inverted() @ (arms[0].matrix_world @ Vector((-.07,-.17,-.445)))
     for side,rein,length in zip([-1,1],reins,rein_lengths):
-        a=horse.matrix_world.inverted() @ (head.matrix_world @ Vector((side*.19,-.45,-.10)))
+        a=horse.matrix_world.inverted() @ (head.matrix_world @ Vector((side*.15,-.49,-.24)))
         b=hand
         rein.location=(a+b)/2;rein.rotation_euler=(b-a).to_track_quat('Z','Y').to_euler();rein.scale.z=(b-a).length/length
 
 scene.render.resolution_x=192;scene.render.resolution_y=192
-scene.camera.data.ortho_scale=5.6
+scene.camera.data.ortho_scale=6.0
 scene.camera.location=(0,-7,5.6)
 scene.camera.rotation_euler=(Vector((0,0,1.40))-scene.camera.location).to_track_quat('-Z','Y').to_euler()
 scene.timeline_markers.clear();scene.frame_start=1;scene.frame_end=24;scene.render.fps=10
@@ -175,7 +204,7 @@ for a,action in enumerate(actions):
             for prop in ['location','rotation_euler','scale']:obj.keyframe_insert(prop,frame=a*8+i+1)
 scene.frame_set(1);root.rotation_euler.z=math.radians(45)
 ground=world_to_camera_view(scene,scene.camera,Vector((0,0,0)))
-(OUT/'manifest.json').write_text(json.dumps({'size':192,'frames':8,'directions':list(DIRECTIONS),'actions':actions,'ground_anchor':[ground.x,1-ground.y],'render_scale':5.6/4.1},indent=2))
+(OUT/'manifest.json').write_text(json.dumps({'size':192,'frames':8,'directions':list(DIRECTIONS),'actions':actions,'ground_anchor':[ground.x,1-ground.y],'render_scale':6.0/4.1},indent=2))
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'mounted_spearman.blend'))
 preview='--preview' in sys.argv
 for a,action in enumerate(actions):
@@ -187,3 +216,12 @@ for a,action in enumerate(actions):
             scene.frame_set(a*8+i+1)
             scene.render.filepath=str(folder/f'{i:02}.png');bpy.ops.render.render(write_still=True)
     print('RENDERED mounted '+action,flush=True)
+
+if preview:
+    scene.frame_set(1);root.rotation_euler.z=math.radians(90)
+    scene.camera.location=(0,-9,1.85)
+    scene.camera.rotation_euler=(Vector((0,0,1.85))-scene.camera.location).to_track_quat('-Z','Y').to_euler()
+    scene.render.resolution_x=768;scene.render.resolution_y=512
+    scene.camera.data.ortho_scale=6.0
+    scene.render.filepath=str(OUT/'reference-side.png')
+    bpy.ops.render.render(write_still=True)

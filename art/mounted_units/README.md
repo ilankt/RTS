@@ -17,3 +17,5 @@ python art/mounted_units/preview.py
 `mounted_spearman.blend` contains the editable model and animation timeline. `run-preview.gif` and `attack-preview.gif` are review artifacts; `manifest.json` records the projected ground anchor and intended presentation scale. `review.py` checks all 192 frame bounds. Add `-- --preview` to the Blender command for idle views only.
 
 Next: user feedback on revised proportions and gait, then install the approved cavalry sprites, portrait, selection footprint and demo group. Armored horses and iron weapons belong to later ages.
+
+Current review: the user supplied a horse photograph to guide proportions. The latest model has a longer, deeper continuous torso, a forward-sloping tapered neck, elongated face and stronger upper legs. `reference-review.png` is the latest true side profile; `first-model.png` contains the latest gameplay-angle stills. Existing animation GIFs show the previous revision and will be regenerated after proportion feedback.
