@@ -1,0 +1,39 @@
+{
+  "size": 192,
+  "frames": 8,
+  "fps": 10,
+  "directions": [
+    "E",
+    "SE",
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE"
+  ],
+  "units": {
+    "clubman": [
+      "idle",
+      "run",
+      "attack"
+    ],
+    "worker": [
+      "idle",
+      "run",
+      "gather",
+      "build"
+    ]
+  },
+  "style": "Outlined cartoon (option 1)",
+  "ground_anchors": {
+    "clubman": [
+      0.5,
+      0.730059
+    ],
+    "worker": [
+      0.5,
+      0.730059
+    ]
+  }
+}

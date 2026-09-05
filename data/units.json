@@ -18,7 +18,7 @@
     "can_build": true,
     "can_attack": false,
     "build_time": 5,
-    "icon": "assets/ui/Units/worker_icon.png",
+    "icon": "assets/ui/Units/worker_outlined_icon.png",
     "costs": {
       "food": 25
     },
@@ -30,11 +30,16 @@
     "attack_speed": 0,
     "attack_range": 0,
     "animations": {
-      "idle": "assets/sprites/Units/Worker/Idle.png",
-      "run": "assets/sprites/Units/Worker/Run.png",
-      "gather": "assets/sprites/Units/Worker/Gather.png",
-      "build": "assets/sprites/Units/Worker/Gather.png"
-    }
+      "idle": "assets/sprites/Units/WorkerOutlined/idle.png",
+      "run": "assets/sprites/Units/WorkerOutlined/run.png",
+      "gather": "assets/sprites/Units/WorkerOutlined/gather.png",
+      "build": "assets/sprites/Units/WorkerOutlined/build.png"
+    },
+    "animation_directions": 8,
+    "ground_anchor": [
+      0.5,
+      0.730059
+    ]
   },
   {
     "name": "warrior",
@@ -60,7 +65,7 @@
     "attack": 10,
     "can_attack": true,
     "build_time": 8,
-    "icon": "assets/ui/Units/warrior_icon.png",
+    "icon": "assets/ui/Units/clubman_icon.png",
     "costs": {
       "gold": 65,
       "food": 70
@@ -78,7 +83,11 @@
       "attack": "assets/sprites/Units/Clubman/attack.png",
       "guard": "assets/sprites/Units/Clubman/idle.png"
     },
-    "animation_directions": 8
+    "animation_directions": 8,
+    "ground_anchor": [
+      0.5,
+      0.730059
+    ]
   },
   {
     "name": "archer",

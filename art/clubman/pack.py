@@ -14,7 +14,7 @@ for action in ACTIONS:
     sheet=Image.new('RGBA',(size*frames,size*8))
     for row,direction in enumerate(DIRECTIONS):
         for frame in range(frames):
-            im=Image.open(OUT/'frames'/action/direction/f'{frame:02}.png').convert('RGBA')
+            im=Image.open(ROOT/'art/outlined_units/frames/clubman'/action/direction/f'{frame:02}.png').convert('RGBA')
             bbox=im.getbbox()
             assert bbox and min(bbox[:2])>0 and bbox[2]<size and bbox[3]<size, (action,direction,frame,bbox)
             sheet.paste(im,(size*frame,size*row))
@@ -28,7 +28,7 @@ for frame in range(frames):
     d=ImageDraw.Draw(contact)
     for n,direction in enumerate(DIRECTIONS):
         x=(n%4)*192; y=(n//4)*222
-        im=Image.open(OUT/'frames'/'run'/direction/f'{frame:02}.png')
+        im=Image.open(ROOT/'art/outlined_units/frames/clubman'/'run'/direction/f'{frame:02}.png')
         contact.paste(im,(x,y),im)
         d.text((x+86,y+194),direction,fill='#e5d4aa')
     contact_frames.append(contact)

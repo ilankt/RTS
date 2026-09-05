@@ -120,8 +120,14 @@ class Unit(GameObject):
 
     def update_animation(self, delta_time=None):
         previous_x, previous_y = self._facing_position
-        target = self.current_target
-        if self.status == "attack" and target is not None:
+        target = None
+        if self.is_building:
+            target = self.building_target
+        elif self.status == "gather":
+            target = self.gathering_target
+        elif self.status == "attack":
+            target = self.current_target
+        if target is not None:
             self.face_vector(target.x - self.x, target.y - self.y)
         elif self.status == "run":
             self.face_vector(self.x - previous_x, self.y - previous_y)

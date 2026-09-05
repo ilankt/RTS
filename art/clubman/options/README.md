@@ -21,4 +21,4 @@ Rebuild from the prototype root:
 python art/clubman/options/compare.py
 ```
 
-Status: awaiting user choice and feedback. Existing buildings, units and terrain were inspected directly. All comparison scenes use the same camera, unit positions and seed (4321).
+Status: user selected option 1 (outlined cartoon). Implemented for clubman and worker in art/outlined_units. Existing buildings, units and terrain were inspected directly. All comparison scenes use the same camera, unit positions and seed (4321).

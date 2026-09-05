@@ -972,6 +972,13 @@ class SelectionManager:
         rect = pygame.Rect(min_x, min_y, max_x - min_x, max_y - min_y)
         pygame.draw.rect(surface, (0, 255, 0), rect, 2)
     
+    def _ground_marker_position(self, obj, camera):
+        renderer = getattr(self.game, "rendering_system", None)
+        if renderer is not None and hasattr(renderer, "ground_position"):
+            return renderer.ground_position(obj, camera)
+        return (obj.x * camera.zoom + camera.x,
+                obj.y * camera.zoom + camera.y + obj.radius * camera.zoom * 0.55)
+
     def draw_selection_circles(self, surface, camera):
         """Draw selection circles around selected objects"""
         self._draw_rally_flags(surface, camera)
@@ -998,7 +1005,7 @@ class SelectionManager:
 
             ellipse_w = max(12, int(obj.radius * 2.2 * camera.zoom))
             ellipse_h = max(5, int(ellipse_w * 0.38))
-            feet_y = screen_y + obj.radius * camera.zoom * 0.55
+            screen_x, feet_y = self._ground_marker_position(obj, camera)
             marker = pygame.Rect(int(screen_x - ellipse_w / 2),
                                  int(feet_y - ellipse_h / 2), ellipse_w, ellipse_h)
             pygame.draw.ellipse(surface, color, marker, 2)
@@ -1030,7 +1037,7 @@ class SelectionManager:
         screen_y = (obj.y * camera.zoom) + camera.y
         ellipse_w = max(12, int(obj.radius * 2.2 * camera.zoom))
         ellipse_h = max(5, int(ellipse_w * 0.38))
-        feet_y = screen_y + obj.radius * camera.zoom * 0.55
+        screen_x, feet_y = self._ground_marker_position(obj, camera)
         marker = pygame.Rect(int(screen_x - ellipse_w / 2),
                              int(feet_y - ellipse_h / 2), ellipse_w, ellipse_h)
         pygame.draw.ellipse(surface, color, marker, 1)

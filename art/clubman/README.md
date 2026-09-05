@@ -1,17 +1,9 @@
 # Clubman prototype
 
-Isolated branch: `codex/clubman-8-directions`; base: `fb6dffb`. Main remains in `D:/Dev/RTS`.
+The approved style is **Outlined cartoon (option 1)**, now implemented for both clubman and worker. The active renderer, editable models and rebuild instructions are in `../outlined_units/README.md`.
 
-Open `preview.html` for an offline, self-contained animated gallery. `clubman.blend` is the editable source; timeline frames 1–8 idle, 9–16 walk, 17–24 attack. The procedural articulated model is a first visual study, not final character art.
+`preview.html`, `walk.gif`, `clubman.blend`, and the game sprite sheets show the approved style. `render.py` forwards to the active outlined renderer; `pack.py` refreshes the clubman gallery from those renders. `options/` retains the three original style studies.
 
-Rebuild from this worktree:
+Launch the root's `Play Clubman Prototype.cmd` or run `python art/clubman/play.py` for immediate gameplay with six clubmen and three workers. Press 1 for clubmen or 2 for workers. The normal game entry point also uses the new artwork.
 
-```powershell
-& 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe' -b -t 4 --python art/clubman/render.py
-python art/clubman/pack.py
-python main.py
-```
-
-Packing requires Pillow. Blender needs no external assets. Game sheets have eight rows ordered E, SE, S, SW, W, NW, N, NE, and eight 192×192 frames per row. Add `animation_directions: 8` to unit JSON to use this layout. The existing warrior ID and combat statistics are retained for compatibility; its display name and art become Clubman in this fork. Factions, age progression, final sound/icon art, and balancing are future work.
-
-For immediate gameplay, launch the root's Play Clubman Prototype.cmd or run python art/clubman/play.py. This opens a playable match with six selected clubmen at your castle. Right-click terrain to move; press 1 to recall the group.
+This work lives in the separate `codex/clubman-8-directions` worktree. The original `D:/Dev/RTS` main checkout is unchanged. Unit IDs and combat/economy statistics are preserved; factions and age progression are future work.

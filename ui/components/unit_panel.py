@@ -46,7 +46,8 @@ class UnitPanel:
 
         for unit_type in unit_types:
             self.unit_panel_icons[unit_type] = {}
-            icon_path = f"assets/ui/Units/{unit_type}_icon.png"
+            template = getattr(self.game, "game_data", {}).get("units", {}).get(unit_type)
+            icon_path = getattr(template, "icon", f"assets/ui/Units/{unit_type}_icon.png")
             try:
                 original_icon = pygame.image.load(icon_path).convert_alpha()
                 self._unit_icon_sources[unit_type] = original_icon

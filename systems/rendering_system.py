@@ -67,10 +67,13 @@ class RenderingSystem:
         # foundation shrinks with it (§8.2.2 user report: watchtower drew a
         # third wider than everything else, temple undersized).
         self._render_scales = {}
+        self._ground_anchors = {}
         try:
             import json
             with open('data/units.json') as f:
                 for unit in json.load(f):
+                    if 'ground_anchor' in unit:
+                        self._ground_anchors[unit['name']] = tuple(unit['ground_anchor'])
                     scale = unit.get('render_scale')
                     if scale:
                         self._render_scales[unit['name']] = float(scale)
@@ -541,6 +544,20 @@ class RenderingSystem:
             return self._SHADOW_LIFT["fountain"]
         return self._SHADOW_LIFT.get(getattr(obj, "name", None))
 
+    def ground_position(self, obj, camera):
+        """Screen-space feet point. New art exports its Blender ground origin;
+        legacy sprites keep their original radius-based selection placement."""
+        x = obj.x * camera.zoom + camera.x
+        y = obj.y * camera.zoom + camera.y
+        anchor = getattr(self, "_ground_anchors", {}).get(getattr(obj, "name", None))
+        if anchor is None:
+            return x, y + obj.radius * camera.zoom * 0.55
+        # Unit frames are square and drawn at size * TILE_WIDTH. Keep this
+        # point fixed through all frames/directions instead of chasing a
+        # swinging weapon or bobbing head in the alpha bounding box.
+        extent = obj.size[0] * TILE_WIDTH * self._render_scales.get(obj.name, 1.0) * camera.zoom
+        return x + (anchor[0] - 0.5) * extent, y + (anchor[1] - 0.5) * extent
+
     def _shadow_geometry(self, obj, sprite, camera):
         """(centre_x, centre_y, w, h) for an object's blob shadow, or None.
 
@@ -549,6 +566,10 @@ class RenderingSystem:
         footprint, biased slightly south by the northern sun."""
         if getattr(obj, "radius", 0) <= 0 or sprite is None:
             return None
+        if getattr(obj, "name", None) in getattr(self, "_ground_anchors", {}):
+            x, y = self.ground_position(obj, camera)
+            width = max(8, int(obj.radius * 2.6 * camera.zoom))
+            return x, y, width, max(4, int(width * self.SHADOW_H_RATIO))
         zoom = camera.zoom
         draw_x = (obj.x * zoom) + camera.x
         draw_y = (obj.y * zoom) + camera.y

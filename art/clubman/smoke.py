@@ -10,9 +10,10 @@ from managers.save_manager import SaveManager
 random.seed(4321)
 game=Game(mode='ai_spectator',player_count=2)
 castle=next(b for b in game.buildings if b.name=='castle')
-data=next(u for u in json.loads((R/'data/units.json').read_text()) if u['name']=='warrior')
-castle.current_production={'unit_type':'warrior','unit_data':data}
-game.production_manager._complete_production(castle)
+for name in ['warrior','worker']:
+    data=next(u for u in json.loads((R/'data/units.json').read_text()) if u['name']==name)
+    castle.current_production={'unit_type':name,'unit_data':data}
+    game.production_manager._complete_production(castle)
 u=next(u for u in game.units if u.name=='warrior')
 assert u.animations['run'].direction_count==8
 assert not u.sprite_mirrored
@@ -27,6 +28,9 @@ assert ok,message
 u=next(u for u in game.units if u.name=='warrior')
 assert all(a.direction_count==8 for a in u.animations.values())
 assert len(u.animations['attack'].frames)==8
+for worker in (unit for unit in game.units if unit.name == 'worker'):
+    assert all(a.direction_count == 8 for a in worker.animations.values())
+    assert len(worker.animations['build'].frames) == 8
 game.rendering_system.draw_frame(game.screen,game.map_surface,game.camera,1/60)
 pygame.quit()
-print('PASS: clubman production, full game render, save/load, and post-load render.')
+print('PASS: clubman and worker production, full game render, save/load, and post-load render.')

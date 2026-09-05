@@ -93,6 +93,7 @@ def load_game_data():
         )
 
         game_data["units"][u["name"]].animation_directions = u.get("animation_directions", 1)
+        game_data["units"][u["name"]].icon = u.get("icon", f"assets/ui/Units/{u['name']}_icon.png")
 
     for r in resources_data:
         # Resources are [1,1]; radius 16 → 22.4 (§8.17.3 follow-up, user):
