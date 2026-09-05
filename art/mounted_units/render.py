@@ -98,7 +98,8 @@ for side in [-1,1]:
     ball('Horse eye',(side*.182,-.10,.045),(.031,.054,.042),eye,head)
     ball('Eye highlight',(side*.200,-.116,.060),(.010,.018,.015),glint,head)
     ball('Nostril',(side*.125,-.625,-.245),(.033,.028,.027),hoof,head)
-    rod('Bridle cheek',(side*.19,-.04,.13),(side*.15,-.49,-.24),.020,.020,leather,head)
+    rod('Bridle cheek',(side*.205,.035,.06),(side*.185,-.18,-.18),.020,.020,leather,head)
+    rod('Lower cheek strap',(side*.185,-.18,-.18),(side*.15,-.49,-.24),.018,.018,leather,head)
 rod('Nose strap',(-.15,-.49,-.24),(.15,-.49,-.24),.020,.020,leather,head)
 # A clean crest of mane follows the back of the neck.
 for i in range(7):
@@ -129,17 +130,50 @@ def panel(name,vertices,material,parent):
     solid=obj.modifiers.new('Cloth thickness','SOLIDIFY');solid.thickness=.022
     bevel=obj.modifiers.new('Soft cloth edge','BEVEL');bevel.width=.025;bevel.segments=2
     return obj
-for side in [-1,1]:
-    corners=[(side*.34,-.19,1.79),(side*.35,.69,1.79),(side*.41,.65,1.05),(side*.42,-.23,1.08)]
-    panel('Blue saddle cloth',corners,cloth,horse)
-    for i in range(4):rod('Gold saddle edging',corners[i],corners[(i+1)%4],.025,.025,gold,horse)
-    rod('Blue breast strap',(side*.33,-.51,1.63),(side*.30,-.83,1.29),.075,.075,cloth,horse)
-    rod('Breast strap edging',(side*.34,-.53,1.58),(side*.31,-.85,1.24),.021,.021,gold,horse)
-panel('Blue chest pendant',[(-.26,-.85,1.43),(.26,-.85,1.43),(.19,-.88,1.04),(0,-.90,.95),(-.19,-.88,1.04)],cloth,horse)
-ball('Breast medallion',(0,-.91,1.39),(.115,.035,.12),gold,horse)
+def surface_patch(name,grid,material,parent):
+    rows=len(grid);cols=len(grid[0]);vertices=[v for row in grid for v in row]
+    faces=[]
+    for i in range(rows-1):
+        for j in range(cols-1):
+            k=i*cols+j;faces.append((k,k+1,k+1+cols,k+cols))
+    mesh=bpy.data.meshes.new(name);mesh.from_pydata(vertices,[],faces);mesh.update()
+    obj=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(obj);obj.parent=parent;obj.data.materials.append(material)
+    for poly in mesh.polygons:poly.use_smooth=True
+    solid=obj.modifiers.new('Soft fabric thickness','SOLIDIFY');solid.thickness=.014
+    return obj
+
+def piping(name,points,material,parent,radius=.018):
+    curve=bpy.data.curves.new(name,'CURVE');curve.dimensions='3D';curve.bevel_depth=radius;curve.bevel_resolution=3
+    spline=curve.splines.new('POLY');spline.points.add(len(points)-1)
+    for p,co in zip(spline.points,points):p.co=(*co,1)
+    obj=bpy.data.objects.new(name,curve);bpy.context.collection.objects.link(obj);obj.parent=parent;obj.data.materials.append(material)
+    return obj
+
+# One continuous cloth shell drapes over the back and both flanks.
+cloth_grid=[]
+for i in range(25):
+    u=-1+2*i/24
+    extent=2.12-.40*abs(u)**8
+    row=[]
+    for j in range(33):
+        theta=(-1+2*j/32)*extent
+        row.append((.403*math.sin(theta),.23+.54*u,1.40+.485*math.cos(theta)))
+    cloth_grid.append(row)
+surface_patch('Rounded draped saddle blanket',cloth_grid,cloth,horse)
+border=cloth_grid[0]+[row[-1] for row in cloth_grid[1:]]+list(reversed(cloth_grid[-1][:-1]))+[row[0] for row in reversed(cloth_grid[1:-1])]+[cloth_grid[0][0]]
+piping('Continuous gold blanket hem',border,gold,horse)
+# Broad curved breast collar follows the chest instead of floating panels.
+collar=[]
+for i in range(33):
+    t=-1.65+3.30*i/32
+    x=.37*math.sin(t);y=-.53-.48*math.cos(t);z=1.50-.14*math.cos(t)
+    collar.append([(x,y,z-.095),(x,y,z+.095)])
+surface_patch('Wrapped blue breast collar',collar,cloth,horse)
+for edge in [0,1]:piping('Gold collar piping',[row[edge] for row in collar],gold,horse,.015)
+ball('Breast medallion',(0,-1.035,1.36),(.085,.027,.085),gold,horse)
 ball('Forehead blaze',(0,-.24,-.04),(.055,.06,.15),linen,head)
 for side in [-1,1]:
-    ball('Bridle button',(side*.20,-.10,.035),(.035,.045,.045),gold,head)
+    ball('Bridle button',(side*.205,.035,.06),(.035,.045,.045),gold,head)
 
 ball('Leather saddle',(0,.15,1.86),(.35,.35,.075),leather,horse)
 ball('Saddle pommel',(0,-.13,1.92),(.30,.07,.08),leather,horse)
@@ -163,13 +197,14 @@ panel('Blue spear ribbon',[(-.01,0,1.44),(-.01,0,1.24),(-.01,.26,1.08),(-.01,.20
 # Reins follow the left hand and both sides of the bit each rendered pose.
 reins=[]
 for side in [-1,1]:
-    reins.append(rod('Rein',(side*.19,-1.36,1.86),(-.32,-.25,1.90),.015,.015,leather,horse))
-rein_lengths=[o.dimensions.z for o in reins]  # replaced with actual mesh lengths below
-rein_lengths=[max(v.co.z for v in o.data.vertices)-min(v.co.z for v in o.data.vertices) for o in reins]
+    chain=[]
+    for segment in range(8):
+        chain.append(rod('Loose rein',(0,0,0),(0,.1,0),.011,.011,leather,horse))
+    reins.append(chain)
 
 DIRECTIONS={'E':90,'SE':45,'S':0,'SW':315,'W':270,'NW':225,'N':180,'NE':135}
 actions=['idle','run','attack']
-animated=[horse,neck,tail,rider,spear]+arms+[joint for _,_,h,k in legs for joint in (h,k)]+reins
+animated=[horse,neck,tail,rider,spear]+arms+[joint for _,_,h,k in legs for joint in (h,k)]+[piece for chain in reins for piece in chain]
 
 def pose(action,i):
     phase=math.tau*i/8
@@ -209,10 +244,17 @@ def pose(action,i):
         knee.rotation_euler.x=-sign*bend
     bpy.context.view_layer.update()
     hand=horse.matrix_world.inverted() @ (arms[0].matrix_world @ Vector((-.07,-.17,-.445)))
-    for side,rein,length in zip([-1,1],reins,rein_lengths):
-        a=horse.matrix_world.inverted() @ (head.matrix_world @ Vector((side*.15,-.49,-.24)))
-        b=hand
-        rein.location=(a+b)/2;rein.rotation_euler=(b-a).to_track_quat('Z','Y').to_euler();rein.scale.z=(b-a).length/length
+    for side,chain in zip([-1,1],reins):
+        a=horse.matrix_world.inverted() @ (head.matrix_world @ Vector((side*.17,-.49,-.28)))
+        points=[]
+        for j in range(9):
+            t=j/8
+            co=a.lerp(hand,t)
+            co.z-=.34*math.sin(math.pi*t)
+            co.x+=side*.10*math.sin(math.pi*t)
+            points.append(co)
+        for rein,a,b in zip(chain,points,points[1:]):
+            rein.location=(a+b)/2;rein.rotation_euler=(b-a).to_track_quat('Z','Y').to_euler();rein.scale.z=(b-a).length/.1
 
 scene.render.resolution_x=192;scene.render.resolution_y=192
 scene.camera.data.ortho_scale=6.0
