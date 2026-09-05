@@ -23,3 +23,5 @@ Current review: the user supplied a horse photograph to guide proportions. The l
 Latest style pass follows the user-supplied ChatGPT cartoon reference: larger head, fuller mane/tail, sturdy legs with cream fetlocks, cream muzzle/blaze, decorative saddle cloth and chest pendant with gold trim. These are cloth decorations, not armor. Spear remains wooden for tier one. decorated-review.png compares three player colors using the actual game tint function; preview_colors.py verifies recoloring and alpha preservation. Current animation GIFs still predate this review pass.
 
 Decoration revision: continuous rounded saddle blanket wraps the back/flanks; curved breast collar follows the chest. Cheek straps run behind/below the eyes and segmented reins sag below the jaw. Latest decorated-review.png verifies these surfaces in three player colors.
+
+Latest revision removes all reins, nose/cheek straps and bridle buttons. Dark leather, a fine gold seat rim and a deeper team-colored saddle blanket separate the rider from the saddle. Three-color preview regenerated and tint/alpha checks pass.
