@@ -150,7 +150,7 @@ class ProductionManager:
             animations={},  # Will be set up by sprite manager
             x=spawn_pos[0],
             y=spawn_pos[1],
-            radius=unit_data['size'][0] * TILE_WIDTH / 8,  # TILE_WIDTH / 8 for smaller units
+            radius=unit_data.get('collision_radius', unit_data['size'][0] * TILE_WIDTH / 8),
             player=building.player,
             can_build=unit_data.get('can_build', False),
             can_attack=unit_data.get('can_attack', False),

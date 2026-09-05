@@ -185,7 +185,7 @@
   },
   {
     "name": "cavalry",
-    "display_name": "Cavalry",
+    "display_name": "Mounted Spearman",
     "role": "Fast raider and archer counter",
     "requires": [
       "stable"
@@ -208,7 +208,7 @@
     "attack": 12,
     "can_attack": true,
     "build_time": 10,
-    "icon": "assets/ui/Units/cavalry_icon.png",
+    "icon": "assets/ui/Units/mounted_spearman_icon.png",
     "costs": {
       "gold": 65,
       "food": 120
@@ -221,12 +221,18 @@
     "attack_speed": 1.0,
     "attack_range": 48,
     "animations": {
-      "idle": "assets/sprites/Units/Cavalry/Cavalry_Idle.png",
-      "run": "assets/sprites/Units/Cavalry/Cavalry_Run.png",
-      "attack": "assets/sprites/Units/Cavalry/Cavalry_Attack.png",
-      "guard": "assets/sprites/Units/Cavalry/Cavalry_Guard.png"
+      "idle": "assets/sprites/Units/MountedSpearmanOutlined/idle.png",
+      "run": "assets/sprites/Units/MountedSpearmanOutlined/run.png",
+      "attack": "assets/sprites/Units/MountedSpearmanOutlined/attack.png",
+      "guard": "assets/sprites/Units/MountedSpearmanOutlined/idle.png"
     },
-    "render_scale": 1.12
+    "render_scale": 1.4634146341463417,
+    "animation_directions": 8,
+    "ground_anchor": [
+      0.5,
+      0.7000821530818939
+    ],
+    "collision_radius": 14
   },
   {
     "name": "ram",

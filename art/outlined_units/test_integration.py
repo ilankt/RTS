@@ -14,7 +14,7 @@ from entities.unit import Unit
 from systems.animation import Animation
 from managers.sprite_manager import tint_directional_team
 
-@pytest.mark.parametrize('unit_name',['worker','warrior','archer','spearman','healer'])
+@pytest.mark.parametrize('unit_name',['worker','warrior','archer','spearman','healer','cavalry'])
 def test_all_production_sheets_have_eight_directions(unit_name):
     data=json.loads((ROOT/'data/units.json').read_text())
     unit=next(u for u in data if u['name']==unit_name)

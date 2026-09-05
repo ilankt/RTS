@@ -65,7 +65,7 @@ def load_game_data():
         # Calculate radius based on size[0] and TILE_WIDTH
         # Units should be smaller than tiles - use 1/8 tile width for radius
         # This gives workers/warriors/archers a 16-pixel diameter (8 radius)
-        radius = u['size'][0] * TILE_WIDTH / 8
+        radius = u.get('collision_radius', u['size'][0] * TILE_WIDTH / 8)
         game_data["units"][u['name']] = Unit(
             x=0, y=0, radius=radius, 
             name=u['name'], 

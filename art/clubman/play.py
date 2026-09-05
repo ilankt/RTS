@@ -35,7 +35,7 @@ def main():
     game.selection_manager.selected_objects = clubmen
     game.selection_manager.control_groups[1] = list(clubmen)
     game.selection_manager.control_groups[2] = [u for u in game.units if u.name == 'worker' and u.player.human]
-    for group, name in [(3, 'archer'), (4, 'spearman'), (5, 'healer')]:
+    for group, name in [(3, 'archer'), (4, 'spearman'), (5, 'healer'), (6, 'cavalry')]:
         unit_data = next(u for u in json.loads((ROOT / 'data/units.json').read_text()) if u['name'] == name)
         for _ in range(2):
             castle.current_production = {'unit_type': name, 'unit_data': unit_data}
@@ -49,11 +49,11 @@ def main():
     game.game_map.scale_tiles(game.camera.zoom)
     game.camera.x = MAP_VIEW_WIDTH / 2 - castle.x * game.camera.zoom
     game.camera.y = MAP_VIEW_HEIGHT / 2 - castle.y * game.camera.zoom
-    pygame.display.set_caption('RTS - Outlined Infantry Prototype')
+    pygame.display.set_caption('RTS - Outlined Units Prototype')
     game.rendering_system.draw_frame(game.screen, game.map_surface, game.camera, 1 / 60)
     pygame.display.flip()
     pygame.image.save(game.screen, str(ROOT / 'art/clubman/gameplay.png'))
-    print('READY: Outlined units; group 1 = six clubmen; group 2 = workers; 3 = slingshots; 4 = wooden spears; 5 = healers; right-click to move/work.', flush=True)
+    print('READY: Outlined units; group 1 = six clubmen; group 2 = workers; 3 = slingshots; 4 = wooden spears; 5 = healers; 6 = mounted spearmen; right-click to move/work.', flush=True)
     try:
         game.run()
     finally:

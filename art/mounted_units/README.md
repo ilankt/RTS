@@ -1,31 +1,30 @@
-# Tier-one mounted spearman - review in progress
+# Mounted Spearman
 
-This is an isolated art study on `codex/clubman-8-directions`. The gameplay cavalry assets have not been replaced yet.
+Implemented in the isolated `codex/clubman-8-directions` prototype. Uses the existing cavalry production slot and stable prerequisite, preserving costs, combat statistics and save compatibility. Display name: Mounted Spearman. The playable demo spawns two in control group **6**.
 
-The first horse was rejected as too chunky and donkey-like. The current revision narrows the torso, lengthens the legs, shortens the ears and refines the head/neck. It uses an unarmored bay coat, a plain leather saddle, bridle/reins and a blue-clothed rider carrying a sharpened wooden spear.
+The approved tier-one design uses a bay horse, smaller flattened cream muzzle, rounded team-colored saddle blanket and chest collar, dark contrasting saddle leather, and a wooden spear. There are no reins, bridle straps or horse armor. Armored horses and iron weapons remain future-age work.
 
-The horse has its own four articulated leg chains, neck, tail and body suspension. The rider has seated legs and separate reins/spear poses. A diagonal-pair trot uses two-bone inverse kinematics to hold stance hooves at the ground. Idle and mounted thrust are separate actions, with eight frames in each of eight actual directions.
+## Rebuild
 
-Run from the worktree root:
+Run from this worktree:
 
 ```powershell
 & 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe' -b -t 4 --python art/mounted_units/render.py
 python art/mounted_units/review.py
-python art/mounted_units/preview.py
+python art/mounted_units/pack.py
 ```
 
-`mounted_spearman.blend` contains the editable model and animation timeline. `run-preview.gif` and `attack-preview.gif` are review artifacts; `manifest.json` records the projected ground anchor and intended presentation scale. `review.py` checks all 192 frame bounds. Add `-- --preview` to the Blender command for idle views only.
+`mounted_spearman.blend` contains the editable horse and rider rig. Three actions (idle, trot, spear thrust), eight frames per action in each of eight directions: 192 validated transparent frames. The horse has independent leg chains, grounded hoof positioning, neck/tail movement and body suspension. The rider's articulated arm keeps its grip attached during a straight axial thrust.
 
-Next: user feedback on revised proportions and gait, then install the approved cavalry sprites, portrait, selection footprint and demo group. Armored horses and iron weapons belong to later ages.
+`manifest.json` records the camera-derived foot anchor and presentation scale. Packing validates frame bounds before exporting sprites, portrait and cavalry metadata. `idle-preview.gif`, `run-preview.gif` and `attack-preview.gif` show the approved animation. `gameplay.png` shows the actual renderer beside infantry.
 
-Current review: the user supplied a horse photograph to guide proportions. The latest model has a longer, deeper continuous torso, a forward-sloping tapered neck, elongated face and stronger upper legs. `reference-review.png` is the latest true side profile; `first-model.png` contains the latest gameplay-angle stills. Existing animation GIFs show the previous revision and will be regenerated after proportion feedback.
+## Verification
 
-Latest style pass follows the user-supplied ChatGPT cartoon reference: larger head, fuller mane/tail, sturdy legs with cream fetlocks, cream muzzle/blaze, decorative saddle cloth and chest pendant with gold trim. These are cloth decorations, not armor. Spear remains wooden for tier one. decorated-review.png compares three player colors using the actual game tint function; preview_colors.py verifies recoloring and alpha preservation. Current animation GIFs still predate this review pass.
+```powershell
+python art/mounted_units/verify_gameplay.py
+& 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe' -b -t 2 --python art/mounted_units/verify_thrust.py
+```
 
-Decoration revision: continuous rounded saddle blanket wraps the back/flanks; curved breast collar follows the chest. Cheek straps run behind/below the eyes and segmented reins sag below the jaw. Latest decorated-review.png verifies these surfaces in three player colors.
+The gameplay check exercises production, directional animation, rendering, save/load and rendering after loading. The Blender check verifies constant spear direction, axial travel, attached grip and recovery. Shared outlined-unit tests cover player tint, foot anchors at four zoom levels and direction hysteresis. `preview_colors.py` checks recoloring and transparency in three player colors.
 
-Latest revision removes all reins, nose/cheek straps and bridle buttons. Dark leather, a fine gold seat rim and a deeper team-colored saddle blanket separate the rider from the saddle. Three-color preview regenerated and tint/alpha checks pass.
-
-Animation review refreshed for the approved rope-free decorated design: idle, trot and mounted spear thrust, each with eight frames in eight directions. Spear grip follows the right hand. review.py verifies at least four distinct poses per direction/action and checks all 192 frames for clipping. idle-preview.gif, run-preview.gif and attack-preview.gif now show the current model.
-
-Muzzle/thrust refinement: reduced flattened muzzle with soft corners and smaller nostrils. The mounted attack holds the spear level, draws back and pokes along one fixed axis before recovery; a two-segment arm follows the grip. verify_thrust.py checks the saved Blender timeline for constant direction, axial travel, grip attachment and return to the starting pose.
+Mounted collision radius is explicitly 14 world pixels (infantry default is 8). Templates, production and save restoration use that same radius; selection/hover ellipses and shadows scale from it. The ellipse is a stylized ground marker, not an exact collider outline.
