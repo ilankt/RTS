@@ -1,0 +1,9 @@
+# Reproducible intermediate renders and Blender diagnostics. Final models,
+# packed sheets, portraits, manifest and review artifacts remain trackable.
+frames/
+previews/
+motion-previews/
+contact-frames/
+*.log
+*.blend1
+__pycache__/

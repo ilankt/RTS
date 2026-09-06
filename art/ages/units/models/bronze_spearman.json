@@ -1,0 +1,23 @@
+{
+  "name": "Bronze Spearman",
+  "age": "Bronze",
+  "base": "spearman",
+  "actions": [
+    "idle",
+    "run",
+    "attack"
+  ],
+  "frames_per_direction": 16,
+  "fps": 20,
+  "timeline_stride": 17,
+  "ground_anchor": [
+    0.5,
+    0.681393
+  ],
+  "render_scale": 1.2682926829268295,
+  "action_events": {
+    "attack": {
+      "impact_frame": 8
+    }
+  }
+}

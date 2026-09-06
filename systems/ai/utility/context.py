@@ -253,6 +253,9 @@ class GoalContext:
     # --- Helpers used by goals ---
 
     def can_afford(self, item_name: str) -> bool:
+        from systems.ages import availability
+        if not availability(self.player, item_name)[0]:
+            return False
         costs = self.cost_data.get(item_name, {})
         if not costs:
             return False

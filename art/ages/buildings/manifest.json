@@ -1,0 +1,362 @@
+[
+  {
+    "id": "1_castle",
+    "family": "castle",
+    "age": 1,
+    "name": "Town Center",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/1_castle.png",
+    "model": "models/1_castle.blend"
+  },
+  {
+    "id": "2_castle",
+    "family": "castle",
+    "age": 2,
+    "name": "Town Hall",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_castle.png",
+    "model": "models/2_castle.blend"
+  },
+  {
+    "id": "3_castle",
+    "family": "castle",
+    "age": 3,
+    "name": "Castle",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_castle.png",
+    "model": "models/3_castle.blend"
+  },
+  {
+    "id": "1_barracks",
+    "family": "barracks",
+    "age": 1,
+    "name": "Barracks",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/1_barracks.png",
+    "model": "models/1_barracks.blend"
+  },
+  {
+    "id": "2_barracks",
+    "family": "barracks",
+    "age": 2,
+    "name": "Barracks",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_barracks.png",
+    "model": "models/2_barracks.blend"
+  },
+  {
+    "id": "3_barracks",
+    "family": "barracks",
+    "age": 3,
+    "name": "Barracks",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_barracks.png",
+    "model": "models/3_barracks.blend"
+  },
+  {
+    "id": "1_house",
+    "family": "house",
+    "age": 1,
+    "name": "House",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/1_house.png",
+    "model": "models/1_house.blend"
+  },
+  {
+    "id": "2_house",
+    "family": "house",
+    "age": 2,
+    "name": "House",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_house.png",
+    "model": "models/2_house.blend"
+  },
+  {
+    "id": "3_house",
+    "family": "house",
+    "age": 3,
+    "name": "House",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_house.png",
+    "model": "models/3_house.blend"
+  },
+  {
+    "id": "1_farm",
+    "family": "farm",
+    "age": 1,
+    "name": "Farm",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/1_farm.png",
+    "model": "models/1_farm.blend"
+  },
+  {
+    "id": "2_farm",
+    "family": "farm",
+    "age": 2,
+    "name": "Farm",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_farm.png",
+    "model": "models/2_farm.blend"
+  },
+  {
+    "id": "3_farm",
+    "family": "farm",
+    "age": 3,
+    "name": "Farm",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_farm.png",
+    "model": "models/3_farm.blend"
+  },
+  {
+    "id": "1_lumbermill",
+    "family": "lumbermill",
+    "age": 1,
+    "name": "Lumbermill",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/1_lumbermill.png",
+    "model": "models/1_lumbermill.blend"
+  },
+  {
+    "id": "2_lumbermill",
+    "family": "lumbermill",
+    "age": 2,
+    "name": "Lumbermill",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_lumbermill.png",
+    "model": "models/2_lumbermill.blend"
+  },
+  {
+    "id": "3_lumbermill",
+    "family": "lumbermill",
+    "age": 3,
+    "name": "Lumbermill",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_lumbermill.png",
+    "model": "models/3_lumbermill.blend"
+  },
+  {
+    "id": "1_mine",
+    "family": "mine",
+    "age": 1,
+    "name": "Mine",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/1_mine.png",
+    "model": "models/1_mine.blend"
+  },
+  {
+    "id": "2_mine",
+    "family": "mine",
+    "age": 2,
+    "name": "Mine",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_mine.png",
+    "model": "models/2_mine.blend"
+  },
+  {
+    "id": "3_mine",
+    "family": "mine",
+    "age": 3,
+    "name": "Mine",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_mine.png",
+    "model": "models/3_mine.blend"
+  },
+  {
+    "id": "2_stable",
+    "family": "stable",
+    "age": 2,
+    "name": "Stable",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_stable.png",
+    "model": "models/2_stable.blend"
+  },
+  {
+    "id": "3_stable",
+    "family": "stable",
+    "age": 3,
+    "name": "Stable",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_stable.png",
+    "model": "models/3_stable.blend"
+  },
+  {
+    "id": "2_blacksmith",
+    "family": "blacksmith",
+    "age": 2,
+    "name": "Blacksmith",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_blacksmith.png",
+    "model": "models/2_blacksmith.blend"
+  },
+  {
+    "id": "3_blacksmith",
+    "family": "blacksmith",
+    "age": 3,
+    "name": "Blacksmith",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_blacksmith.png",
+    "model": "models/3_blacksmith.blend"
+  },
+  {
+    "id": "2_temple",
+    "family": "temple",
+    "age": 2,
+    "name": "Temple",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_temple.png",
+    "model": "models/2_temple.blend"
+  },
+  {
+    "id": "3_temple",
+    "family": "temple",
+    "age": 3,
+    "name": "Temple",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_temple.png",
+    "model": "models/3_temple.blend"
+  },
+  {
+    "id": "2_siege_workshop",
+    "family": "siege_workshop",
+    "age": 2,
+    "name": "Siege Workshop",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_siege_workshop.png",
+    "model": "models/2_siege_workshop.blend"
+  },
+  {
+    "id": "3_siege_workshop",
+    "family": "siege_workshop",
+    "age": 3,
+    "name": "Siege Workshop",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_siege_workshop.png",
+    "model": "models/3_siege_workshop.blend"
+  },
+  {
+    "id": "2_market",
+    "family": "market",
+    "age": 2,
+    "name": "Market",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_market.png",
+    "model": "models/2_market.blend"
+  },
+  {
+    "id": "3_market",
+    "family": "market",
+    "age": 3,
+    "name": "Market",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_market.png",
+    "model": "models/3_market.blend"
+  },
+  {
+    "id": "2_watchtower",
+    "family": "watchtower",
+    "age": 2,
+    "name": "Watchtower",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/2_watchtower.png",
+    "model": "models/2_watchtower.blend"
+  },
+  {
+    "id": "3_watchtower",
+    "family": "watchtower",
+    "age": 3,
+    "name": "Watchtower",
+    "ground_anchor": [
+      0.5,
+      0.6314553916454315
+    ],
+    "sprite": "sprites/3_watchtower.png",
+    "model": "models/3_watchtower.blend"
+  }
+]

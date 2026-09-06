@@ -105,6 +105,9 @@ class ResourceBar:
                         resource_bar.blit(rate_surface, (text_x, text_y + text_surface.get_height()))
 
         # Idle-worker badge, drawn onto the banner before it goes to screen.
+        from systems.ages import age_name
+        age_label = self.small_font.render(age_name(human_player), True, (235, 205, 145))
+        resource_bar.blit(age_label, (start_x + 3 * spacing, row_y + px(36)))
         self._draw_idle_badge(resource_bar, top_bar_width, top_bar_height)
 
         # Blit the resource bar to the main screen at the very top

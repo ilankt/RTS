@@ -36,6 +36,17 @@ class ResearchManager:
         tech = self.game.game_data.get("techs", {}).get(tech_id)
         if not tech:
             return False, "Unknown tech"
+        from systems.ages import current_age, completed_tier_one, iron_requirement, AGE_NAMES
+        if current_age(player) < tech.get("required_age", 1):
+            return False, "Requires " + AGE_NAMES[tech['required_age']]
+        if tech_id == 'iron_age' and not iron_requirement(self.game.buildings,player):
+            return False, 'Requires a completed Blacksmith and 2 different Bronze specialist buildings'
+        if tech_id == "bronze_age":
+            count = completed_tier_one(self.game.buildings, player)
+            if count < 3:
+                return False, f"Requires 3 completed Stone Age buildings ({count}/3)"
+        if building is not None and getattr(building, "hp", 1) <= 0:
+            return False, "Research building unavailable"
         if is_tech_completed(player, tech_id):
             return False, "Already researched"
         if in_progress is not None:
@@ -94,7 +105,7 @@ class ResearchManager:
 
     def update(self, delta_time: float):
         for building in self.game.buildings:
-            if building.current_research:
+            if building.current_research and getattr(building, 'hp', 1) > 0:
                 self._update_building_research(building, delta_time)
 
     def _start_immediate_research(self, building, tech_id: str):
@@ -121,6 +132,8 @@ class ResearchManager:
         tech = research["tech"]
         building.player.upgrades[tech["id"]] = tech
         building.player.upgrades_version = getattr(building.player, "upgrades_version", 0) + 1
+        from systems.ages import complete_age_research
+        complete_age_research(self.game, building.player, tech)
         debug_log.log(f"{building.player.name}: completed research {tech['id']}", "PRODUCTION")
         # Own research only — an AI finishing an upgrade must not chime in the
         # human's ears (user-reported "I can hear the enemy's camp").

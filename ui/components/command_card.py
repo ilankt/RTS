@@ -215,7 +215,8 @@ class CommandCard:
             if building is None or not building.get('buildable', True):
                 continue
             enabled, reason = self._availability(human, building)
-            display = building.get('display_name', name.replace('_', ' ').title())
+            from systems.ages import display_name
+            display = display_name(name, human, building.get('display_name'))
             costs = building.get('costs', {})
             tooltip = [display, building.get('role', ''),
                        self._cost_row(costs, building.get('build_duration'))]
@@ -282,7 +283,9 @@ class CommandCard:
             costs = cost_lookup.get(unit_type, {})
             can_afford = all(human.resources.get(r, 0) >= a for r, a in costs.items())
             template = self.game.game_data.get("units", {}).get(unit_type)
-            display = getattr(template, "display_name", unit_type.title())
+            from systems.ages import availability, display_name
+            allowed, age_reason = availability(human, unit_type)
+            display = display_name(unit_type, human, getattr(template, "display_name", unit_type.title()))
             # build_time lives in the raw JSON (production_manager.units_data),
             # not on the Unit template object — so the tooltip clock needs it
             # from there (the old text tooltip silently showed no unit time).
@@ -296,6 +299,8 @@ class CommandCard:
             if getattr(template, "weak_against", None):
                 tooltip.append("Weak: " + ", ".join(
                     x.title() for x in template.weak_against[:2]))
+            if not allowed:
+                tooltip.append(age_reason)
             if len(type_producers) > 1:
                 tooltip.append(f"{len(type_producers)} buildings — shortest queue")
             in_production = production_info and production_info['unit_type'] == unit_type
@@ -305,8 +310,8 @@ class CommandCard:
                 'label': display,
                 'icon': self._icon('unit', unit_type),
                 'costs': costs,
-                'enabled': can_afford,
-                'reason': "Ready" if can_afford else "Insufficient resources",
+                'enabled': can_afford and allowed,
+                'reason': age_reason if not allowed else ("Ready" if can_afford else "Insufficient resources"),
                 'tooltip': tooltip,
                 'progress': production_info['progress'] if in_production else None,
                 'badge': sum(self.game.production_manager.get_unit_count_in_production(
@@ -531,15 +536,22 @@ class CommandCard:
 
     def _icon(self, kind, name, size=None):
         size = size or self.TILE_ICON_FILL
-        key = (kind, name, size)
+        from systems.ages import current_age, unit_icon_path
+        player = self._human()
+        upgraded = unit_icon_path(name,player)
+        key = (kind, name, size, current_age(player), upgraded)
         cached = self._icon_cache.get(key)
         if cached is not None:
             return cached
         source = None
         if kind == 'building':
             source = self.icon_loader.building_icons.get(name)
+            if name in self.game.game_data.get('buildings',{}):
+                source = self.game.sprite_manager.get_building_sprite(name, self.game.players.index(player))
         elif kind == 'unit':
             source = self.icon_loader.unit_production_icons.get(name)
+            if upgraded:
+                source = pygame.image.load(upgraded).convert_alpha()
         elif kind == 'action':
             source = self.icon_loader.action_icons.get(name)
         if source is None:
@@ -556,6 +568,10 @@ class CommandCard:
 
     def _availability(self, player, building):
         """(can_build, reason) for a build tile."""
+        from systems.ages import availability
+        allowed, reason = availability(player, building.get('name'))
+        if not allowed:
+            return False, reason
         if getattr(self.game, "is_building_disabled", None) \
                 and self.game.is_building_disabled(building.get('name')):
             return False, "Disabled by mutator"

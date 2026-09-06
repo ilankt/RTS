@@ -27,7 +27,7 @@ class SaveManager:
             # stockpiles in v1-v4 saves are discarded on load); v4 added
             # control groups, worker tasks, fog resource ghosts; v3 added
             # terrain; v1-v4 still load (missing fields default)
-            "version": 5,
+            "version": 7,
             "timestamp": datetime.now().isoformat(),
             "map_size": ([game.game_map.width, game.game_map.height]
                          if getattr(game, "game_map", None) else None),
@@ -390,7 +390,7 @@ class SaveManager:
         
         # Validate version (older saves load with newer fields defaulting —
         # v1/v2 simply keep the generated terrain, as they always did)
-        if state.get("version") not in (1, 2, 3, 4, 5):
+        if state.get("version") not in (1, 2, 3, 4, 5, 6, 7):
             return False, "Unsupported save version"
         
         # Clear existing state (mark old objects dead so stale references fail
@@ -481,6 +481,12 @@ class SaveManager:
                     for tech_id in player_data.get("upgrades", [])
                     if tech_id in game.game_data.get("techs", {})
                 }
+                if state.get("version", 1) < 6:
+                    # Legacy games had the whole roster: preserve their access.
+                    for tech_id in ("bronze_age",):
+                        player.upgrades[tech_id] = game.game_data["techs"][tech_id]
+                from systems.ages import current_age
+                player.tech_level = current_age(player)
                 player.upgrades_version = getattr(player, "upgrades_version", 0) + 1
                 # §8.14.12: the AI's identity reloads with the match
                 if not player.human:
@@ -614,6 +620,11 @@ class SaveManager:
                 building_only_attack=getattr(template, "building_only_attack", False),
             )
             unit.x = udata["x"]
+            if unit.name=='ram' and state.get('version',1)<7:
+                # The old siege slot now represents a Ballista; retain its
+                # wounds and orders while migrating obsolete melee rules.
+                unit.attack_range=template.attack_range
+                unit.building_only_attack=False
             unit.y = udata["y"]
             unit.stance = udata.get("stance", "aggressive")
             home = udata.get("stance_home_position")
@@ -638,6 +649,8 @@ class SaveManager:
                 sheet = game.sprite_manager.get_unit_animation_sheet(template.name, anim_name, player_idx)
                 animations[anim_name] = Animation(sheet, 192, 192, 100, directions=getattr(template, "animation_directions", 1))
             unit.set_animations(animations)
+            from systems.ages import apply_unit_appearance
+            apply_unit_appearance(game, unit)
 
             # §8.9: garrisoned units go back INSIDE their building, not the
             # map. Host index resolves through restored_buildings, which maps

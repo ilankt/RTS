@@ -94,6 +94,7 @@ class SlingStone(Projectile):
 
 class Arrow(Projectile):
     """Arrow projectile for archers"""
+    arrow_length = 10
     def __init__(self, start_x: float, start_y: float, target_x: float, target_y: float, 
                  speed: float, damage: int, owner):
         super().__init__(start_x, start_y, target_x, target_y, speed, damage, owner, (139, 69, 19))  # Brown
@@ -111,7 +112,7 @@ class Arrow(Projectile):
         angle = math.atan2(self.velocity_y, self.velocity_x)
         
         # Arrow length
-        arrow_length = 10
+        arrow_length = self.arrow_length
         
         # Calculate arrow endpoints
         end_x = screen_x - math.cos(angle) * arrow_length
@@ -137,6 +138,14 @@ class Arrow(Projectile):
             (int(point1_x), int(point1_y)),
             (int(point2_x), int(point2_y))
         ])
+
+
+class CrossbowBolt(Arrow):
+    arrow_length = 7
+
+
+class BallistaBolt(Arrow):
+    arrow_length = 22
 
 
 class CannonBall(Projectile):
@@ -257,12 +266,16 @@ class ProjectileSystem:
         if hasattr(attacker, 'name'):
             if attacker.name == "archer":
                 template = getattr(self.game, 'game_data', {}).get('units', {}).get('archer')
-                kind = SlingStone if getattr(template, 'projectile_type', 'arrow') == 'stone' else Arrow
+                from systems.ages import unit_variant
+                variant=unit_variant('archer',attacker.player)
+                kind = CrossbowBolt if variant=='crossbowman' else SlingStone if not variant and getattr(template,'projectile_type','arrow')=='stone' else Arrow
                 projectile = kind(start_x, start_y, target_x, target_y, 300, damage, attacker)
             elif attacker.name == "watchtower":
                 # Cannonballs are slower but impactful
                 projectile = CannonBall(start_x, start_y, target_x, target_y, 200, damage, attacker)
-            elif attacker.name in ("warrior", "spearman", "cavalry", "ram"):
+            elif attacker.name == 'ram':
+                projectile=BallistaBolt(start_x,start_y,target_x,target_y,260,damage,attacker)
+            elif attacker.name in ("warrior", "spearman", "cavalry"):
                 # Melee and ram attacks don't use projectiles.
                 return
             else:

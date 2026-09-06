@@ -1,0 +1,18 @@
+{
+  "name": "Heavy Ballista",
+  "age": "Iron",
+  "base": "siege",
+  "actions": [
+    "idle",
+    "run",
+    "attack"
+  ],
+  "frames_per_direction": 16,
+  "fps": 20,
+  "timeline_stride": 17,
+  "ground_anchor": [
+    0.5,
+    0.626882
+  ],
+  "render_scale": 1.2682926829268295
+}

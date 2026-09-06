@@ -140,11 +140,10 @@ class BuildingSystem:
             return
 
         # Get building sprite
-        sprite_path = self.building_to_place['sprite']
         building_size = self.building_to_place['size']
-        
-        # Load the sprite directly since we'll apply our own tinting
-        sprite = pygame.image.load(sprite_path).convert_alpha()
+        player = getattr(self.selected_builder, 'player', self.game.players[0])
+        sprite = self.game.sprite_manager.get_building_sprite(
+            self.building_to_place['name'], self.game.players.index(player))
         
         if sprite:
             # Apply green/red tint based on validity
@@ -168,10 +167,11 @@ class BuildingSystem:
             # Scale the sprite using the same logic as normal building rendering
             sprite_w, sprite_h = preview_sprite.get_size()
             scale = (building_size[0] * TILE_WIDTH) / sprite_w
-            scaled_width = int(sprite_w * scale * camera.zoom)
-            scaled_height = int(sprite_h * scale * camera.zoom)
+            scale *= self.building_to_place.get('render_scale', 1.0)
+            scaled_width = max(1, int(sprite_w * scale * camera.zoom))
+            scaled_height = max(1, int(sprite_h * scale * camera.zoom))
             
-            scaled_sprite = pygame.transform.scale(preview_sprite, (scaled_width, scaled_height))
+            scaled_sprite = pygame.transform.smoothscale(preview_sprite, (scaled_width, scaled_height))
             
             # Draw centered on position
             blit_x = screen_x - (scaled_width / 2)
@@ -506,6 +506,9 @@ class BuildingSystem:
     
     def can_player_build(self, player, building_data):
         """Check if a player can afford to build a building"""
+        from systems.ages import availability
+        if not availability(player, building_data.get('name'))[0]:
+            return False
         if getattr(self.game, "is_building_disabled", None) \
                 and self.game.is_building_disabled(building_data.get('name')):
             return False

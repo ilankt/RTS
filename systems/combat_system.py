@@ -625,7 +625,8 @@ class CombatSystem:
                 best = ally
 
         if best is not None:
-            healed = min(self._unit_max_hp(best), best.hp + HEALER_HEAL_AMOUNT) - best.hp
+            from systems.upgrade_effects import effective_unit_stat
+            healed = min(self._unit_max_hp(best), best.hp + effective_unit_stat(healer,'heal_amount',HEALER_HEAL_AMOUNT)) - best.hp
             best.hp += healed
             healer._heal_cooldown = HEALER_HEAL_INTERVAL
             if healed > 0 and healer.player is not None:

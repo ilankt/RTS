@@ -294,6 +294,9 @@ class RenderingSystem:
             "x": obj.x, "y": obj.y,
             "size": tuple(getattr(obj, "size", (1, 1))),
             "name": getattr(obj, "name", None),
+            "render_scale": getattr(obj, "_art_render_scale", self._render_scales.get(getattr(obj, "name", None), 1.0)),
+            "anchor": getattr(obj, "_art_ground_anchor", None),
+            "ground": self.ground_position(obj, type("WorldCamera", (), {"zoom": 1, "x": 0, "y": 0})()) if getattr(obj, "_age_art", None) else None,
             "facing_left": getattr(obj, "sprite_mirrored", getattr(obj, "facing_left", False)),
             "age": 0.0,
         })
@@ -310,7 +313,7 @@ class RenderingSystem:
             sprite = fade["sprite"]
             sprite_w, sprite_h = sprite.get_size()
             scale = (fade["size"][0] * TILE_WIDTH) / sprite_w
-            scale *= self._render_scales.get(fade["name"], 1.0)
+            scale *= fade["render_scale"]
             width = max(1, int(sprite_w * scale * camera.zoom))
             height = max(1, int(sprite_h * scale * camera.zoom))
             key = (sprite, width, height, fade["facing_left"])
@@ -325,6 +328,10 @@ class RenderingSystem:
             ghost.set_alpha(int(255 * (1.0 - fade["age"] / self._DEATH_FADE_S)))
             draw_x = (fade["x"] * camera.zoom) + camera.x - width / 2
             draw_y = (fade["y"] * camera.zoom) + camera.y - height / 2
+            if fade["ground"] is not None:
+                gx, gy = fade["ground"]
+                draw_x = gx * camera.zoom + camera.x - fade["anchor"][0] * width
+                draw_y = gy * camera.zoom + camera.y - fade["anchor"][1] * height
             map_surface.blit(ghost, (draw_x, draw_y))
         self._death_fades = alive
 
@@ -557,6 +564,8 @@ class RenderingSystem:
         x = obj.x * camera.zoom + camera.x
         y = obj.y * camera.zoom + camera.y
         anchor = getattr(self, "_ground_anchors", {}).get(getattr(obj, "name", None))
+        if getattr(obj, '_legacy_age_art', False):
+            anchor = None
         if anchor is None:
             return x, y + obj.radius * camera.zoom * 0.55
         # Unit frames are square and drawn at size * TILE_WIDTH. Keep this
@@ -573,7 +582,7 @@ class RenderingSystem:
         footprint, biased slightly south by the northern sun."""
         if getattr(obj, "radius", 0) <= 0 or sprite is None:
             return None
-        if getattr(obj, "name", None) in getattr(self, "_ground_anchors", {}):
+        if not getattr(obj, '_legacy_age_art', False) and getattr(obj, "name", None) in getattr(self, "_ground_anchors", {}):
             x, y = self.ground_position(obj, camera)
             width = max(8, int(obj.radius * 2.6 * camera.zoom))
             return x, y, width, max(4, int(width * self.SHADOW_H_RATIO))
@@ -777,7 +786,7 @@ class RenderingSystem:
         if scaled is None:
             if len(self._scaled_sprite_cache) > 2048:
                 self._scaled_sprite_cache.clear()
-            scaled = pygame.transform.scale(sprite, (width, height))
+            scaled = pygame.transform.smoothscale(sprite, (width, height))
             self._scaled_sprite_cache[key] = scaled
         # Alpha copies are cached in 32 quantized steps so a site fading over
         # 10-15s costs ~32 copies total, not one per frame.
@@ -913,9 +922,14 @@ class RenderingSystem:
         Units walking/facing left draw mirrored — the sheets face right."""
         sprite_w, sprite_h = sprite.get_size()
         scale = (obj.size[0] * TILE_WIDTH) / sprite_w
-        scale *= self._render_scales.get(getattr(obj, 'name', None), 1.0)
+        scale *= getattr(obj,'_art_render_scale',self._render_scales.get(getattr(obj,'name',None),1.0))
         scaled_width = int(sprite_w * scale * camera.zoom)
         scaled_height = int(sprite_h * scale * camera.zoom)
+        if getattr(obj,'_age_art',None):
+            gx,gy=self.ground_position(obj,camera)
+            anchor=obj._art_ground_anchor
+            draw_x=gx+(.5-anchor[0])*scaled_width
+            draw_y=gy+(.5-anchor[1])*scaled_height
         mirrored = getattr(obj, "sprite_mirrored", getattr(obj, 'facing_left', False))
 
         # Only transform if necessary; cache per (sprite, size, mirrored)
@@ -927,7 +941,8 @@ class RenderingSystem:
                     self._scaled_sprite_cache.clear()
                 scaled_sprite = sprite
                 if (scaled_width, scaled_height) != (sprite_w, sprite_h):
-                    scaled_sprite = pygame.transform.scale(scaled_sprite, (scaled_width, scaled_height))
+                    transform = pygame.transform.smoothscale if isinstance(obj, Building) else pygame.transform.scale
+                    scaled_sprite = transform(scaled_sprite, (scaled_width, scaled_height))
                 if mirrored:
                     scaled_sprite = pygame.transform.flip(scaled_sprite, True, False)
                 self._scaled_sprite_cache[key] = scaled_sprite

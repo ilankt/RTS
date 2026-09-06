@@ -84,6 +84,13 @@ class FloatingUI:
         # Calculate screen position
         screen_x = (obj.x * camera.zoom) + camera.x
         screen_y = (obj.y * camera.zoom) + camera.y
+        if getattr(obj, '_age_art', None):
+            from core.config import TILE_WIDTH
+            screen_x, ground_y = self.game.rendering_system.ground_position(obj, camera)
+            extent = obj.size[0] * TILE_WIDTH * obj._art_render_scale * camera.zoom
+            top = ground_y + (obj._art_health_top - obj._art_ground_anchor[1]) * extent
+            # Use the stable idle silhouette so swings do not bounce the bar.
+            screen_y = top - 8 * camera.zoom - max(int(self.health_bar_offset_y * camera.zoom), -64)
         
         # Check if object is visible on screen
         if (screen_x < -50 or screen_x > surface.get_width() + 50 or 

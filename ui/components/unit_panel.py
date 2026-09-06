@@ -61,12 +61,16 @@ class UnitPanel:
                     pygame.draw.rect(placeholder, (150, 150, 150), (0, 0, size_pixels, size_pixels), 2)
                     self.unit_panel_icons[unit_type][size_name] = placeholder
 
-    def _unit_icon(self, name, size):
+    def _unit_icon(self, name, size, player=None):
         """A unit portrait scaled to `size` px, cached (§8.2.2)."""
-        key = (name, size)
+        from systems.ages import unit_icon_path
+        upgraded = unit_icon_path(name,player)
+        key = (name, size, upgraded)
         cached = self._unit_icon_cache.get(key)
         if cached is None:
             source = self._unit_icon_sources.get(name)
+            if upgraded:
+                source = pygame.image.load(upgraded).convert_alpha()
             if source is None:
                 return self.unit_panel_icons.get(name, {}).get('single')
             cached = pygame.transform.smoothscale(source, (size, size))
@@ -296,7 +300,7 @@ class UnitPanel:
 
         # Resolve the portrait icon at the chosen size.
         if stype == "Unit":
-            icon = self._unit_icon(obj.name, sprite)
+            icon = self._unit_icon(obj.name, sprite, obj.player)
         elif icon_kind == 'building':
             icon = self._get_building_icon(obj, sprite)
         elif stype != "Construction":
@@ -374,7 +378,7 @@ class UnitPanel:
             y = start_y + row * (icon_size + icon_spacing + px(8))
 
             if kind == 'unit':
-                icon = self.unit_panel_icons.get(name, {}).get('group')
+                icon = self._unit_icon(name, icon_size, members[0].player)
             else:
                 icon = self._get_building_icon(members[0], size=icon_size)
             if icon is not None:
@@ -418,11 +422,15 @@ class UnitPanel:
         name = getattr(obj, 'name', None)
         if name is None or self.icon_loader is None:
             return None
-        key = (name, size)
+        from systems.ages import current_age
+        player = getattr(obj, 'player', None)
+        key = (name, size, current_age(player), getattr(player, 'color', None))
         cached = self._building_icon_cache.get(key)
         if cached is not None:
             return cached
         source = self.icon_loader.building_icons.get(name)
+        if name in self.game.game_data.get('buildings',{}) and player in self.game.players:
+            source = self.game.sprite_manager.get_building_sprite(name, self.game.players.index(player))
         if source is None:
             return None
         icon = pygame.transform.smoothscale(source, (size, size))

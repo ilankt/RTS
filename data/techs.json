@@ -1,469 +1,765 @@
 [
-    {
-        "id": "improved_tools",
-        "display_name": "Improved Tools I",
-        "icon": "assets/ui/Techs/improved_tools_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 100,
-            "wood": 75
-        },
-        "research_time": 25,
-        "requires": [],
-        "effects": {
-            "gather_rate_multipliers": {
-                "gold": 1.08,
-                "wood": 1.08
-            }
-        },
-        "tooltip": "Workers gather wood and gold 8% faster."
+  {
+    "id": "improved_tools",
+    "display_name": "Improved Tools I",
+    "icon": "assets/ui/Techs/improved_tools_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 100,
+      "wood": 75
     },
-    {
-        "id": "improved_tools_2",
-        "display_name": "Improved Tools II",
-        "icon": "assets/ui/Techs/improved_tools_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 100,
-            "wood": 75
-        },
-        "research_time": 45,
-        "requires": [],
-        "requires_tech": ["improved_tools"],
-        "effects": {
-            "gather_rate_multipliers": {
-                "gold": 1.08,
-                "wood": 1.08
-            }
-        },
-        "tooltip": "Workers gather another 8% faster."
+    "research_time": 25,
+    "requires": [],
+    "effects": {
+      "gather_rate_multipliers": {
+        "gold": 1.08,
+        "wood": 1.08
+      }
     },
-    {
-        "id": "improved_tools_3",
-        "display_name": "Improved Tools III",
-        "icon": "assets/ui/Techs/improved_tools_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 100,
-            "wood": 75
-        },
-        "research_time": 70,
-        "requires": [],
-        "requires_tech": ["improved_tools_2"],
-        "effects": {
-            "gather_rate_multipliers": {
-                "gold": 1.08,
-                "wood": 1.08
-            }
-        },
-        "tooltip": "Workers gather another 8% faster."
+    "tooltip": "Workers gather wood and gold 8% faster."
+  },
+  {
+    "id": "improved_tools_2",
+    "display_name": "Improved Tools II",
+    "icon": "assets/ui/Techs/improved_tools_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 100,
+      "wood": 75
     },
-    {
-        "id": "reinforced_frames",
-        "display_name": "Reinforced Frames I",
-        "icon": "assets/ui/Techs/reinforced_frames_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "wood": 200
-        },
-        "research_time": 30,
-        "requires": [],
-        "effects": {
-            "building_stat_bonuses": {
-                "all": {
-                    "armor_value": 1
-                }
-            }
-        },
-        "tooltip": "Buildings gain +1 armor."
+    "research_time": 45,
+    "requires": [],
+    "requires_tech": [
+      "improved_tools"
+    ],
+    "effects": {
+      "gather_rate_multipliers": {
+        "gold": 1.08,
+        "wood": 1.08
+      }
     },
-    {
-        "id": "reinforced_frames_2",
-        "display_name": "Reinforced Frames II",
-        "icon": "assets/ui/Techs/reinforced_frames_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "wood": 200
-        },
-        "research_time": 50,
-        "requires": [],
-        "requires_tech": ["reinforced_frames"],
-        "effects": {
-            "building_stat_bonuses": {
-                "all": {
-                    "armor_value": 1
-                }
-            }
-        },
-        "tooltip": "Buildings gain another +1 armor."
+    "tooltip": "Workers gather another 8% faster."
+  },
+  {
+    "id": "improved_tools_3",
+    "display_name": "Improved Tools III",
+    "icon": "assets/ui/Techs/improved_tools_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 100,
+      "wood": 75
     },
-    {
-        "id": "reinforced_frames_3",
-        "display_name": "Reinforced Frames III",
-        "icon": "assets/ui/Techs/reinforced_frames_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "wood": 200
-        },
-        "research_time": 80,
-        "requires": [],
-        "requires_tech": ["reinforced_frames_2"],
-        "effects": {
-            "building_stat_bonuses": {
-                "all": {
-                    "armor_value": 1
-                }
-            }
-        },
-        "tooltip": "Buildings gain another +1 armor."
+    "research_time": 70,
+    "requires": [],
+    "requires_tech": [
+      "improved_tools_2"
+    ],
+    "effects": {
+      "gather_rate_multipliers": {
+        "gold": 1.08,
+        "wood": 1.08
+      }
     },
-    {
-        "id": "forged_blades",
-        "display_name": "Forged Blades I",
-        "icon": "assets/ui/Techs/forged_blades_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 120,
-            "wood": 80
-        },
-        "research_time": 30,
-        "requires": [],
-        "effects": {
-            "unit_stat_multipliers": {
-                "warrior": {
-                    "min_damage": 1.06,
-                    "max_damage": 1.06
-                },
-                "spearman": {
-                    "min_damage": 1.05,
-                    "max_damage": 1.05
-                },
-                "cavalry": {
-                    "min_damage": 1.06,
-                    "max_damage": 1.06
-                }
-            }
-        },
-        "tooltip": "Warriors, spearmen, and cavalry deal more melee damage."
+    "tooltip": "Workers gather another 8% faster."
+  },
+  {
+    "id": "reinforced_frames",
+    "display_name": "Reinforced Frames I",
+    "icon": "assets/ui/Techs/reinforced_frames_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "wood": 200
     },
-    {
-        "id": "forged_blades_2",
-        "display_name": "Forged Blades II",
-        "icon": "assets/ui/Techs/forged_blades_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 120,
-            "wood": 80
-        },
-        "research_time": 55,
-        "requires": [],
-        "requires_tech": ["forged_blades"],
-        "effects": {
-            "unit_stat_multipliers": {
-                "warrior": {
-                    "min_damage": 1.06,
-                    "max_damage": 1.06
-                },
-                "spearman": {
-                    "min_damage": 1.05,
-                    "max_damage": 1.05
-                },
-                "cavalry": {
-                    "min_damage": 1.06,
-                    "max_damage": 1.06
-                }
-            }
-        },
-        "tooltip": "Melee damage rises again."
+    "research_time": 30,
+    "requires": [],
+    "effects": {
+      "building_stat_bonuses": {
+        "all": {
+          "armor_value": 1
+        }
+      }
     },
-    {
-        "id": "forged_blades_3",
-        "display_name": "Forged Blades III",
-        "icon": "assets/ui/Techs/forged_blades_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 120,
-            "wood": 80
-        },
-        "research_time": 85,
-        "requires": [],
-        "requires_tech": ["forged_blades_2"],
-        "effects": {
-            "unit_stat_multipliers": {
-                "warrior": {
-                    "min_damage": 1.06,
-                    "max_damage": 1.06
-                },
-                "spearman": {
-                    "min_damage": 1.05,
-                    "max_damage": 1.05
-                },
-                "cavalry": {
-                    "min_damage": 1.06,
-                    "max_damage": 1.06
-                }
-            }
-        },
-        "tooltip": "Melee damage rises a final time."
+    "tooltip": "Buildings gain +1 armor."
+  },
+  {
+    "id": "reinforced_frames_2",
+    "display_name": "Reinforced Frames II",
+    "icon": "assets/ui/Techs/reinforced_frames_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "wood": 200
     },
-    {
-        "id": "fletching",
-        "display_name": "Fletching I",
-        "icon": "assets/ui/Techs/fletching_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 100,
-            "wood": 120
-        },
-        "research_time": 30,
-        "requires": [],
-        "effects": {
-            "unit_stat_multipliers": {
-                "archer": {
-                    "min_damage": 1.06,
-                    "max_damage": 1.06
-                }
-            },
-            "unit_stat_bonuses": {
-                "archer": {
-                    "attack_range": 10
-                }
-            },
-            "building_stat_bonuses": {
-                "watchtower": {
-                    "attack_range": 10
-                }
-            }
-        },
-        "tooltip": "Archers and watchtowers gain range; archers deal more damage."
+    "research_time": 50,
+    "requires": [],
+    "requires_tech": [
+      "reinforced_frames"
+    ],
+    "effects": {
+      "building_stat_bonuses": {
+        "all": {
+          "armor_value": 1
+        }
+      }
     },
-    {
-        "id": "fletching_2",
-        "display_name": "Fletching II",
-        "icon": "assets/ui/Techs/fletching_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 100,
-            "wood": 120
-        },
-        "research_time": 55,
-        "requires": [],
-        "requires_tech": ["fletching"],
-        "effects": {
-            "unit_stat_multipliers": {
-                "archer": {
-                    "min_damage": 1.06,
-                    "max_damage": 1.06
-                }
-            },
-            "unit_stat_bonuses": {
-                "archer": {
-                    "attack_range": 10
-                }
-            },
-            "building_stat_bonuses": {
-                "watchtower": {
-                    "attack_range": 10
-                }
-            }
-        },
-        "tooltip": "More range and damage for archers and towers."
+    "tooltip": "Buildings gain another +1 armor."
+  },
+  {
+    "id": "reinforced_frames_3",
+    "display_name": "Reinforced Frames III",
+    "icon": "assets/ui/Techs/reinforced_frames_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "wood": 200
     },
-    {
-        "id": "fletching_3",
-        "display_name": "Fletching III",
-        "icon": "assets/ui/Techs/fletching_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 100,
-            "wood": 120
-        },
-        "research_time": 85,
-        "requires": [],
-        "requires_tech": ["fletching_2"],
-        "effects": {
-            "unit_stat_multipliers": {
-                "archer": {
-                    "min_damage": 1.06,
-                    "max_damage": 1.06
-                }
-            },
-            "unit_stat_bonuses": {
-                "archer": {
-                    "attack_range": 10
-                }
-            },
-            "building_stat_bonuses": {
-                "watchtower": {
-                    "attack_range": 10
-                }
-            }
-        },
-        "tooltip": "The final range and damage step for archers and towers."
+    "research_time": 80,
+    "requires": [],
+    "requires_tech": [
+      "reinforced_frames_2"
+    ],
+    "effects": {
+      "building_stat_bonuses": {
+        "all": {
+          "armor_value": 1
+        }
+      }
     },
-    {
-        "id": "padded_armor",
-        "display_name": "Padded Armor I",
-        "icon": "assets/ui/Techs/padded_armor_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 100,
-            "food": 80
-        },
-        "research_time": 35,
-        "requires": [],
-        "effects": {
-            "unit_stat_bonuses": {
-                "warrior": {
-                    "armor_value": 1
-                },
-                "archer": {
-                    "armor_value": 1
-                },
-                "spearman": {
-                    "armor_value": 1
-                },
-                "cavalry": {
-                    "armor_value": 1
-                }
-            }
-        },
-        "tooltip": "Core army units gain +1 armor."
+    "tooltip": "Buildings gain another +1 armor."
+  },
+  {
+    "id": "forged_blades",
+    "display_name": "Forged Blades I",
+    "icon": "assets/ui/Techs/forged_blades_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 120,
+      "wood": 80
     },
-    {
-        "id": "padded_armor_2",
-        "display_name": "Padded Armor II",
-        "icon": "assets/ui/Techs/padded_armor_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 100,
-            "food": 80
+    "research_time": 30,
+    "requires": [],
+    "effects": {
+      "unit_stat_multipliers": {
+        "warrior": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
         },
-        "research_time": 60,
-        "requires": [],
-        "requires_tech": ["padded_armor"],
-        "effects": {
-            "unit_stat_bonuses": {
-                "warrior": {
-                    "armor_value": 1
-                },
-                "archer": {
-                    "armor_value": 1
-                },
-                "spearman": {
-                    "armor_value": 1
-                },
-                "cavalry": {
-                    "armor_value": 1
-                }
-            }
+        "spearman": {
+          "min_damage": 1.05,
+          "max_damage": 1.05
         },
-        "tooltip": "Core army units gain another +1 armor."
+        "cavalry": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
+        }
+      }
     },
-    {
-        "id": "padded_armor_3",
-        "display_name": "Padded Armor III",
-        "icon": "assets/ui/Techs/padded_armor_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 100,
-            "food": 80
-        },
-        "research_time": 95,
-        "requires": [],
-        "requires_tech": ["padded_armor_2"],
-        "effects": {
-            "unit_stat_bonuses": {
-                "warrior": {
-                    "armor_value": 1
-                },
-                "archer": {
-                    "armor_value": 1
-                },
-                "spearman": {
-                    "armor_value": 1
-                },
-                "cavalry": {
-                    "armor_value": 1
-                }
-            }
-        },
-        "tooltip": "Core army units gain a final +1 armor."
+    "tooltip": "Warriors, spearmen, and cavalry deal more melee damage."
+  },
+  {
+    "id": "forged_blades_2",
+    "display_name": "Forged Blades II",
+    "icon": "assets/ui/Techs/forged_blades_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 120,
+      "wood": 80
     },
-    {
-        "id": "siege_engineering",
-        "display_name": "Siege Engineering I",
-        "icon": "assets/ui/Techs/siege_engineering_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 150,
-            "wood": 250
+    "research_time": 55,
+    "requires": [],
+    "requires_tech": [
+      "forged_blades"
+    ],
+    "effects": {
+      "unit_stat_multipliers": {
+        "warrior": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
         },
-        "research_time": 35,
-        "requires": [
-            "siege_workshop"
-        ],
-        "effects": {
-            "unit_stat_multipliers": {
-                "ram": {
-                    "min_damage": 1.08,
-                    "max_damage": 1.08
-                }
-            },
-            "unit_stat_bonuses": {
-                "ram": {
-                    "armor_value": 1
-                }
-            }
+        "spearman": {
+          "min_damage": 1.05,
+          "max_damage": 1.05
         },
-        "tooltip": "Rams deal more siege damage and gain +1 armor."
+        "cavalry": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
+        }
+      }
     },
-    {
-        "id": "siege_engineering_2",
-        "display_name": "Siege Engineering II",
-        "icon": "assets/ui/Techs/siege_engineering_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 150,
-            "wood": 250
-        },
-        "research_time": 60,
-        "requires": [
-            "siege_workshop"
-        ],
-        "requires_tech": ["siege_engineering"],
-        "effects": {
-            "unit_stat_multipliers": {
-                "ram": {
-                    "min_damage": 1.08,
-                    "max_damage": 1.08
-                }
-            }
-        },
-        "tooltip": "Rams deal more siege damage."
+    "tooltip": "Melee damage rises again."
+  },
+  {
+    "id": "forged_blades_3",
+    "display_name": "Forged Blades III",
+    "icon": "assets/ui/Techs/forged_blades_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 120,
+      "wood": 80
     },
-    {
-        "id": "siege_engineering_3",
-        "display_name": "Siege Engineering III",
-        "icon": "assets/ui/Techs/siege_engineering_icon.png",
-        "building": "blacksmith",
-        "costs": {
-            "gold": 150,
-            "wood": 250
+    "research_time": 85,
+    "requires": [],
+    "requires_tech": [
+      "forged_blades_2"
+    ],
+    "effects": {
+      "unit_stat_multipliers": {
+        "warrior": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
         },
-        "research_time": 95,
-        "requires": [
-            "siege_workshop"
-        ],
-        "requires_tech": ["siege_engineering_2"],
-        "effects": {
-            "unit_stat_multipliers": {
-                "ram": {
-                    "min_damage": 1.08,
-                    "max_damage": 1.08
-                }
-            }
+        "spearman": {
+          "min_damage": 1.05,
+          "max_damage": 1.05
         },
-        "tooltip": "Rams reach their final siege damage."
-    }
+        "cavalry": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
+        }
+      }
+    },
+    "tooltip": "Melee damage rises a final time."
+  },
+  {
+    "id": "fletching",
+    "display_name": "Fletching I",
+    "icon": "assets/ui/Techs/fletching_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 100,
+      "wood": 120
+    },
+    "research_time": 30,
+    "requires": [],
+    "effects": {
+      "unit_stat_multipliers": {
+        "archer": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
+        }
+      },
+      "unit_stat_bonuses": {
+        "archer": {
+          "attack_range": 10
+        }
+      },
+      "building_stat_bonuses": {
+        "watchtower": {
+          "attack_range": 10
+        }
+      }
+    },
+    "tooltip": "Archers and watchtowers gain range; archers deal more damage."
+  },
+  {
+    "id": "fletching_2",
+    "display_name": "Fletching II",
+    "icon": "assets/ui/Techs/fletching_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 100,
+      "wood": 120
+    },
+    "research_time": 55,
+    "requires": [],
+    "requires_tech": [
+      "fletching"
+    ],
+    "effects": {
+      "unit_stat_multipliers": {
+        "archer": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
+        }
+      },
+      "unit_stat_bonuses": {
+        "archer": {
+          "attack_range": 10
+        }
+      },
+      "building_stat_bonuses": {
+        "watchtower": {
+          "attack_range": 10
+        }
+      }
+    },
+    "tooltip": "More range and damage for archers and towers."
+  },
+  {
+    "id": "fletching_3",
+    "display_name": "Fletching III",
+    "icon": "assets/ui/Techs/fletching_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 100,
+      "wood": 120
+    },
+    "research_time": 85,
+    "requires": [],
+    "requires_tech": [
+      "fletching_2"
+    ],
+    "effects": {
+      "unit_stat_multipliers": {
+        "archer": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
+        }
+      },
+      "unit_stat_bonuses": {
+        "archer": {
+          "attack_range": 10
+        }
+      },
+      "building_stat_bonuses": {
+        "watchtower": {
+          "attack_range": 10
+        }
+      }
+    },
+    "tooltip": "The final range and damage step for archers and towers."
+  },
+  {
+    "id": "padded_armor",
+    "display_name": "Padded Armor I",
+    "icon": "assets/ui/Techs/padded_armor_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 100,
+      "food": 80
+    },
+    "research_time": 35,
+    "requires": [],
+    "effects": {
+      "unit_stat_bonuses": {
+        "warrior": {
+          "armor_value": 1
+        },
+        "archer": {
+          "armor_value": 1
+        },
+        "spearman": {
+          "armor_value": 1
+        },
+        "cavalry": {
+          "armor_value": 1
+        }
+      }
+    },
+    "tooltip": "Core army units gain +1 armor."
+  },
+  {
+    "id": "padded_armor_2",
+    "display_name": "Padded Armor II",
+    "icon": "assets/ui/Techs/padded_armor_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 100,
+      "food": 80
+    },
+    "research_time": 60,
+    "requires": [],
+    "requires_tech": [
+      "padded_armor"
+    ],
+    "effects": {
+      "unit_stat_bonuses": {
+        "warrior": {
+          "armor_value": 1
+        },
+        "archer": {
+          "armor_value": 1
+        },
+        "spearman": {
+          "armor_value": 1
+        },
+        "cavalry": {
+          "armor_value": 1
+        }
+      }
+    },
+    "tooltip": "Core army units gain another +1 armor."
+  },
+  {
+    "id": "padded_armor_3",
+    "display_name": "Padded Armor III",
+    "icon": "assets/ui/Techs/padded_armor_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 100,
+      "food": 80
+    },
+    "research_time": 95,
+    "requires": [],
+    "requires_tech": [
+      "padded_armor_2"
+    ],
+    "effects": {
+      "unit_stat_bonuses": {
+        "warrior": {
+          "armor_value": 1
+        },
+        "archer": {
+          "armor_value": 1
+        },
+        "spearman": {
+          "armor_value": 1
+        },
+        "cavalry": {
+          "armor_value": 1
+        }
+      }
+    },
+    "tooltip": "Core army units gain a final +1 armor."
+  },
+  {
+    "id": "siege_engineering",
+    "display_name": "Siege Engineering I",
+    "icon": "assets/ui/Techs/siege_engineering_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 150,
+      "wood": 250
+    },
+    "research_time": 35,
+    "requires": [
+      "siege_workshop"
+    ],
+    "effects": {
+      "unit_stat_multipliers": {
+        "ram": {
+          "min_damage": 1.08,
+          "max_damage": 1.08
+        }
+      },
+      "unit_stat_bonuses": {
+        "ram": {
+          "armor_value": 1
+        }
+      }
+    },
+    "tooltip": "Ballistae deal more siege damage and gain +1 armor."
+  },
+  {
+    "id": "siege_engineering_2",
+    "display_name": "Siege Engineering II",
+    "icon": "assets/ui/Techs/siege_engineering_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 150,
+      "wood": 250
+    },
+    "research_time": 60,
+    "requires": [
+      "siege_workshop"
+    ],
+    "requires_tech": [
+      "siege_engineering"
+    ],
+    "effects": {
+      "unit_stat_multipliers": {
+        "ram": {
+          "min_damage": 1.08,
+          "max_damage": 1.08
+        }
+      }
+    },
+    "tooltip": "Ballistae deal more siege damage."
+  },
+  {
+    "id": "siege_engineering_3",
+    "display_name": "Siege Engineering III",
+    "icon": "assets/ui/Techs/siege_engineering_icon.png",
+    "building": "blacksmith",
+    "required_age": 2,
+    "costs": {
+      "gold": 150,
+      "wood": 250
+    },
+    "research_time": 95,
+    "requires": [
+      "siege_workshop"
+    ],
+    "requires_tech": [
+      "siege_engineering_2"
+    ],
+    "effects": {
+      "unit_stat_multipliers": {
+        "ram": {
+          "min_damage": 1.08,
+          "max_damage": 1.08
+        }
+      }
+    },
+    "tooltip": "Ballistae reach their final siege damage."
+  },
+  {
+    "id": "bronze_age",
+    "display_name": "Advance to Bronze Age",
+    "building": "castle",
+    "costs": {
+      "food": 400,
+      "wood": 200
+    },
+    "research_time": 60,
+    "requires": [],
+    "effects": {},
+    "tooltip": "Requires 3 completed Stone Age buildings, excluding the Town Center. Duplicates count. Unlocks advanced buildings, units and paid unit-line upgrades.",
+    "icon": "assets/sprites/Buildings/Ages/2_castle.png"
+  },
+  {
+    "id": "swordsman_training",
+    "display_name": "Bronze Swordsmen",
+    "building": "barracks",
+    "required_age": 2,
+    "costs": {
+      "food": 180,
+      "gold": 120
+    },
+    "research_time": 35,
+    "requires": [],
+    "effects": {
+      "unit_stat_bonuses": {
+        "warrior": {
+          "min_damage": 5,
+          "max_damage": 5,
+          "armor_value": 1
+        }
+      }
+    },
+    "tooltip": "All existing and future Clubmen become Swordsmen: +5 damage and +1 armor.",
+    "icon": "assets/ui/Units/Ages/bronze_swordsman.png"
+  },
+  {
+    "id": "archer_training",
+    "display_name": "Upgrade to Archers",
+    "building": "barracks",
+    "required_age": 2,
+    "costs": {
+      "wood": 180,
+      "gold": 120
+    },
+    "research_time": 35,
+    "requires": [],
+    "effects": {
+      "unit_stat_bonuses": {
+        "archer": {
+          "min_damage": 3,
+          "max_damage": 3,
+          "attack_range": 20
+        }
+      }
+    },
+    "tooltip": "All existing and future slingers become Archers: +3 damage and +20 range.",
+    "icon": "assets/ui/Units/Ages/archer.png"
+  },
+  {
+    "id": "iron_age",
+    "display_name": "Advance to Iron Age",
+    "building": "castle",
+    "required_age": 2,
+    "requires_tech": [
+      "bronze_age"
+    ],
+    "requires": [],
+    "costs": {
+      "food": 800,
+      "wood": 400,
+      "gold": 200
+    },
+    "research_time": 90,
+    "effects": {},
+    "icon": "assets/sprites/Buildings/Ages/3_castle.png",
+    "tooltip": "Requires a completed Blacksmith and two different Bronze specialist buildings."
+  },
+  {
+    "id": "bronze_spearman_training",
+    "display_name": "Upgrade to Bronze Spearman",
+    "building": "barracks",
+    "required_age": 2,
+    "requires": [],
+    "requires_tech": [],
+    "costs": {
+      "food": 140,
+      "wood": 100
+    },
+    "research_time": 30,
+    "effects": {
+      "unit_stat_bonuses": {
+        "spearman": {
+          "min_damage": 3,
+          "max_damage": 3,
+          "armor_value": 1
+        }
+      }
+    },
+    "icon": "assets/ui/Units/Ages/bronze_spearman.png",
+    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+  },
+  {
+    "id": "iron_swordsman_training",
+    "display_name": "Upgrade to Iron Swordsman",
+    "building": "barracks",
+    "required_age": 3,
+    "requires": [],
+    "requires_tech": [
+      "swordsman_training"
+    ],
+    "costs": {
+      "food": 240,
+      "gold": 180
+    },
+    "research_time": 45,
+    "effects": {
+      "unit_stat_bonuses": {
+        "warrior": {
+          "min_damage": 4,
+          "max_damage": 4,
+          "armor_value": 2
+        }
+      }
+    },
+    "icon": "assets/ui/Units/Ages/iron_swordsman.png",
+    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+  },
+  {
+    "id": "crossbow_training",
+    "display_name": "Upgrade to Crossbowman",
+    "building": "barracks",
+    "required_age": 3,
+    "requires": [],
+    "requires_tech": [
+      "archer_training"
+    ],
+    "costs": {
+      "wood": 240,
+      "gold": 180
+    },
+    "research_time": 45,
+    "effects": {
+      "unit_stat_bonuses": {
+        "archer": {
+          "min_damage": 6,
+          "max_damage": 6,
+          "attack_range": 15,
+          "attack_speed": -0.2
+        }
+      }
+    },
+    "icon": "assets/ui/Units/Ages/crossbowman.png",
+    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+  },
+  {
+    "id": "pikeman_training",
+    "display_name": "Upgrade to Pikeman",
+    "building": "barracks",
+    "required_age": 3,
+    "requires": [],
+    "requires_tech": [
+      "bronze_spearman_training"
+    ],
+    "costs": {
+      "food": 200,
+      "wood": 160
+    },
+    "research_time": 40,
+    "effects": {
+      "unit_stat_bonuses": {
+        "spearman": {
+          "min_damage": 4,
+          "max_damage": 4,
+          "attack_range": 14,
+          "armor_value": 1
+        }
+      }
+    },
+    "icon": "assets/ui/Units/Ages/pikeman.png",
+    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+  },
+  {
+    "id": "heavy_cavalry_training",
+    "display_name": "Upgrade to Heavy Cavalry",
+    "building": "stable",
+    "required_age": 3,
+    "requires": [],
+    "requires_tech": [],
+    "costs": {
+      "food": 300,
+      "gold": 220
+    },
+    "research_time": 50,
+    "effects": {
+      "unit_stat_bonuses": {
+        "cavalry": {
+          "min_damage": 5,
+          "max_damage": 5,
+          "armor_value": 2
+        }
+      }
+    },
+    "icon": "assets/ui/Units/Ages/heavy_cavalry.png",
+    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+  },
+  {
+    "id": "priest_training",
+    "display_name": "Upgrade to Priest",
+    "building": "temple",
+    "required_age": 3,
+    "requires": [],
+    "requires_tech": [],
+    "costs": {
+      "food": 180,
+      "gold": 180
+    },
+    "research_time": 40,
+    "effects": {
+      "unit_stat_bonuses": {
+        "healer": {
+          "heal_amount": 4,
+          "armor_value": 1
+        }
+      }
+    },
+    "icon": "assets/ui/Units/Ages/priest.png",
+    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+  },
+  {
+    "id": "heavy_ballista_training",
+    "display_name": "Upgrade to Heavy Ballista",
+    "building": "siege_workshop",
+    "required_age": 3,
+    "requires": [],
+    "requires_tech": [],
+    "costs": {
+      "wood": 300,
+      "gold": 220
+    },
+    "research_time": 50,
+    "effects": {
+      "unit_stat_bonuses": {
+        "ram": {
+          "min_damage": 18,
+          "max_damage": 18,
+          "attack_range": 30
+        }
+      }
+    },
+    "icon": "assets/ui/Units/Ages/heavy_ballista.png",
+    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+  }
 ]

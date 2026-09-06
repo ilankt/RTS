@@ -91,6 +91,19 @@ UNIT_TYPE_TINTS = {
 }
 
 
+def tint_building_team(surface, color):
+    """Recolor saturated blue cloth, preserving stone, wood and slate roofs."""
+    result = surface.copy()
+    pixels = pygame.surfarray.pixels3d(result)
+    rgb = pixels.astype(np.float32)
+    mask = (rgb[:, :, 2] > rgb[:, :, 0] * 2.0) & (rgb[:, :, 2] > rgb[:, :, 1] * 1.25)
+    shade = rgb[:, :, 2] / 200.0
+    for channel in range(3):
+        pixels[:, :, channel][mask] = np.clip(color[channel] * shade[mask], 0, 255).astype(np.uint8)
+    del pixels
+    return result
+
+
 def apply_unit_type_tint(surface, color):
     """Multiply RGB by `color/255`, leaving alpha untouched."""
     tinted = surface.copy()
@@ -148,7 +161,44 @@ class SpriteManager:
     
     def get_building_sprite(self, building_name, player_index):
         """Get a tinted building sprite for a specific player"""
+        from systems.ages import building_sprite_path
+        template=self.game_data['buildings'].get(building_name)
+        fallback=getattr(template,'sprite','')
+        path=building_sprite_path(building_name,self.players[player_index],fallback)
+        if path and path!=fallback:
+            cache = getattr(self, '_age_building_cache', None)
+            if cache is None:
+                self._age_building_cache = cache = {}
+            key = (path, player_index, tuple(self.players[player_index].color))
+            if key not in cache:
+                source = pygame.image.load(path).convert_alpha()
+                cache[key] = tint_building_team(source, self.players[player_index].color)
+            return cache[key]
         return self.sprites["buildings"][building_name][player_index]
+
+    def age_unit_sheets(self,variant,player_index):
+        """Load only the requested player's variant, avoiding 14 full armies in RAM."""
+        from systems.ages import UNIT_ART
+        cache=getattr(self,'_age_unit_cache',None)
+        if cache is None: self._age_unit_cache=cache={}
+        key=(variant,player_index)
+        if key not in cache:
+            cache[key]={action:tint_directional_team(pygame.image.load(path).convert_alpha(),self.players[player_index].color)
+                        for action,path in UNIT_ART[variant]['animations'].items()}
+        return cache[key]
+
+    def upgraded_unit_sheets(self, name, player_index):
+        """Lazy-load the existing swordsman/archer art when a line upgrades."""
+        cache = self.sprites['units']
+        key = name + '_bronze'
+        if key not in cache:
+            folder = {'warrior': 'Warrior', 'archer': 'Archer'}[name]
+            actions = ['idle', 'run', 'attack', 'guard'] if name == 'warrior' else ['idle', 'run', 'shoot']
+            cache[key] = {}
+            for action in actions:
+                sheet = pygame.image.load(f'assets/sprites/Units/{folder}/{folder}_{action.title()}.png').convert_alpha()
+                cache[key][action] = [tint_surface_blue(sheet, p.color) for p in self.players]
+        return {action: sheets[player_index] for action, sheets in cache[key].items()}
     
     def get_resource_sprite(self, resource_name):
         """Get a resource sprite (no tinting). Unknown variant names fall

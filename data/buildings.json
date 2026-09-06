@@ -25,7 +25,7 @@
   },
   {
     "name": "castle",
-    "display_name": "Castle",
+    "display_name": "Town Center",
     "role": "Town center and victory objective",
     "requires": [],
     "buildable": true,
@@ -217,7 +217,7 @@
   {
     "name": "temple",
     "display_name": "Temple",
-    "role": "Deferred support building",
+    "role": "Trains healers and priests to support the army",
     "requires": [
       "barracks"
     ],
@@ -270,7 +270,7 @@
   {
     "name": "siege_workshop",
     "display_name": "Siege Workshop",
-    "role": "Builds rams to break towers and castles",
+    "role": "Builds ballistae to break towers and castles",
     "requires": [
       "blacksmith"
     ],

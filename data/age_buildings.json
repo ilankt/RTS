@@ -1,0 +1,362 @@
+{
+  "1_castle": {
+    "family": "castle",
+    "age": 1,
+    "sprite": "assets/sprites/Buildings/Ages/1_castle.png",
+    "source": "art/ages/buildings/imagegen/sprites/1_castle.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_castle": {
+    "family": "castle",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_castle.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_castle.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_castle": {
+    "family": "castle",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_castle.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_castle-v3.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "1_barracks": {
+    "family": "barracks",
+    "age": 1,
+    "sprite": "assets/sprites/Buildings/Ages/1_barracks.png",
+    "source": "art/ages/buildings/imagegen/sprites/1_barracks.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_barracks": {
+    "family": "barracks",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_barracks.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_barracks.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_barracks": {
+    "family": "barracks",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_barracks.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_barracks.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "1_house": {
+    "family": "house",
+    "age": 1,
+    "sprite": "assets/sprites/Buildings/Ages/1_house.png",
+    "source": "art/ages/buildings/imagegen/sprites/1_house.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_house": {
+    "family": "house",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_house.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_house.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_house": {
+    "family": "house",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_house.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_house.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "1_farm": {
+    "family": "farm",
+    "age": 1,
+    "sprite": "assets/sprites/Buildings/Ages/1_farm.png",
+    "source": "art/ages/buildings/imagegen/sprites/1_farm.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_farm": {
+    "family": "farm",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_farm.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_farm.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_farm": {
+    "family": "farm",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_farm.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_farm.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "1_lumbermill": {
+    "family": "lumbermill",
+    "age": 1,
+    "sprite": "assets/sprites/Buildings/Ages/1_lumbermill.png",
+    "source": "art/ages/buildings/imagegen/sprites/1_lumbermill.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_lumbermill": {
+    "family": "lumbermill",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_lumbermill.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_lumbermill.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_lumbermill": {
+    "family": "lumbermill",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_lumbermill.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_lumbermill.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "1_mine": {
+    "family": "mine",
+    "age": 1,
+    "sprite": "assets/sprites/Buildings/Ages/1_mine.png",
+    "source": "art/ages/buildings/imagegen/sprites/1_mine.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_mine": {
+    "family": "mine",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_mine.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_mine.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_mine": {
+    "family": "mine",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_mine.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_mine.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_stable": {
+    "family": "stable",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_stable.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_stable.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_stable": {
+    "family": "stable",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_stable.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_stable.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_blacksmith": {
+    "family": "blacksmith",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_blacksmith.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_blacksmith.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_blacksmith": {
+    "family": "blacksmith",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_blacksmith.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_blacksmith.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_temple": {
+    "family": "temple",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_temple.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_temple.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_temple": {
+    "family": "temple",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_temple.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_temple.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_siege_workshop": {
+    "family": "siege_workshop",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_siege_workshop.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_siege_workshop.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_siege_workshop": {
+    "family": "siege_workshop",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_siege_workshop.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_siege_workshop.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_market": {
+    "family": "market",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_market.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_market.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_market": {
+    "family": "market",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_market.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_market.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "2_watchtower": {
+    "family": "watchtower",
+    "age": 2,
+    "sprite": "assets/sprites/Buildings/Ages/2_watchtower.png",
+    "source": "art/ages/buildings/imagegen/sprites/2_watchtower.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  },
+  "3_watchtower": {
+    "family": "watchtower",
+    "age": 3,
+    "sprite": "assets/sprites/Buildings/Ages/3_watchtower.png",
+    "source": "art/ages/buildings/imagegen/sprites/3_watchtower.png",
+    "size": [
+      512,
+      512
+    ],
+    "frames": 1,
+    "directions": 1
+  }
+}

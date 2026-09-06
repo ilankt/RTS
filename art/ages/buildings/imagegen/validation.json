@@ -1,0 +1,332 @@
+{
+  "1_castle": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      43,
+      72,
+      1236,
+      1182
+    ],
+    "transparent_fraction": 0.482
+  },
+  "2_castle": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      135,
+      57,
+      1117,
+      1166
+    ],
+    "transparent_fraction": 0.546
+  },
+  "3_castle": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      133,
+      33,
+      1143,
+      1204
+    ],
+    "transparent_fraction": 0.515
+  },
+  "1_barracks": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      63,
+      162,
+      1224,
+      1092
+    ],
+    "transparent_fraction": 0.606
+  },
+  "2_barracks": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      104,
+      154,
+      1189,
+      1094
+    ],
+    "transparent_fraction": 0.602
+  },
+  "3_barracks": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      113,
+      103,
+      1152,
+      1104
+    ],
+    "transparent_fraction": 0.545
+  },
+  "1_house": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      218,
+      97,
+      1056,
+      1081
+    ],
+    "transparent_fraction": 0.627
+  },
+  "2_house": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      105,
+      86,
+      1141,
+      1134
+    ],
+    "transparent_fraction": 0.54
+  },
+  "3_house": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      237,
+      77,
+      1033,
+      1160
+    ],
+    "transparent_fraction": 0.602
+  },
+  "1_farm": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      94,
+      128,
+      1127,
+      1114
+    ],
+    "transparent_fraction": 0.638
+  },
+  "2_farm": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      76,
+      74,
+      1172,
+      1153
+    ],
+    "transparent_fraction": 0.563
+  },
+  "3_farm": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      49,
+      101,
+      1163,
+      1138
+    ],
+    "transparent_fraction": 0.603
+  },
+  "1_lumbermill": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      84,
+      107,
+      1182,
+      1116
+    ],
+    "transparent_fraction": 0.542
+  },
+  "2_lumbermill": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      114,
+      129,
+      1175,
+      1085
+    ],
+    "transparent_fraction": 0.583
+  },
+  "3_lumbermill": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      71,
+      89,
+      1174,
+      1085
+    ],
+    "transparent_fraction": 0.56
+  },
+  "1_mine": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      82,
+      142,
+      1178,
+      1083
+    ],
+    "transparent_fraction": 0.592
+  },
+  "2_mine": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      67,
+      111,
+      1199,
+      1141
+    ],
+    "transparent_fraction": 0.51
+  },
+  "3_mine": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      123,
+      131,
+      1120,
+      1102
+    ],
+    "transparent_fraction": 0.603
+  },
+  "2_stable": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      89,
+      90,
+      1154,
+      1125
+    ],
+    "transparent_fraction": 0.58
+  },
+  "3_stable": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      46,
+      92,
+      1223,
+      1114
+    ],
+    "transparent_fraction": 0.53
+  },
+  "2_blacksmith": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      121,
+      67,
+      1135,
+      1149
+    ],
+    "transparent_fraction": 0.532
+  },
+  "3_blacksmith": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      96,
+      68,
+      1163,
+      1134
+    ],
+    "transparent_fraction": 0.534
+  },
+  "2_temple": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      88,
+      128,
+      1172,
+      1109
+    ],
+    "transparent_fraction": 0.535
+  },
+  "3_temple": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      79,
+      38,
+      1174,
+      1195
+    ],
+    "transparent_fraction": 0.507
+  },
+  "2_siege_workshop": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      49,
+      120,
+      1190,
+      1116
+    ],
+    "transparent_fraction": 0.524
+  },
+  "3_siege_workshop": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      85,
+      82,
+      1197,
+      1143
+    ],
+    "transparent_fraction": 0.492
+  },
+  "2_market": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      32,
+      164,
+      1188,
+      1104
+    ],
+    "transparent_fraction": 0.585
+  },
+  "3_market": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      70,
+      67,
+      1186,
+      1139
+    ],
+    "transparent_fraction": 0.537
+  },
+  "2_watchtower": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      327,
+      63,
+      919,
+      1162
+    ],
+    "transparent_fraction": 0.736
+  },
+  "3_watchtower": {
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      322,
+      30,
+      935,
+      1190
+    ],
+    "transparent_fraction": 0.687
+  }
+}

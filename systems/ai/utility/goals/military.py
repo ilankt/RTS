@@ -222,6 +222,9 @@ class _TrainCompositionUnitGoal(Goal):
         for name in table:
             if name == self.unit_name:
                 continue
+            from systems.ages import availability
+            if not availability(ctx.player, name)[0]:
+                continue  # never bank for a sibling locked behind the next age
             if ctx.can_afford(name):
                 continue
             producer = "stable" if name == "cavalry" else "barracks"

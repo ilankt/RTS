@@ -47,12 +47,16 @@ class GlobalQueueStrip:
         return None
 
     def _icon(self, kind, key):
-        cache_key = (kind, key)
+        from systems.ages import unit_icon_path
+        upgraded = unit_icon_path(key,self._human()) if kind=='unit' else None
+        cache_key = (kind, key, upgraded)
         cached = self._icon_cache.get(cache_key)
         if cached is not None:
             return cached
         source = (self.icon_loader.unit_production_icons.get(key)
                   if kind == 'unit' else self.tech_icons.get(key))
+        if upgraded:
+            source = pygame.image.load(upgraded).convert_alpha()
         if source is None:
             return None
         icon = pygame.transform.smoothscale(source, (self.ICON, self.ICON))
@@ -69,10 +73,12 @@ class GlobalQueueStrip:
                 continue
             info = self.game.production_manager.get_production_info(building)
             if info:
+                from systems.ages import display_name
+                template = self.game.game_data.get('units', {}).get(info['unit_type'])
                 items.append({
                     'building': building, 'kind': 'unit',
                     'key': info['unit_type'],
-                    'label': info['unit_type'].replace('_', ' ').title(),
+                    'label': display_name(info['unit_type'], human, getattr(template, 'display_name', None)),
                     'progress': info['progress'],
                     'queued': len(getattr(building, 'production_queue', ()) or ()),
                 })

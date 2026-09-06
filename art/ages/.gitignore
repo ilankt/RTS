@@ -1,0 +1,4 @@
+test-saves/
+*.log
+# Local rollback archives; approved sources and runtime art are versioned.
+backups/*.zip

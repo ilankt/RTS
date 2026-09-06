@@ -91,7 +91,7 @@
   },
   {
     "name": "archer",
-    "display_name": "Slingshot Man",
+    "display_name": "Slinger",
     "role": "Ranged damage dealer",
     "requires": [
       "barracks"
@@ -137,7 +137,7 @@
   },
   {
     "name": "spearman",
-    "display_name": "Spearman",
+    "display_name": "Wooden Spearman",
     "role": "Anti-cavalry infantry",
     "requires": [
       "barracks"
@@ -236,8 +236,8 @@
   },
   {
     "name": "ram",
-    "display_name": "Battering Ram",
-    "role": "Slow siege unit that destroys buildings",
+    "display_name": "Ballista",
+    "role": "Long-range siege support",
     "requires": [
       "siege_workshop"
     ],
@@ -260,9 +260,9 @@
     "movement_speed": 28,
     "attack": 45,
     "can_attack": true,
-    "building_only_attack": true,
+    "building_only_attack": false,
     "build_time": 14,
-    "icon": "assets/ui/Units/ram_icon.png",
+    "icon": "assets/ui/Units/Ages/ballista.png",
     "costs": {
       "gold": 60,
       "wood": 160
@@ -273,13 +273,19 @@
     "armor_type": "siege",
     "armor_value": 0,
     "attack_speed": 0.45,
-    "attack_range": 56,
+    "attack_range": 280,
     "animations": {
-      "idle": "assets/sprites/Units/Ram/Ram_Idle.png",
-      "run": "assets/sprites/Units/Ram/Ram_Run.png",
-      "attack": "assets/sprites/Units/Ram/Ram_Attack.png",
-      "guard": "assets/sprites/Units/Ram/Ram_Guard.png"
-    }
+      "idle": "assets/sprites/Units/Ages/ballista/idle.png",
+      "run": "assets/sprites/Units/Ages/ballista/run.png",
+      "attack": "assets/sprites/Units/Ages/ballista/attack.png"
+    },
+    "projectile_type": "ballista_bolt",
+    "animation_directions": 8,
+    "ground_anchor": [
+      0.5,
+      0.637455
+    ],
+    "render_scale": 1.1707317073170733
   },
   {
     "name": "healer",

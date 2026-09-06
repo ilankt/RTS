@@ -1,0 +1,27 @@
+{
+  "name": "Iron Worker",
+  "age": "Iron",
+  "base": "worker",
+  "actions": [
+    "idle",
+    "run",
+    "gather",
+    "build"
+  ],
+  "frames_per_direction": 16,
+  "fps": 20,
+  "timeline_stride": 17,
+  "ground_anchor": [
+    0.5,
+    0.730059
+  ],
+  "render_scale": 0.9999999767396509,
+  "action_events": {
+    "gather": {
+      "impact_frame": 8
+    },
+    "build": {
+      "impact_frame": 8
+    }
+  }
+}

@@ -22,6 +22,15 @@ FACING_HYSTERESIS = math.radians(8)
 
 class Unit(GameObject):
     """Unit entity class"""
+    @property
+    def display_name(self):
+        from systems.ages import display_name
+        return display_name(self.name, self.player, self._display_name)
+
+    @display_name.setter
+    def display_name(self, value):
+        self._display_name = value
+
     def __init__(self, name, size, hp, movement_speed, attack, animations, x=0, y=0, radius=0, player=None, can_build=False, can_attack=False,
                  min_damage=0, max_damage=0, attack_type="slash", armor_type="light", armor_value=0, attack_speed=1.0, attack_range=32,
                  display_name=None, role="", requires=None, buildable=True, strong_against=None, weak_against=None,
@@ -156,7 +165,7 @@ class Unit(GameObject):
                 # Convert attack speed (attacks per second) to animation speed (ms per frame)
                 # Distribute the attack time across the animation frames
                 num_frames = len(self.animations[animation_status].frames)
-                time_per_attack = 1000.0 / self.attack_speed  # Total time for one attack in ms
+                time_per_attack = 1000.0 / effective_stat(self,'attack_speed')
                 time_per_frame = time_per_attack / num_frames  # Time per animation frame
                 self.animations[animation_status].update(custom_speed=time_per_frame, delta_time=delta_time)
             else:
@@ -462,7 +471,7 @@ class Unit(GameObject):
             damage = self.calculate_damage(self.current_target)
             self.current_target.hp -= damage
             self.last_attack_time = pygame.time.get_ticks() / 1000.0
-            self._attack_cooldown = 1.0 / self.attack_speed
+            self._attack_cooldown = 1.0 / effective_stat(self,'attack_speed')
             
             if DEBUG_MOVEMENT:
                 debug_log.log(f"{self.name} attacks {self.current_target.name} for {damage} damage!", "GENERAL")

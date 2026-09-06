@@ -1,0 +1,984 @@
+{
+  "style": "Approved outlined cartoon / option 1",
+  "directions": [
+    "E",
+    "SE",
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE"
+  ],
+  "units": {
+    "bronze_worker": {
+      "name": "Bronze Worker",
+      "age": "Bronze",
+      "base": "worker",
+      "actions": [
+        "idle",
+        "run",
+        "gather",
+        "build"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 0.9999999767396509,
+      "action_events": {
+        "gather": {
+          "impact_frame": 8
+        },
+        "build": {
+          "impact_frame": 8
+        }
+      },
+      "id": "bronze_worker",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/bronze_worker/idle.png",
+        "run": "assets/sprites/Units/Ages/bronze_worker/run.png",
+        "gather": "assets/sprites/Units/Ages/bronze_worker/gather.png",
+        "build": "assets/sprites/Units/Ages/bronze_worker/build.png"
+      },
+      "icon": "assets/ui/Units/Ages/bronze_worker.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/bronze_worker.blend"
+    },
+    "iron_worker": {
+      "name": "Iron Worker",
+      "age": "Iron",
+      "base": "worker",
+      "actions": [
+        "idle",
+        "run",
+        "gather",
+        "build"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 0.9999999767396509,
+      "action_events": {
+        "gather": {
+          "impact_frame": 8
+        },
+        "build": {
+          "impact_frame": 8
+        }
+      },
+      "id": "iron_worker",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/iron_worker/idle.png",
+        "run": "assets/sprites/Units/Ages/iron_worker/run.png",
+        "gather": "assets/sprites/Units/Ages/iron_worker/gather.png",
+        "build": "assets/sprites/Units/Ages/iron_worker/build.png"
+      },
+      "icon": "assets/ui/Units/Ages/iron_worker.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/iron_worker.blend"
+    },
+    "bronze_swordsman": {
+      "name": "Bronze Swordsman",
+      "age": "Bronze",
+      "base": "clubman",
+      "actions": [
+        "idle",
+        "run",
+        "attack"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.696509
+      ],
+      "render_scale": 1.1707317073170733,
+      "action_events": {
+        "attack": {
+          "impact_frame": 8
+        }
+      },
+      "id": "bronze_swordsman",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/bronze_swordsman/idle.png",
+        "run": "assets/sprites/Units/Ages/bronze_swordsman/run.png",
+        "attack": "assets/sprites/Units/Ages/bronze_swordsman/attack.png"
+      },
+      "icon": "assets/ui/Units/Ages/bronze_swordsman.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/bronze_swordsman.blend"
+    },
+    "iron_swordsman": {
+      "name": "Iron Swordsman",
+      "age": "Iron",
+      "base": "clubman",
+      "actions": [
+        "idle",
+        "run",
+        "attack"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.696509
+      ],
+      "render_scale": 1.1707317073170733,
+      "action_events": {
+        "attack": {
+          "impact_frame": 8
+        }
+      },
+      "id": "iron_swordsman",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/iron_swordsman/idle.png",
+        "run": "assets/sprites/Units/Ages/iron_swordsman/run.png",
+        "attack": "assets/sprites/Units/Ages/iron_swordsman/attack.png"
+      },
+      "icon": "assets/ui/Units/Ages/iron_swordsman.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/iron_swordsman.blend"
+    },
+    "archer": {
+      "name": "Archer",
+      "age": "Bronze",
+      "base": "slinger",
+      "actions": [
+        "idle",
+        "run",
+        "shoot"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 0.9999999767396509,
+      "action_events": {
+        "shoot": {
+          "release_frame": 10
+        }
+      },
+      "id": "archer",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/archer/idle.png",
+        "run": "assets/sprites/Units/Ages/archer/run.png",
+        "shoot": "assets/sprites/Units/Ages/archer/shoot.png"
+      },
+      "icon": "assets/ui/Units/Ages/archer.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/archer.blend"
+    },
+    "crossbowman": {
+      "name": "Crossbowman",
+      "age": "Iron",
+      "base": "slinger",
+      "actions": [
+        "idle",
+        "run",
+        "shoot"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 0.9999999767396509,
+      "action_events": {
+        "shoot": {
+          "release_frame": 4
+        }
+      },
+      "id": "crossbowman",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/crossbowman/idle.png",
+        "run": "assets/sprites/Units/Ages/crossbowman/run.png",
+        "shoot": "assets/sprites/Units/Ages/crossbowman/shoot.png"
+      },
+      "icon": "assets/ui/Units/Ages/crossbowman.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/crossbowman.blend"
+    },
+    "bronze_spearman": {
+      "name": "Bronze Spearman",
+      "age": "Bronze",
+      "base": "spearman",
+      "actions": [
+        "idle",
+        "run",
+        "attack"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.681393
+      ],
+      "render_scale": 1.2682926829268295,
+      "action_events": {
+        "attack": {
+          "impact_frame": 8
+        }
+      },
+      "id": "bronze_spearman",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/bronze_spearman/idle.png",
+        "run": "assets/sprites/Units/Ages/bronze_spearman/run.png",
+        "attack": "assets/sprites/Units/Ages/bronze_spearman/attack.png"
+      },
+      "icon": "assets/ui/Units/Ages/bronze_spearman.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/bronze_spearman.blend"
+    },
+    "pikeman": {
+      "name": "Pikeman",
+      "age": "Iron",
+      "base": "spearman",
+      "actions": [
+        "idle",
+        "run",
+        "attack"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.652136
+      ],
+      "render_scale": 1.5121951219512197,
+      "action_events": {
+        "attack": {
+          "impact_frame": 8
+        }
+      },
+      "id": "pikeman",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/pikeman/idle.png",
+        "run": "assets/sprites/Units/Ages/pikeman/run.png",
+        "attack": "assets/sprites/Units/Ages/pikeman/attack.png"
+      },
+      "icon": "assets/ui/Units/Ages/pikeman.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/pikeman.blend"
+    },
+    "mounted_spearman": {
+      "name": "Mounted Spearman",
+      "age": "Bronze",
+      "base": "mounted",
+      "actions": [
+        "idle",
+        "run",
+        "attack"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.700082
+      ],
+      "render_scale": 1.4634146341463417,
+      "id": "mounted_spearman",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/mounted_spearman/idle.png",
+        "run": "assets/sprites/Units/Ages/mounted_spearman/run.png",
+        "attack": "assets/sprites/Units/Ages/mounted_spearman/attack.png"
+      },
+      "icon": "assets/ui/Units/Ages/mounted_spearman.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/mounted_spearman.blend"
+    },
+    "heavy_cavalry": {
+      "name": "Heavy Cavalry",
+      "age": "Iron",
+      "base": "mounted",
+      "actions": [
+        "idle",
+        "run",
+        "attack"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.700082
+      ],
+      "render_scale": 1.4634146341463417,
+      "id": "heavy_cavalry",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/heavy_cavalry/idle.png",
+        "run": "assets/sprites/Units/Ages/heavy_cavalry/run.png",
+        "attack": "assets/sprites/Units/Ages/heavy_cavalry/attack.png"
+      },
+      "icon": "assets/ui/Units/Ages/heavy_cavalry.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/heavy_cavalry.blend"
+    },
+    "healer": {
+      "name": "Healer",
+      "age": "Bronze",
+      "base": "healer",
+      "actions": [
+        "idle",
+        "run",
+        "attack"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 0.9999999767396509,
+      "id": "healer",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/healer/idle.png",
+        "run": "assets/sprites/Units/Ages/healer/run.png",
+        "attack": "assets/sprites/Units/Ages/healer/attack.png"
+      },
+      "icon": "assets/ui/Units/Ages/healer.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/healer.blend"
+    },
+    "priest": {
+      "name": "Priest",
+      "age": "Iron",
+      "base": "healer",
+      "actions": [
+        "idle",
+        "run",
+        "attack"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 0.9999999767396509,
+      "id": "priest",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/priest/idle.png",
+        "run": "assets/sprites/Units/Ages/priest/run.png",
+        "attack": "assets/sprites/Units/Ages/priest/attack.png"
+      },
+      "icon": "assets/ui/Units/Ages/priest.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/priest.blend"
+    },
+    "ballista": {
+      "name": "Ballista",
+      "age": "Bronze",
+      "base": "siege",
+      "actions": [
+        "idle",
+        "run",
+        "attack"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.637455
+      ],
+      "render_scale": 1.1707317073170733,
+      "id": "ballista",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/ballista/idle.png",
+        "run": "assets/sprites/Units/Ages/ballista/run.png",
+        "attack": "assets/sprites/Units/Ages/ballista/attack.png"
+      },
+      "icon": "assets/ui/Units/Ages/ballista.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/ballista.blend"
+    },
+    "heavy_ballista": {
+      "name": "Heavy Ballista",
+      "age": "Iron",
+      "base": "siege",
+      "actions": [
+        "idle",
+        "run",
+        "attack"
+      ],
+      "frames_per_direction": 16,
+      "fps": 20,
+      "timeline_stride": 17,
+      "ground_anchor": [
+        0.5,
+        0.626882
+      ],
+      "render_scale": 1.2682926829268295,
+      "id": "heavy_ballista",
+      "animations": {
+        "idle": "assets/sprites/Units/Ages/heavy_ballista/idle.png",
+        "run": "assets/sprites/Units/Ages/heavy_ballista/run.png",
+        "attack": "assets/sprites/Units/Ages/heavy_ballista/attack.png"
+      },
+      "icon": "assets/ui/Units/Ages/heavy_ballista.png",
+      "animation_directions": 8,
+      "frame_size": 192,
+      "model": "art/ages/units/models/heavy_ballista.blend"
+    }
+  },
+  "validation": {
+    "bronze_worker": {
+      "frame_count": 512,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "gather": [
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ],
+        "build": [
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ]
+      },
+      "minimum_edge_margin": 28
+    },
+    "iron_worker": {
+      "frame_count": 512,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "gather": [
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ],
+        "build": [
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ]
+      },
+      "minimum_edge_margin": 28
+    },
+    "bronze_swordsman": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "attack": [
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ]
+      },
+      "minimum_edge_margin": 18
+    },
+    "iron_swordsman": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "attack": [
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ]
+      },
+      "minimum_edge_margin": 12
+    },
+    "archer": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "shoot": [
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12
+        ]
+      },
+      "minimum_edge_margin": 30
+    },
+    "crossbowman": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "shoot": [
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ]
+      },
+      "minimum_edge_margin": 23
+    },
+    "bronze_spearman": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "attack": [
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ]
+      },
+      "minimum_edge_margin": 9
+    },
+    "pikeman": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "attack": [
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ]
+      },
+      "minimum_edge_margin": 9
+    },
+    "mounted_spearman": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16
+        ],
+        "attack": [
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16
+        ]
+      },
+      "minimum_edge_margin": 18
+    },
+    "heavy_cavalry": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16
+        ],
+        "attack": [
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16
+        ]
+      },
+      "minimum_edge_margin": 18
+    },
+    "healer": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "attack": [
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16
+        ]
+      },
+      "minimum_edge_margin": 22
+    },
+    "priest": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "run": [
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "attack": [
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16
+        ]
+      },
+      "minimum_edge_margin": 18
+    },
+    "ballista": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "run": [
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16
+        ],
+        "attack": [
+          14,
+          15,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ]
+      },
+      "minimum_edge_margin": 23
+    },
+    "heavy_ballista": {
+      "frame_count": 384,
+      "motion_unique_frames": {
+        "idle": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "run": [
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16,
+          16
+        ],
+        "attack": [
+          14,
+          14,
+          14,
+          14,
+          14,
+          15,
+          14,
+          14
+        ]
+      },
+      "minimum_edge_margin": 24
+    }
+  },
+  "total_frames": 5632
+}

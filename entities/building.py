@@ -9,6 +9,15 @@ from systems.combat_rules import (
 
 class Building(GameObject):
     """Building entity class"""
+    @property
+    def display_name(self):
+        from systems.ages import display_name
+        return display_name(self.name, self.player, self._display_name)
+
+    @display_name.setter
+    def display_name(self, value):
+        self._display_name = value
+
     def __init__(self, name, size, hp, sprite, build_duration, x=0, y=0, radius=0, player=None, costs=None, 
                  armor_type="light", armor_value=0, can_attack=False, min_damage=0, max_damage=0, 
                  attack_type="slash", attack_speed=1.0, attack_range=0,

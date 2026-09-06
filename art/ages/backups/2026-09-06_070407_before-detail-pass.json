@@ -1,0 +1,6 @@
+{
+  "archive": "2026-09-06_070407_before-detail-pass.zip",
+  "file_count": 6369,
+  "sha256": "b39b44521e3a02f40fa49c43c120c0abd8aff5282c1c85cc6fe8603af320b1f6",
+  "restore": "Extract the archive into the repository root, replacing only its listed art files. Preserve a snapshot of the newer version first."
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Bronze Swordsman",
+  "age": "Bronze",
+  "base": "clubman",
+  "actions": [
+    "idle",
+    "run",
+    "attack"
+  ],
+  "frames_per_direction": 16,
+  "fps": 20,
+  "timeline_stride": 17,
+  "ground_anchor": [
+    0.5,
+    0.696509
+  ],
+  "render_scale": 1.1707317073170733,
+  "action_events": {
+    "attack": {
+      "impact_frame": 8
+    }
+  }
+}

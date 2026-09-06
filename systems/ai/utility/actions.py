@@ -18,6 +18,9 @@ def start_construction(ctx, building_name: str, building_placer, position=None) 
     of letting the placer's ring search choose. Returns True if construction
     actually started.
     """
+    from systems.ages import availability
+    if not availability(ctx.player, building_name)[0]:
+        return False
     if ctx.has_construction_in_progress(building_name):
         return False
     if not ctx.can_afford(building_name):

@@ -1,0 +1,18 @@
+{
+  "name": "Priest",
+  "age": "Iron",
+  "base": "healer",
+  "actions": [
+    "idle",
+    "run",
+    "attack"
+  ],
+  "frames_per_direction": 16,
+  "fps": 20,
+  "timeline_stride": 17,
+  "ground_anchor": [
+    0.5,
+    0.730059
+  ],
+  "render_scale": 0.9999999767396509
+}

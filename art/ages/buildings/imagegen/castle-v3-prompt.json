@@ -1,0 +1,11 @@
+{
+  "id": "3_castle",
+  "revision": 3,
+  "tool": "built-in image_gen",
+  "prompt": "Redraw Image 1 as a richly hand-painted cartoon RTS building sprite in the visual style of Image 2. Image 1 is the STRICT architectural layout and proportion reference. Image 2 is ONLY a paint/material/style reference, not a layout reference. Preserve Image 1's compact castle silhouette and camera: exactly FOUR thick cylindrical corner towers with conical roofs, joined closely by high crenellated stone walls, one large arched doorway directly in the front wall. Keep the same tower locations, relative tower diameters, wall height, small enclosed space and footprint as Image 1. The towers occupy much of the footprint; this is compact and solid, not sprawling. Do not add ANY fifth tower, gatehouse towers, inner building, house, hall, keep, miniature castle, large courtyard, extra enclosure, bridge, stairs complex or extra wings. The small interior contains only simple paving and wall-walks, mostly hidden by the high walls. Newly paint the whole sprite: warm detailed stone masonry with believable courses and subtle chips, strong clean dark outlines, sculpted light and shadow, handsome slate-blue conical tower roofs with visible tile courses, wood-and-iron arched main door, restrained corbels and arrow slits, two small gate lanterns, royal-blue cloth pennants and one blue banner above the gate. Use Image 2's warm polished hand-painted shading and crisp readable material detail. Details must enhance the architecture, not add structures. All four towers use one consistent architectural scale. Static single view, elevated orthographic isometric angle matching Image 1. Full castle and flags centered, with clear 8% padding to every canvas edge. Background must be plain solid RGB(255,0,255), hex #FF00FF, for later removal. No ground shadow, terrain slab, scenery, people, words, labels, watermark, transparency or checkerboard. No magenta/pink/purple on the castle.",
+  "source": "C:\\Users\\ilank\\.codex\\generated_images\\01a07221-6c1f-7742-8cce-dd8a1718ab1a\\exec-e4febfdc-9a32-4b24-88ba-edbc11d3e364.png",
+  "references": [
+    "assets/sprites/Buildings/Castle.png",
+    "raw/3_barracks.png"
+  ]
+}

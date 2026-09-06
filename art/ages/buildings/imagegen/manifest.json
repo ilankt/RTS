@@ -1,0 +1,542 @@
+[
+  {
+    "id": "1_castle",
+    "family": "castle",
+    "age": 1,
+    "name": "Town Center",
+    "sprite": "imagegen/sprites/1_castle.png",
+    "raw": "imagegen/raw/1_castle.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_castle",
+    "family": "castle",
+    "age": 2,
+    "name": "Town Hall",
+    "sprite": "imagegen/sprites/2_castle.png",
+    "raw": "imagegen/raw/2_castle.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_castle",
+    "family": "castle",
+    "age": 3,
+    "name": "Castle",
+    "sprite": "imagegen/sprites/3_castle-v3.png",
+    "raw": "imagegen/raw/3_castle-v3.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "1_barracks",
+    "family": "barracks",
+    "age": 1,
+    "name": "Barracks",
+    "sprite": "imagegen/sprites/1_barracks.png",
+    "raw": "imagegen/raw/1_barracks.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_barracks",
+    "family": "barracks",
+    "age": 2,
+    "name": "Barracks",
+    "sprite": "imagegen/sprites/2_barracks.png",
+    "raw": "imagegen/raw/2_barracks.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_barracks",
+    "family": "barracks",
+    "age": 3,
+    "name": "Barracks",
+    "sprite": "imagegen/sprites/3_barracks.png",
+    "raw": "imagegen/raw/3_barracks.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "1_house",
+    "family": "house",
+    "age": 1,
+    "name": "House",
+    "sprite": "imagegen/sprites/1_house.png",
+    "raw": "imagegen/raw/1_house.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_house",
+    "family": "house",
+    "age": 2,
+    "name": "House",
+    "sprite": "imagegen/sprites/2_house.png",
+    "raw": "imagegen/raw/2_house.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_house",
+    "family": "house",
+    "age": 3,
+    "name": "House",
+    "sprite": "imagegen/sprites/3_house.png",
+    "raw": "imagegen/raw/3_house.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "1_farm",
+    "family": "farm",
+    "age": 1,
+    "name": "Farm",
+    "sprite": "imagegen/sprites/1_farm.png",
+    "raw": "imagegen/raw/1_farm.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_farm",
+    "family": "farm",
+    "age": 2,
+    "name": "Farm",
+    "sprite": "imagegen/sprites/2_farm.png",
+    "raw": "imagegen/raw/2_farm.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_farm",
+    "family": "farm",
+    "age": 3,
+    "name": "Farm",
+    "sprite": "imagegen/sprites/3_farm.png",
+    "raw": "imagegen/raw/3_farm.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "1_lumbermill",
+    "family": "lumbermill",
+    "age": 1,
+    "name": "Lumbermill",
+    "sprite": "imagegen/sprites/1_lumbermill.png",
+    "raw": "imagegen/raw/1_lumbermill.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_lumbermill",
+    "family": "lumbermill",
+    "age": 2,
+    "name": "Lumbermill",
+    "sprite": "imagegen/sprites/2_lumbermill.png",
+    "raw": "imagegen/raw/2_lumbermill.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_lumbermill",
+    "family": "lumbermill",
+    "age": 3,
+    "name": "Lumbermill",
+    "sprite": "imagegen/sprites/3_lumbermill.png",
+    "raw": "imagegen/raw/3_lumbermill.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "1_mine",
+    "family": "mine",
+    "age": 1,
+    "name": "Mine",
+    "sprite": "imagegen/sprites/1_mine.png",
+    "raw": "imagegen/raw/1_mine.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_mine",
+    "family": "mine",
+    "age": 2,
+    "name": "Mine",
+    "sprite": "imagegen/sprites/2_mine.png",
+    "raw": "imagegen/raw/2_mine.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_mine",
+    "family": "mine",
+    "age": 3,
+    "name": "Mine",
+    "sprite": "imagegen/sprites/3_mine.png",
+    "raw": "imagegen/raw/3_mine.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_stable",
+    "family": "stable",
+    "age": 2,
+    "name": "Stable",
+    "sprite": "imagegen/sprites/2_stable.png",
+    "raw": "imagegen/raw/2_stable.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_stable",
+    "family": "stable",
+    "age": 3,
+    "name": "Stable",
+    "sprite": "imagegen/sprites/3_stable.png",
+    "raw": "imagegen/raw/3_stable.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_blacksmith",
+    "family": "blacksmith",
+    "age": 2,
+    "name": "Blacksmith",
+    "sprite": "imagegen/sprites/2_blacksmith.png",
+    "raw": "imagegen/raw/2_blacksmith.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_blacksmith",
+    "family": "blacksmith",
+    "age": 3,
+    "name": "Blacksmith",
+    "sprite": "imagegen/sprites/3_blacksmith.png",
+    "raw": "imagegen/raw/3_blacksmith.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_temple",
+    "family": "temple",
+    "age": 2,
+    "name": "Temple",
+    "sprite": "imagegen/sprites/2_temple.png",
+    "raw": "imagegen/raw/2_temple.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_temple",
+    "family": "temple",
+    "age": 3,
+    "name": "Temple",
+    "sprite": "imagegen/sprites/3_temple.png",
+    "raw": "imagegen/raw/3_temple.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_siege_workshop",
+    "family": "siege_workshop",
+    "age": 2,
+    "name": "Siege Workshop",
+    "sprite": "imagegen/sprites/2_siege_workshop.png",
+    "raw": "imagegen/raw/2_siege_workshop.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_siege_workshop",
+    "family": "siege_workshop",
+    "age": 3,
+    "name": "Siege Workshop",
+    "sprite": "imagegen/sprites/3_siege_workshop.png",
+    "raw": "imagegen/raw/3_siege_workshop.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_market",
+    "family": "market",
+    "age": 2,
+    "name": "Market",
+    "sprite": "imagegen/sprites/2_market.png",
+    "raw": "imagegen/raw/2_market.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_market",
+    "family": "market",
+    "age": 3,
+    "name": "Market",
+    "sprite": "imagegen/sprites/3_market.png",
+    "raw": "imagegen/raw/3_market.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "2_watchtower",
+    "family": "watchtower",
+    "age": 2,
+    "name": "Watchtower",
+    "sprite": "imagegen/sprites/2_watchtower.png",
+    "raw": "imagegen/raw/2_watchtower.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "id": "3_watchtower",
+    "family": "watchtower",
+    "age": 3,
+    "name": "Watchtower",
+    "sprite": "imagegen/sprites/3_watchtower.png",
+    "raw": "imagegen/raw/3_watchtower.png",
+    "width": 1254,
+    "height": 1254,
+    "directions": 1,
+    "frames": 1,
+    "generation": "built-in image_gen",
+    "background_key": [
+      255,
+      0,
+      255
+    ]
+  }
+]

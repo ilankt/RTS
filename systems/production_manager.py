@@ -27,6 +27,10 @@ class ProductionManager:
     
     def start_production(self, building, unit_type):
         """Start producing a unit in a building"""
+        from systems.ages import availability
+        allowed, reason = availability(building.player, unit_type)
+        if not allowed:
+            return False, reason
         if not building.can_produce or unit_type not in building.can_produce:
             return False, f"Building {building.name} cannot produce {unit_type}"
         
@@ -172,6 +176,8 @@ class ProductionManager:
         
         # Set up animations using sprite manager
         self._setup_unit_animations(new_unit, unit_data)
+        from systems.ages import apply_unit_appearance
+        apply_unit_appearance(self.game, new_unit)
 
         # Add to game
         self.game.units.append(new_unit)
