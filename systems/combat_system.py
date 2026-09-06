@@ -568,6 +568,9 @@ class CombatSystem:
         """§8.15 balance instrumentation: bump per-type damage tallies.
         Guarded getattr so unit tests driving a bare fake game don't need
         the stat dicts to exist."""
+        if damage > 0:
+            target.last_attacker = attacker
+            target._last_damage_sim_time = getattr(self.game, 'sim_time_elapsed', 0.0)
         attacker_player = getattr(attacker, 'player', None)
         if attacker_player is not None:
             dealt = getattr(self.game, 'stats_damage_dealt', None)

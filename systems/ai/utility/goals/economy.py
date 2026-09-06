@@ -137,8 +137,10 @@ class MarketTradeGoal(Goal):
                 if res.get(resource, 0) < self.BUY_SHORTAGE:
                     return ("buy", resource)
         if gold < self.SELL_GOLD_CAP:
-            biggest = max(MARKET_TRADEABLE, key=lambda r: res.get(r, 0))
-            if res.get(biggest, 0) >= self.SELL_SURPLUS:
+            surplus = {r: res.get(r, 0) - ctx.age_reserve.get(r, 0)
+                       for r in MARKET_TRADEABLE}
+            biggest = max(MARKET_TRADEABLE, key=lambda r: surplus[r])
+            if surplus[biggest] >= self.SELL_SURPLUS:
                 return ("sell", biggest)
         return None
 
@@ -208,6 +210,8 @@ class BuildFarmGoal(Goal):
         if not ctx.can_afford("farm"):
             return 0
         farms = len(ctx.buildings.get("farm", []))
+        if farms < ctx.age_farm_target:
+            return 100  # fund food income before banking for advancement
         if farms == 0:
             return 80
         # §8.12 re-tune: a food CRISIS gates all unit production (every unit

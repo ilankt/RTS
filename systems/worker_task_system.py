@@ -89,6 +89,7 @@ class WorkerTaskSystem:
         self.tasks: Dict[object, WorkerTask] = {}
         self._slots: Dict[Tuple[int, str], Dict[object, Point]] = {}
         self._failed_path_until: Dict[Tuple[int, int, str], float] = {}
+        self._task_time = 0.0
 
     # ------------------------------------------------------------------
     # Public command API
@@ -147,6 +148,9 @@ class WorkerTaskSystem:
     def assign_build(self, worker, site) -> bool:
         if not self._valid_worker(worker) or not self._valid_site(site):
             return self._fail_new_task(worker, "invalid_construction_site")
+
+        if not getattr(worker.player, 'human', False) and not self.build_retry_ready(site):
+            return False
 
         self.cancel(worker)
         task = WorkerTask(kind="build", phase=MOVING_TO_BUILD, worker=worker, construction_site=site)
@@ -283,6 +287,7 @@ class WorkerTaskSystem:
         return (worker.x + dx / norm * 250, worker.y + dy / norm * 250)
 
     def update_pre_movement(self, delta_time: float) -> None:
+        self._task_time += delta_time
         self._flee_from_attackers()
         self._remove_dead_worker_tasks()
         for task in list(self.tasks.values()):
@@ -397,6 +402,8 @@ class WorkerTaskSystem:
             task.worker.status = "idle"
         elif task.phase == MOVING_TO_BUILD:
             task.phase = BUILDING
+            task.construction_site._build_retry_until = 0.0
+            task.construction_site._build_failures = 0
             task.worker.building_target = task.construction_site
             task.worker.is_building = True
             task.worker.status = "build"
@@ -639,7 +646,11 @@ class WorkerTaskSystem:
         """Public: did this worker recently fail to reach/slot this target?
         The AI's resource picker consults it to break the FAILED→re-pick-the-
         same-node→FAILED loop (§8.11)."""
-        return self._recent_path_failure(worker, target, mode)
+        return (mode == 'build' and not self.build_retry_ready(target)) or self._recent_path_failure(worker, target, mode)
+
+    def build_retry_ready(self, site) -> bool:
+        """One site-wide backoff prevents a relay of workers retrying it."""
+        return self._task_time >= getattr(site, '_build_retry_until', 0.0)
 
     def _recent_path_failure(self, worker, target, mode: str) -> bool:
         if target is None:
@@ -868,6 +879,10 @@ class WorkerTaskSystem:
         worker.status = "idle"
 
     def _set_failed(self, task: WorkerTask, reason: str) -> bool:
+        if task.kind == 'build' and self._valid_site(task.construction_site):
+            site = task.construction_site
+            site._build_failures = min(3, getattr(site, '_build_failures', 0) + 1)
+            site._build_retry_until = self._task_time + min(60.0, 15.0 * 2 ** (site._build_failures - 1))
         task.phase = FAILED
         task.failure_reason = reason
         worker = task.worker

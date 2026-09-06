@@ -181,6 +181,7 @@ class MilitaryBrain:
             # are being conscripted below anyway
             self._musters.pop(ctx.player.name, None)
             emergency = getattr(ctx, "castle_under_attack", False)
+            attackers = getattr(ctx, 'building_attackers', ())
             debug_log.log(
                 f"AI {ctx.player.name}: {len(enemies_near_base)} enemies near base! "
                 f"{'CASTLE UNDER ATTACK - full recall.' if emergency else 'Defending.'}",
@@ -188,11 +189,13 @@ class MilitaryBrain:
             )
             for unit in combatants:
                 if unit.in_combat or unit.is_engaging:
-                    if not emergency:
+                    intercept = (attackers and is_building_target(getattr(unit, 'current_target', None))
+                                 and any(math.hypot(unit.x-e.x, unit.y-e.y) <= 600 for e in attackers))
+                    if not emergency and not intercept:
                         continue  # normal defense never interrupts fights
                     # Units already fighting near home keep their targets;
                     # everyone farther gets recalled (micro-retreat template)
-                    if math.hypot(unit.x - castle.x, unit.y - castle.y) <= self.EMERGENCY_KEEP_FIGHT_RADIUS:
+                    if not intercept and math.hypot(unit.x - castle.x, unit.y - castle.y) <= self.EMERGENCY_KEEP_FIGHT_RADIUS:
                         continue
                     unit.clear_all_movement_state()
                     unit.current_target = None
@@ -204,7 +207,7 @@ class MilitaryBrain:
                     continue
                 # §7 P3 counter-targeting: prefer the threat this unit is
                 # strong against (spearman meets the cavalry, not the warrior)
-                defense_target = self._pick_engagement_target(unit, enemies_near_base)
+                defense_target = self._pick_engagement_target(unit, attackers or enemies_near_base)
                 # §9: defense conscription overrides an in-progress flight —
                 # drop the commitment and its suppression so the unit fights.
                 # §7 P4: it dissolves guard duty too — home outranks the mid.
@@ -212,6 +215,14 @@ class MilitaryBrain:
                 self._release_flight(unit)
                 self._command_attack(unit, defense_target, ctx)
             return  # Defense takes priority over everything
+
+        # Idle soldiers clear nearby foundations without waiting for a wave.
+        sites = getattr(ctx, 'enemy_construction_sites', ())
+        for unit in combatants:
+            if self._is_idle_military(unit) and not self._should_retreat(unit, max_hp_cache[unit]):
+                nearby = [s for s in sites if s.hp > 0 and math.hypot(s.x-unit.x, s.y-unit.y) <= 300]
+                if nearby:
+                    self._command_attack(unit, min(nearby, key=lambda s: math.hypot(s.x-unit.x, s.y-unit.y)), ctx)
 
         # 1b. §8.9 squad retreat: a fight going badly ends NOW — disengage,
         # re-mass, re-engage — instead of bleeding out piecemeal. Only when
@@ -234,7 +245,7 @@ class MilitaryBrain:
         # known enemy buildings can't attack — AttackGoal never fires. Send
         # one squad probing the likely spawn areas so the army finds the
         # fight instead of idling at home while the lone scout wanders.
-        if not ctx.enemy_buildings and len(combatants) >= 5 and not getattr(ctx, "regrouping", False):
+        if not ctx.enemy_buildings and not sites and len(combatants) >= 5 and not getattr(ctx, "regrouping", False):
             scout_brain = getattr(getattr(self.game, "ai_system", None), "scout_brain", None)
             if scout_brain is not None:
                 anchor = scout_brain.next_unexplored_anchor(ctx.player, (castle.x, castle.y))

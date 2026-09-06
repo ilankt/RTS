@@ -1,6 +1,6 @@
 """Age investment uses the shared blackboard, costs and research path."""
 from systems.ai.utility.goal import Goal
-from systems.ai.utility.actions import queue_research
+from systems.ai.utility.actions import queue_research, start_construction
 from systems.ages import current_age, completed_tier_one, iron_requirement, UNIT_LINE_TECHS
 
 
@@ -30,10 +30,22 @@ class UpgradeUnitLineGoal(Goal):
     category = 'military'
 
     def _next(self, ctx):
+        candidates = []
         for name, techs in UNIT_LINE_TECHS.items():
+            count = sum(u.name == name and getattr(u, 'hp', 1) > 0 for u in ctx.military)
+            if count < 2:
+                continue
             for tech in techs:
-                if ctx.count_units(name)>=2 and ctx.can_research(tech): return tech
-        return None
+                if not ctx.can_research(tech):
+                    continue
+                data = ctx.tech_data[tech]
+                if ctx.find_idle_research_building(data['building']) is None:
+                    continue
+                # Prefer the upgrade benefiting most fielded units per
+                # resource, rather than always starting with swordsmen.
+                value = count / max(1, sum(data.get('costs', {}).values()))
+                candidates.append((value, tech))
+        return max(candidates)[1] if candidates else None
 
     def score(self, ctx):
         return 110 if current_age(ctx.player) > 1 and self._next(ctx) else 0
@@ -42,3 +54,17 @@ class UpgradeUnitLineGoal(Goal):
         tech = self._next(ctx)
         producer=ctx.tech_data[tech]['building'] if tech else None
         return bool(tech and queue_research(ctx,ctx.find_idle_research_building(producer),tech))
+
+
+class PrepareAgeGoal(Goal):
+    name = 'prepare_age'
+    category = 'economy'
+
+    def score(self, ctx):
+        building = ctx.age_building
+        if not building or ctx.has_building_or_site(building):
+            return 0
+        return 150 if ctx.workers and ctx.can_afford(building) else 0
+
+    def execute(self, ctx):
+        return start_construction(ctx, ctx.age_building, ctx.game.ai_system.building_placer)

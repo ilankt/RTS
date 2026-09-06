@@ -37,10 +37,11 @@ from .tactical import (
 )
 
 
-from .ages import AdvanceAgeGoal, UpgradeUnitLineGoal
+from .ages import AdvanceAgeGoal, UpgradeUnitLineGoal, PrepareAgeGoal
 
 ALL_GOALS = [
     AdvanceAgeGoal,
+    PrepareAgeGoal,
     UpgradeUnitLineGoal,
     # Tactical first — DefendBase has the highest possible scores
     DefendBaseGoal,

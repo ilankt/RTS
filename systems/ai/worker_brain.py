@@ -122,8 +122,8 @@ class WorkerBrain:
         site = self._find_unattended_construction_site(worker, ctx)
         if site:
             debug_log.log(f"AI {player.name}: Worker assigned to build {site.building_name} at ({site.x:.0f}, {site.y:.0f})", "AI")
-            self._command_build(worker, site)
-            return
+            if self._command_build(worker, site):
+                return
 
         # 3. Gather the best known resource for short gather/drop-off loops.
         resource = self._find_best_resource_to_gather(worker, ctx)
@@ -144,6 +144,9 @@ class WorkerBrain:
         best = None
         best_dist = float("inf")
         for site in ctx.construction_sites:
+            tasks = getattr(self.game, 'worker_task_system', None)
+            if tasks and not tasks.build_retry_ready(site):
+                continue
             # §8.17 follow-up (user-observed: a worker walked blind into a
             # battle to build a mine): a site inside a live threat zone gets
             # no builder until the fight clears — DefendBase owns clearing it.
@@ -244,6 +247,7 @@ class WorkerBrain:
             success = self.game.pathfinder.issue_interact(worker, construction_site, "build")
         if not success:
             debug_log.log(f"AI: No path to construction site at ({construction_site.x:.0f}, {construction_site.y:.0f})", "AI")
+        return success
 
     def get_worker_counts(self, ctx):
         """Return (idle, gathering, building) worker counts for debug display."""

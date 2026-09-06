@@ -61,12 +61,17 @@ class GoalContext:
     enemy_construction_sites: list = field(default_factory=list)  # §8.17.2
     enemies_near_base: list = field(default_factory=list)
     castle_under_attack: bool = False  # §8.11: castle hit in the last ~3s
+    building_attackers: list = field(default_factory=list)
     fountains: list = field(default_factory=list)  # §8.9: explored fountains
     regrouping: bool = False  # §8.9: army is re-massing after a retreat
     known_resources_by_type: Dict[str, list] = field(default_factory=dict)
     gatherers_by_resource: Dict[int, int] = field(default_factory=dict)
     gathering_counts_by_type: Dict[str, int] = field(default_factory=dict)
     research_in_progress: set = field(default_factory=set)
+    age_target: Optional[str] = None
+    age_reserve: Dict[str, int] = field(default_factory=dict)
+    age_building: Optional[str] = None
+    age_farm_target: int = 0
     _dropoff_need_cache: Dict[str, float] = field(default_factory=dict)
 
     # Coarse influence map: enemy combat strength summed per cell
@@ -182,6 +187,28 @@ class GoalContext:
             ctx.castle_under_attack = is_castle_under_attack(
                 ctx.castle, getattr(game, "frame_counter", 0))
 
+        # Defend all settled anchors using the existing perception snapshot.
+        anchors = [b for group in ctx.buildings.values() for b in group if b.hp > 0]
+        anchors += [s for s in ctx.construction_sites if getattr(s, 'hp', 0) > 0]
+        known = ctx.enemy_units + ctx.enemy_buildings + ctx.enemy_construction_sites
+        near_ids = {id(e) for e in ctx.enemies_near_base}
+        now = getattr(game, 'sim_time_elapsed', 0.0)
+        for anchor in anchors:
+            for enemy in known:
+                if id(enemy) not in near_ids and (enemy.x-anchor.x)**2 + (enemy.y-anchor.y)**2 <= DEFENSE_RADIUS**2:
+                    ctx.enemies_near_base.append(enemy)
+                    near_ids.add(id(enemy))
+            attacker = getattr(anchor, 'last_attacker', None)
+            hit = getattr(anchor, '_last_damage_sim_time', -float('inf'))
+            # Never track a fleeing attacker through fog.
+            if (now - hit <= 8.0 and attacker is not None
+                    and any(attacker is e for e in known) and attacker.hp > 0):
+                if not any(attacker is e for e in ctx.building_attackers):
+                    ctx.building_attackers.append(attacker)
+                if id(attacker) not in near_ids:
+                    ctx.enemies_near_base.append(attacker)
+                    near_ids.add(id(attacker))
+
         for resource in getattr(game, "resources", []):
             if getattr(resource, "amount_remaining", 0) <= 0:
                 continue
@@ -212,6 +239,8 @@ class GoalContext:
                 key = (int(enemy.x // cell), int(enemy.y // cell))
                 threat[key] = threat.get(key, 0.0) + enemy.hp * 2.0
 
+        from .age_plan import configure_age_plan
+        configure_age_plan(ctx)
         return ctx
 
     @property
@@ -259,7 +288,9 @@ class GoalContext:
         costs = self.cost_data.get(item_name, {})
         if not costs:
             return False
-        return all(self.resources.get(r, 0) >= a for r, a in costs.items())
+        from .age_plan import respects_age_budget
+        return (all(self.resources.get(r, 0) >= a for r, a in costs.items())
+                and respects_age_budget(self, item_name, costs))
 
     def has_pop_space(self) -> bool:
         return self.pop_current < self.pop_max
@@ -343,4 +374,5 @@ class GoalContext:
         if not manager:
             return False
         ok, _ = manager.research_status(self.player, tech_id, in_progress=self.research_in_progress)
-        return ok
+        from .age_plan import respects_age_budget
+        return ok and respects_age_budget(self, tech_id, self.tech_data.get(tech_id, {}).get('costs', {}))
