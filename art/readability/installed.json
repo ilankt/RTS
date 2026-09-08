@@ -1,0 +1,400 @@
+{
+  "units": {
+    "clubman": {
+      "model": "art/readability/models/clubman_option_b.blend",
+      "model_sha256": "24eaa4a726c31a945cda39478f092d0b68b5c7107c63571d80e4b42420663866",
+      "frame_source": "art/readability/full-frames",
+      "frames_per_direction": 8,
+      "fps": 10.0,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 1.0,
+      "actions": {
+        "idle": {
+          "frames": 64,
+          "minimum_margin": 38
+        },
+        "run": {
+          "frames": 64,
+          "minimum_margin": 34
+        },
+        "attack": {
+          "frames": 64,
+          "minimum_margin": 31
+        }
+      }
+    },
+    "worker": {
+      "model": "art/readability/workers/models/worker_option_b.blend",
+      "model_sha256": "77cb17d26fba65876d137b88bed509f1f34c64cb81acffc17f963232d9783409",
+      "frame_source": "art/readability/workers/frames",
+      "frames_per_direction": 8,
+      "fps": 10.0,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 1.0,
+      "actions": {
+        "idle": {
+          "frames": 64,
+          "minimum_margin": 43
+        },
+        "run": {
+          "frames": 64,
+          "minimum_margin": 43
+        },
+        "gather": {
+          "frames": 64,
+          "minimum_margin": 27
+        },
+        "build": {
+          "frames": 64,
+          "minimum_margin": 33
+        }
+      }
+    },
+    "slinger": {
+      "model": "art/readability/remaining/models/slinger_option_b.blend",
+      "model_sha256": "b2acd7f3c9321595a7218254864bda5d5c2278b0f28fb32e87e21eaf1d5f3d39",
+      "frame_source": "art/readability/remaining/frames",
+      "frames_per_direction": 8,
+      "fps": 10.0,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 1.0,
+      "actions": {
+        "idle": {
+          "frames": 64,
+          "minimum_margin": 43
+        },
+        "run": {
+          "frames": 64,
+          "minimum_margin": 43
+        },
+        "shoot": {
+          "frames": 64,
+          "minimum_margin": 43
+        }
+      }
+    },
+    "spearman": {
+      "model": "art/readability/remaining/models/spearman_option_b.blend",
+      "model_sha256": "1f0604cf3483de5d6d0af7f80c5f6930dcd151c50bdd84e6b6d81d709d298e15",
+      "frame_source": "art/readability/remaining/frames",
+      "frames_per_direction": 8,
+      "fps": 10.0,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 1.0,
+      "actions": {
+        "idle": {
+          "frames": 64,
+          "minimum_margin": 35
+        },
+        "run": {
+          "frames": 64,
+          "minimum_margin": 33
+        },
+        "attack": {
+          "frames": 64,
+          "minimum_margin": 32
+        }
+      }
+    },
+    "bronze_worker": {
+      "model": "art/readability/workers/models/bronze_worker_option_b.blend",
+      "model_sha256": "e7c3b147dcd15495554e692510adfacfcad1cfb0eb56aec3215a996308fa87c7",
+      "frame_source": "art/readability/workers/frames",
+      "frames_per_direction": 16,
+      "fps": 20.0,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 1.0,
+      "actions": {
+        "idle": {
+          "frames": 128,
+          "minimum_margin": 43
+        },
+        "run": {
+          "frames": 128,
+          "minimum_margin": 43
+        },
+        "gather": {
+          "frames": 128,
+          "minimum_margin": 24
+        },
+        "build": {
+          "frames": 128,
+          "minimum_margin": 33
+        }
+      }
+    },
+    "iron_worker": {
+      "model": "art/readability/workers/models/iron_worker_option_b.blend",
+      "model_sha256": "1dac161e9d4890a0c78c4a518d79b846256b4b7f640e61c923e673c07bfcfc60",
+      "frame_source": "art/readability/workers/frames",
+      "frames_per_direction": 16,
+      "fps": 20.0,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 1.0,
+      "actions": {
+        "idle": {
+          "frames": 128,
+          "minimum_margin": 43
+        },
+        "run": {
+          "frames": 128,
+          "minimum_margin": 43
+        },
+        "gather": {
+          "frames": 128,
+          "minimum_margin": 24
+        },
+        "build": {
+          "frames": 128,
+          "minimum_margin": 33
+        }
+      }
+    },
+    "bronze_swordsman": {
+      "model": "art/readability/models/bronze_swordsman_option_b.blend",
+      "model_sha256": "8ca27c9d22b5caabfaa7df58d13e9fa5bb8da44f19b0ec3b6f65c98a3be4780d",
+      "frame_source": "art/readability/full-frames",
+      "frames_per_direction": 16,
+      "fps": 20.0,
+      "ground_anchor": [
+        0.5,
+        0.696509
+      ],
+      "render_scale": 1.170732,
+      "actions": {
+        "idle": {
+          "frames": 128,
+          "minimum_margin": 49
+        },
+        "run": {
+          "frames": 128,
+          "minimum_margin": 43
+        },
+        "attack": {
+          "frames": 128,
+          "minimum_margin": 42
+        }
+      }
+    },
+    "iron_swordsman": {
+      "model": "art/readability/models/iron_swordsman_option_b.blend",
+      "model_sha256": "004a1e03a62e8f6fefe950fcd8774f3bc334b0aebde56d0b2999768eae2cb76d",
+      "frame_source": "art/readability/full-frames",
+      "frames_per_direction": 16,
+      "fps": 20.0,
+      "ground_anchor": [
+        0.5,
+        0.668436
+      ],
+      "render_scale": 1.365854,
+      "actions": {
+        "idle": {
+          "frames": 128,
+          "minimum_margin": 51
+        },
+        "run": {
+          "frames": 128,
+          "minimum_margin": 46
+        },
+        "attack": {
+          "frames": 128,
+          "minimum_margin": 45
+        }
+      }
+    },
+    "archer": {
+      "model": "art/readability/remaining/models/archer_option_b.blend",
+      "model_sha256": "8cfef4fe7997d7d83da99b7975b024689d140adbea0f6b3848e9e57555f50066",
+      "frame_source": "art/readability/remaining/frames",
+      "frames_per_direction": 16,
+      "fps": 20.0,
+      "ground_anchor": [
+        0.5,
+        0.662097
+      ],
+      "render_scale": 1.419267,
+      "actions": {
+        "idle": {
+          "frames": 128,
+          "minimum_margin": 47
+        },
+        "run": {
+          "frames": 128,
+          "minimum_margin": 47
+        },
+        "shoot": {
+          "frames": 128,
+          "minimum_margin": 47
+        }
+      }
+    },
+    "crossbowman": {
+      "model": "art/readability/remaining/models/crossbowman_option_b.blend",
+      "model_sha256": "971ba7353217d0bbdb3ea4835d088791b014f6b75f63eea78762c1fd1074e191",
+      "frame_source": "art/readability/remaining/frames",
+      "frames_per_direction": 16,
+      "fps": 20.0,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 1.0,
+      "actions": {
+        "idle": {
+          "frames": 128,
+          "minimum_margin": 34
+        },
+        "run": {
+          "frames": 128,
+          "minimum_margin": 34
+        },
+        "shoot": {
+          "frames": 128,
+          "minimum_margin": 23
+        }
+      }
+    },
+    "bronze_spearman": {
+      "model": "art/readability/remaining/models/bronze_spearman_option_b.blend",
+      "model_sha256": "b4896519e9224d68f690e4001d7b751706b32274b735b56d25edce1ff010ee5d",
+      "frame_source": "art/readability/remaining/frames",
+      "frames_per_direction": 16,
+      "fps": 20.0,
+      "ground_anchor": [
+        0.5,
+        0.681393
+      ],
+      "render_scale": 1.268293,
+      "actions": {
+        "idle": {
+          "frames": 128,
+          "minimum_margin": 40
+        },
+        "run": {
+          "frames": 128,
+          "minimum_margin": 37
+        },
+        "attack": {
+          "frames": 128,
+          "minimum_margin": 37
+        }
+      }
+    },
+    "pikeman": {
+      "model": "art/readability/remaining/models/pikeman_option_b.blend",
+      "model_sha256": "3f37a19176a7cd677cc3c22836add6926cefd754c984f7db481e06ab0bda84e7",
+      "frame_source": "art/readability/remaining/frames",
+      "frames_per_direction": 16,
+      "fps": 20.0,
+      "ground_anchor": [
+        0.5,
+        0.652136
+      ],
+      "render_scale": 1.512195,
+      "actions": {
+        "idle": {
+          "frames": 128,
+          "minimum_margin": 36
+        },
+        "run": {
+          "frames": 128,
+          "minimum_margin": 34
+        },
+        "attack": {
+          "frames": 128,
+          "minimum_margin": 34
+        }
+      }
+    },
+    "healer": {
+      "model": "art/readability/remaining/models/healer_option_b.blend",
+      "model_sha256": "460a37f76dfe97ac8e63a3c401f6aa774f657126484a30e24ffcb7d290142577",
+      "frame_source": "art/readability/remaining/frames",
+      "frames_per_direction": 16,
+      "fps": 20.0,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 1.0,
+      "actions": {
+        "idle": {
+          "frames": 128,
+          "minimum_margin": 21
+        },
+        "run": {
+          "frames": 128,
+          "minimum_margin": 18
+        },
+        "attack": {
+          "frames": 128,
+          "minimum_margin": 19
+        }
+      }
+    },
+    "priest": {
+      "model": "art/readability/remaining/models/priest_option_b.blend",
+      "model_sha256": "285d4cc0ac602824c7462c41d9cd23377eb1cf13a6bcfb25539932308efb9f9e",
+      "frame_source": "art/readability/remaining/frames",
+      "frames_per_direction": 16,
+      "fps": 20.0,
+      "ground_anchor": [
+        0.5,
+        0.730059
+      ],
+      "render_scale": 1.0,
+      "actions": {
+        "idle": {
+          "frames": 128,
+          "minimum_margin": 14
+        },
+        "run": {
+          "frames": 128,
+          "minimum_margin": 12
+        },
+        "attack": {
+          "frames": 128,
+          "minimum_margin": 13
+        }
+      }
+    }
+  },
+  "total_frames": 4928,
+  "sheets": 45,
+  "protected_assets": {
+    "assets/ui/Units/Ages/mounted_spearman.png": "38e578da50b0f64d5264265adfff04feec4bcbd64a49daeb8eb15286f6c4f422",
+    "assets/sprites/Units/Ages/mounted_spearman/idle.png": "3d51765cde3bce0dc72f4e92bcc80dbf647ac545689a813d77478869adf04375",
+    "assets/sprites/Units/Ages/mounted_spearman/run.png": "a429e98303e4804ecf1529c468414f24d333b2a0298661494e2af35cb5c6a1bd",
+    "assets/sprites/Units/Ages/mounted_spearman/attack.png": "ba370541eff02f2ece92879fcc7a42bc50490a0317fe93da21a947591b3021be",
+    "assets/ui/Units/Ages/heavy_cavalry.png": "7ac414364e5fcedf8e7bf0935e3f3b00a4caf82348e112a786453d964b0c3e89",
+    "assets/sprites/Units/Ages/heavy_cavalry/idle.png": "f57262458eaf940b0ceeae0f5745c3a3b17190679597cb91d4b521c14c3305b4",
+    "assets/sprites/Units/Ages/heavy_cavalry/run.png": "edfb3807ec3b149a74c31e2e71c477464336361e07cd42265ae9fdebced1a20e",
+    "assets/sprites/Units/Ages/heavy_cavalry/attack.png": "bf4e377662567b549be3887bc13f16b507aea35007592e197694bfc9379c132e",
+    "assets/ui/Units/Ages/ballista.png": "0d1a6cd809c553a3a38fbff041411e6ebe77458137b5793677f8030a74fdc217",
+    "assets/sprites/Units/Ages/ballista/idle.png": "2c878e53d0c6b7f37a859d107cf874747c974f553d2a581a3a3245c18686403f",
+    "assets/sprites/Units/Ages/ballista/run.png": "a7e1600797e2772bdaad4bc9dfc023f4bebba67e943faa578c70574b01b1f7fc",
+    "assets/sprites/Units/Ages/ballista/attack.png": "5d7a146ffcdfcecc6b4ce8a5c1c292fe1ca4769a8d36e6d52c25c2702feb4c38",
+    "assets/ui/Units/Ages/heavy_ballista.png": "aa81b0320beb96672bb70a60b9de95ebdac54ba9cecad4de4b40ccb206184f2a",
+    "assets/sprites/Units/Ages/heavy_ballista/idle.png": "52781c6055a69cacbd425f187b6eb069d18b24746273de26a428d1906a127c21",
+    "assets/sprites/Units/Ages/heavy_ballista/run.png": "22f952965e4b7fbd739a061b4e6cc4e7dfdb16e738acf32df9c9763c6690cba8",
+    "assets/sprites/Units/Ages/heavy_ballista/attack.png": "b18cda63dec027d33669c9261c006dcc0f7eaab0b40ada0f58bbbb8144c6948c"
+  }
+}

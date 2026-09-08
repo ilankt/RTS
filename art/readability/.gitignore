@@ -1,0 +1,20 @@
+# Reproducible frame exports and local diagnostics; retain final source models.
+**/frames/
+full-frames/
+**/details/
+*.log
+**/*.log
+*.blend1
+**/*.blend1
+before-motion-feedback/
+previous-sword-slash/
+workers/viewer*
+workers/review-state.json
+workers/live_view.py
+# Large per-frame audit details can be regenerated from the committed checks.
+**/verification.json
+**/clearance*.json
+remaining-objects.json
+objects.json
+inspect_models.py
+inspect_remaining.py

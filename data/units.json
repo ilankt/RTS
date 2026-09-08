@@ -39,7 +39,8 @@
     "ground_anchor": [
       0.5,
       0.730059
-    ]
+    ],
+    "render_scale": 1.0
   },
   {
     "name": "warrior",
@@ -87,7 +88,8 @@
     "ground_anchor": [
       0.5,
       0.730059
-    ]
+    ],
+    "render_scale": 1.0
   },
   {
     "name": "archer",
@@ -133,7 +135,8 @@
       0.5,
       0.730059
     ],
-    "projectile_type": "stone"
+    "projectile_type": "stone",
+    "render_scale": 1.0
   },
   {
     "name": "spearman",

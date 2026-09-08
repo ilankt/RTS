@@ -1,0 +1,16 @@
+{
+  "source": "art/ages/units/models/healer.blend",
+  "group": "healers",
+  "actions": [
+    "idle",
+    "run",
+    "attack"
+  ],
+  "count": 16,
+  "stride": 17,
+  "ground_anchor": [
+    0.5,
+    0.7300590574741364
+  ],
+  "render_scale": 0.9999999767396509
+}

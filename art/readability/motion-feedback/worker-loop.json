@@ -1,0 +1,260 @@
+[
+  {
+    "unit": "worker",
+    "action": 2,
+    "frames": [
+      17,
+      24,
+      24.5
+    ],
+    "differences": {
+      "Wrist wrap.001": [
+        0.0,
+        0.0
+      ],
+      "Wrist wrap": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand.001": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand": [
+        0.0,
+        0.0
+      ],
+      "Articulated upper arm.001": [
+        0.0,
+        0.0
+      ],
+      "Articulated upper arm": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm.001": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  {
+    "unit": "worker",
+    "action": 3,
+    "frames": [
+      25,
+      32,
+      32.5
+    ],
+    "differences": {
+      "Wrist wrap.001": [
+        0.0,
+        0.0
+      ],
+      "Wrist wrap": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand.001": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand": [
+        0.0,
+        0.0
+      ],
+      "Articulated upper arm.001": [
+        0.0,
+        0.0
+      ],
+      "Articulated upper arm": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm.001": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  {
+    "unit": "bronze_worker",
+    "action": 2,
+    "frames": [
+      35,
+      49,
+      50
+    ],
+    "differences": {
+      "Articulated upper arm": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm": [
+        0.0,
+        0.0
+      ],
+      "Wrist wrap": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand": [
+        0.0,
+        0.0
+      ],
+      "Articulated upper arm.001": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm.001": [
+        0.0,
+        0.0
+      ],
+      "Wrist wrap.001": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand.001": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  {
+    "unit": "bronze_worker",
+    "action": 3,
+    "frames": [
+      52,
+      66,
+      67
+    ],
+    "differences": {
+      "Articulated upper arm": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm": [
+        0.0,
+        0.0
+      ],
+      "Wrist wrap": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand": [
+        0.0,
+        0.0
+      ],
+      "Articulated upper arm.001": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm.001": [
+        0.0,
+        0.0
+      ],
+      "Wrist wrap.001": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand.001": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  {
+    "unit": "iron_worker",
+    "action": 2,
+    "frames": [
+      35,
+      49,
+      50
+    ],
+    "differences": {
+      "Articulated upper arm": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm": [
+        0.0,
+        0.0
+      ],
+      "Wrist wrap": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand": [
+        0.0,
+        0.0
+      ],
+      "Articulated upper arm.001": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm.001": [
+        0.0,
+        0.0
+      ],
+      "Wrist wrap.001": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand.001": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  {
+    "unit": "iron_worker",
+    "action": 3,
+    "frames": [
+      52,
+      66,
+      67
+    ],
+    "differences": {
+      "Articulated upper arm": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm": [
+        0.0,
+        0.0
+      ],
+      "Wrist wrap": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand": [
+        0.0,
+        0.0
+      ],
+      "Articulated upper arm.001": [
+        0.0,
+        0.0
+      ],
+      "Articulated forearm.001": [
+        0.0,
+        0.0
+      ],
+      "Wrist wrap.001": [
+        0.0,
+        0.0
+      ],
+      "Weapon grip hand.001": [
+        0.0,
+        0.0
+      ]
+    }
+  }
+]

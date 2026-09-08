@@ -1,0 +1,16 @@
+{
+  "source": "art/ages/units/models/bronze_spearman.blend",
+  "group": "spears",
+  "actions": [
+    "idle",
+    "run",
+    "attack"
+  ],
+  "count": 16,
+  "stride": 17,
+  "ground_anchor": [
+    0.5,
+    0.6813926994800568
+  ],
+  "render_scale": 1.268292636406131
+}

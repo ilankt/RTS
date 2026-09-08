@@ -44,6 +44,13 @@ player colors, sixteen animation frames and eight directions. Variant metadata
 lives in `data/age_units.json`; Ballista uses the old `ram` ID with ranged bolt
 attacks, and Crossbowman fires shorter bolts. Unit gallery: `units/index.html`.
 The thirty approved painted building sprites are integrated for all three ages.
+
+The approved Option B foot-unit readability and animation corrections are live
+through `art/readability/install.py`: larger identifying equipment, corrected
+two-handed Worker strokes, bow/slingshot draw and release, common spear motion,
+and edge-leading Swordsman swings. Mounted units and ballistas retain their
+existing art. `art/readability/installed.json` maps final Blender sources and
+frame validation to this installation.
 `data/age_buildings.json` maps the runtime PNGs to their preserved sources;
 `buildings/index.html` remains the full-resolution gallery. Buildings, placement
 previews, construction overlays and portraits follow their owner's age.

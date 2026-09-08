@@ -1,0 +1,346 @@
+[
+  {
+    "unit": "bronze_swordsman",
+    "clubman_pose_checks": 40,
+    "min_strike_edge_alignment": 0.9721665754914284,
+    "samples": [
+      {
+        "frame": 41.0,
+        "edge_alignment": 0.6800298562156968,
+        "flat_face_alignment": 0.7331844484800651
+      },
+      {
+        "frame": 41.125,
+        "edge_alignment": 0.8815087806433439,
+        "flat_face_alignment": 0.47216755046552983
+      },
+      {
+        "frame": 41.25,
+        "edge_alignment": 0.8923113872297108,
+        "flat_face_alignment": 0.45142053090996015
+      },
+      {
+        "frame": 41.375,
+        "edge_alignment": 0.9006563369184732,
+        "flat_face_alignment": 0.43453218319080733
+      },
+      {
+        "frame": 41.5,
+        "edge_alignment": 0.9146452285349369,
+        "flat_face_alignment": 0.4042574966385075
+      },
+      {
+        "frame": 41.625,
+        "edge_alignment": 0.9278109353035688,
+        "flat_face_alignment": 0.37305074349468725
+      },
+      {
+        "frame": 41.75,
+        "edge_alignment": 0.943520613014698,
+        "flat_face_alignment": 0.3313139951308237
+      },
+      {
+        "frame": 41.875,
+        "edge_alignment": 0.9579529229085892,
+        "flat_face_alignment": 0.28692535421418697
+      },
+      {
+        "frame": 42.0,
+        "edge_alignment": 0.9721665754914284,
+        "flat_face_alignment": 0.2342911846538165
+      },
+      {
+        "frame": 42.125,
+        "edge_alignment": 0.9835994988679886,
+        "flat_face_alignment": 0.18036608914723473
+      },
+      {
+        "frame": 42.25,
+        "edge_alignment": 0.9923060834407806,
+        "flat_face_alignment": 0.12380898500891035
+      },
+      {
+        "frame": 42.375,
+        "edge_alignment": 0.9974807500839233,
+        "flat_face_alignment": 0.0709382771875191
+      },
+      {
+        "frame": 42.5,
+        "edge_alignment": 0.9996946752071381,
+        "flat_face_alignment": 0.024710460428316594
+      },
+      {
+        "frame": 42.625,
+        "edge_alignment": 0.9999324083328247,
+        "flat_face_alignment": 0.011623762289850958
+      },
+      {
+        "frame": 42.75,
+        "edge_alignment": 0.9995022416114807,
+        "flat_face_alignment": 0.03155046676425144
+      },
+      {
+        "frame": 42.875,
+        "edge_alignment": 0.9992936700582504,
+        "flat_face_alignment": 0.03757972342856419
+      },
+      {
+        "frame": 43.0,
+        "edge_alignment": 0.9993722960352898,
+        "flat_face_alignment": 0.03542940532863348
+      },
+      {
+        "frame": 43.125,
+        "edge_alignment": 0.9996780010405928,
+        "flat_face_alignment": 0.025378849260662584
+      },
+      {
+        "frame": 43.25,
+        "edge_alignment": 0.9996500588022172,
+        "flat_face_alignment": 0.026456211360368798
+      },
+      {
+        "frame": 43.375,
+        "edge_alignment": 0.9996579177677631,
+        "flat_face_alignment": 0.02615488687137546
+      },
+      {
+        "frame": 43.5,
+        "edge_alignment": 0.9996753111481667,
+        "flat_face_alignment": 0.025485591215568704
+      },
+      {
+        "frame": 43.625,
+        "edge_alignment": 0.9997201859951019,
+        "flat_face_alignment": 0.023655910101732402
+      },
+      {
+        "frame": 43.75,
+        "edge_alignment": 0.9997596144676208,
+        "flat_face_alignment": 0.021929372610811626
+      },
+      {
+        "frame": 43.875,
+        "edge_alignment": 0.9998141229152679,
+        "flat_face_alignment": 0.01928060004491705
+      },
+      {
+        "frame": 44.0,
+        "edge_alignment": 0.9998530149459839,
+        "flat_face_alignment": 0.017150505239308167
+      },
+      {
+        "frame": 44.125,
+        "edge_alignment": 0.999898374080658,
+        "flat_face_alignment": 0.014258036751472858
+      },
+      {
+        "frame": 44.25,
+        "edge_alignment": 0.9999254643917084,
+        "flat_face_alignment": 0.0122016416044608
+      },
+      {
+        "frame": 44.375,
+        "edge_alignment": 0.9999555721879005,
+        "flat_face_alignment": 0.009428784320566541
+      },
+      {
+        "frame": 44.5,
+        "edge_alignment": 0.9999696910381317,
+        "flat_face_alignment": 0.007773424342798485
+      },
+      {
+        "frame": 44.625,
+        "edge_alignment": 0.9999861344695091,
+        "flat_face_alignment": 0.005274406374196516
+      },
+      {
+        "frame": 44.75,
+        "edge_alignment": 0.9999903254210949,
+        "flat_face_alignment": 0.004425200180049771
+      },
+      {
+        "frame": 44.875,
+        "edge_alignment": 0.9999979417771101,
+        "flat_face_alignment": 0.0020629030765757506
+      },
+      {
+        "frame": 45.0,
+        "edge_alignment": 0.9926085136830807,
+        "flat_face_alignment": 0.12136003353877012
+      }
+    ]
+  },
+  {
+    "unit": "iron_swordsman",
+    "clubman_pose_checks": 40,
+    "min_strike_edge_alignment": 0.9721665754914284,
+    "samples": [
+      {
+        "frame": 41.0,
+        "edge_alignment": 0.6800298562156968,
+        "flat_face_alignment": 0.7331844484800651
+      },
+      {
+        "frame": 41.125,
+        "edge_alignment": 0.8815087806433439,
+        "flat_face_alignment": 0.47216755046552983
+      },
+      {
+        "frame": 41.25,
+        "edge_alignment": 0.8923113872297108,
+        "flat_face_alignment": 0.45142053090996015
+      },
+      {
+        "frame": 41.375,
+        "edge_alignment": 0.9006563369184732,
+        "flat_face_alignment": 0.43453218319080733
+      },
+      {
+        "frame": 41.5,
+        "edge_alignment": 0.9146452285349369,
+        "flat_face_alignment": 0.4042574966385075
+      },
+      {
+        "frame": 41.625,
+        "edge_alignment": 0.9278109353035688,
+        "flat_face_alignment": 0.37305074349468725
+      },
+      {
+        "frame": 41.75,
+        "edge_alignment": 0.943520613014698,
+        "flat_face_alignment": 0.3313139951308237
+      },
+      {
+        "frame": 41.875,
+        "edge_alignment": 0.9579529229085892,
+        "flat_face_alignment": 0.28692535421418697
+      },
+      {
+        "frame": 42.0,
+        "edge_alignment": 0.9721665754914284,
+        "flat_face_alignment": 0.2342911846538165
+      },
+      {
+        "frame": 42.125,
+        "edge_alignment": 0.9835994988679886,
+        "flat_face_alignment": 0.18036608914723473
+      },
+      {
+        "frame": 42.25,
+        "edge_alignment": 0.9923060834407806,
+        "flat_face_alignment": 0.12380898500891035
+      },
+      {
+        "frame": 42.375,
+        "edge_alignment": 0.9974807500839233,
+        "flat_face_alignment": 0.0709382771875191
+      },
+      {
+        "frame": 42.5,
+        "edge_alignment": 0.9996946752071381,
+        "flat_face_alignment": 0.024710460428316594
+      },
+      {
+        "frame": 42.625,
+        "edge_alignment": 0.9999324083328247,
+        "flat_face_alignment": 0.011623762289850958
+      },
+      {
+        "frame": 42.75,
+        "edge_alignment": 0.9995022416114807,
+        "flat_face_alignment": 0.03155046676425144
+      },
+      {
+        "frame": 42.875,
+        "edge_alignment": 0.9992936700582504,
+        "flat_face_alignment": 0.03757972342856419
+      },
+      {
+        "frame": 43.0,
+        "edge_alignment": 0.9993722960352898,
+        "flat_face_alignment": 0.03542940532863348
+      },
+      {
+        "frame": 43.125,
+        "edge_alignment": 0.9996780010405928,
+        "flat_face_alignment": 0.025378849260662584
+      },
+      {
+        "frame": 43.25,
+        "edge_alignment": 0.9996500588022172,
+        "flat_face_alignment": 0.026456211360368798
+      },
+      {
+        "frame": 43.375,
+        "edge_alignment": 0.9996579177677631,
+        "flat_face_alignment": 0.02615488687137546
+      },
+      {
+        "frame": 43.5,
+        "edge_alignment": 0.9996753111481667,
+        "flat_face_alignment": 0.025485591215568704
+      },
+      {
+        "frame": 43.625,
+        "edge_alignment": 0.9997201859951019,
+        "flat_face_alignment": 0.023655910101732402
+      },
+      {
+        "frame": 43.75,
+        "edge_alignment": 0.9997596144676208,
+        "flat_face_alignment": 0.021929372610811626
+      },
+      {
+        "frame": 43.875,
+        "edge_alignment": 0.9998141229152679,
+        "flat_face_alignment": 0.01928060004491705
+      },
+      {
+        "frame": 44.0,
+        "edge_alignment": 0.9998530149459839,
+        "flat_face_alignment": 0.017150505239308167
+      },
+      {
+        "frame": 44.125,
+        "edge_alignment": 0.999898374080658,
+        "flat_face_alignment": 0.014258036751472858
+      },
+      {
+        "frame": 44.25,
+        "edge_alignment": 0.9999254643917084,
+        "flat_face_alignment": 0.0122016416044608
+      },
+      {
+        "frame": 44.375,
+        "edge_alignment": 0.9999555721879005,
+        "flat_face_alignment": 0.009428784320566541
+      },
+      {
+        "frame": 44.5,
+        "edge_alignment": 0.9999696910381317,
+        "flat_face_alignment": 0.007773424342798485
+      },
+      {
+        "frame": 44.625,
+        "edge_alignment": 0.9999861344695091,
+        "flat_face_alignment": 0.005274406374196516
+      },
+      {
+        "frame": 44.75,
+        "edge_alignment": 0.9999903254210949,
+        "flat_face_alignment": 0.004425200180049771
+      },
+      {
+        "frame": 44.875,
+        "edge_alignment": 0.9999979417771101,
+        "flat_face_alignment": 0.0020629030765757506
+      },
+      {
+        "frame": 45.0,
+        "edge_alignment": 0.9926085136830807,
+        "flat_face_alignment": 0.12136003353877012
+      }
+    ]
+  }
+]

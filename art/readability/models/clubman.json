@@ -1,0 +1,10 @@
+{
+  "source": "art/outlined_units/clubman.blend",
+  "ground_anchor": [
+    0.5,
+    0.7300590574741364
+  ],
+  "camera_ortho_scale": 4.099999904632568,
+  "render_scale": 0.9999999767396509,
+  "changes": "18% broader torso; wider stance; 30% larger shield; heavier club or 55% wider sword blade"
+}

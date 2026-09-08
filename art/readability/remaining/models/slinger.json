@@ -1,0 +1,16 @@
+{
+  "source": "art/outlined_units/slinger.blend",
+  "group": "ranged",
+  "actions": [
+    "idle",
+    "run",
+    "shoot"
+  ],
+  "count": 8,
+  "stride": 8,
+  "ground_anchor": [
+    0.5,
+    0.7300590574741364
+  ],
+  "render_scale": 0.9999999767396509
+}

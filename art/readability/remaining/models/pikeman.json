@@ -1,0 +1,16 @@
+{
+  "source": "art/ages/units/models/pikeman.blend",
+  "group": "spears",
+  "actions": [
+    "idle",
+    "run",
+    "attack"
+  ],
+  "count": 16,
+  "stride": 17,
+  "ground_anchor": [
+    0.5,
+    0.652135819196701
+  ],
+  "render_scale": 1.5121950754305213
+}

@@ -16,7 +16,7 @@
       0.5,
       0.730059
     ],
-    "render_scale": 0.9999999767396509,
+    "render_scale": 1.0,
     "action_events": {
       "gather": {
         "impact_frame": 8
@@ -35,7 +35,7 @@
     "icon": "assets/ui/Units/Ages/bronze_worker.png",
     "animation_directions": 8,
     "frame_size": 192,
-    "model": "art/ages/units/models/bronze_worker.blend"
+    "model": "art/readability/workers/models/bronze_worker_option_b.blend"
   },
   "iron_worker": {
     "name": "Iron Worker",
@@ -54,7 +54,7 @@
       0.5,
       0.730059
     ],
-    "render_scale": 0.9999999767396509,
+    "render_scale": 1.0,
     "action_events": {
       "gather": {
         "impact_frame": 8
@@ -73,7 +73,7 @@
     "icon": "assets/ui/Units/Ages/iron_worker.png",
     "animation_directions": 8,
     "frame_size": 192,
-    "model": "art/ages/units/models/iron_worker.blend"
+    "model": "art/readability/workers/models/iron_worker_option_b.blend"
   },
   "bronze_swordsman": {
     "name": "Bronze Swordsman",
@@ -91,7 +91,7 @@
       0.5,
       0.696509
     ],
-    "render_scale": 1.1707317073170733,
+    "render_scale": 1.170732,
     "action_events": {
       "attack": {
         "impact_frame": 8
@@ -106,7 +106,7 @@
     "icon": "assets/ui/Units/Ages/bronze_swordsman.png",
     "animation_directions": 8,
     "frame_size": 192,
-    "model": "art/ages/units/models/bronze_swordsman.blend"
+    "model": "art/readability/models/bronze_swordsman_option_b.blend"
   },
   "iron_swordsman": {
     "name": "Iron Swordsman",
@@ -122,9 +122,9 @@
     "timeline_stride": 17,
     "ground_anchor": [
       0.5,
-      0.696509
+      0.668436
     ],
-    "render_scale": 1.1707317073170733,
+    "render_scale": 1.365854,
     "action_events": {
       "attack": {
         "impact_frame": 8
@@ -139,7 +139,7 @@
     "icon": "assets/ui/Units/Ages/iron_swordsman.png",
     "animation_directions": 8,
     "frame_size": 192,
-    "model": "art/ages/units/models/iron_swordsman.blend"
+    "model": "art/readability/models/iron_swordsman_option_b.blend"
   },
   "archer": {
     "name": "Archer",
@@ -155,12 +155,12 @@
     "timeline_stride": 17,
     "ground_anchor": [
       0.5,
-      0.730059
+      0.662097
     ],
-    "render_scale": 0.9999999767396509,
+    "render_scale": 1.419267,
     "action_events": {
       "shoot": {
-        "release_frame": 10
+        "release_frame": 9
       }
     },
     "id": "archer",
@@ -172,7 +172,7 @@
     "icon": "assets/ui/Units/Ages/archer.png",
     "animation_directions": 8,
     "frame_size": 192,
-    "model": "art/ages/units/models/archer.blend"
+    "model": "art/readability/remaining/models/archer_option_b.blend"
   },
   "crossbowman": {
     "name": "Crossbowman",
@@ -190,7 +190,7 @@
       0.5,
       0.730059
     ],
-    "render_scale": 0.9999999767396509,
+    "render_scale": 1.0,
     "action_events": {
       "shoot": {
         "release_frame": 4
@@ -205,7 +205,7 @@
     "icon": "assets/ui/Units/Ages/crossbowman.png",
     "animation_directions": 8,
     "frame_size": 192,
-    "model": "art/ages/units/models/crossbowman.blend"
+    "model": "art/readability/remaining/models/crossbowman_option_b.blend"
   },
   "bronze_spearman": {
     "name": "Bronze Spearman",
@@ -223,7 +223,7 @@
       0.5,
       0.681393
     ],
-    "render_scale": 1.2682926829268295,
+    "render_scale": 1.268293,
     "action_events": {
       "attack": {
         "impact_frame": 8
@@ -238,7 +238,7 @@
     "icon": "assets/ui/Units/Ages/bronze_spearman.png",
     "animation_directions": 8,
     "frame_size": 192,
-    "model": "art/ages/units/models/bronze_spearman.blend"
+    "model": "art/readability/remaining/models/bronze_spearman_option_b.blend"
   },
   "pikeman": {
     "name": "Pikeman",
@@ -256,7 +256,7 @@
       0.5,
       0.652136
     ],
-    "render_scale": 1.5121951219512197,
+    "render_scale": 1.512195,
     "action_events": {
       "attack": {
         "impact_frame": 8
@@ -271,7 +271,7 @@
     "icon": "assets/ui/Units/Ages/pikeman.png",
     "animation_directions": 8,
     "frame_size": 192,
-    "model": "art/ages/units/models/pikeman.blend"
+    "model": "art/readability/remaining/models/pikeman_option_b.blend"
   },
   "mounted_spearman": {
     "name": "Mounted Spearman",
@@ -345,7 +345,7 @@
       0.5,
       0.730059
     ],
-    "render_scale": 0.9999999767396509,
+    "render_scale": 1.0,
     "id": "healer",
     "animations": {
       "idle": "assets/sprites/Units/Ages/healer/idle.png",
@@ -355,7 +355,7 @@
     "icon": "assets/ui/Units/Ages/healer.png",
     "animation_directions": 8,
     "frame_size": 192,
-    "model": "art/ages/units/models/healer.blend"
+    "model": "art/readability/remaining/models/healer_option_b.blend"
   },
   "priest": {
     "name": "Priest",
@@ -373,7 +373,7 @@
       0.5,
       0.730059
     ],
-    "render_scale": 0.9999999767396509,
+    "render_scale": 1.0,
     "id": "priest",
     "animations": {
       "idle": "assets/sprites/Units/Ages/priest/idle.png",
@@ -383,7 +383,7 @@
     "icon": "assets/ui/Units/Ages/priest.png",
     "animation_directions": 8,
     "frame_size": 192,
-    "model": "art/ages/units/models/priest.blend"
+    "model": "art/readability/remaining/models/priest_option_b.blend"
   },
   "ballista": {
     "name": "Ballista",

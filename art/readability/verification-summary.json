@@ -1,0 +1,8 @@
+{
+  "sprite_frames": 960,
+  "mesh_pair_checks": 643068,
+  "grip_checks": 945,
+  "unintended_intersections": 0,
+  "subframe_interval": 0.125,
+  "scope": "Three review models; idle, run and attack; all eight sprite facings; production assets unchanged"
+}

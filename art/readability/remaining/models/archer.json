@@ -1,0 +1,16 @@
+{
+  "source": "art/ages/units/models/archer.blend",
+  "group": "ranged",
+  "actions": [
+    "idle",
+    "run",
+    "shoot"
+  ],
+  "count": 16,
+  "stride": 17,
+  "ground_anchor": [
+    0.5,
+    0.6620970368385315
+  ],
+  "render_scale": 1.4192673055137077
+}
