@@ -1,4 +1,5 @@
 """AI Debug Dashboard for monitoring AI players and game state"""
+from ui import fonts as ui_fonts
 import pygame
 from typing import Dict, Optional, Tuple
 
@@ -36,10 +37,10 @@ class AIDebugPanel:
         }
         
         # Fonts - significantly increased sizes
-        self.header_font = pygame.font.Font(None, 32)  # Increased from 24
-        self.player_font = pygame.font.Font(None, 26)  # Increased from 20
-        self.resource_font = pygame.font.Font(None, 22)  # Increased from 16
-        self.ai_font = pygame.font.Font(None, 20)  # Increased from 14
+        self.header_font = ui_fonts.screen_font(25)  # Increased from 24
+        self.player_font = ui_fonts.screen_font(20)  # Increased from 20
+        self.resource_font = ui_fonts.screen_font(17)  # Increased from 16
+        self.ai_font = ui_fonts.screen_font(16)  # Increased from 14
         
         # Panel state
         self.last_update = 0

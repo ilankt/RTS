@@ -54,11 +54,14 @@ class WorkerBrain:
         """
         worker_tasks = getattr(self.game, "worker_task_system", None)
         if worker_tasks:
+            if getattr(worker, '_auto_shelter', False):
+                return False
             task = worker_tasks.active_task(worker)
             if task and task.phase != "FAILED":
                 return False
             if task and task.phase == "FAILED":
-                worker_tasks.cancel(worker)
+                    if getattr(worker.player, 'human', False) and task.kind == 'gather':
+                        return False
 
         # Carriers are busy unless they lost their drop-off command.
         if worker.resource_amount > 0:

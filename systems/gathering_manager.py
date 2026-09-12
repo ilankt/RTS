@@ -39,7 +39,7 @@ class GatheringManager:
                 if unit.name == "worker" and unit.is_gathering:
                     self._update_gathering_worker(unit, delta_time)
         
-        # Update farms - automatic food generation (10 food every 10 seconds)
+        # Automatic farm income; retain timer remainder at every simulation speed.
         for building in self.game.buildings:
             if building.name == "farm" and building.hp > 0:
                 # Initialize farm timer if not exists
@@ -50,8 +50,9 @@ class GatheringManager:
                 building.food_timer += delta_time
                 
                 # Generate food based on config values
-                if building.food_timer >= FARM_FOOD_INTERVAL:
-                    food_amount = FARM_FOOD_AMOUNT
+                if building.food_timer + 1e-9 >= FARM_FOOD_INTERVAL:
+                    cycles = int((building.food_timer + 1e-9) / FARM_FOOD_INTERVAL)
+                    food_amount = FARM_FOOD_AMOUNT * cycles
                     if "double_resources" in getattr(self.game, "mutators", ()):
                         food_amount *= 2
                     if building.player:
@@ -63,7 +64,7 @@ class GatheringManager:
                     if hasattr(self.game, 'floating_ui') and self.game.floating_ui:
                         self.game.floating_ui.add_resource_notification(building, "food", food_amount)
                     
-                    building.food_timer = 0.0  # Reset timer
+                    building.food_timer = max(0.0, building.food_timer - cycles * FARM_FOOD_INTERVAL)
         
         # Tree regrowth: track depleted tree positions and regrow after timer
         if getattr(self.game, "tree_regrowth_enabled", True):

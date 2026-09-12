@@ -1,5 +1,4 @@
 """Unit watchdog - detects stuck units and recovers them."""
-import pygame
 import math
 from utils.debug_logger import debug_log
 from utils.perf_stats import perf_stats
@@ -8,24 +7,25 @@ from utils.perf_stats import perf_stats
 class UnitWatchdog:
     """Monitors all units for stuck conditions and performs recovery."""
 
-    CHECK_INTERVAL = 1000       # Check every 1 second (ms)
+    CHECK_INTERVAL = 1.0        # Game seconds, independent of rendering/speed
     STUCK_THRESHOLD = 3.0       # Seconds without meaningful movement
     MOVE_EPSILON = 3.0          # Pixels - must move at least this much to count
     MAX_RECOVERIES_PER_CHECK = 2  # Cap so a stuck burst can't hitch one frame
 
     def __init__(self, game):
         self.game = game
-        self.last_check = pygame.time.get_ticks()
+        self.last_check = 0.0
         # Per-unit tracking: {unit: {"x": float, "y": float, "timer": float}}
         self.tracking = {}
         self._recoveries_this_check = 0
 
-    def update(self):
-        now = pygame.time.get_ticks()
-        if now - self.last_check < self.CHECK_INTERVAL:
+    def update(self, delta_time=None):
+        self.last_check += max(0.0, delta_time if delta_time is not None
+                               else getattr(self.game, "delta_time", 0.0))
+        if self.last_check < self.CHECK_INTERVAL:
             return
-        elapsed = (now - self.last_check) / 1000.0
-        self.last_check = now
+        elapsed = self.last_check
+        self.last_check = 0.0
         self._recoveries_this_check = 0
 
         # Clean up tracking for dead units
@@ -75,6 +75,10 @@ class UnitWatchdog:
 
     def _should_be_moving(self, unit) -> bool:
         """Return True if this unit has a reason to be moving."""
+        # Waiting for computation is not collision failure. The path queue
+        # owns its retry/age limit; never teleport a unit awaiting a route.
+        if getattr(unit, "_pending_path_seq", None) is not None:
+            return False
         # Actively building at a site - stationary is fine
         if unit.is_building:
             return False
@@ -102,6 +106,18 @@ class UnitWatchdog:
             "WATCHDOG",
         )
 
+        worker_tasks = getattr(self.game, 'worker_task_system', None)
+        if worker_tasks and worker_tasks.active_task(unit):
+            # WorkerTaskSystem owns the harvest/delivery/build order. A
+            # generic state wipe used to erase it permanently on congestion.
+            safe = self._find_nearby_safe_position(unit)
+            if safe and math.hypot(safe[0]-unit.x, safe[1]-unit.y) > 1:
+                unit.x, unit.y = safe
+                perf_stats.increment('watchdog_teleports')
+            worker_tasks.recover_stuck_worker(unit)
+            perf_stats.increment('watchdog_recoveries')
+            return
+
         # Remember an interrupted plain move so it can be resumed - a wiped
         # move order otherwise leaves the unit idle forever (nothing owns it).
         last_task = getattr(unit, "last_task", None)
@@ -122,9 +138,6 @@ class UnitWatchdog:
             resume_attack = attack_target
 
         # Full state wipe
-        worker_tasks = getattr(self.game, "worker_task_system", None)
-        if worker_tasks and worker_tasks.active_task(unit):
-            worker_tasks.cancel(unit)
         unit.clear_all_movement_state()
         perf_stats.increment("watchdog_recoveries")
 

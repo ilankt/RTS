@@ -25,7 +25,13 @@ class DefendBaseGoal(Goal):
         # it IS losing the game (military_brain escalates to a full recall).
         if getattr(ctx, "castle_under_attack", False):
             return 500 + len(threats) * 10
-        return 200 + len(threats) * 10
+        # Outpost defense is allocated locally every tick by the military
+        # brain; it must not suppress the offensive behavior slot.
+        castle_threats = [t for t in threats
+                          if getattr(t, "can_attack_flag", True)
+                          and (getattr(t, "x", float('inf'))-getattr(ctx.castle, "x", 0))**2
+                          + (getattr(t, "y", float('inf'))-getattr(ctx.castle, "y", 0))**2 <= 300**2]
+        return 200 + len(castle_threats) * 10 if castle_threats else 0
 
     def execute(self, ctx):
         # Behavior-mode goal: military_brain handles the actual response when

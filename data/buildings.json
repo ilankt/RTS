@@ -50,7 +50,7 @@
   {
     "name": "farm",
     "display_name": "Farm",
-    "role": "Generates food over time",
+    "role": "Produces food automatically; no worker needed",
     "requires": [],
     "buildable": true,
     "strong_against": [],

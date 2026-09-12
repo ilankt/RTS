@@ -8,6 +8,74 @@ with a Windows installer and a portable zip — see the
 
 ---
 
+## 0.13.0-beta — 2026-09-12
+
+Three ages, two factions, new unit and building artwork, stronger AI coordination,
+and a broad set of repairs driven by playtesting.
+
+### Added
+
+- **Stone, Bronze and Iron Ages.** Advance your settlement, unlock buildings and
+  research military-line upgrades. Workers and buildings change appearance with
+  your age; military upgrades are paid research.
+- **Two factions.** Steppe Clans recruit Horse Archers; Highland Clans recruit
+  Axemen. Both signature units unlock in Bronze Age alongside the shared roster.
+  Choose human and AI factions independently in Match Setup.
+- **New artwork throughout the ages.** Eight-direction unit animations, mounted
+  troops, ranged Ballistas, age-specific building art and matching portraits.
+- **Attack warnings.** A dedicated alarm, readable messages and minimap rings
+  show where your workers, army or base are taking damage, including lethal hits.
+- **Automatic worker shelter.** Threatened workers seek room in a nearby defensive
+  building, keep their work assignment and resume after the danger passes.
+  Manual orders still take priority.
+
+### Changed
+
+- **AI coordination.** Better age progression, construction recovery, army
+  assembly, siege escorts, local defense and endgame production. Accepted attack
+  orders retain their objective while nearby defense is assigned separately.
+- **Forty-minute annihilation limit.** Matches still unresolved after 40 minutes
+  of game time end as a draw; conquest on the deadline takes precedence.
+- **Fragile siege.** Ballista and Heavy Ballista health is now 120 instead of 300,
+  with light armor. Their high damage and range are preserved; Siege Engineering
+  improves damage without adding armor.
+- **Food production.** Farms produce 5 food every 4 game seconds. Timer carry-over
+  prevents lost production, especially at higher game speeds.
+- **Quieter idle-worker reminders.** Workers must stay idle for four seconds before
+  the alert appears, and its sound cooldown is doubled to eight seconds.
+- **Clearer UI.** Consistent unit-line names, separate training and upgrade views,
+  fitted labels and tooltips, readable fonts, larger faction portraits and a
+  shared frame around the resource bar and battlefield.
+
+### Fixed
+
+- Workers losing their wood-gathering assignment after getting stuck among other
+  workers. Recovery preserves their job and cargo, retries blocked approaches,
+  and survives save/load. Forest selection also follows visible tree artwork.
+- Units flickering between facing directions, including during combat. Turning
+  uses stable direction selection while keeping animation phase and foot position.
+- Horses appearing to run backward. All mounted run cycles now use the corrected
+  stance and swing sequence in both the source models and shipped sprites.
+- Upgrade tabs remaining selected after switching buildings or reselecting one.
+- Mixed training queues being labeled as repeated copies of the first unit.
+  Waiting units now show their actual order and counts, including single queued
+  units; Ctrl-click cancels the selected waiting entry with the correct refund.
+- Combat sounds revealing fighting in unexplored or fog-covered areas.
+- Enemy targeting indicators appearing above your own units.
+- Duplicate combat updates, lost cooldown carry-over, small research bonuses
+  being rounded away, and missing damage credit on killing blows.
+- Queued paths losing their place or overriding replacement orders, and scouts
+  repeatedly choosing unreachable terrain.
+
+### Compatibility and remaining work
+
+- Save format 9 reads older saves and migrates factions, ages and Ballista health.
+  Saves and settings remain outside the install folder during upgrades.
+- Large-map AI games can still stall, and tight crowds can still need movement
+  recovery. Faction balance and reliable conquest remain under active testing.
+
+---
+
 ## 0.12.0-beta — 2026-07-27
 
 The first update after launch: four rounds of fixes driven by release-day

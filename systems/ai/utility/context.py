@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional
 
 DEFENSE_RADIUS = 300  # enemies within this range of the castle are "at the gates"
-MILITARY_NAMES = ("warrior", "archer", "spearman", "cavalry", "ram", "healer")
+MILITARY_NAMES = ("warrior", "archer", "spearman", "cavalry", "ram", "healer", "horse_archer", "axeman")
 
 # §8.11: "castle under attack" = the castle took a hit in the last ~3 s.
 # Shared by the blackboard build and military_brain's micro stand-down so
@@ -241,6 +241,8 @@ class GoalContext:
 
         from .age_plan import configure_age_plan
         configure_age_plan(ctx)
+        from .closing_plan import configure_closing_plan
+        configure_closing_plan(ctx)
         return ctx
 
     @property
@@ -289,7 +291,9 @@ class GoalContext:
         if not costs:
             return False
         from .age_plan import respects_age_budget
+        from .closing_plan import respects_closing_budget
         return (all(self.resources.get(r, 0) >= a for r, a in costs.items())
+                and respects_closing_budget(self, item_name, costs)
                 and respects_age_budget(self, item_name, costs))
 
     def has_pop_space(self) -> bool:
@@ -375,4 +379,6 @@ class GoalContext:
             return False
         ok, _ = manager.research_status(self.player, tech_id, in_progress=self.research_in_progress)
         from .age_plan import respects_age_budget
-        return ok and respects_age_budget(self, tech_id, self.tech_data.get(tech_id, {}).get('costs', {}))
+        from .closing_plan import respects_closing_budget
+        costs = self.tech_data.get(tech_id, {}).get('costs', {})
+        return ok and respects_age_budget(self, tech_id, costs) and respects_closing_budget(self, tech_id, costs)

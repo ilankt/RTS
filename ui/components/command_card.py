@@ -97,13 +97,19 @@ class CommandCard:
         # §8.2.2 shared fonts: a clean system face, larger than the old
         # default-font literals (which read small and uneven at these sizes).
         self.name_font = ui_fonts.label()       # chip + action-tile labels
+        self.compact_name_font = ui_fonts.font(12, True)
         self.cost_font = ui_fonts.body()        # tooltip text + measurement
-        self.tile_num_font = ui_fonts.font(15)     # 1-2 resource tile cost
-        self.tile_num_font_sm = ui_fonts.font(11)  # 3-resource tile cost (compact)
-        self.tip_title_font = ui_fonts.font(21, True)  # tooltip title row
+        self.tile_num_font = ui_fonts.font(12)     # two 3-digit costs fit one row
+        self.tile_num_font_sm = ui_fonts.font(10)  # compressed tiles / 3-resource costs
+        self.tip_title_font = ui_fonts.font(18, True)  # tooltip title row
+        self.strip_font = ui_fonts.font(10, True)  # measured against the 14px strip
+        self.TIP_BODY_STEP = max(self.TIP_BODY_STEP, self.cost_font.get_height() + px(2))
+        self.TIP_COST_H = max(self.TIP_COST_H, self.cost_font.get_height() + px(4))
         self.key_font = ui_fonts.badge()        # hotkey / queue badges
 
         self.active_tab = 'economy'   # remembered across selections
+        self.production_tab = 'train'
+        self._selection_key = None
         self._content = None          # rebuilt every draw / on demand
         self._chip_rects = []         # [(tab, screen rect)]
         self._slot_rects = []         # [(slot_index, screen rect)]
@@ -164,6 +170,12 @@ class CommandCard:
         """Rebuild the card model for the current selection."""
         if selected_objects is None:
             selected_objects = self._scan_selection()
+        selection = getattr(self.game, 'selection_manager', None)
+        key = (frozenset(id(obj) for obj in selected_objects),
+               getattr(selection, 'selection_revision', 0))
+        if key != self._selection_key:
+            self.production_tab = 'train'
+            self._selection_key = key
         self._content = self._build_content(selected_objects)
         return self._content
 
@@ -220,6 +232,11 @@ class CommandCard:
             costs = building.get('costs', {})
             tooltip = [display, building.get('role', ''),
                        self._cost_row(costs, building.get('build_duration'))]
+            if name == 'farm':
+                from core.config import FARM_FOOD_AMOUNT, FARM_FOOD_INTERVAL
+                multiplier = 2 if 'double_resources' in getattr(self.game, 'mutators', ()) else 1
+                rate = FARM_FOOD_AMOUNT * multiplier / FARM_FOOD_INTERVAL
+                tooltip.append(f'+{rate:g} food/s automatically. Build more farms to increase income.')
             if building.get('strong_against'):
                 tooltip.append("Strong: " + ", ".join(
                     x.title() for x in building['strong_against'][:2]))
@@ -245,6 +262,23 @@ class CommandCard:
         research_rows = []
         if len(buildings) == 1 and hasattr(self.game, 'research_manager'):
             research_rows = self.game.research_manager.available_for_building(buildings[0])
+            # Keep one stable slot per military line, including age locks and
+            # the completed final tier. The generic research list hides them.
+            from systems.ages import UNIT_LINE_TECHS
+            line_ids = {tech_id for line in UNIT_LINE_TECHS.values() for tech_id in line}
+            other_rows = [row for row in research_rows if row[0]['id'] not in line_ids]
+            line_rows = []
+            techs = self.game.game_data.get('techs', {})
+            for line in UNIT_LINE_TECHS.values():
+                family = [techs[t] for t in line if t in techs
+                          and techs[t].get('building') == buildings[0].name]
+                if not family:
+                    continue
+                tech = next((t for t in family if t['id'] not in human.upgrades), family[-1])
+                ok, reason = self.game.research_manager.research_status(
+                    human, tech['id'], building=buildings[0])
+                line_rows.append((tech, ok, reason))
+            research_rows = line_rows + other_rows
         has_garrison = len(buildings) == 1 and bool(getattr(buildings[0], 'garrison', None))
         if not producers and not research_rows and not has_garrison:
             return
@@ -252,16 +286,19 @@ class CommandCard:
         content['context'] = 'production'
         content['building'] = buildings[0]
         content['buildings'] = buildings
+        if producers and research_rows:
+            content['chips'] = [('train', 'Train'), ('upgrades', 'Upgrades')]
+            content['active_tab'] = self.production_tab
 
         # §8.9 garrison: last slot empties a sheltering castle/watchtower
         if len(buildings) == 1 and getattr(buildings[0], 'garrison', None):
             count = len(buildings[0].garrison)
             content['slots'][7] = {
                 'kind': 'ungarrison', 'building': buildings[0],
-                'label': f'Ungarrison ({count})',
+                'label': f'Release {count}',
                 'icon': self._icon('building', buildings[0].name), 'cost': '',
                 'enabled': True, 'reason': 'Ready',
-                'tooltip': [f'Ungarrison {count} unit(s)',
+                'tooltip': [f'Release {count} sheltered units',
                             'Sheltered units are safe; each one speeds tower fire.'],
             }
         cost_lookup = self.game.game_data.get("costs", {})
@@ -272,8 +309,17 @@ class CommandCard:
         unit_types = []
         for producer in producers:
             for unit_type in producer.can_produce:
+                from systems.factions import faction_allows
+                if not faction_allows(human, unit_type):
+                    continue
                 if unit_type not in unit_types:
                     unit_types.append(unit_type)
+
+        if content['chips']:
+            if self.production_tab == 'upgrades':
+                unit_types = []
+            else:
+                research_rows = []
 
         slot = 0
         for unit_type in unit_types:
@@ -291,29 +337,35 @@ class CommandCard:
             # from there (the old text tooltip silently showed no unit time).
             build_time = self.game.production_manager.units_data.get(
                 unit_type, {}).get('build_time')
-            tooltip = [display, getattr(template, "role", ""),
+            tooltip = ['Train ' + display, getattr(template, "role", ""),
                        self._cost_row(costs, build_time)]
             if getattr(template, "strong_against", None):
                 tooltip.append("Strong: " + ", ".join(
-                    x.title() for x in template.strong_against[:2]))
+                    display_name(x, human) for x in template.strong_against[:2]))
             if getattr(template, "weak_against", None):
                 tooltip.append("Weak: " + ", ".join(
-                    x.title() for x in template.weak_against[:2]))
+                    display_name(x, human) for x in template.weak_against[:2]))
             if not allowed:
                 tooltip.append(age_reason)
             if len(type_producers) > 1:
                 tooltip.append(f"{len(type_producers)} buildings — shortest queue")
             in_production = production_info and production_info['unit_type'] == unit_type
+            waiting = sum((getattr(b, 'production_queue', ()) or ()).count(unit_type)
+                          for b in type_producers)
+            if waiting:
+                tooltip.append(f'Queued: {waiting}. Right-click to cancel one waiting unit.')
             content['slots'][slot] = {
                 'kind': 'unit', 'unit_type': unit_type,
                 'building': type_producers[0], 'producers': type_producers,
-                'label': display,
+                'label': display, 'action_hint': 'Train',
                 'icon': self._icon('unit', unit_type),
                 'costs': costs,
                 'enabled': can_afford and allowed,
                 'reason': age_reason if not allowed else ("Ready" if can_afford else "Insufficient resources"),
                 'tooltip': tooltip,
                 'progress': production_info['progress'] if in_production else None,
+                'state': 'queued' if waiting and not in_production else None,
+                'queued_count': waiting,
                 'badge': sum(self.game.production_manager.get_unit_count_in_production(
                     b, unit_type) for b in type_producers),
             }
@@ -333,8 +385,10 @@ class CommandCard:
             in_progress = research_info and research_info['tech_id'] == tech['id']
             content['slots'][slot] = {
                 'kind': 'tech', 'tech_id': tech['id'], 'building': building,
-                'label': display, 'icon': self.tech_icons.get(tech['id']),
-                'costs': tech.get('costs', {}),
+                'label': display.removeprefix('Upgrade to '),
+                'action_hint': 'Done' if state == 'done' else 'Upgrade',
+                'icon': self.tech_icons.get(tech['id']),
+                'costs': {} if state == 'done' else tech.get('costs', {}),
                 'enabled': can_research, 'reason': reason, 'tooltip': tooltip,
                 'state': state,
                 'progress': research_info['progress'] if in_progress else None,
@@ -349,11 +403,15 @@ class CommandCard:
             content['strip'] = self._group_strip(producers)
 
     def _strip_for(self, building):
-        if building is not None:
+        show_research = (getattr(self, 'production_tab', 'train') == 'upgrades'
+                         and getattr(building, 'current_research', None))
+        if building is not None and not show_research:
             production_info = self.game.production_manager.get_production_info(building)
             if production_info:
                 queued = len(getattr(building, "production_queue", ()))
-                label = f"{production_info['unit_type'].title()} {int(production_info['progress'] * 100)}%"
+                from systems.ages import display_name
+                name = display_name(production_info['unit_type'], building.player)
+                label = f"{name} {int(production_info['progress'] * 100)}%"
                 if queued:
                     label += f" · queue {queued}"
                 return {'progress': production_info['progress'], 'label': label,
@@ -641,7 +699,7 @@ class CommandCard:
             for c, (tab, label) in enumerate(content['chips']):
                 chip = pygame.Rect(grid_x + c * (self.TILE_W + self.TILE_GAP),
                                    self.CHIPS_TOP, self.TILE_W, self.CHIP_H)
-                active = tab == self.active_tab
+                active = tab == content.get('active_tab', self.active_tab)
                 hovered = chip.move(ui_x, ui_y).collidepoint(mouse_pos)
                 fill = (60, 70, 55) if active else (32, 32, 36)
                 border = (190, 200, 150) if active else (90, 90, 95)
@@ -651,7 +709,8 @@ class CommandCard:
                 pygame.draw.rect(panel_surface, border, chip, 2 if active else 1,
                                  border_radius=4)
                 color = (235, 235, 210) if active else (150, 150, 150)
-                text = self.name_font.render(label, True, color)
+                text = self.name_font.render(
+                    ui_fonts.fit_text(self.name_font, label, chip.width - px(6)), True, color)
                 panel_surface.blit(text, (chip.centerx - text.get_width() // 2,
                                           chip.centery - text.get_height() // 2))
                 self._chip_rects.append((tab, chip.move(ui_x, ui_y)))
@@ -715,8 +774,8 @@ class CommandCard:
             pygame.draw.rect(panel_surface, strip['color'],
                              (bar.x, bar.y, fill_w, bar.height))
             pygame.draw.rect(panel_surface, (110, 110, 110), bar, 1)
-            label = self.cost_font.render(
-                ui_fonts.fit_text(self.cost_font, strip['label'], bar.width - 6),
+            label = self.strip_font.render(
+                ui_fonts.fit_text(self.strip_font, strip['label'], bar.width - px(6)),
                 True, (240, 240, 240))
             panel_surface.blit(label, (bar.centerx - label.get_width() // 2,
                                        bar.centery - label.get_height() // 2))
@@ -762,10 +821,12 @@ class CommandCard:
         # Bottom overlay: glyph cost row (cost tiles) or the state label
         # (action tiles), on a dark scrim so it reads over the icon.
         costs = slot.get('costs')
+        footer_top = tile.bottom
         if costs:
-            self._draw_tile_cost_glyphs(surface, tile, costs, slot['enabled'])
+            footer_top = self._draw_tile_cost_glyphs(surface, tile, costs, slot['enabled'])
         else:
             label = slot.get('cost') or slot.get('label') or ''
+            if state == 'done': label = 'Complete'
             if label:
                 if slot.get('label_color') and slot['enabled']:
                     label_color = slot['label_color']
@@ -773,18 +834,28 @@ class CommandCard:
                     label_color = (185, 210, 240)
                 else:
                     label_color = (235, 235, 220) if slot['enabled'] else (210, 140, 130)
-                self._draw_tile_scrim(surface, tile, 1, self.name_font.get_height())
-                text = self.name_font.render(label, True, label_color)
-                if text.get_width() > tile.width - px(6):
-                    text = pygame.transform.smoothscale(
-                        text, (tile.width - px(6), text.get_height()))
-                surface.blit(text, (tile.centerx - text.get_width() // 2,
-                                    tile.bottom - text.get_height() - px(3)))
+                label_font = self.compact_name_font if tile.height < px(62) else self.name_font
+                lines = ui_fonts.wrap_text(label_font, label, tile.width - px(8))[:2]
+                line_h = label_font.get_height()
+                self._draw_tile_scrim(surface, tile, len(lines), line_h)
+                y = tile.bottom - len(lines) * line_h - px(3)
+                footer_top = y
+                for line in lines:
+                    text = label_font.render(line, True, label_color)
+                    surface.blit(text, (tile.centerx - text.get_width() // 2, y))
+                    y += line_h
 
         # Border frames the filled icon; badges sit on top of everything.
         pygame.draw.rect(surface, border, tile, max(2, px(2)), border_radius=4)
 
         key_name = self._slot_key_name(index)
+        if (slot.get('action_hint') and state != 'done' and not slot.get('badge')
+                and tile.y + px(4) + self.key_font.get_height() <= footer_top):
+            hint = self.key_font.render(slot['action_hint'], True, (235, 225, 180))
+            area = pygame.Rect(tile.right - hint.get_width() - px(5), tile.y + px(2),
+                               hint.get_width() + px(3), hint.get_height())
+            pygame.draw.rect(surface, (20, 24, 30), area, border_radius=2)
+            surface.blit(hint, (area.x + px(1), area.y))
         if key_name:
             side = px(16)
             badge = pygame.Rect(tile.x + px(2), tile.y + px(2), side, side)
@@ -795,14 +866,14 @@ class CommandCard:
                                     badge.centery - key_text.get_height() // 2))
 
         badge_count = slot.get('badge') or 0
-        if badge_count > 1:
-            radius = px(10)
-            center = (tile.right - radius - px(2), tile.y + radius + px(2))
-            pygame.draw.circle(surface, (200, 50, 50), center, radius)
-            pygame.draw.circle(surface, (255, 255, 255), center, radius, 1)
-            count_text = self.key_font.render(str(badge_count), True, (255, 255, 255))
-            surface.blit(count_text, (center[0] - count_text.get_width() // 2,
-                                      center[1] - count_text.get_height() // 2))
+        if badge_count > 0:
+            count_label = str(badge_count) if badge_count < 1000 else '999+'
+            count_text = self.key_font.render(count_label, True, (255, 255, 255))
+            badge = pygame.Rect(tile.right-count_text.get_width()-px(8), tile.y+px(2),
+                                count_text.get_width()+px(6), count_text.get_height()+px(4))
+            pygame.draw.rect(surface, (180, 45, 45), badge, border_radius=px(7))
+            pygame.draw.rect(surface, (240, 210, 190), badge, 1, border_radius=px(7))
+            surface.blit(count_text, count_text.get_rect(center=badge.center))
 
     # Bright number colors so the glyph carries the hue and the digits stay
     # legible on the dark tile; red when the player can't afford it (§8.2.2).
@@ -830,10 +901,11 @@ class CommandCard:
         wraps to two rows — unavoidable in an 86px tile, measured."""
         num_color = self._COST_NUM_OK if enabled else self._COST_NUM_NO
         three = sum(1 for r in COST_GLYPH_ORDER if costs.get(r, 0) > 0) >= 3
-        glyph_px = px(10) if three else px(14)
+        three = three or tile.height < px(62)
+        glyph_px = px(10) if three else px(12)
         num_font = self.tile_num_font_sm if three else self.tile_num_font
         gap, pair_gap = px(1), (px(2) if three else px(4))
-        row_h = glyph_px + px(4)
+        row_h = max(glyph_px, num_font.get_height()) + px(2)
 
         # Build renderables in the fixed resource order so a cost's layout is
         # stable regardless of dict order.
@@ -878,6 +950,7 @@ class CommandCard:
                 surface.blit(number, (x, y + (row_h - number.get_height()) // 2 - 1))
                 x += number.get_width() + pair_gap
             y += row_h
+        return tile.bottom - px(4) - total_h
 
     def _draw_icon_with_radial_progress(self, surface, icon, icon_rect, progress):
         darkened = icon.copy()
@@ -917,19 +990,7 @@ class CommandCard:
         """Measured word-wrap. §8.2.2: the old blind `line[:34]` cap chopped
         gate/stable/fletching/market mid-word ("Wall segment your units can
         pass w") — wrap by pixel measurement instead, never drop characters."""
-        words = text.split()
-        lines = []
-        current = ""
-        for word in words:
-            candidate = f"{current} {word}" if current else word
-            if self.cost_font.size(candidate)[0] <= max_width or not current:
-                current = candidate
-            else:
-                lines.append(current)
-                current = word
-        if current:
-            lines.append(current)
-        return lines
+        return ui_fonts.wrap_text(self.cost_font, text, max_width)
 
     def draw_tooltip(self, screen):
         """Rich hover flyout beside the hovered tile (§8.2.2): a bold title, a
@@ -948,7 +1009,8 @@ class CommandCard:
         rows = []
         for index, raw in enumerate(raw_lines):
             if index == 0:  # title + divider
-                rows.append(('title', str(raw), title_font.get_height() + px(4)))
+                for piece in ui_fonts.wrap_text(title_font, str(raw), usable):
+                    rows.append(('title', piece, title_font.get_height() + px(4)))
                 rows.append(('rule', None, self.TIP_RULE_H))
             elif isinstance(raw, dict):
                 if raw.get('costs') or raw.get('duration'):
@@ -962,6 +1024,7 @@ class CommandCard:
         anchor = getattr(self, '_hovered_rect', None) or self._panel_rect
         y = min(max(px(6), anchor.y), SCREEN_HEIGHT - height - px(6))
         rect = pygame.Rect(self._panel_rect.x - width - px(8), y, width, height)
+        self._tooltip_rect = rect
         pygame.draw.rect(screen, (18, 18, 24), rect, border_radius=7)
         pygame.draw.rect(screen, (150, 132, 80), rect, 2, border_radius=7)
 
@@ -1054,7 +1117,10 @@ class CommandCard:
         bindings = getattr(self.game, 'keybindings', None)
         if bindings is not None and content['chips'] \
                 and bindings.matches("card_tab_swap", keycode):
-            self.active_tab = 'military' if self.active_tab == 'economy' else 'economy'
+            if content['context'] == 'production':
+                self.production_tab = 'upgrades' if self.production_tab == 'train' else 'train'
+            else:
+                self.active_tab = 'military' if self.active_tab == 'economy' else 'economy'
             self._play(True)
             return True
         slot_index = self._keycode_slot(keycode)
@@ -1072,9 +1138,11 @@ class CommandCard:
             return False
         for tab, rect in self._chip_rects:
             if rect.collidepoint(pos):
-                if tab != self.active_tab:
+                if tab in ('train', 'upgrades'):
+                    self.production_tab = tab
+                else:
                     self.active_tab = tab
-                    self._play(True)
+                self._play(True)
                 return True
         content = self._content
         for index, rect in self._slot_rects:
@@ -1150,7 +1218,9 @@ class CommandCard:
             self._demolish_hold_start = pygame.time.get_ticks()
         elif kind == 'ungarrison':
             from systems import garrison
-            garrison.eject_all(self.game, slot['building'])
+            released = garrison.eject_all(self.game, slot['building'])
+            for unit in released:
+                self.game.worker_task_system.safety.manual_order(unit)
             self._play(True)
         elif kind == 'trade':
             from systems import market as market_rules

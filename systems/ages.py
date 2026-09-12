@@ -6,7 +6,7 @@ STONE_AGE, BRONZE_AGE, IRON_AGE = 1, 2, 3
 AGE_NAMES = {1: 'Stone Age', 2: 'Bronze Age', 3: 'Iron Age'}
 TIER_ONE_BUILDINGS = frozenset({'barracks','farm','house','lumbermill','mine'})
 BRONZE_BUILDINGS = frozenset({'stable','blacksmith','siege_workshop','market','temple','watchtower'})
-BRONZE_UNITS = frozenset({'cavalry','ram','healer'})
+BRONZE_UNITS = frozenset({'cavalry','ram','healer','horse_archer','axeman'})
 IRON_SPECIALISTS = BRONZE_BUILDINGS - {'blacksmith'}
 LINE_UPGRADES = {'warrior':'swordsman_training','archer':'archer_training','spearman':'bronze_spearman_training'}
 UNIT_LINE_TECHS = {
@@ -27,6 +27,9 @@ def current_age(player):
 def age_name(player): return AGE_NAMES[current_age(player)]
 
 def availability(player,name):
+    from systems.factions import faction_allows, UNIT_FACTIONS, FACTIONS
+    if not faction_allows(player, name):
+        return False, 'Exclusive to ' + FACTIONS[UNIT_FACTIONS[name]]['name']
     if current_age(player)<2 and name in BRONZE_BUILDINGS | BRONZE_UNITS:
         return False,'Requires Bronze Age'
     return True,'Ready'
@@ -39,6 +42,7 @@ def iron_requirement(buildings,player):
     return 'blacksmith' in owned and len(owned & IRON_SPECIALISTS)>=2
 
 def unit_variant(name,player):
+    if name in ('horse_archer', 'axeman'): return name
     age=current_age(player); upgrades=getattr(player,'upgrades',{})
     if name=='worker': return {2:'bronze_worker',3:'iron_worker'}.get(age)
     for tech,variant in {
@@ -57,7 +61,7 @@ def display_name(name,player,fallback=None):
     if name=='castle': return {1:'Town Center',2:'Town Hall',3:'Castle'}[current_age(player)]
     variant=unit_variant(name,player)
     if variant: return UNIT_ART[variant]['name']
-    return {'barracks':'Barracks','archer':'Slinger','spearman':'Wooden Spearman','ram':'Ballista'}.get(name,fallback or name.replace('_',' ').title())
+    return {'barracks':'Barracks','warrior':'Clubman','archer':'Slinger','spearman':'Wooden Spearman','ram':'Ballista'}.get(name,fallback or name.replace('_',' ').title())
 
 def unit_icon_path(name,player):
     variant=unit_variant(name,player)

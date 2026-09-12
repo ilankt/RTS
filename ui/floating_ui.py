@@ -1,3 +1,4 @@
+from ui import fonts as ui_fonts
 import pygame
 
 class FloatingNotification:
@@ -67,7 +68,7 @@ class FloatingUI:
         self.notifications = []
         
         # Font for notifications (medium sized and bold)
-        self.font = pygame.font.Font(None, 29)  # Reduced from 36 to 29 (20% reduction)
+        self.font = ui_fonts.screen_font(23)  # Reduced from 36 to 29 (20% reduction)
         self.font.set_bold(True)  # Make it bold
     
     def get_health_color(self, health_percentage):

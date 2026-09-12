@@ -30,7 +30,8 @@ Both are git-ignored.
 ## How it works
 
 - `RTS.spec` — PyInstaller config. One-folder, windowed (no console), bundles
-  `assets/` and `data/` into the build.
+  `assets/`, `data/`, the field manual, credits and release notes into the build.
+  Windows file properties use the version from `core/version.py`.
 - `installer.iss` — Inno Setup script. Wraps `dist\RTS\` into a per-user
   installer (no UAC prompt; installs to `%LOCALAPPDATA%\Programs\RTS`).
 - `core/app_paths.py` — when frozen, the game reads bundled assets from the
@@ -40,9 +41,11 @@ Both are git-ignored.
 
 ## Adjusting
 
-- **Version / publisher**: edit the `#define` lines at the top of
-  `installer.iss` (`MyAppVersion`, `MyAppPublisher`). Keep `AppId` stable so
-  upgrades replace instead of duplicate.
+- **Version**: update `GAME_VERSION` in `core/version.py`. The menu, executable
+  metadata and installer use it. Update `README.md`, `DOWNLOAD.md`,
+  `CHANGELOG.md` and the field manual for the public release.
+- **Publisher**: edit `MyAppPublisher` in `installer.iss` and `CompanyName` in
+  `RTS.spec`. Keep `AppId` stable so upgrades replace instead of duplicate.
 - **App icon**: drop a square PNG at `assets\ICON.png`. The build converts it
   to `installer\app.ico` (via `tools\make_icon.py`) and the spec picks it up
   automatically for the exe; Inno reuses the exe's icon for shortcuts. To change

@@ -225,26 +225,26 @@ class CombatSystem:
         # Update units
         for unit in self.game.units:
             if hasattr(unit, 'update_combat'):
+                if getattr(unit, '_kite_remaining', 0) > 0:
+                    continue
                 # Hook into combat to capture damage
-                old_target_hp = getattr(unit.current_target, 'hp', 0) if unit.current_target else 0
+                hit_target = unit.current_target
+                old_target_hp = getattr(hit_target, 'hp', 0) if hit_target else 0
                 unit.update_combat(delta_time)
-                new_target_hp = getattr(unit.current_target, 'hp', 0) if unit.current_target else 0
-                if old_target_hp > new_target_hp and unit.current_target:
-                    damage_dealt = old_target_hp - new_target_hp
+                new_target_hp = getattr(hit_target, 'hp', 0) if hit_target else 0
+                if old_target_hp > new_target_hp and hit_target:
+                    damage_dealt = old_target_hp - max(0, new_target_hp)
                     # Counter hits pop emphasized ("N!"), resisted hits gray - §8.4
-                    is_counter = has_bonus_against(unit, unit.current_target)
-                    resisted = is_resisted_by(unit, unit.current_target)
-                    damage_events.append((unit.current_target, damage_dealt, is_counter, resisted))
-                    self._record_damage(unit, unit.current_target, damage_dealt)
+                    is_counter = has_bonus_against(unit, hit_target)
+                    resisted = is_resisted_by(unit, hit_target)
+                    damage_events.append((hit_target, damage_dealt, is_counter, resisted))
+                    self._record_damage(unit, hit_target, damage_dealt)
                     # §8.11: victims remember their attacker (retaliation,
                     # emergency defense) — also makes the kill-XP path live
-                    unit.current_target.last_attacker = unit
-                    unit.current_target._last_damage_frame = self.game.frame_counter
+                    hit_target.last_attacker = unit
+                    hit_target._last_damage_frame = self.game.frame_counter
                     if hasattr(self.game, 'notify_human_combat'):
-                        self.game.notify_human_combat(unit, unit.current_target)
-                    # §8.5 juice: ram blows rattle the camera a little
-                    if unit.name == 'ram' and getattr(self.game, 'camera', None):
-                        self.game.camera.add_shake(2.5)
+                        self.game.notify_human_combat(unit, hit_target)
                 
                 # Auto-engage nearby enemies if idle. Acquisition scans are
                 # throttled per unit (~0.25-0.5s, jittered) — C2.
@@ -442,22 +442,23 @@ class CombatSystem:
             if hasattr(building, 'can_attack') and building.can_attack:
                 # Update building combat
                 if hasattr(building, 'update_combat'):
-                    old_target_hp = getattr(building.current_target, 'hp', 0) if building.current_target else 0
+                    hit_target = building.current_target
+                    old_target_hp = getattr(hit_target, 'hp', 0) if hit_target else 0
                     building.update_combat(delta_time)
-                    new_target_hp = getattr(building.current_target, 'hp', 0) if building.current_target else 0
-                    if old_target_hp > new_target_hp and building.current_target:
-                        damage_dealt = old_target_hp - new_target_hp
+                    new_target_hp = getattr(hit_target, 'hp', 0) if hit_target else 0
+                    if old_target_hp > new_target_hp and hit_target:
+                        damage_dealt = old_target_hp - max(0, new_target_hp)
                         damage_events.append((
-                            building.current_target,
+                            hit_target,
                             damage_dealt,
-                            has_bonus_against(building, building.current_target),
-                            is_resisted_by(building, building.current_target),
+                            has_bonus_against(building, hit_target),
+                            is_resisted_by(building, hit_target),
                         ))
-                        self._record_damage(building, building.current_target, damage_dealt)
-                        building.current_target.last_attacker = building
-                        building.current_target._last_damage_frame = self.game.frame_counter
+                        self._record_damage(building, hit_target, damage_dealt)
+                        hit_target.last_attacker = building
+                        hit_target._last_damage_frame = self.game.frame_counter
                         if hasattr(self.game, 'notify_human_combat'):
-                            self.game.notify_human_combat(building, building.current_target)
+                            self.game.notify_human_combat(building, hit_target)
                         # §8.10 tower-value metric for the balance sim
                         if building.name == "watchtower" and building.player:
                             stats = getattr(self.game, "stats_tower_damage", None)
@@ -530,26 +531,35 @@ class CombatSystem:
                             "attack", getattr(attacker, 'name', None), "attack",
                             attacker.x, attacker.y, obj=attacker, min_interval=0.05)
 
-        # Under-attack alert for the human player (§7.4): sound + minimap ping,
-        # rate-limited so a battle doesn't spam.
+        # Damage events include melee, ranged fire and killing blows.
         for target, _damage, _is_counter, _is_resisted in damage_events:
-            player = getattr(target, 'player', None)
-            if player is None or not getattr(player, 'human', False):
-                continue
-            import pygame as _pygame
-
-            now = _pygame.time.get_ticks()
-            if now - getattr(self, '_last_under_attack_alert', -99999) < 10000:
-                break
-            self._last_under_attack_alert = now
-            if getattr(self.game, 'sound_manager', None):
-                self.game.sound_manager.play_alert()
-            if getattr(self.game, 'ui_manager', None):
-                self.game.ui_manager.add_alert("Under attack!", (target.x, target.y))
-            break
+            self._warn_under_attack(target)
         
         # Check for new attacks and spawn projectiles
         self.check_for_attacks_and_spawn_projectiles()
+
+    def _warn_under_attack(self, target):
+        if not getattr(getattr(target, 'player', None), 'human', False):
+            return
+        now = getattr(self.game, 'sim_time_elapsed', 0.0)
+        zones = [(x, y, t) for x, y, t in getattr(self, '_attack_alert_zones', [])
+                 if 0 <= now - t < 8.0]
+        self._attack_alert_zones = zones
+        if any((target.x - x) ** 2 + (target.y - y) ** 2 < 320 ** 2
+               for x, y, _ in zones):
+            return
+        zones.append((target.x, target.y, now))
+        ui = getattr(self.game, 'ui_manager', None)
+        if ui is not None:
+            message = ('Our workers are under attack!' if target.name == 'worker'
+                       else 'Our base is under attack!' if is_building_target(target)
+                       else 'Our forces are under attack!')
+            ui.add_alert(message, (target.x, target.y))
+        sound = getattr(self.game, 'sound_manager', None)
+        since_sound = now - getattr(self, '_last_attack_sound', -999)
+        if sound is not None and (since_sound < 0 or since_sound >= 6.0):
+            self._last_attack_sound = now
+            sound.play_under_attack()
     
     def calculate_damage(self, attacker, target):
         """Calculate damage dealt from attacker to target"""
@@ -569,6 +579,9 @@ class CombatSystem:
         Guarded getattr so unit tests driving a bare fake game don't need
         the stat dicts to exist."""
         if damage > 0:
+            operation = (getattr(attacker, '_assault_order', None) or {}).get('operation')
+            if operation is not None and operation.target is target:
+                operation.objective_damage += damage
             target.last_attacker = attacker
             target._last_damage_sim_time = getattr(self.game, 'sim_time_elapsed', 0.0)
         attacker_player = getattr(attacker, 'player', None)
@@ -720,11 +733,9 @@ class CombatSystem:
             except Exception:
                 pass
         
-        # Screen shake on major building destruction
+        # Reserve screen shake for castle destruction; routine combat is frequent.
         if building.name == "castle":
             self.game.camera.add_shake(15.0)
-        elif building.name in ("barracks", "watchtower", "stable"):
-            self.game.camera.add_shake(5.0)
         
         # Clear any units targeting this building (incl. the frozen-attack-
         # animation reset — see handle_unit_death)

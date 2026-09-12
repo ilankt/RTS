@@ -1,0 +1,5424 @@
+{
+  "frames": 768,
+  "min_margin": 16,
+  "model_sha256": {
+    "horse_archer": "68c27ba7cb4cb0d9003f107628af9ab56ff63f1083de9c4bbfd6f8376fa1e2f2",
+    "axeman": "0dfdede9228709b2909c19ceb610201b5345b1f8bad0ad58a333bb8552da7c23"
+  },
+  "geometry": [
+    {
+      "unit": "horse_archer",
+      "samples": 195,
+      "pair_checks": 520980,
+      "max_grip_error": 7.450580596923828e-08,
+      "max_arm_length_error": 0,
+      "loop_transform_errors": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cutting_edge_alignment": [],
+      "collisions": []
+    },
+    {
+      "unit": "axeman",
+      "samples": 195,
+      "pair_checks": 90285,
+      "max_grip_error": 2.4027400458748785e-07,
+      "max_arm_length_error": 1.4483928681419123e-07,
+      "loop_transform_errors": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cutting_edge_alignment": [
+        0.731468677520752,
+        0.7563895080238581,
+        0.7874937206506729,
+        0.8213239833712578,
+        0.8488097116351128,
+        0.8572566481307149,
+        0.802835401147604
+      ],
+      "collisions": []
+    }
+  ],
+  "frame_checks": [
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 0,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 1,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 2,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 3,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 4,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 5,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 6,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 7,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 8,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 9,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 10,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 11,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 12,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 13,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 14,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "E",
+      "frame": 15,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 1,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 2,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 3,
+      "margin": 40
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 4,
+      "margin": 40
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 5,
+      "margin": 40
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 6,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 8,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 9,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 10,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 11,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 12,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 13,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 14,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 15,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 1,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 2,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 3,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 4,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 5,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 6,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 8,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 9,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 10,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 11,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 12,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 13,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 14,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "S",
+      "frame": 15,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 0,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 1,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 2,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 3,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 4,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 5,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 6,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 7,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 8,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 9,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 10,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 11,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 13,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 14,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 15,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 0,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 1,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 2,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 3,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 4,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 5,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 6,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 7,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 8,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 9,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 10,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 11,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 12,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 13,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 14,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "W",
+      "frame": 15,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 0,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 1,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 2,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 3,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 4,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 5,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 6,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 7,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 8,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 9,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 10,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 11,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 12,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 13,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 14,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 15,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 0,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 1,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 2,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 3,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 4,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 5,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 6,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 7,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 8,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 9,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 10,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 11,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 12,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 13,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 14,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "N",
+      "frame": 15,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 0,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 1,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 2,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 3,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 4,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 5,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 6,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 7,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 8,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 9,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 10,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 11,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 12,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 13,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 14,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 15,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 0,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 1,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 2,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 3,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 4,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 5,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 6,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 7,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 8,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 9,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 10,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 11,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 12,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 13,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 14,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "E",
+      "frame": 15,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 0,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 1,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 2,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 3,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 4,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 5,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 6,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 7,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 8,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 9,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 10,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 11,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 13,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 14,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SE",
+      "frame": 15,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 0,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 1,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 2,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 3,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 4,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 5,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 6,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 7,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 8,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 9,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 10,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 11,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 13,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 14,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "S",
+      "frame": 15,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 0,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 1,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 2,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 3,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 4,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 5,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 6,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 7,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 8,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 9,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 10,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 11,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 13,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 14,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "SW",
+      "frame": 15,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 0,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 1,
+      "margin": 38
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 2,
+      "margin": 38
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 3,
+      "margin": 38
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 4,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 5,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 6,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 7,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 8,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 9,
+      "margin": 38
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 10,
+      "margin": 38
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 11,
+      "margin": 38
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 12,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 13,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 14,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "W",
+      "frame": 15,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 0,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 1,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 2,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 3,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 4,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 5,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 6,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 7,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 8,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 9,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 10,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 11,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 13,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 14,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NW",
+      "frame": 15,
+      "margin": 43
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 0,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 1,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 2,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 3,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 4,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 5,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 6,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 7,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 8,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 9,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 10,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 11,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 12,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 13,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 14,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "N",
+      "frame": 15,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 0,
+      "margin": 34
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 1,
+      "margin": 34
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 2,
+      "margin": 34
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 3,
+      "margin": 33
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 4,
+      "margin": 33
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 5,
+      "margin": 33
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 6,
+      "margin": 34
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 7,
+      "margin": 34
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 8,
+      "margin": 34
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 9,
+      "margin": 34
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 10,
+      "margin": 34
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 11,
+      "margin": 33
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 12,
+      "margin": 33
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 13,
+      "margin": 33
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 14,
+      "margin": 34
+    },
+    {
+      "unit": "horse_archer",
+      "action": "run",
+      "direction": "NE",
+      "frame": 15,
+      "margin": 34
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 0,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 1,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 2,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 3,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 4,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 5,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 6,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 7,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 8,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 9,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 10,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 11,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 12,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 13,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 14,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "E",
+      "frame": 15,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 1,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 2,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 3,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 4,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 5,
+      "margin": 40
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 6,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 8,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 9,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 10,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 11,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 12,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 13,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 14,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SE",
+      "frame": 15,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 1,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 2,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 3,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 4,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 5,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 6,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 8,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 9,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 10,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 11,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 12,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 13,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 14,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "S",
+      "frame": 15,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 0,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 1,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 2,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 3,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 4,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 5,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 6,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 7,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 8,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 9,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 10,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 11,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 13,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 14,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "SW",
+      "frame": 15,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 0,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 1,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 2,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 3,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 4,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 5,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 6,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 7,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 8,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 9,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 10,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 11,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 12,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 13,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 14,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "W",
+      "frame": 15,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 0,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 1,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 2,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 3,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 4,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 5,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 6,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 7,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 8,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 9,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 10,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 11,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 12,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 13,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 14,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NW",
+      "frame": 15,
+      "margin": 44
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 0,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 1,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 2,
+      "margin": 40
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 3,
+      "margin": 40
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 4,
+      "margin": 41
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 5,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 6,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 7,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 8,
+      "margin": 42
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 9,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 10,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 11,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 12,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 13,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 14,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "N",
+      "frame": 15,
+      "margin": 39
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 0,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 1,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 2,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 3,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 4,
+      "margin": 36
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 5,
+      "margin": 37
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 6,
+      "margin": 38
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 7,
+      "margin": 38
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 8,
+      "margin": 38
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 9,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 10,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 11,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 12,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 13,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 14,
+      "margin": 35
+    },
+    {
+      "unit": "horse_archer",
+      "action": "shoot",
+      "direction": "NE",
+      "frame": 15,
+      "margin": 35
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 1,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 2,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 3,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 4,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 5,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 6,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 8,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 9,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 10,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 11,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 13,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 14,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "E",
+      "frame": 15,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 0,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 1,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 2,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 3,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 4,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 5,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 6,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 7,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 8,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 9,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 10,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 11,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 12,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 13,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 14,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SE",
+      "frame": 15,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 0,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 1,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 2,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 3,
+      "margin": 53
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 4,
+      "margin": 53
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 5,
+      "margin": 53
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 6,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 7,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 8,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 9,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 10,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 11,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 12,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 13,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 14,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "S",
+      "frame": 15,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 0,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 1,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 2,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 3,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 4,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 5,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 6,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 7,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 8,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 9,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 10,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 11,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 12,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 13,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 14,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "SW",
+      "frame": 15,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 1,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 2,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 3,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 4,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 5,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 6,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 8,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 9,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 10,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 11,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 13,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 14,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "W",
+      "frame": 15,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 0,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 1,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 2,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 3,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 4,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 5,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 6,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 7,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 8,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 9,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 10,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 11,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 12,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 13,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 14,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NW",
+      "frame": 15,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 0,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 1,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 2,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 3,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 4,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 5,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 6,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 7,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 8,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 9,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 10,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 11,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 12,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 13,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 14,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "N",
+      "frame": 15,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 1,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 2,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 3,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 4,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 5,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 6,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 8,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 9,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 10,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 11,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 13,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 14,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "idle",
+      "direction": "NE",
+      "frame": 15,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 1,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 2,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 3,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 4,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 5,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 6,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 8,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 9,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 10,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 11,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 13,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 14,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "E",
+      "frame": 15,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 0,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 1,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 2,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 3,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 4,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 5,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 6,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 7,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 8,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 9,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 10,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 11,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 12,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 13,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 14,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SE",
+      "frame": 15,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 0,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 1,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 2,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 3,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 4,
+      "margin": 53
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 5,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 6,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 7,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 8,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 9,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 10,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 11,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 12,
+      "margin": 53
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 13,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 14,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "S",
+      "frame": 15,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 0,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 1,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 2,
+      "margin": 53
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 3,
+      "margin": 54
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 4,
+      "margin": 54
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 5,
+      "margin": 54
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 6,
+      "margin": 53
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 7,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 8,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 9,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 10,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 11,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 12,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 13,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 14,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "SW",
+      "frame": 15,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 1,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 2,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 3,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 4,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 5,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 6,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 8,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 9,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 10,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 11,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 12,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 13,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 14,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "W",
+      "frame": 15,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 0,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 1,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 2,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 3,
+      "margin": 47
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 4,
+      "margin": 47
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 5,
+      "margin": 47
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 6,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 7,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 8,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 9,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 10,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 11,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 12,
+      "margin": 47
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 13,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 14,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NW",
+      "frame": 15,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 0,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 1,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 2,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 3,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 4,
+      "margin": 36
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 5,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 6,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 7,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 8,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 9,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 10,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 11,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 12,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 13,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 14,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "N",
+      "frame": 15,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 1,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 2,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 3,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 4,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 5,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 6,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 8,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 9,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 10,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 11,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 12,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 13,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 14,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "run",
+      "direction": "NE",
+      "frame": 15,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 1,
+      "margin": 44
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 2,
+      "margin": 46
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 3,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 4,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 5,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 6,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 7,
+      "margin": 27
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 8,
+      "margin": 16
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 9,
+      "margin": 17
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 10,
+      "margin": 18
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 11,
+      "margin": 18
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 12,
+      "margin": 22
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 13,
+      "margin": 26
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 14,
+      "margin": 30
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "E",
+      "frame": 15,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 0,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 1,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 2,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 3,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 4,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 5,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 6,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 8,
+      "margin": 30
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 9,
+      "margin": 31
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 10,
+      "margin": 32
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 11,
+      "margin": 32
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 12,
+      "margin": 34
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 13,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 14,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SE",
+      "frame": 15,
+      "margin": 46
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 0,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 1,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 2,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 3,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 4,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 5,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 6,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 7,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 8,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 9,
+      "margin": 35
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 10,
+      "margin": 31
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 11,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 12,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 13,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 14,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "S",
+      "frame": 15,
+      "margin": 52
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 0,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 1,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 2,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 3,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 4,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 5,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 6,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 7,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 8,
+      "margin": 46
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 9,
+      "margin": 42
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 10,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 11,
+      "margin": 46
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 12,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 13,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 14,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "SW",
+      "frame": 15,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 1,
+      "margin": 44
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 2,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 3,
+      "margin": 51
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 4,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 5,
+      "margin": 48
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 6,
+      "margin": 47
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 7,
+      "margin": 27
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 8,
+      "margin": 16
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 9,
+      "margin": 17
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 10,
+      "margin": 19
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 11,
+      "margin": 18
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 12,
+      "margin": 22
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 13,
+      "margin": 26
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 14,
+      "margin": 30
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "W",
+      "frame": 15,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 0,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 1,
+      "margin": 46
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 2,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 3,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 4,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 5,
+      "margin": 36
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 6,
+      "margin": 35
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 7,
+      "margin": 40
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 8,
+      "margin": 29
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 9,
+      "margin": 31
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 10,
+      "margin": 32
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 11,
+      "margin": 32
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 12,
+      "margin": 34
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 13,
+      "margin": 37
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 14,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NW",
+      "frame": 15,
+      "margin": 46
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 0,
+      "margin": 38
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 1,
+      "margin": 36
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 2,
+      "margin": 32
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 3,
+      "margin": 29
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 4,
+      "margin": 28
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 5,
+      "margin": 28
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 6,
+      "margin": 28
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 7,
+      "margin": 34
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 8,
+      "margin": 53
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 9,
+      "margin": 53
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 10,
+      "margin": 53
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 11,
+      "margin": 54
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 12,
+      "margin": 49
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 13,
+      "margin": 44
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 14,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "N",
+      "frame": 15,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 0,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 1,
+      "margin": 39
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 2,
+      "margin": 34
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 3,
+      "margin": 30
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 4,
+      "margin": 28
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 5,
+      "margin": 28
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 6,
+      "margin": 28
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 7,
+      "margin": 41
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 8,
+      "margin": 46
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 9,
+      "margin": 46
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 10,
+      "margin": 47
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 11,
+      "margin": 45
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 12,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 13,
+      "margin": 50
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 14,
+      "margin": 47
+    },
+    {
+      "unit": "axeman",
+      "action": "attack",
+      "direction": "NE",
+      "frame": 15,
+      "margin": 42
+    }
+  ]
+}

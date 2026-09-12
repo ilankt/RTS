@@ -28,7 +28,7 @@ class UnitPanel:
         # §8.2.2 shared fonts (clean system face, bigger than the old default)
         self.name_font = ui_fonts.title()       # selection name
         self.small_font = ui_fonts.body()        # multi-select title, misc
-        self.stat_font = ui_fonts.font(17)       # dense stat lines
+        self.stat_font = ui_fonts.font(14)       # four rows fit below the title
         self.dense_font = ui_fonts.bar_text()    # value inside the hp bar
         self._building_icon_cache = {}
         
@@ -39,7 +39,7 @@ class UnitPanel:
     def _load_unit_panel_icons(self):
         """Load unit portrait sources; the header scales them on demand
         (§8.2.2 portrait-centric header wants several sizes)."""
-        unit_types = ['worker', 'warrior', 'archer', 'spearman', 'cavalry', 'ram', 'healer']
+        unit_types = ['worker', 'warrior', 'archer', 'spearman', 'cavalry', 'ram', 'healer', 'horse_archer', 'axeman']
         sizes = {'single': px(64), 'multi': px(48), 'group': px(40)}
         self._unit_icon_sources = {}
         self._unit_icon_cache = {}
@@ -97,7 +97,7 @@ class UnitPanel:
                 # Check if ConstructionSite
                 if isinstance(obj, ConstructionSite):
                     return {
-                        "name": f"{obj.building_type.title()} (Under Construction)",
+                        "name": f"{obj.building_name.replace('_', ' ').title()} (building)",
                         "type": "Construction",
                         "owner": obj.player.name if obj.player else "Unknown",
                         "player_color": obj.player.color if obj.player else (100, 100, 100),
@@ -173,16 +173,14 @@ class UnitPanel:
         """Each line is either (text, color) or a list of (glyph_name, text,
         color) segments — glyph+number pairs drawn inline (§8.2.2: stats read
         as icons, not label soup)."""
-        pitch = px(15) if pitch is None else pitch
+        pitch = max(self.stat_font.get_height(), px(15)) if pitch is None else pitch
         start_x = px(8) if start_x is None else start_x
-        max_text_w = px(178)
+        max_text_w = panel_surface.get_width() - start_x - px(4)
         for line in lines[:max_lines]:
             if isinstance(line, tuple):
                 text, color = line
-                rendered = self.stat_font.render(text, True, color)
-                if rendered.get_width() > max_text_w:
-                    rendered = pygame.transform.smoothscale(
-                        rendered, (max_text_w, rendered.get_height()))
+                rendered = self.stat_font.render(
+                    ui_fonts.fit_text(self.stat_font, text, max_text_w), True, color)
                 panel_surface.blit(rendered, (start_x - px(2), start_y))
                 start_y += pitch
                 continue
@@ -197,7 +195,9 @@ class UnitPanel:
                 if glyph is not None:
                     panel_surface.blit(glyph, (x, start_y + (row_h - self.STAT_GLYPH) // 2))
                     x += self.STAT_GLYPH + px(3)
-                rendered = self.stat_font.render(text, True, color)
+                remaining = panel_surface.get_width() - x - px(4)
+                rendered = self.stat_font.render(
+                    ui_fonts.fit_text(self.stat_font, text, remaining), True, color)
                 panel_surface.blit(rendered, (x, start_y + (row_h - rendered.get_height()) // 2))
                 x += rendered.get_width() + px(12)
             start_y += max(pitch, self.STAT_GLYPH + px(2))
@@ -217,7 +217,7 @@ class UnitPanel:
             if getattr(obj, 'can_attack', False) and obj.name != 'worker':
                 lines.append([
                     ('attack',
-                     f"{obj.get_effective_min_damage()}-{obj.get_effective_max_damage()}",
+                     f"{obj.get_effective_min_damage():g}-{obj.get_effective_max_damage():g}",
                      (255, 210, 130))])
                 lines.append([('speed', f"{obj.attack_speed:.1f}/s", (200, 210, 235))])
                 lines.append([('armor', str(obj.get_effective_armor_value()), (225, 205, 160))])
@@ -248,13 +248,19 @@ class UnitPanel:
             if getattr(obj, 'can_attack', False):
                 lines.append([
                     ('attack',
-                     f"{obj.get_effective_min_damage()}-{obj.get_effective_max_damage()}",
+                     f"{obj.get_effective_min_damage():g}-{obj.get_effective_max_damage():g}",
                      (255, 210, 130))])
                 lines.append([('speed', f"{obj.attack_speed:.1f}/s", (200, 210, 235))])
                 lines.append([('armor', str(obj.get_effective_armor_value()), (225, 205, 160))])
                 lines.append([('range', str(int(obj.get_effective_attack_range())), (170, 215, 160))])
             elif hasattr(obj, 'armor_value'):
                 lines.append([('armor', str(obj.get_effective_armor_value()), (225, 205, 160))])
+            if obj.name == 'farm':
+                from core.config import FARM_FOOD_AMOUNT, FARM_FOOD_INTERVAL
+                multiplier = 2 if 'double_resources' in getattr(self.game, 'mutators', ()) else 1
+                rate = FARM_FOOD_AMOUNT * multiplier / FARM_FOOD_INTERVAL
+                lines = [[('food', f'+{rate:g}/s', (150, 230, 150))],
+                         ('Automatic', (190, 205, 190))]
         if stype == "Resource":
             lines.append((f"Remaining: {int(obj.amount_remaining)}", (100, 255, 100)))
         return ('building' if stype == "Building" else None), hp, lines
@@ -276,6 +282,8 @@ class UnitPanel:
         # Name centered at the top.
         name_color = selected_info["player_color"] if selected_info["owner"] != "Neutral" \
             else (225, 225, 225)
+        # Keep owner identity, with enough luminance to read against charcoal.
+        name_color = tuple(max(115, channel) for channel in name_color)
         name_text = self.name_font.render(
             ui_fonts.fit_text(self.name_font, selected_info["name"], ui_width - px(8)),
             True, name_color)
@@ -360,22 +368,29 @@ class UnitPanel:
             title_text = f"{total} selected"
         else:
             title_text = f"{total} buildings selected"
-        title = self.small_font.render(title_text, True, (230, 230, 230))
+        title = self.small_font.render(
+            ui_fonts.fit_text(self.small_font, title_text, panel_surface.get_width()-px(16)),
+            True, (230, 230, 230))
         panel_surface.blit(title, (px(8), px(6)))
 
         icon_size = px(40)
         icon_spacing = px(4)
-        icons_per_row = 4
+        icons_per_row = 4 if len(groups) <= 8 else 6
         start_x = px(8)
         # Below the title, whatever its font height — the §8.2.2 font pass
         # grew the title past the old hardcoded 28 and icons drew over it.
         start_y = px(6) + title.get_height() + px(6)
+        rows = max(1, (len(groups) + icons_per_row - 1) // icons_per_row)
+        row_height = min(icon_size + icon_spacing + px(8),
+                         (self.HEADER_HEIGHT - start_y - px(2)) // rows)
+        cell_width = (panel_surface.get_width() - start_x * 2) // icons_per_row
+        icon_size = max(px(10), min(icon_size, row_height - px(6), cell_width - icon_spacing))
 
         for i, (kind, name, members) in enumerate(groups):
             row = i // icons_per_row
             col = i % icons_per_row
-            x = start_x + col * (icon_size + icon_spacing)
-            y = start_y + row * (icon_size + icon_spacing + px(8))
+            x = start_x + col * cell_width
+            y = start_y + row * row_height
 
             if kind == 'unit':
                 icon = self._unit_icon(name, icon_size, members[0].player)
@@ -389,7 +404,9 @@ class UnitPanel:
                 pygame.draw.rect(placeholder, (150, 150, 150), (0, 0, icon_size, icon_size), 2)
                 panel_surface.blit(placeholder, (x, y))
 
-            count_text = self.dense_font.render(f"x{len(members)}", True, (255, 255, 255))
+            count_text = self.dense_font.render(
+                ui_fonts.fit_text(self.dense_font, str(len(members)), cell_width-px(6)),
+                True, (255, 255, 255))
             badge = pygame.Rect(x + icon_size - count_text.get_width() - px(5), y + px(1),
                                 count_text.get_width() + px(4), count_text.get_height() + px(1))
             pygame.draw.rect(panel_surface, (0, 0, 0), badge)

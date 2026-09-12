@@ -1,0 +1,38 @@
+[
+  {
+    "unit": "horse_archer",
+    "samples": 195,
+    "pair_checks": 520980,
+    "max_grip_error": 7.450580596923828e-08,
+    "max_arm_length_error": 0,
+    "loop_transform_errors": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "cutting_edge_alignment": [],
+    "collisions": []
+  },
+  {
+    "unit": "axeman",
+    "samples": 195,
+    "pair_checks": 90285,
+    "max_grip_error": 2.4027400458748785e-07,
+    "max_arm_length_error": 1.4483928681419123e-07,
+    "loop_transform_errors": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "cutting_edge_alignment": [
+      0.731468677520752,
+      0.7563895080238581,
+      0.7874937206506729,
+      0.8213239833712578,
+      0.8488097116351128,
+      0.8572566481307149,
+      0.802835401147604
+    ],
+    "collisions": []
+  }
+]

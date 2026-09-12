@@ -104,17 +104,22 @@ def is_resisted_by(attacker, target) -> bool:
 
 
 def calculate_damage(attacker, target) -> int:
-    min_damage = int(effective_stat(attacker, "min_damage"))
-    max_damage = int(effective_stat(attacker, "max_damage"))
+    min_damage = effective_stat(attacker, "min_damage")
+    max_damage = effective_stat(attacker, "max_damage")
     if max_damage < min_damage:
         max_damage = min_damage
-    base_damage = random.randint(min_damage, max_damage)
+    # Roll the original discrete weapon range, then apply its upgraded range.
+    # Truncating upgraded endpoints erased small first-tier research bonuses.
+    low, high = int(attacker.min_damage), int(attacker.max_damage)
+    high = max(low, high)
+    roll = random.randint(low, high)
+    base_damage = min_damage if high == low else min_damage + (roll-low) * (max_damage-min_damage) / (high-low)
     attack_type = getattr(attacker, "attack_type", "slash")
     armor_type = getattr(target, "armor_type", "light")
     damage = base_damage * type_effectiveness(attack_type, armor_type)
     # §8.4 counter model: strong_against tags now change real damage instead
     # of being UI/AI-only lore, so e.g. spearman counters cavalry distinctly.
     if COMBAT_BONUS_VS_TAGS_ENABLED and has_bonus_against(attacker, target):
-        damage *= COMBAT_BONUS_VS_TAG_MULTIPLIER
+        damage *= getattr(attacker, 'counter_multiplier', None) or COMBAT_BONUS_VS_TAG_MULTIPLIER
     damage -= effective_armor_value(target)
     return max(1, int(damage))

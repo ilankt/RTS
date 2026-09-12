@@ -148,6 +148,8 @@ class SpriteManager:
         # Load and tint unit animation sheets
         for unit_name, unit_data in self.game_data["units"].items():
             sprites["units"][unit_name] = {}
+            if unit_name in ('horse_archer', 'axeman'):
+                continue  # approved sheets load lazily for the recruiting player
             type_tint = UNIT_TYPE_TINTS.get(unit_name)
             for anim_name, anim_path in unit_data.animations.items():
                 original_sheet = pygame.image.load(anim_path).convert_alpha()
@@ -210,4 +212,6 @@ class SpriteManager:
     
     def get_unit_animation_sheet(self, unit_name, animation_name, player_index):
         """Get a tinted unit animation sheet for a specific player"""
+        if unit_name in ('horse_archer', 'axeman'):
+            return self.age_unit_sheets(unit_name, player_index)[animation_name]
         return self.sprites["units"][unit_name][animation_name][player_index]

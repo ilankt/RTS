@@ -664,12 +664,68 @@ class Pathfinding:
             self._add_path_frame_spent((time.perf_counter() - started) * 1000.0)
 
     def issue_move(self, unit, world_pos: Point) -> bool:
+        intent = ("move", tuple(world_pos), None, None)
+        if self._retry_backoff(unit, intent):
+            return False
+        if self._same_pending(unit, intent):
+            return True
+        self._replace_command(unit)
         self._clear_task_state_for_move(unit)
         result = self.find_result((unit.x, unit.y), world_pos, unit.radius, unit, mode="move")
         if not result.ok and result.failure_reason == "too_expensive":
-            self._enqueue_command(unit, "move", world_pos, None, None)
-            return True
+            return self._enqueue_command(unit, "move", world_pos, None, None)
+        if not result.ok:
+            self._remember_command_failure(unit, intent)
+            self._remember_move_failure(unit, world_pos)
+            return self._clear_failed_command(unit)
         return self._apply_result(unit, result, "move", None)
+
+    def _same_pending(self, unit, intent):
+        return (getattr(unit, "_pending_path_seq", None) is not None
+                and getattr(unit, "_pending_path_intent", None) == intent)
+
+    def _retry_backoff(self, unit, intent):
+        failure = getattr(unit, "_navigation_failure", None)
+        return (not getattr(getattr(unit, "player", None), "human", False)
+                and failure is not None and failure[0] == intent
+                and failure[1] > getattr(self.game, "sim_time_elapsed", 0.0))
+
+    def _remember_command_failure(self, unit, intent):
+        unit._navigation_failure = (intent, getattr(self.game, "sim_time_elapsed", 0.0) + 2.0)
+
+    def _replace_command(self, unit):
+        # A successful immediate command must invalidate deferred work too.
+        unit._pending_path_seq = None
+        unit._pending_path_intent = None
+        unit._flow_command_token = None
+        unit.path = None
+        unit.destination = None
+        unit.path_target = None
+        unit.path_index = 0
+
+    def _remember_move_failure(self, unit, point):
+        failures = getattr(self, "_move_failures", None)
+        if failures is None:
+            failures = self._move_failures = OrderedDict()
+        key = (getattr(unit, "player", None), tuple(point))
+        failures[key] = getattr(self.game, "sim_time_elapsed", 0.0) + 15.0
+        failures.move_to_end(key)
+        while len(failures) > 256:
+            failures.popitem(last=False)
+
+    def exploration_reachable(self, player, start, point):
+        """Cheap terrain-only scouting filter, with bounded failed-goal backoff.
+
+        This knows no hidden enemies and does not perform a path search for
+        every unexplored tile. Actual object/radius failures feed the backoff.
+        """
+        until = getattr(self, "_move_failures", {}).get((player, tuple(point)), 0)
+        if until > getattr(self.game, "sim_time_elapsed", 0.0):
+            return False
+        goal = self.grid.world_to_cell(point)
+        origin = self.grid.nearest_walkable_cell(start, 8)
+        return (origin is not None and self.grid.point_walkable(point, 8)
+                and self.grid.terrain_connected(origin, goal))
 
     def deferred_paths(self):
         """Context manager: fast-fail searches so commands queue instead.
@@ -700,6 +756,13 @@ class Pathfinding:
         what is left of it, and the drain stops once less than a useful slice
         remains."""
         self.flow_fields.process()
+        # Compact canceled entries before charging the per-frame request cap.
+        # Every surviving unit has at most one authoritative queued intent.
+        for queue in (self._pending_high, self._pending_low):
+            live = [e for e in queue if getattr(e[1], "_pending_path_seq", None) == e[5]
+                    and getattr(e[1], "hp", 1) > 0 and getattr(e[1], "in_world", True)]
+            queue.clear()
+            queue.extend(live)
         if not self._pending_high and not self._pending_low:
             return
         processed = 0
@@ -727,7 +790,9 @@ class Pathfinding:
         if getattr(unit, "_pending_path_seq", None) != seq:
             return  # superseded by a newer command
         unit._pending_path_seq = None
+        unit._pending_path_intent = None
         self._requeue_retries = retries
+        self._queue_started = getattr(unit, "_pending_path_since", 0.0)
         # Bounded time slice per retry: an over-budget search suspends its
         # frontier (_suspended_searches) and the next retry resumes it, so a
         # genuinely long path (e.g. a cross-map scout order) completes across
@@ -741,6 +806,7 @@ class Pathfinding:
                 ok = self.issue_interact(unit, payload, mode, preferred_point)
         finally:
             self._requeue_retries = 0
+            self._queue_started = None
         # If it queued again, issue_* already stamped a fresh seq. If it failed
         # outright (unreachable), the command was cleared - nothing to do.
         perf_stats.increment("path_queue_processed")
@@ -749,12 +815,25 @@ class Pathfinding:
 
     def _enqueue_command(self, unit, kind, payload, mode, preferred_point):
         retries = getattr(self, "_requeue_retries", 0)
-        if retries >= PATHFINDING_QUEUE_MAX_RETRIES:
+        now = getattr(self.game, "sim_time_elapsed", 0.0)
+        since = getattr(self, "_queue_started", None)
+        since = now if since is None else since
+        if retries >= PATHFINDING_QUEUE_MAX_RETRIES or now - since >= 30.0:
             perf_stats.increment("path_queue_dropped")
+            self._remember_command_failure(unit, (kind, tuple(payload) if kind == "move" else payload, mode, preferred_point))
+            if kind == "move":
+                self._remember_move_failure(unit, payload)
             self._clear_failed_command(unit)
-            return
+            return False
         self._pending_seq += 1
         unit._pending_path_seq = self._pending_seq
+        unit._pending_path_intent = (kind, tuple(payload) if kind == "move" else payload, mode, preferred_point)
+        unit._pending_path_since = since
+        # Replace canceled work now, not after thousands of AI reissues.
+        for queue in (self._pending_high, self._pending_low):
+            live = [e for e in queue if e[1] is not unit]
+            queue.clear()
+            queue.extend(live)
         entry = (kind, unit, payload, mode, preferred_point, self._pending_seq, retries + 1)
         player = getattr(unit, "player", None)
         if player is not None and getattr(player, "human", False):
@@ -762,10 +841,18 @@ class Pathfinding:
         else:
             self._pending_low.append(entry)
         perf_stats.increment("path_queue_enqueued")
+        return True
 
     def issue_interact(self, unit, target, mode: str, preferred_point: Optional[Point] = None) -> bool:
         if target is None:
             return False
+
+        intent = ("interact", target, mode, preferred_point)
+        if self._retry_backoff(unit, intent):
+            return False
+        if self._same_pending(unit, intent):
+            return True
+        self._replace_command(unit)
 
         previous_gathering_target = getattr(unit, "gathering_target", None)
         if mode == "gather":
@@ -789,8 +876,8 @@ class Pathfinding:
         if not result.ok:
             if result.failure_reason == "too_expensive":
                 # Out of frame budget - queue the command instead of failing it.
-                self._enqueue_command(unit, "interact", target, mode, preferred_point)
-                return True
+                return self._enqueue_command(unit, "interact", target, mode, preferred_point)
+            self._remember_command_failure(unit, intent)
             return self._clear_failed_command(unit)
 
         if mode == "gather":
@@ -1488,6 +1575,8 @@ class Pathfinding:
         return True
 
     def _clear_failed_command(self, unit) -> bool:
+        unit._pending_path_seq = None
+        unit._pending_path_intent = None
         unit.path = None
         unit.path_index = 0
         unit.path_target = None

@@ -27,12 +27,11 @@ class UIManager:
 
     def __init__(self, game):
         self.game = game
-        # Default pygame face kept here (these are the alert/event-log
-        # surfaces, not the §8.2.2 sidebar); only the SIZE takes the HUD scale.
-        self.font = pygame.font.Font(None, px(30))
-        self.small_font = pygame.font.Font(None, px(20))
-        self.button_font = pygame.font.Font(None, px(24))
-        self.stat_font = pygame.font.Font(None, px(18))
+        # Shared face and resolution-scaled sizes for alerts and event history.
+        self.font = ui_fonts.font(23)
+        self.small_font = ui_fonts.font(16)
+        self.button_font = ui_fonts.font(19)
+        self.stat_font = ui_fonts.font(14)
 
         # Initialize UI components
         self.icon_loader = IconLoader()
@@ -57,7 +56,7 @@ class UIManager:
         self.show_event_log = False
         self._alert_last = {}  # throttle_key -> last ticks
 
-    ALERT_DURATION_MS = 4000
+    ALERT_DURATION_MS = 6000
     ALERT_MAX_VISIBLE = 5
     HISTORY_MAX = 50
     LOG_VISIBLE_LINES = 10
@@ -119,14 +118,18 @@ class UIManager:
             age = now - start
             fade_window = self.ALERT_DURATION_MS - 1000
             alpha = 255 if age < fade_window else max(0, int(255 * (1 - (age - fade_window) / 1000)))
-            surface = self.font.render(text, True, (255, 230, 120))
-            surface.set_alpha(alpha)
-            backdrop = pygame.Surface((surface.get_width() + px(16),
-                                       surface.get_height() + px(6)), pygame.SRCALPHA)
+            lines = ui_fonts.wrap_text(self.font, text, config.MAP_VIEW_WIDTH - px(44))
+            rendered = [self.font.render(line, True, (255, 230, 120)) for line in lines]
+            width = max(s.get_width() for s in rendered)
+            height = len(lines) * self.font.get_linesize()
+            backdrop = pygame.Surface((width + px(16), height + px(6)), pygame.SRCALPHA)
             backdrop.fill((0, 0, 0, min(150, alpha)))
             screen.blit(backdrop, (px(10), y - px(3)))
-            screen.blit(surface, (px(18), y))
-            y += surface.get_height() + px(10)
+            for surface in rendered:
+                surface.set_alpha(alpha)
+                screen.blit(surface, (px(18), y))
+                y += self.font.get_linesize()
+            y += px(10)
 
     # Delegate cursor methods to cursor manager
     def set_command_mode(self, command_mode):

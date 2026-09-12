@@ -115,6 +115,7 @@ class ScoutBrain:
     def _is_idle(self, unit):
         """Check if a unit is idle and available for scouting."""
         return (unit.status == "idle" and 
+                getattr(unit, "_pending_path_seq", None) is None and
                 not unit.in_combat and 
                 not unit.is_engaging and 
                 not unit.destination and 
@@ -162,12 +163,21 @@ class ScoutBrain:
             travel = math.hypot(wx - from_pos[0], wy - from_pos[1]) if from_pos else 0.0
             return (-home_dist, travel), (wx, wy)
 
+        origin = from_pos or ((own_castle.x, own_castle.y) if own_castle else None)
+        navigation = getattr(self.game, "pathfinder", None)
+
+        def reachable(pos):
+            check = getattr(navigation, "exploration_reachable", None)
+            return origin is None or check is None or check(player, origin, pos)
+
         best = None
         best_key = None
         for r, c in self._spawn_anchors():
             if self._tile_explored(player, r, c):
                 continue
             key, pos = key_for(r, c)
+            if not reachable(pos):
+                continue
             if best_key is None or key < best_key:
                 best, best_key = pos, key
         if best is not None:
@@ -182,20 +192,28 @@ class ScoutBrain:
                 if self._tile_explored(player, r, c):
                     continue
                 key, pos = key_for(r, c)
+                if not reachable(pos):
+                    continue
                 if best_key is None or key < best_key:
                     best, best_key = pos, key
         return best
 
     def _find_unexplored_target(self, player, scout):
         """Find an unexplored tile to send the scout to."""
+        check = getattr(getattr(self.game, "pathfinder", None), "exploration_reachable", None)
+
+        def reachable(point):
+            return check is None or check(player, (scout.x, scout.y), point)
         # If we know enemy castle, scout around it
         enemy_castle = self.known_enemy_castles.get(player)
         if enemy_castle and random.random() < 0.3:
             # Scout perimeter of enemy base
             angle = random.uniform(0, 2 * math.pi)
             dist = random.uniform(200, 400)
-            return (enemy_castle[0] + math.cos(angle) * dist,
-                   enemy_castle[1] + math.sin(angle) * dist)
+            point = (enemy_castle[0] + math.cos(angle) * dist,
+                     enemy_castle[1] + math.sin(angle) * dist)
+            if reachable(point):
+                return point
 
         # Probe likely spawn areas before wandering (§8.11)
         anchor = self.next_unexplored_anchor(player, (scout.x, scout.y))
@@ -213,7 +231,8 @@ class ScoutBrain:
             c = random.randint(2, map_w - 3)
             if not self._tile_explored(player, r, c):
                 world_pos = self.game.game_map.grid_to_world(c, r)
-                candidates.append((world_pos, math.hypot(world_pos[0] - scout.x, world_pos[1] - scout.y)))
+                if reachable(world_pos):
+                    candidates.append((world_pos, math.hypot(world_pos[0] - scout.x, world_pos[1] - scout.y)))
         
         if candidates:
             # Prefer closer targets
@@ -223,7 +242,8 @@ class ScoutBrain:
         # If mostly explored, pick random spot
         r = random.randint(5, map_h - 6)
         c = random.randint(5, map_w - 6)
-        return self.game.game_map.grid_to_world(c, r)
+        point = self.game.game_map.grid_to_world(c, r)
+        return point if reachable(point) else None
 
     def get_exploration_percent(self, player):
         """Return percentage of map explored (fog model when available —

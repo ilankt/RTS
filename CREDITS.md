@@ -23,6 +23,9 @@ Additional effects sourced from Pixabay — sword slashes, archer shot, unit
 deaths, building collapse, gold mining, wood chopping, construction, horse
 neighing, error and idle-worker cues.
 
+The spoken "Our forces are under attack" warning was synthesized locally
+with Windows Speech Synthesis.
+
 ## User-interface sounds
 
 UI click and selection sounds from **[Kenney](https://kenney.nl/assets?q=audio)**

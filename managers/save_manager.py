@@ -27,7 +27,7 @@ class SaveManager:
             # stockpiles in v1-v4 saves are discarded on load); v4 added
             # control groups, worker tasks, fog resource ghosts; v3 added
             # terrain; v1-v4 still load (missing fields default)
-            "version": 7,
+            "version": 9,
             "timestamp": datetime.now().isoformat(),
             "map_size": ([game.game_map.width, game.game_map.height]
                          if getattr(game, "game_map", None) else None),
@@ -48,6 +48,7 @@ class SaveManager:
             # v2 (§9 save/load completeness)
             "sim_time_elapsed": getattr(game, "sim_time_elapsed", 0.0),
             "victory_condition": getattr(game, "victory_condition", "annihilation"),
+            "regulation_seconds": getattr(game, "regulation_seconds", 2400.0),
             "mutators": sorted(getattr(game, "mutators", ())),
             "fog_enabled": bool(getattr(getattr(game, "fog_of_war", None), "enabled", True)),
             "tree_regrowth": list(getattr(game, "_tree_regrowth", [])),
@@ -75,6 +76,7 @@ class SaveManager:
                 "upgrades": list(getattr(player, "upgrades", {}).keys()),
                 # §8.14.12: the AI's identity is part of the match state —
                 # a reloaded rusher must come back a rusher
+                "faction": getattr(player, "faction", "steppe"),
                 "ai_personality": getattr(player, "ai_personality", None),
                 "ai_difficulty": getattr(player, "ai_difficulty", "normal"),
             })
@@ -120,7 +122,10 @@ class SaveManager:
         def _worker_task_dict(unit):
             system = getattr(game, "worker_task_system", None)
             task = system.tasks.get(unit) if system else None
-            if task is None or task.phase in ("IDLE", "FAILED"):
+            trip = system.safety.trips.get(unit) if system else None
+            if trip is not None:
+                task = trip.task
+            if task is None or task.phase == 'IDLE' or (task.phase == 'FAILED' and task.kind != 'gather'):
                 return None
             if task.kind == "gather":
                 index = resource_index.get(task.resource)
@@ -148,7 +153,8 @@ class SaveManager:
                 "resource_type": getattr(unit, "resource_type", None),
                 "resource_amount": getattr(unit, "resource_amount", 0),
                 "garrisoned_building": garrisoned_building,
-                "task": _worker_task_dict(unit) if garrisoned_building is None else None,
+                "task": _worker_task_dict(unit),
+                "auto_shelter": bool(getattr(unit, '_auto_shelter', False)),
             }
 
         unit_save_index = {}  # unit object -> index in state["units"]
@@ -390,7 +396,7 @@ class SaveManager:
         
         # Validate version (older saves load with newer fields defaulting —
         # v1/v2 simply keep the generated terrain, as they always did)
-        if state.get("version") not in (1, 2, 3, 4, 5, 6, 7):
+        if state.get("version") not in (1, 2, 3, 4, 5, 6, 7, 8, 9):
             return False, "Unsupported save version"
         
         # Clear existing state (mark old objects dead so stale references fail
@@ -405,6 +411,9 @@ class SaveManager:
         if hasattr(game, "worker_task_system"):
             for worker in list(game.worker_task_system.tasks.keys()):
                 game.worker_task_system.cancel(worker)
+            game.worker_task_system.safety.trips.clear()
+            game.worker_task_system._slots.clear()
+            game.worker_task_system._failed_path_until.clear()
 
         # Restore the ground FIRST: every blocker/path computed below must see
         # the saved terrain, not the random map this Game was built with.
@@ -466,6 +475,8 @@ class SaveManager:
             idx = player_data["index"]
             if idx < len(game.players):
                 player = game.players[idx]
+                from systems.factions import normalize_faction
+                player.faction = normalize_faction(player_data.get('faction', ('steppe', 'highland')[idx % 2]))
                 player.name = player_data["name"]
                 player.human = player_data["human"]
                 player.color = tuple(player_data["color"])
@@ -618,6 +629,7 @@ class SaveManager:
                 strong_against=list(getattr(template, "strong_against", [])),
                 weak_against=list(getattr(template, "weak_against", [])),
                 building_only_attack=getattr(template, "building_only_attack", False),
+                counter_multiplier=getattr(template, "counter_multiplier", None),
             )
             unit.x = udata["x"]
             if unit.name=='ram' and state.get('version',1)<7:
@@ -626,6 +638,10 @@ class SaveManager:
                 unit.attack_range=template.attack_range
                 unit.building_only_attack=False
             unit.y = udata["y"]
+            if unit.name == 'ram' and state.get('version', 1) < 9:
+                # Old saves used the tank-like 300 HP ram chassis. Preserve
+                # the wounded fraction when migrating to the fragile ballista.
+                unit.hp = min(template.hp, unit.hp * template.hp / 300.0)
             unit.stance = udata.get("stance", "aggressive")
             home = udata.get("stance_home_position")
             unit.stance_home_position = tuple(home) if home else None
@@ -663,6 +679,7 @@ class SaveManager:
                 from systems.garrison import garrison_list
 
                 unit.garrisoned_in = host
+                unit.in_world = False
                 garrison_list(host).append(unit)
             else:
                 game.units.append(unit)
@@ -776,6 +793,8 @@ class SaveManager:
         # tree regrowth, fog exploration
         game.sim_time_elapsed = state.get("sim_time_elapsed", 0.0)
         game.victory_condition = state.get("victory_condition", "annihilation")
+        game.regulation_seconds = state.get('regulation_seconds', 2400.0)
+        game.match_result_reason = None
         game.mutators = set(state.get("mutators", []))
         game.fog_of_war_enabled = state.get("fog_enabled", True)
         game._tree_regrowth = [tuple(entry) for entry in state.get("tree_regrowth", [])]
@@ -875,6 +894,20 @@ class SaveManager:
         if worker_tasks is not None:
             for udata, unit in zip(state["units"], restored_units):
                 task = udata.get("task")
+                if unit is not None and udata.get('auto_shelter'):
+                    from systems.worker_task_system import WorkerTask, MOVING_TO_RESOURCE
+                    from systems.worker_safety import ShelterTrip
+                    saved = None
+                    if task:
+                        saved = WorkerTask(kind=task['kind'], phase=MOVING_TO_RESOURCE, worker=unit)
+                        index = task.get('resource', -1)
+                        saved.resource = restored_resources[index] if 0 <= index < len(restored_resources) else None
+                        index = task.get('site', -1)
+                        saved.construction_site = restored_sites[index] if 0 <= index < len(restored_sites) else None
+                    worker_tasks.safety.trips[unit] = ShelterTrip(
+                        task=saved, host=getattr(unit, 'garrisoned_in', None))
+                    unit._auto_shelter = True
+                    continue
                 if not task or unit is None or getattr(unit, "garrisoned_in", None) is not None:
                     continue
                 kind = task.get("kind")

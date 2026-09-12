@@ -10,6 +10,7 @@ Same row-cycling interaction as the match-setup screen; every change saves
 immediately. Resolution takes effect on restart (layout constants are baked at
 import time until the §8.2 resolution-independence rework).
 """
+from ui import fonts as ui_fonts
 import pygame
 
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
@@ -69,9 +70,9 @@ class SettingsMenu:
             pygame.font.init()
         self.screen = screen
         self.backdrop = backdrop
-        self.font_large = pygame.font.Font(None, 56)
-        self.font_medium = pygame.font.Font(None, 36)
-        self.font_small = pygame.font.Font(None, 24)
+        self.font_large = ui_fonts.screen_font(44)
+        self.font_medium = ui_fonts.screen_font(22)
+        self.font_small = ui_fonts.screen_font(19)
 
         self.settings = Settings()
         self.category = None      # None = the hub; else a CATEGORY_NAMES entry

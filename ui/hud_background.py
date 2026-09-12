@@ -29,6 +29,7 @@ class NineSliceFrame:
         self.image = None
         self._cache = {}
         self._border_cache = {}
+        self._patch_cache = {}
         try:
             if os.path.exists(path):
                 self.image = self._trim_black(pygame.image.load(path).convert_alpha())
@@ -94,6 +95,30 @@ class NineSliceFrame:
         """Border only (transparent centre). dst_inset overrides the border
         thickness for this call (e.g. a thinner frame on the small minimap)."""
         return self._cached(self._border_cache, width, height, True, dst_inset)
+
+    def _render_patch(self, width, height, separator=False):
+        """A panel fill or straight rail, without a second set of corners."""
+        if self.image is None or width <= 0 or height <= 0:
+            return None
+        key = (width, height, separator)
+        if key not in self._patch_cache:
+            if len(self._patch_cache) > 8:
+                self._patch_cache.clear()
+            left, top, right, bottom = self.src_inset
+            sw, sh = self.image.get_size()
+            source = pygame.Rect(left, sh-bottom if separator else top,
+                                 sw-left-right, bottom if separator else sh-top-bottom)
+            self._patch_cache[key] = pygame.transform.smoothscale(
+                self.image.subsurface(source), (width, height))
+        return self._patch_cache[key]
+
+    def render_center(self, width, height):
+        """Panel background for content enclosed by a shared outer frame."""
+        return self._render_patch(width, height)
+
+    def render_separator(self, width, height):
+        """One horizontal rail joining the inside edges of an outer frame."""
+        return self._render_patch(width, height, separator=True)
 
     def content_rect(self, width, height):
         """Inner rectangle inside the drawn border."""

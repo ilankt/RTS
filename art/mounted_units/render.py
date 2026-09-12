@@ -212,6 +212,10 @@ animated=[horse,neck,tail,rider,spear,thrust_upper,thrust_fore,thrust_wrist,thru
 
 def pose(action,i):
     phase=math.tau*i/8
+    # The rig faces -Y. During stance the hoof must travel +Y relative to
+    # the body, then lift on the return stroke toward the horse's head.
+    # The original positive phase played the entire trot backward.
+    if action=='run': phase=-phase
     horse.location.z=0
     neck.rotation_euler.x=.015*math.sin(phase)
     tail.rotation_euler.x=.10;tail.rotation_euler.y=.10*math.sin(phase)
@@ -269,6 +273,7 @@ for a,action in enumerate(actions):
         for obj in animated:
             for prop in ['location','rotation_euler','scale']:obj.keyframe_insert(prop,frame=a*8+i+1)
 scene.frame_set(1);root.rotation_euler.z=math.radians(45)
+scene['mounted_forward_trot']=1
 ground=world_to_camera_view(scene,scene.camera,Vector((0,0,0)))
 (OUT/'manifest.json').write_text(json.dumps({'size':192,'frames':8,'directions':list(DIRECTIONS),'actions':actions,'ground_anchor':[ground.x,1-ground.y],'render_scale':6.0/4.1},indent=2))
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'mounted_spearman.blend'))

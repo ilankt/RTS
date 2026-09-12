@@ -201,23 +201,30 @@ class RenderingSystem:
         pygame.draw.rect(screen, (32, 24, 16), rect.inflate(-16, -16), 2)
 
     def _draw_map_border(self, screen):
-        """Frame the play area and the minimap with the ornate frame art
-        (border only, transparent centre), falling back to a drawn bevel."""
+        """One continuous frame encloses the resources and play area.
+
+        A single straight separator replaces their previously doubled rails.
+        """
         from core.config import SIDEBAR_WIDTH, MINIMAP_X, px
 
-        map_rect = pygame.Rect(0, TOP_BAR_HEIGHT,
-                               SCREEN_WIDTH - SIDEBAR_WIDTH,
-                               SCREEN_HEIGHT - TOP_BAR_HEIGHT)
+        map_rect = pygame.Rect(0, 0, SCREEN_WIDTH - SIDEBAR_WIDTH, SCREEN_HEIGHT)
         mini_rect = pygame.Rect(MINIMAP_X, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT)
         map_border = self.hud_frame.render_border(map_rect.width, map_rect.height)
         # Thinner frame on the small minimap so it doesn't swallow the map.
         mini_border = self.hud_frame.render_border(mini_rect.width, mini_rect.height,
                                                    dst_inset=(px(16),) * 4)
         if map_border is not None:
+            left, _, right, _ = self.hud_frame.dst_inset
+            separator_h = px(12)
+            separator = self.hud_frame.render_separator(
+                map_rect.width - left - right, separator_h)
+            screen.blit(separator, (left, TOP_BAR_HEIGHT - separator_h//2))
             screen.blit(map_border, map_rect.topleft)
             screen.blit(mini_border, mini_rect.topleft)
         else:
             self._draw_beveled_frame(screen, map_rect)
+            pygame.draw.line(screen, (92, 66, 40),
+                             (9, TOP_BAR_HEIGHT), (map_rect.right-10, TOP_BAR_HEIGHT), 3)
             self._draw_beveled_frame(screen, mini_rect)
 
     ORDER_FLASH_MS = 450

@@ -1,4 +1,5 @@
 from .economy import (
+    TrainClosingPackageGoal,
     RebuildCastleGoal,
     ExpandCastleGoal,
     TrainWorkerGoal,
@@ -20,6 +21,8 @@ from .military import (
     TrainArcherGoal,
     TrainSpearmanGoal,
     TrainCavalryGoal,
+    TrainHorseArcherGoal,
+    TrainAxemanGoal,
     TrainHealerGoal,
     TrainRamGoal,
     ResearchImprovedToolsGoal,
@@ -40,6 +43,7 @@ from .tactical import (
 from .ages import AdvanceAgeGoal, UpgradeUnitLineGoal, PrepareAgeGoal
 
 ALL_GOALS = [
+    TrainClosingPackageGoal,
     AdvanceAgeGoal,
     PrepareAgeGoal,
     UpgradeUnitLineGoal,
@@ -59,6 +63,8 @@ ALL_GOALS = [
     TrainArcherGoal,
     TrainSpearmanGoal,
     TrainCavalryGoal,
+    TrainHorseArcherGoal,
+    TrainAxemanGoal,
     TrainHealerGoal,
     TrainRamGoal,
     ResearchImprovedToolsGoal,

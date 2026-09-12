@@ -65,40 +65,14 @@ class SelectionManager:
     
     def _handle_single_click(self, mouse_pos):
         """Handle single click selection with proper ownership filtering"""
-        # Check all objects for selection (construction sites included, so an
-        # abandoned foundation can be selected to cancel or resume it)
-        all_objects = [
-            obj for obj in (self.game.units + self.game.buildings +
-                            self.game.resources + self.game.construction_sites)
-            if self._is_object_visible_to_human(obj)
-        ]
-        clicked_object = None
-        
         # Convert mouse position to map coordinates (accounting for TOP_BAR_HEIGHT)
         map_mouse_x = mouse_pos[0]
         map_mouse_y = mouse_pos[1] - TOP_BAR_HEIGHT
         
-        # Find object at click position
-        for obj in sorted(all_objects, key=lambda o: o.y, reverse=True):
-            obj_screen_x = (obj.x * self.game.camera.zoom) + self.game.camera.x
-            obj_screen_y = (obj.y * self.game.camera.zoom) + self.game.camera.y
-            
-            # Simple distance check with some extra tolerance for easier clicking
-            distance = math.sqrt((map_mouse_x - obj_screen_x)**2 + (map_mouse_y - obj_screen_y)**2)
-            
-            # Use different tolerance for units vs. buildings
-            if obj in self.game.units:
-                click_radius = self._unit_pick_radius(obj) * self.game.camera.zoom
-            elif obj in self.game.resources:
-                # §8.17.3 follow-up (user): resources were hard to pinpoint —
-                # pad the pick circle; the sprite is far wider than the radius
-                click_radius = obj.radius * self.game.camera.zoom * 1.5
-            else:
-                click_radius = obj.radius * self.game.camera.zoom * 1.0  # Normal hitbox for buildings
-
-            if distance <= click_radius:
-                clicked_object = obj
-                break
+        camera = self.game.camera
+        clicked_object = self._get_object_at_position(
+            ((map_mouse_x - camera.x) / camera.zoom,
+             (map_mouse_y - camera.y) / camera.zoom))
         
         if clicked_object:
             # Check if this object can be selected with current selection
@@ -271,7 +245,10 @@ class SelectionManager:
                     self.selected_objects.append(obj)
     
     def _clear_all_selections(self):
-        """Clear all object selections"""
+        """Clear all object selections."""
+        # A clear/reselect can happen between two UI draws (including the
+        # same building). Let the card distinguish it from an unchanged pick.
+        self.selection_revision = getattr(self, 'selection_revision', 0) + 1
         all_objects = (self.game.units + self.game.buildings + self.game.resources
                        + self.game.construction_sites)
         for obj in all_objects:
@@ -543,6 +520,9 @@ class SelectionManager:
     def _execute_command_spec(self, unit, spec):
         """Run one (kind, payload) command spec."""
         kind, payload = spec
+        tasks = getattr(self.game, 'worker_task_system', None)
+        if tasks is not None and unit.name == 'worker':
+            tasks.safety.manual_order(unit)
         pathfinder = self.game.pathfinder
         # Every order but "attack" means "stop fighting and do this instead".
         # ("attack" sets its own target immediately, via _attack_target.)
@@ -944,12 +924,36 @@ class SelectionManager:
         ]
         
         for obj in sorted(all_objects, key=lambda o: o.y, reverse=True):
+            if obj in self.game.resources and self._resource_hit(obj, world_pos):
+                return obj
             distance = math.sqrt((world_pos[0] - obj.x)**2 + (world_pos[1] - obj.y)**2)
             radius = self._unit_pick_radius(obj) if obj in self.game.units else obj.radius
             if distance <= radius:
                 return obj
         
         return None
+
+    def _resource_hit(self, resource, world_pos):
+        """Pick the painted canopy/deposit as well as its small collision base."""
+        dx, dy = world_pos[0] - resource.x, world_pos[1] - resource.y
+        zoom = getattr(getattr(self.game, 'camera', None), 'zoom', 1.0) or 1.0
+        if math.hypot(dx, dy) <= max(resource.radius * 1.5, 12 / zoom):
+            return True
+        manager = getattr(self.game, 'sprite_manager', None)
+        if manager is None:
+            return False
+        sprite = manager.get_resource_sprite(
+            getattr(resource, 'sprite_variant', None) or resource.name)
+        if sprite is None:
+            return False
+        from core.config import TILE_WIDTH
+        renderer = getattr(self.game, 'rendering_system', None)
+        scale = (resource.size[0] * TILE_WIDTH / sprite.get_width())
+        scale *= getattr(renderer, '_render_scales', {}).get(resource.name, 1.0)
+        sx = int(dx / scale + sprite.get_width() / 2)
+        sy = int(dy / scale + sprite.get_height() / 2)
+        return (0 <= sx < sprite.get_width() and 0 <= sy < sprite.get_height()
+                and sprite.get_at((sx, sy)).a > 40)
 
     def _is_object_visible_to_human(self, obj):
         fog = getattr(self.game, "fog_of_war", None)
@@ -1253,16 +1257,18 @@ class SelectionManager:
                     pygame.draw.circle(surface, (255, 0, 0), (int(target_screen_x), int(target_screen_y)), 5, 2)
     
     def draw_attack_targets(self, surface, camera):
-        """Draw red circles around units' attack targets.
-
-        Skipped entirely in spectator mode (user request): with every AI
-        unit ringing its target the map filled with red circles."""
+        """Show selected human attack orders on visible enemy targets."""
         if getattr(self.game, "spectator_mode", False):
             return
         drawn_targets = set()  # Avoid drawing multiple circles on same target
 
-        for unit in self.game.units:
-            if unit.current_target and unit.current_target not in drawn_targets:
+        for unit in self.selected_objects:
+            if not getattr(getattr(unit, 'player', None), 'human', False):
+                continue
+            target = getattr(unit, 'current_target', None)
+            if (target is not None and target not in drawn_targets
+                    and getattr(target, 'player', None) is not unit.player
+                    and self._is_object_visible_to_human(target)):
                 target = unit.current_target
                 
                 # Convert world position to screen position

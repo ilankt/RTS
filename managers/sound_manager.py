@@ -403,6 +403,10 @@ class SoundManager:
     def world_gain(self, x, y):
         """(left, right) gain for a sound at a world position, or None when it
         is too far outside the view to be worth playing."""
+        fog = getattr(self.game, 'fog_of_war', None)
+        if fog is not None and hasattr(fog, 'is_display_visible'):
+            if not fog.is_display_visible(x, y):
+                return None
         camera = getattr(self.game, "camera", None)
         if camera is None:
             return (1.0, 1.0)      # headless / tests: never silence anything
@@ -586,6 +590,7 @@ class SoundManager:
         self.sounds["ui_click"] = self._make_sound(500, 0.02, "square")
         # Alert / warning
         self.sounds["alert"] = self._make_sound(880, 0.1, "square")
+        self.sounds["under_attack"] = self._make_descending_sound(620, 310, 0.6)
         # Soft rising chime for "a worker fell idle" — gentle nudge, not an
         # alarm (launch feedback: silent idling read as "workers just stopped")
         self.sounds["idle_worker"] = self._make_ascending_sound(520, 690, 0.13)
@@ -825,6 +830,22 @@ class SoundManager:
         if sound:
             sound.set_volume(self.volume * 0.55)
             sound.play()
+
+    def play_under_attack(self):
+        """Priority warning; remains audible even without an installed voice file."""
+        if not self.enabled:
+            return False
+        sound = self._pick('under_attack')
+        if sound is None:
+            return False
+        channel = pygame.mixer.find_channel(force=True)
+        if channel is None:
+            return False
+        sound.set_volume(self.volume)
+        channel.set_volume(1.0, 1.0)
+        channel.play(sound)
+        music_player.duck(3.0)
+        return True
 
     def play_error(self):
         self.play("error")

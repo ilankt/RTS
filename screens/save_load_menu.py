@@ -16,6 +16,7 @@ lives on the row rather than behind a third tab because the main menu opens
 this screen load-only, with the tab strip hidden entirely; managing saves
 has to work there too.
 """
+from ui import fonts as ui_fonts
 import pygame
 
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
@@ -42,9 +43,9 @@ class SaveLoadScreen:
         self.result = None          # slot int to load, or None
         self.running = True
 
-        self.font_slot = pygame.font.Font(None, 34)
-        self.font_meta = pygame.font.Font(None, 24)
-        self.font_btn = pygame.font.Font(None, 32)
+        self.font_slot = ui_fonts.screen_font(19)
+        self.font_meta = ui_fonts.screen_font(14)
+        self.font_btn = ui_fonts.screen_font(22)
         self._meta = {}
         self._toast = None          # (text, expire_ms)
         self._confirm_delete = None  # slot armed for deletion, or None

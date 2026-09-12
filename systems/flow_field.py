@@ -47,6 +47,7 @@ class _BuildJob:
         self.field = field
         self.needed = set(needed_cells)
         self.waiters = list(waiters)  # (unit, slot_target)
+        self.waiter_tokens = {id(u): getattr(u, "_flow_command_token", None) for u, _ in waiters}
         grid = manager.grid
         goal = field.goal_cell
         self.dist: Dict[Cell, float] = {goal: 0.0}
@@ -146,6 +147,11 @@ class FlowFieldManager:
         if goal_cell is None:
             return False
 
+        for unit, _ in units_with_slots:
+            unit._pending_path_seq = None
+            unit._pending_path_intent = None
+            unit._flow_command_token = object()
+
         key = (goal_cell, unit_radius)
         field = self._fields.get(key)
         if field is not None and field.revision == self.revision:
@@ -180,10 +186,12 @@ class FlowFieldManager:
         if job.step(deadline):
             self._jobs.pop(0)
             perf_stats.increment("flow_field_cells", len(job.settled))
-            self._attach(job.field, job.waiters)
+            self._attach(job.field, job.waiters, job.waiter_tokens)
 
-    def _attach(self, field: FlowField, units_with_slots):
+    def _attach(self, field: FlowField, units_with_slots, tokens=None):
         for unit, slot in units_with_slots:
+            if tokens is not None and getattr(unit, "_flow_command_token", None) is not tokens[id(unit)]:
+                continue  # stopped or redirected while this field was building
             if getattr(unit, "hp", 1) <= 0 or not getattr(unit, "in_world", True):
                 continue
             # §9 blind-march fix: a waiter that picked up a fight while the

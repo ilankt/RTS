@@ -1,0 +1,13 @@
+{
+  "recruitment": true,
+  "save_v8": true,
+  "legacy_v7": true,
+  "wounds_preserved": true,
+  "queues_preserved": true,
+  "rendered": true,
+  "post_load_updates": 180,
+  "factions": [
+    "steppe",
+    "highland"
+  ]
+}

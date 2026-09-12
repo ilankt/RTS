@@ -6,6 +6,7 @@ dict, or None if the player backs out.
 """
 import random
 
+from ui import fonts as ui_fonts
 import pygame
 
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT, MAP_SIZES
@@ -22,12 +23,15 @@ class MatchSetupScreen:
         if not pygame.font.get_init():
             pygame.font.init()
         self.screen = screen
-        self.font_large = pygame.font.Font(None, 56)
-        self.font_medium = pygame.font.Font(None, 36)
-        self.font_small = pygame.font.Font(None, 24)
+        self.font_large = ui_fonts.screen_font(44)
+        self.font_medium = ui_fonts.screen_font(24)
+        self.font_small = ui_fonts.screen_font(19)
+        self.row_font = ui_fonts.screen_font(22)
 
         self.config = {
             "mode": "play",           # play | spectate
+            "faction": "steppe",
+            "ai_faction": "random",
             "opponents": 1,           # AI count (vs human) or total-1 in spectate
             "map_size": "medium",     # tiny..huge; caps the player count
             "personality": "random",  # applied to every AI, or random per AI
@@ -38,6 +42,8 @@ class MatchSetupScreen:
         }
         self.rows = [
             ("Mode", "mode"),
+            ("Your faction", "faction"),
+            ("AI faction", "ai_faction"),
             ("Map size", "map_size"),
             ("Opponents", "opponents"),
             ("AI personality", "personality"),
@@ -65,6 +71,9 @@ class MatchSetupScreen:
     def _adjust(self, key, direction):
         if key == "mode":
             self.config["mode"] = "spectate" if self.config["mode"] == "play" else "play"
+        elif key in ('faction', 'ai_faction'):
+            choices = ['steppe', 'highland'] if key == 'faction' else ['random', 'steppe', 'highland']
+            self.config[key] = choices[(choices.index(self.config[key]) + direction) % len(choices)]
         elif key == "map_size":
             index = MAP_SIZE_CHOICES.index(self.config["map_size"])
             self.config["map_size"] = MAP_SIZE_CHOICES[(index + direction) % len(MAP_SIZE_CHOICES)]
@@ -91,6 +100,8 @@ class MatchSetupScreen:
             self.config["seed"] = max(0, self.config["seed"] + direction)
 
     def _value_text(self, key):
+        if key in ('faction', 'ai_faction'):
+            return {'steppe': 'Steppe (Horse Archer)', 'highland': 'Highland (Axeman)', 'random': 'Random'}[self.config[key]]
         if key == "mode":
             return "Play (you vs AI)" if self.config["mode"] == "play" else "Spectate (AI vs AI)"
         if key == "map_size":
@@ -103,7 +114,7 @@ class MatchSetupScreen:
         if key == "difficulty":
             return self.config["difficulty"].title()
         if key == "victory":
-            return self.config["victory"].title()
+            return "Annihilation (40 min)" if self.config["victory"] == "annihilation" else self.config["victory"].title()
         if key == "mutator":
             return self.config["mutator"].replace("_", " ").title()
         if key == "seed":
@@ -172,18 +183,21 @@ class MatchSetupScreen:
     ROW_PITCH = 48
     ROW_W = 530
 
+    def _row_pitch(self):
+        return min(self.ROW_PITCH, max(32, (SCREEN_HEIGHT - 160) // len(self.rows)))
+
     def _panel_rect(self):
-        height = self.ROWS_TOP_OFFSET + len(self.rows) * self.ROW_PITCH + 36
+        height = self.ROWS_TOP_OFFSET + len(self.rows) * self._row_pitch() + 36
         top = max(12, (SCREEN_HEIGHT - height) // 2)
         return pygame.Rect(SCREEN_WIDTH // 2 - 320, top, 640, height)
 
     def _row_rect(self, index):
         panel = self._panel_rect()
-        y = panel.y + self.ROWS_TOP_OFFSET + index * self.ROW_PITCH
+        y = panel.y + self.ROWS_TOP_OFFSET + index * self._row_pitch()
         if index >= len(self.rows) - 2:
             y += 10  # breathe before the Start/Back actions
         return pygame.Rect(SCREEN_WIDTH // 2 - self.ROW_W // 2, y,
-                           self.ROW_W, self.ROW_PITCH - 6)
+                           self.ROW_W, self._row_pitch() - 6)
 
     def draw(self):
         theme.draw_menu_scene(self.screen, "Match Setup", self._panel_rect())
@@ -198,7 +212,7 @@ class MatchSetupScreen:
             else:
                 theme.draw_setting_row(self.screen, rect, label,
                                        self._value_text(key), selected,
-                                       self.font_medium)
+                                       self.row_font)
 
         theme.draw_hint(
             self.screen,

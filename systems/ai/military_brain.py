@@ -9,6 +9,7 @@ from systems.ai.utility.context import combatants_of, is_castle_under_attack
 from systems.ai.utility.personality import raid_army_limit
 from systems.combat_rules import is_building_target
 from utils.debug_logger import debug_log
+from systems.ai.operations import OperationLedger, escort_delivery
 
 
 class MilitaryBrain:
@@ -20,8 +21,8 @@ class MilitaryBrain:
 
     # §7 P3 army roles: the front line soaks, the back line shoots over it,
     # siege gets escorted, flankers hunt what they counter.
-    ROLE_FRONT = ("warrior", "spearman")
-    ROLE_BACK = ("archer",)
+    ROLE_FRONT = ("warrior", "spearman", "axeman")
+    ROLE_BACK = ("archer", "horse_archer")
     ROLE_SIEGE = ("ram",)
 
     # §7 P3 counter-targeting: how many px of extra distance a countered
@@ -42,7 +43,7 @@ class MilitaryBrain:
     # a working ram falls back home and waits — unless fielding a fighter has
     # become impossible (none queued, and no live/under-construction trainer
     # or nothing affordable), which sanctions the desperate all-in.
-    ESCORT_CAPABLE = ("warrior", "spearman", "archer", "cavalry")
+    ESCORT_CAPABLE = ("warrior", "spearman", "archer", "cavalry", "horse_archer", "axeman")
     FIGHTER_TRAINERS = ("barracks", "stable")
     RAM_HOME_RADIUS = 300  # a waiting ram parks within this range of the castle
 
@@ -114,8 +115,15 @@ class MilitaryBrain:
         self._regroup_until = {}     # player name -> sim time (§8.9 retreat)
         self._musters = {}           # player name -> {"point", "since"} (§8.14)
         self._sweep_index = {}       # player name -> rotating sweep anchor (§8.16)
+        self._objective_backoff = {}
+        self.operation_counts = {}
+        self.operations = OperationLedger()
+        self._escort_waits = {}
 
-    def overwhelming(self, ctx) -> bool:
+    def _count_operation(self, event, amount=1):
+        self.operation_counts[event] = self.operation_counts.get(event, 0) + amount
+
+    def overwhelming(self, ctx, target=None) -> bool:
         """§8.16: does this player hold decisive fighting superiority?
         Compares own fighters against VISIBLE enemy fighters — fog hides
         the rest, but an army this large should be closing regardless.
@@ -128,16 +136,19 @@ class MilitaryBrain:
         are unchanged (a single enemy is its own minimum)."""
         from systems.ai.utility.context import combatants_of
 
-        mine = len(combatants_of(ctx.military))
+        mine = sum(not self._should_retreat(u, self._get_unit_max_hp(u))
+                   and not getattr(u, '_local_defense_target', None)
+                   for u in combatants_of(ctx.military))
         if mine < self.OVERWHELM_MIN_FIGHTERS:
             return False
-        MILITARY = ("warrior", "archer", "spearman", "cavalry", "ram")
+        MILITARY = ("warrior", "archer", "spearman", "cavalry", "ram", "horse_archer", "axeman")
         per_enemy = {}
         for e in ctx.enemy_units:
             owner = getattr(getattr(e, "player", None), "name", None)
             if e.name in MILITARY and owner is not None:
                 per_enemy[owner] = per_enemy.get(owner, 0) + 1
-        weakest = min(per_enemy.values()) if per_enemy else 0
+        owner = getattr(getattr(target, 'player', None), 'name', None)
+        weakest = per_enemy.get(owner, 0) if owner else (min(per_enemy.values()) if per_enemy else 0)
         return mine >= self.OVERWHELM_RATIO * max(1, weakest)
 
     def is_regrouping(self, player) -> bool:
@@ -146,6 +157,12 @@ class MilitaryBrain:
         return getattr(self.game, "sim_time_elapsed", 0.0) < until
 
     def update(self, ctx, should_attack: bool):
+        try:
+            self._update_orders(ctx, should_attack)
+        finally:
+            self.operations.sample(ctx, getattr(self.game, 'sim_time_elapsed', 0))
+
+    def _update_orders(self, ctx, should_attack: bool):
         """Run military logic for one AI player from the blackboard snapshot."""
         castle = ctx.castle
         if not castle:
@@ -167,16 +184,20 @@ class MilitaryBrain:
         # enemy. They trail the army; combat_system heals automatically.
         combatants = combatants_of(military)
         healers = [u for u in military if not getattr(u, "can_attack_flag", True)]
+        self._update_recovery(ctx, combatants, healers)
+        self._reconcile_operations(ctx)
 
         # 0. Micro: retreat damaged units, kite with archers
         self._apply_micro(military, castle, max_hp_cache)
         self._manage_healers(healers, combatants, castle, max_hp_cache)
+        if not enemies_near_base:
+            self._release_stalled_pursuits(ctx, combatants)
 
         # 1. Emergency defense - all hands, defense outranks squad pacing.
         # §8.11: when the CASTLE itself is being hit, this escalates to a
         # full recall — units marching/fighting far away abort and come home
         # (losing the castle loses the game; there is nothing better to do).
-        if enemies_near_base:
+        if enemies_near_base and getattr(ctx, "castle_under_attack", False):
             # §8.14: home defense dissolves any gathering muster — its units
             # are being conscripted below anyway
             self._musters.pop(ctx.player.name, None)
@@ -188,6 +209,8 @@ class MilitaryBrain:
                 "AI",
             )
             for unit in combatants:
+                unit._assault_order = None
+                unit._assembly_muster = None
                 if unit.in_combat or unit.is_engaging:
                     intercept = (attackers and is_building_target(getattr(unit, 'current_target', None))
                                  and any(math.hypot(unit.x-e.x, unit.y-e.y) <= 600 for e in attackers))
@@ -216,6 +239,12 @@ class MilitaryBrain:
                 self._command_attack(unit, defense_target, ctx)
             return  # Defense takes priority over everything
 
+        # An outpost raid owns a local detail, not the entire military tick.
+        defenders = self._assign_local_defense(ctx, combatants, max_hp_cache)
+        combatants = [u for u in combatants if u not in defenders]
+        self._advance_assaults(ctx, combatants)
+        self._maintain_operation_escorts(ctx)
+
         # Idle soldiers clear nearby foundations without waiting for a wave.
         sites = getattr(ctx, 'enemy_construction_sites', ())
         for unit in combatants:
@@ -227,7 +256,7 @@ class MilitaryBrain:
         # 1b. §8.9 squad retreat: a fight going badly ends NOW — disengage,
         # re-mass, re-engage — instead of bleeding out piecemeal. Only when
         # home isn't under attack (the emergency block above returns first).
-        if self._check_squad_retreat(ctx, military, castle):
+        if self._check_squad_retreat(ctx, combatants + healers, castle):
             return
 
         # 1c. §7 P3/P4 standing discipline (every tick, not just attack ticks):
@@ -245,7 +274,7 @@ class MilitaryBrain:
         # known enemy buildings can't attack — AttackGoal never fires. Send
         # one squad probing the likely spawn areas so the army finds the
         # fight instead of idling at home while the lone scout wanders.
-        if not ctx.enemy_buildings and not sites and len(combatants) >= 5 and not getattr(ctx, "regrouping", False):
+        if not ctx.enemy_buildings and not sites and len(combatants) >= 1 and not getattr(ctx, "regrouping", False):
             scout_brain = getattr(getattr(self.game, "ai_system", None), "scout_brain", None)
             if scout_brain is not None:
                 anchor = scout_brain.next_unexplored_anchor(ctx.player, (castle.x, castle.y))
@@ -276,6 +305,20 @@ class MilitaryBrain:
                 self._create_muster(ctx, combatants, target)
 
     def _check_squad_retreat(self, ctx, military, castle) -> bool:
+        # Distinct fights cannot share a centroid or one retreat order.
+        groups = []
+        for unit in military:
+            group = next((g for g in groups if math.hypot(unit.x-g[0].x, unit.y-g[0].y) <= self.BATTLE_RADIUS), None)
+            if group is None:
+                groups.append([unit])
+            else:
+                group.append(unit)
+        retreated = False
+        for group in groups:
+            retreated = self._retreat_local_battle(ctx, group, castle) or retreated
+        return retreated and not any(self._is_idle_military(u) for u in military)
+
+    def _retreat_local_battle(self, ctx, military, castle) -> bool:
         """§8.9: detect a losing fight and pull the army out. Returns True
         when a retreat was ordered this tick."""
         engaged = [u for u in military if u.in_combat or u.is_engaging]
@@ -319,7 +362,9 @@ class MilitaryBrain:
                 continue
             self._commit_flee(unit, rally, frame)
 
-        self._musters.pop(ctx.player.name, None)  # §8.14: re-mass at the rally instead
+        state = self._musters.get(ctx.player.name)
+        if state and any(u in engaged for u in state.get('members', ())):
+            self._musters.pop(ctx.player.name, None)
         self._regroup_until[ctx.player.name] = (
             getattr(self.game, "sim_time_elapsed", 0.0) + self.REGROUP_SECONDS)
         debug_log.log(
@@ -453,6 +498,11 @@ class MilitaryBrain:
             row, col = divmod(probe, n)
             anchor = (world_w * (2 * col + 1) / (2 * n),
                       world_h * (2 * row + 1) / (2 * n))
+            reachable = getattr(getattr(self.game, 'pathfinder', None), 'exploration_reachable', None)
+            castle = getattr(ctx, 'castle', None)
+            origin = (castle.x, castle.y) if castle else None
+            if reachable and origin and not reachable(ctx.player, origin, anchor):
+                continue
             if not fog_on or not fog.is_visible(ctx.player, anchor[0], anchor[1]):
                 self._sweep_index[ctx.player.name] = (probe + 1) % (n * n)
                 return anchor
@@ -465,43 +515,71 @@ class MilitaryBrain:
     def _create_muster(self, ctx, combatants, target):
         """Open a muster: this tick's squad rallies at its forwardmost
         member (toward the target) instead of charging in singly."""
-        squad = self._next_squad(ctx.player, combatants)
+        squad = combatants if self.overwhelming(ctx, target) else self._next_squad(ctx.player, combatants)
         members = [
             u for u in squad
             if self._is_idle_military(u)
             and not getattr(u, "_guard_post", None)
             and getattr(u, "_flee_rally", None) is None
+            and not self._should_retreat(u, self._get_unit_max_hp(u))
+            and getattr(u, '_recovery_job', None) is None
         ]
         if not members:
             return
         anchor = min(members, key=lambda u: math.hypot(u.x - target.x, u.y - target.y))
         point = (anchor.x, anchor.y)
-        self._musters[ctx.player.name] = {
+        now = getattr(self.game, 'sim_time_elapsed', 0.0)
+        travel = max(math.hypot(u.x-point[0], u.y-point[1]) /
+                     max(1, getattr(u, 'movement_speed', 50)) for u in members)
+        operation = self.operations.open(ctx.player.name, target, members, now, travel)
+        escorts = [u for u in members if u.name not in self.ROLE_SIEGE]
+        for ram in (u for u in members if u.name in self.ROLE_SIEGE):
+            assigned = sorted(escorts, key=lambda u: math.hypot(u.x-ram.x, u.y-ram.y))[:2]
+            operation.escorts[ram] = assigned
+            for escort in assigned:
+                escorts.remove(escort)
+        state = self._musters[ctx.player.name] = {
             "point": point,
             "since": getattr(self.game, "sim_time_elapsed", 0.0),
+            "members": members,
+            "target": target,
+            "operation": operation,
+            "retry_at": now,
         }
+        for unit in members:
+            unit._assembly_muster = state
+            unit._army_operation = operation
         self._rally_to_muster(members, point)
         debug_log.log(
             f"AI {ctx.player.name}: mustering {len(members)} units at "
             f"({point[0]:.0f}, {point[1]:.0f})", "AI")
 
     def _advance_muster(self, ctx, combatants):
-        """Gather stragglers at the rally point; launch the wave when enough
-        are formed up, the wait runs out, or the point comes under threat.
-        Membership is dynamic — freshly trained units join the gathering
-        instead of marching off alone (the whole point, §8.14)."""
+        """Launch the assigned assembly members when formed or timed out.
+
+        A launch may replace this assembly's pending movement, but cannot
+        consume unrelated orders. Failed members retain the muster.
+        """
         state = self._musters.get(ctx.player.name)
         if state is None:
             return
+        now = getattr(self.game, 'sim_time_elapsed', 0.0)
+        if now < state.get('retry_at', 0):
+            return
         point = state["point"]
+        members = state.setdefault("members", list(combatants))
         eligible = [
-            u for u in combatants
+            u for u in members if u in combatants and getattr(u, "hp", 0) > 0
             if not getattr(u, "_guard_post", None)
             and getattr(u, "_flee_rally", None) is None
+            and getattr(u, "_assault_order", None) is None
             and not u.in_combat and not u.is_engaging
         ]
         if not eligible:
             self._musters.pop(ctx.player.name, None)
+            for unit in members:
+                if getattr(unit, '_assembly_muster', None) is state:
+                    unit._assembly_muster = None
             return
         formed = [u for u in eligible
                   if math.hypot(u.x - point[0], u.y - point[1]) <= self.MUSTER_RADIUS]
@@ -512,17 +590,38 @@ class MilitaryBrain:
         # against a fortified base were suicide-by-trickle (v2 battery:
         # 3,193 attack ticks without a kill). The small-wave cadence is for
         # even fights, where reinforcing a committed push matters more.
-        overwhelming = self.overwhelming(ctx)
+        overwhelming = self.overwhelming(ctx, state.get('target'))
         if overwhelming:
             wave_target = len(eligible)
         else:
             wave_target = min(self.MUSTER_WAVE_SIZE, len(eligible))
         if len(formed) >= wave_target or waited or threatened:
-            self._musters.pop(ctx.player.name, None)
             # §8.16: a dominant push commits everyone — stragglers converge
             # on the target instead of seeding the next 5-unit trickle.
             wave = eligible if overwhelming else (formed if formed else eligible)
             self._launch_wave(ctx, wave)
+            state['retry_at'] = now + 3
+            accepted = [u for u in wave if getattr(u, "_assault_order", None)]
+            self._count_operation("launch_members", len(wave))
+            self._count_operation("launch_accepted", len(accepted))
+            if accepted:
+                # Retain unlaunched members instead of silently losing orders.
+                state["members"] = [u for u in eligible if u not in accepted]
+                if not state["members"]:
+                    self._musters.pop(ctx.player.name, None)
+            else:
+                self._count_operation("launch_without_acceptance")
+                deadline = getattr(state.get('operation'), 'deadline', state['since'] + 2 * self.MUSTER_TIMEOUT_S)
+                if now >= deadline:
+                    self._count_operation("assembly_failed")
+                    self._musters.pop(ctx.player.name, None)
+                    operation = state.get('operation')
+                    if operation:
+                        self.operations.close(operation, now, 'failed', 'assembly_deadline')
+                    for unit in members:
+                        if self._owns_assembly_move(unit, state):
+                            unit.clear_all_movement_state()
+                        unit._assembly_muster = None
             return
         self._rally_to_muster(
             [u for u in eligible if self._is_idle_military(u)], point)
@@ -533,6 +632,8 @@ class MilitaryBrain:
         later tick); units already there or already en route are left be."""
         ordered = 0
         for i, unit in enumerate(units):
+            if getattr(unit, "_pending_path_seq", None) is not None:
+                continue
             if ordered >= self.SQUAD_SIZE:
                 break
             if math.hypot(unit.x - point[0], unit.y - point[1]) <= self.MUSTER_RADIUS:
@@ -546,6 +647,8 @@ class MilitaryBrain:
                 unit, (point[0] + math.cos(angle) * offset,
                        point[1] + math.sin(angle) * offset),
                 self.game.pathfinder)
+            unit._assembly_target = (point[0] + math.cos(angle) * offset,
+                                     point[1] + math.sin(angle) * offset)
             ordered += 1
 
     def _launch_wave(self, ctx, wave):
@@ -553,46 +656,197 @@ class MilitaryBrain:
         per-squad send rules intact: back line waits for a front, per-unit
         counter-targets near the anchor, telegraph on human-bound pushes,
         and (§8.14) rams only leave with fighters in the field."""
-        target = self._find_attack_target(ctx)
+        state = self._musters.get(ctx.player.name)
+        target = state.get("target") if state else None
+        if target is None or getattr(target, "hp", 0) <= 0:
+            target = self._find_attack_target(ctx)
         if target is None:
             return
         focus_target = self._find_focus_fire_target(ctx, wave)
+        strategic_target = target
         if focus_target:
             target = focus_target
-        combatants = combatants_of(ctx.military)
-        fighters_alive = any(u.name not in self.ROLE_SIEGE for u in combatants)
-        # §7 P3: the back line holds until a front fighter has closed on the
-        # target (or there is no front line to wait for).
-        fronts = [u for u in combatants if u.name in self.ROLE_FRONT]
-        front_released = not fronts or any(
-            u.in_combat or u.is_engaging
-            or math.hypot(u.x - target.x, u.y - target.y) <= self.BACKLINE_RELEASE_RANGE
-            for u in fronts)
+        combatants = list(state.get("members", wave)) if state else list(wave)
+        operation = state.get('operation') if state else None
+        fighters_alive = any(u.name not in self.ROLE_SIEGE and
+                             not self._should_retreat(u, self._get_unit_max_hp(u)) for u in combatants)
+        # All roles depart together; operation escorts own march spacing.
         sent = []
         for unit in wave:
-            if not self._is_idle_military(unit):
+            assembly = state is not None and self._owns_assembly_move(unit, state)
+            if not self._is_idle_military(unit) and not assembly:
+                self.operations.record(getattr(self.game, 'sim_time_elapsed', 0), operation, 'superseded', 'other_order', unit)
                 continue
             if getattr(unit, "_guard_post", None):
-                continue  # §7 P4: the fountain detail stays home
-            if self._should_retreat(unit, self._get_unit_max_hp(unit)):
+                self.operations.record(getattr(self.game, 'sim_time_elapsed', 0), operation, 'superseded', 'guard_duty', unit)
                 continue
-            if unit.name in self.ROLE_BACK and not front_released:
+            if self._should_retreat(unit, self._get_unit_max_hp(unit)):
+                self.operations.record(getattr(self.game, 'sim_time_elapsed', 0), operation, 'temporarily_blocked', 'wounded', unit)
                 continue
             if (unit.name in self.ROLE_SIEGE and not fighters_alive
                     and self._fighters_incoming(ctx)):
+                self.operations.record(getattr(self.game, 'sim_time_elapsed', 0), operation, 'temporarily_blocked', 'paid_escort', unit)
                 continue  # §8.14: a ram never marches alone while escorts can exist
             # §7 P3 counter-targeting: near the squad target, each unit
             # prefers what it's strong against (cavalry hunts archers,
             # spearman meets the cavalry)
             per_target = self._counter_target_for(unit, ctx, target.x, target.y) or target
+            if unit.name in self.ROLE_SIEGE and is_building_target(strategic_target):
+                per_target = strategic_target
+            elif not is_building_target(per_target) and is_building_target(strategic_target):
+                assigned = sum(u.current_target is per_target for u in combatants)
+                if assigned >= max(3, min(8, math.ceil(per_target.hp / 40))):
+                    per_target = strategic_target
             debug_log.log(
                 f"AI {ctx.player.name}: Sending {unit.name} to attack {per_target.name} at ({per_target.x:.0f}, {per_target.y:.0f})",
                 "AI",
             )
-            self._command_attack(unit, per_target, ctx)
-            sent.append(unit)
+            if assembly:
+                unit.clear_all_movement_state()
+            if self._command_attack(unit, per_target, ctx):
+                unit._assembly_muster = None
+                unit._assault_order = dict(target=strategic_target,
+                    progress_at=getattr(self.game, "sim_time_elapsed", 0.0),
+                    distance=math.hypot(unit.x-strategic_target.x, unit.y-strategic_target.y),
+                    hp=strategic_target.hp, phase="advance")
+                unit._assault_order['operation'] = operation
+                unit._assault_order['position'] = (unit.x, unit.y)
+                unit._assault_order['deadline'] = getattr(self.game, 'sim_time_elapsed', 0) + 180 + 3 * (
+                    unit._assault_order['distance'] / max(1, getattr(unit, 'movement_speed', 50)))
+                if operation:
+                    operation.phase = 'march'
+                sent.append(unit)
+                self.operations.record(getattr(self.game, 'sim_time_elapsed', 0), operation, 'accepted', 'attack', unit)
+            else:
+                self.operations.record(getattr(self.game, 'sim_time_elapsed', 0), operation, 'temporarily_blocked', 'navigation_rejected', unit)
         if sent:
             self._telegraph_attack(ctx, target, sent)
+        return sent
+
+    @staticmethod
+    def _owns_assembly_move(unit, state):
+        if (getattr(unit, "_assembly_muster", None) is not state
+                or unit.in_combat or unit.is_engaging
+                or getattr(unit, "_flee_rally", None) is not None):
+            return False
+        point = getattr(unit, "_assembly_target", None)
+        pending = getattr(unit, "_pending_path_intent", None)
+        if pending:
+            return pending[0] == "move" and pending[1] == point
+        task = getattr(unit, "last_task", None) or {}
+        return point is not None and task.get("type") == "move" and task.get("target") == point
+
+    def _assign_local_defense(self, ctx, combatants, max_hp):
+        from copy import copy
+        clusters = []
+        for threat in ctx.enemies_near_base:
+            if getattr(threat, 'hp', 0) <= 0:
+                continue
+            group = next((g for g in clusters if any(math.hypot(threat.x-t.x, threat.y-t.y) < 500 for t in g)), None)
+            if group is None:
+                clusters.append([threat])
+            else:
+                group.append(threat)
+        if len(clusters) <= 1:
+            return self._assign_defense_cluster(ctx, combatants, max_hp)
+        selected = set()
+        for group in clusters:
+            local = copy(ctx)
+            local.enemies_near_base = group
+            local.building_attackers = [t for t in getattr(ctx, 'building_attackers', ()) if t in group]
+            selected.update(self._assign_defense_cluster(local, [u for u in combatants if u not in selected], max_hp))
+        return selected
+
+    def _assign_defense_cluster(self, ctx, combatants, max_hp):
+        threats = [t for t in ctx.enemies_near_base if getattr(t, "hp", 0) > 0]
+        attackers = getattr(ctx, "building_attackers", ())
+        urgent = [t for t in threats if t in attackers or getattr(t, "can_attack_flag", False)
+                  or getattr(t, "name", "") in ("watchtower", "castle")]
+        # Foundations/passive structures get a small demolition detail too.
+        targets = urgent or threats
+        if not targets:
+            for unit in combatants:
+                unit._local_defense_target = None
+            return set()
+        budget = sum(t.hp for t in urgent) * 1.5 if urgent else 0
+        needed = 2 if not urgent else max(2, len(urgent))
+        selected = set()
+        strength = 0
+        candidates = [u for u in combatants if not self._should_retreat(u, max_hp[u])
+                      and getattr(u, "_flee_rally", None) is None
+                      and (not u.in_combat or u.current_target in targets)]
+        def distance(u):
+            return min(math.hypot(u.x-t.x, u.y-t.y) for t in targets)
+        # Existing defenders stay assigned; nearby free troops come next.
+        candidates.sort(key=lambda u: (getattr(u, "_local_defense_target", None) not in targets,
+                                       bool(getattr(u, "_assault_order", None)), distance(u)))
+        for unit in candidates:
+            if len(selected) >= needed and strength >= budget:
+                break
+            target = min(targets, key=lambda t: math.hypot(unit.x-t.x, unit.y-t.y))
+            if not urgent and distance(unit) > 600:
+                continue  # a harmless remote structure cannot recall the army
+            if (distance(unit) > 600
+                    and (unit.is_engaging or getattr(unit, "_assault_order", None)
+                         or getattr(unit, "_pending_path_seq", None) is not None)
+                    and getattr(unit, "_local_defense_target", None) not in targets):
+                continue  # only a castle emergency recalls committed distant troops
+            unit._local_defense_target = target
+            unit._assault_order = None
+            unit._assembly_muster = None
+            if not unit.in_combat and not (unit.is_engaging and unit.current_target in targets):
+                if unit.is_engaging:
+                    unit.clear_all_movement_state()
+                pending = getattr(unit, "_pending_path_intent", None)
+                if pending and not (pending[0] == "interact" and pending[1] is target):
+                    unit.clear_all_movement_state()
+                self._command_attack(unit, target, ctx)
+            selected.add(unit)
+            strength += unit.hp
+        for unit in combatants:
+            if unit not in selected:
+                unit._local_defense_target = None
+        self._count_operation("local_defender_ticks", len(selected))
+        self._count_operation("offense_available_during_local_threat", len(combatants)-len(selected))
+        return selected
+
+    def _advance_assaults(self, ctx, combatants):
+        now = getattr(self.game, "sim_time_elapsed", 0.0)
+        for unit in combatants:
+            order = getattr(unit, "_assault_order", None)
+            if not order:
+                continue
+            target = order["target"]
+            if target.hp <= 0 or not getattr(target, "in_world", True):
+                unit._assault_order = None
+                self._count_operation("objective_destroyed")
+                continue
+            if getattr(unit, "_flee_rally", None) is not None:
+                unit._assault_order = None
+                continue
+            distance = math.hypot(unit.x-target.x, unit.y-target.y)
+            position = order.get('position', (unit.x, unit.y))
+            travelled = math.hypot(unit.x-position[0], unit.y-position[1])
+            # Navigation detours are progress too, within a total travel budget.
+            # Remote damage cannot indefinitely renew an unmoving soldier.
+            attacking = unit.in_combat and unit.current_target is target
+            if distance < order["distance"]-20 or travelled > 20 or (attacking and target.hp < order['hp']):
+                order.update(progress_at=now, distance=distance, hp=target.hp)
+                order['position'] = (unit.x, unit.y)
+            order["phase"] = "siege" if distance <= unit.attack_range + target.radius + 80 else "advance"
+            self._count_operation("assault_" + order["phase"] + "_ticks")
+            if now-order["progress_at"] >= 40 or now >= order.get('deadline', float('inf')):
+                unit._assault_order = None
+                self._objective_backoff[(ctx.player.name, id(target))] = now + 15
+                if not unit.in_combat:
+                    unit.clear_all_movement_state()
+                self._count_operation("objective_no_progress")
+                self.operations.record(now, order.get('operation'), 'failed', 'member_no_progress', unit)
+                continue
+            if (not unit.in_combat and not unit.is_engaging and not unit.path
+                    and getattr(unit, "_pending_path_seq", None) is None
+                    and not unit.destination):
+                self._command_attack(unit, target, ctx)
 
     # §9 healers: how close a healer stays to the army's center of mass
     # (HEALER_HEAL_RANGE covers the rest — this is a follow leash, not a
@@ -608,6 +862,10 @@ class MilitaryBrain:
         flights and wounded healers (the HP retreat owns those) are left
         alone."""
         for healer in healers:
+            patients = [u for u in combatants if
+                        (getattr(u, '_recovery_job', None) or {}).get('healer') is healer]
+            if patients:
+                continue  # recovery patients travel to this reserved healer
             if getattr(healer, "_flee_rally", None) is not None:
                 continue  # committed flight — don't interrupt
             if self._should_retreat(healer, max_hp_cache.get(healer, healer.hp)):
@@ -622,7 +880,8 @@ class MilitaryBrain:
                 anchor_x, anchor_y = castle.x + 60, castle.y + 60
             else:
                 continue
-            if math.hypot(healer.x - anchor_x, healer.y - anchor_y) > self.HEALER_FOLLOW_DISTANCE:
+            if (getattr(healer, "_pending_path_seq", None) is None
+                    and math.hypot(healer.x - anchor_x, healer.y - anchor_y) > self.HEALER_FOLLOW_DISTANCE):
                 self.game.selection_manager._move_unit_to_position(
                     healer, (anchor_x, anchor_y), self.game.pathfinder)
 
@@ -659,6 +918,8 @@ class MilitaryBrain:
             if math.hypot(enemy.x - anchor_x, enemy.y - anchor_y) > self.COUNTER_TARGET_RADIUS:
                 continue
             d = math.hypot(enemy.x - unit.x, enemy.y - unit.y)
+            if d > self.COUNTER_TARGET_RADIUS:
+                continue
             if d < best_d:
                 best, best_d = enemy, d
         return best
@@ -682,6 +943,8 @@ class MilitaryBrain:
             return
         taken = set()
         for ram in rams:
+            if getattr(ram, '_assault_order', None) or getattr(ram, '_assembly_muster', None):
+                continue  # assigned escorts travel in the same operation
             working = (ram.destination or ram.path or ram.in_combat or ram.is_engaging
                        or getattr(ram, "_pending_path_seq", None) is not None)
             if not working:
@@ -698,7 +961,8 @@ class MilitaryBrain:
                 nearest_f = min(
                     fighters, key=lambda u: (u.x - ram.x) ** 2 + (u.y - ram.y) ** 2)
                 if math.hypot(nearest_f.x - ram.x, nearest_f.y - ram.y) > self.RAM_ESCORT_DISTANCE * 2:
-                    dest = getattr(ram, "destination", None)
+                    pending = getattr(ram, "_pending_path_intent", None)
+                    dest = pending[1] if pending and pending[0] == "move" else getattr(ram, "destination", None)
                     already_falling_back = dest and math.hypot(
                         dest[0] - nearest_f.x, dest[1] - nearest_f.y) <= self.RAM_ESCORT_DISTANCE * 2
                     if not already_falling_back:
@@ -720,6 +984,8 @@ class MilitaryBrain:
                     continue
                 if f.in_combat or f.is_engaging:
                     continue  # never yank a fighter out of a fight to babysit
+                if getattr(f, "_pending_path_seq", None) is not None:
+                    continue
                 if getattr(f, "_flee_rally", None) is not None:
                     continue  # committed flights own the unit
                 if getattr(f, "_guard_post", None):
@@ -735,31 +1001,98 @@ class MilitaryBrain:
                 covered += 1
 
     def _fighters_incoming(self, ctx) -> bool:
-        """Can this player still field a fighter escort? True while one is
-        queued/producing, or a trainer is alive (or under construction) and
-        some fighter type is affordable right now. False = §8.14 desperation:
-        rams are released to fight alone because nothing better can exist."""
-        for name in self.ESCORT_CAPABLE:
-            if ctx.count_units(name) > 0:  # none are alive here -> queued/producing
-                return True
-        has_trainer = any(
-            getattr(b, "hp", 0) > 0
-            for name in self.FIGHTER_TRAINERS
-            for b in ctx.buildings.get(name, []))
-        if not has_trainer and not any(
-                s.building_name in self.FIGHTER_TRAINERS
-                for s in ctx.construction_sites):
+        """Wait only for paid production, and never renew its deadline forever."""
+        now = getattr(self.game, 'sim_time_elapsed', 0.0)
+        delivery = escort_delivery(ctx, self.game)
+        if delivery is None:
             return False
-        units_data = self.game.game_data["units"]
-        resources = getattr(ctx.player, "resources", {}) or {}
-        for name in self.ESCORT_CAPABLE:
-            template = units_data.get(name)
-            if template is None:
+        producer, eta = delivery
+        waiting = self._escort_waits.get(ctx.player.name)
+        if waiting is None or not getattr(waiting[0], 'in_world', True) or waiting[0].hp <= 0:
+            waiting = self._escort_waits[ctx.player.name] = (producer, now + eta + 30)
+        return waiting[0] is producer and now < waiting[1]
+
+    def _update_recovery(self, ctx, combatants, healers):
+        """Wounded troops recover at a real healer or eventually fight as-is.
+
+        Recovery has a single deadline, retained through failed movement. A
+        healed soldier can retreat again after taking fresh damage; a soldier
+        with no usable healing cannot cycle between home and the same muster.
+        """
+        now = getattr(self.game, 'sim_time_elapsed', 0.0)
+        for unit in combatants:
+            maximum = self._get_unit_max_hp(unit)
+            if unit.hp >= maximum * .6:
+                unit._last_stand_ready = False
+                unit._recovery_job = None
                 continue
-            costs = getattr(template, "costs", {}) or {}
-            if all(resources.get(res, 0) >= amount for res, amount in costs.items()):
-                return True
-        return False
+            job = getattr(unit, '_recovery_job', None)
+            if ((unit.hp >= maximum * self.RETREAT_HP_PERCENT and job is None)
+                    or getattr(unit, '_last_stand_ready', False)):
+                continue
+            if job is None:
+                options = [h for h in healers if h.hp > 0 and not getattr(h, '_flee_rally', None)]
+                healer = min(options, key=lambda h: math.hypot(h.x-unit.x, h.y-unit.y)) if options else None
+                distance = math.hypot(healer.x-unit.x, healer.y-unit.y) if healer else 0
+                job = unit._recovery_job = dict(healer=healer, deadline=now +
+                    (distance / max(1, getattr(unit, 'movement_speed', 50)) + 60 if healer else 10))
+                unit._assault_order = None
+                unit._assembly_muster = None
+                if healer:
+                    self._commit_flee(unit, (healer.x + 35, healer.y + 35), getattr(self.game, 'frame_counter', 0))
+            healer = job['healer']
+            if now >= job['deadline'] or (healer is not None and healer.hp <= 0):
+                unit._recovery_job = None
+                unit._last_stand_ready = True
+                self._release_flight(unit)
+                if not unit.in_combat:
+                    unit.clear_all_movement_state()
+                self.operations.record(now, getattr(unit, '_army_operation', None), 'failed', 'recovery_unavailable', unit)
+
+    def _maintain_operation_escorts(self, ctx):
+        for operation in self.operations.active.values():
+            if operation.player != ctx.player.name or operation.phase != 'march':
+                continue
+            for ram, escorts in operation.escorts.items():
+                if ram.hp <= 0:
+                    continue
+                for escort in escorts:
+                    order = getattr(escort, '_assault_order', None) or {}
+                    if (escort.hp <= 0 or order.get('operation') is not operation
+                            or escort.in_combat or getattr(escort, '_flee_rally', None)):
+                        continue
+                    if math.hypot(escort.x-ram.x, escort.y-ram.y) <= 220:
+                        continue
+                    # A leased escort rejoins its Ballista; the assault will
+                    # resume after this move. Never steal an unrelated command.
+                    pending = getattr(escort, '_pending_path_intent', None)
+                    if pending and pending[0] == 'move':
+                        continue
+                    if escort.destination and not escort.is_engaging:
+                        continue
+                    escort.clear_all_movement_state()
+                    self.game.selection_manager._move_unit_to_position(
+                        escort, (ram.x + 40, ram.y + 40), self.game.pathfinder)
+
+    def _reconcile_operations(self, ctx):
+        now = getattr(self.game, 'sim_time_elapsed', 0.0)
+        for operation in list(self.operations.active.values()):
+            if operation.player != ctx.player.name:
+                continue
+            if operation.target.hp <= 0:
+                self.operations.close(operation, now, 'completed', 'objective_destroyed')
+            elif not any(u.hp > 0 and
+                         ((getattr(u, '_assault_order', None) or {}).get('operation') is operation
+                          or ((getattr(u, '_assembly_muster', None) or {}).get('operation') is operation
+                              and self._musters.get(ctx.player.name) is getattr(u, '_assembly_muster', None)))
+                         for u in operation.members):
+                interrupted = any(getattr(u, '_local_defense_target', None) or getattr(u, '_flee_rally', None)
+                                  for u in operation.members if u.hp > 0)
+                self.operations.close(operation, now, 'superseded' if interrupted else 'failed', 'members_released')
+        live = {id(u) for u in ctx.military}
+        for operation in list(self.operations.active.values()):
+            if operation.player == ctx.player.name:
+                operation.members[:] = [u for u in operation.members if id(u) in live and u.hp > 0]
 
     def _recall_unescorted_rams(self, ctx, rams):
         """§8.14: pull escortless rams back to the castle to wait. Rams
@@ -777,7 +1110,8 @@ class MilitaryBrain:
                        or getattr(ram, "_pending_path_seq", None) is not None)
             if near_home and not working:
                 continue  # parked and waiting, as ordered
-            dest = getattr(ram, "destination", None)
+            pending = getattr(ram, "_pending_path_intent", None)
+            dest = pending[1] if pending and pending[0] == "move" else getattr(ram, "destination", None)
             if dest and math.hypot(dest[0] - home[0], dest[1] - home[1]) <= self.RAM_HOME_RADIUS:
                 continue  # already falling back — don't spam re-orders
             ram.clear_all_movement_state()
@@ -801,6 +1135,10 @@ class MilitaryBrain:
         if not fronts:
             return
         for archer in backline:
+            if getattr(archer, '_assault_order', None) or getattr(archer, '_assembly_muster', None):
+                continue  # the operation owns movement and target selection
+            if getattr(archer, "_pending_path_seq", None) is not None:
+                continue
             if archer.in_combat or archer.is_engaging:
                 continue
             if getattr(archer, "_flee_rally", None) is not None:
@@ -884,6 +1222,8 @@ class MilitaryBrain:
             and getattr(u, "_flee_rally", None) is None
             and not getattr(u, "_guard_post", None)
             and u.name not in self.ROLE_SIEGE
+            and self._is_idle_military(u)
+            and getattr(u, '_assembly_muster', None) is None
         ]
         candidates.sort(key=lambda u: (u.x - fountain.x) ** 2 + (u.y - fountain.y) ** 2)
         posted = 0
@@ -929,6 +1269,8 @@ class MilitaryBrain:
         arrival, so every flee path MUST come through here."""
         if suppress_frames is None:
             suppress_frames = self.RETREAT_SUPPRESS_FRAMES
+        unit._assault_order = None
+        unit._assembly_muster = None
         unit._guard_post = None  # §7 P4: a flight dissolves the guard duty
         unit.clear_all_movement_state()
         unit._flee_rally = rally
@@ -957,6 +1299,8 @@ class MilitaryBrain:
 
         for unit in military:
             max_hp = max_hp_cache.get(unit, unit.hp)
+            if getattr(unit, '_kite_remaining', 0) > 0:
+                continue
 
             # §9 flee commitment: maintain an in-progress flight every tick.
             rally = getattr(unit, "_flee_rally", None)
@@ -1002,7 +1346,9 @@ class MilitaryBrain:
                 continue
 
             # Archer kiting: if engaged and enemy melee is close, move away
-            if unit.name == "archer" and unit.is_engaging and unit.current_target:
+            if self._kite_horse_archer(unit):
+                continue
+            if unit.name == "archer" and (unit.is_engaging or unit.in_combat) and unit.current_target:
                 target = unit.current_target
                 dist = math.hypot(unit.x - target.x, unit.y - target.y)
                 # If enemy is melee (short range) and getting close, kite backward
@@ -1012,13 +1358,35 @@ class MilitaryBrain:
                     if dist > 0:
                         kite_x = unit.x + (dx / dist) * 40
                         kite_y = unit.y + (dy / dist) * 40
-                        unit.destination = (kite_x, kite_y)
-                        unit.path = None
-                        unit.path_index = 0
-                        unit.status = "run"
+                        if self.game.pathfinder.issue_move(unit, (kite_x, kite_y)):
+                            unit.current_target = None
+                            unit.in_combat = unit.is_engaging = False
+                            unit.status = "run"
+                            unit._kite_remaining = .6
+
+    def _kite_horse_archer(self, unit):
+        """Commit a short, navigable retreat before acquiring another shot."""
+        target = getattr(unit, 'current_target', None)
+        if (unit.name != 'horse_archer' or target is None or target.hp <= 0
+                or getattr(target, 'attack_range', 0) > 60):
+            return False
+        dx, dy = unit.x - target.x, unit.y - target.y
+        distance = math.hypot(dx, dy)
+        if not 0 < distance < 120:
+            return False
+        point = (unit.x + dx / distance * 70, unit.y + dy / distance * 70)
+        if not self.game.pathfinder.issue_move(unit, point):
+            return False
+        unit.current_target = None
+        unit.in_combat = unit.is_engaging = False
+        unit.status = 'run'
+        unit._kite_remaining = .9
+        return True
 
     def _should_retreat(self, unit, max_hp):
         """Check if a unit should retreat due to low HP"""
+        if getattr(unit, '_last_stand_ready', False):
+            return False
         if max_hp <= 0:
             return False
         return unit.hp / max_hp < self.RETREAT_HP_PERCENT
@@ -1037,13 +1405,19 @@ class MilitaryBrain:
             max_hp = self._get_unit_max_hp(enemy)
             hp_pct = enemy.hp / max(max_hp, 1)
             dist = math.hypot(cx - enemy.x, cy - enemy.y)
+            if dist > self.BATTLE_RADIUS:
+                continue  # tactical focus must not replace a cross-map siege
             score = hp_pct * 200 + dist
             if score < best_score:
                 best_score = score
                 best = enemy
         for enemy in ctx.enemy_buildings:
-            hp_pct = enemy.hp / max(getattr(enemy, 'hp', 1000), 1)
+            template = getattr(self.game, 'game_data', {}).get('buildings', {}).get(enemy.name)
+            max_hp = getattr(template, 'hp', getattr(enemy, 'max_hp', enemy.hp))
+            hp_pct = enemy.hp / max(max_hp, 1)
             dist = math.hypot(cx - enemy.x, cy - enemy.y)
+            if dist > self.BATTLE_RADIUS:
+                continue
             score = hp_pct * 200 + dist
             if score < best_score:
                 best_score = score
@@ -1062,6 +1436,13 @@ class MilitaryBrain:
 
     def _is_idle_military(self, unit) -> bool:
         """Military unit with nothing to do."""
+        if (getattr(unit, '_recovery_job', None) is not None
+                or getattr(unit, '_flee_rally', None) is not None):
+            return False
+        if getattr(unit, "_assault_order", None) is not None:
+            return False
+        if getattr(unit, "_pending_path_seq", None) is not None:
+            return False
         if unit.in_combat or unit.is_engaging:
             return False
         if unit.status == "idle" or (unit.status == "run" and not unit.destination and not unit.path):
@@ -1090,11 +1471,33 @@ class MilitaryBrain:
         def score(obj):
             return math.hypot(obj.x - ref_x, obj.y - ref_y) + ctx.threat_at(obj.x, obj.y) * self.THREAT_DISTANCE_WEIGHT
 
-        castles = [b for b in ctx.enemy_buildings if b.name == "castle"]
+        now = getattr(self.game, "sim_time_elapsed", 0.0)
+        self._objective_backoff = {k: until for k, until in self._objective_backoff.items() if until > now}
+        def available(obj):
+            key = (ctx.player.name, id(obj))
+            if key in self._objective_backoff or getattr(obj, 'hp', 0) <= 0:
+                return False
+            failure = self.operations.failures.get(key)
+            if failure and failure[0] >= 2:
+                strength = sum(u.hp for u in combatants_of(ctx.military)
+                               if not self._should_retreat(u, self._get_unit_max_hp(u)))
+                if strength <= failure[2] * 1.25 and obj.hp >= failure[3]:
+                    return False
+                self.operations.failures.pop(key)
+            return True
+        buildings = [b for b in ctx.enemy_buildings if available(b)]
+        # Reinforcements finish the current opponent before opening another war.
+        campaign = next((getattr(o.target, 'player', None) for o in self.operations.active.values()
+                         if o.player == ctx.player.name and o.target.hp > 0), None)
+        same_opponent = [b for b in buildings if getattr(b, 'player', None) is campaign]
+        if campaign is not None and same_opponent:
+            buildings = same_opponent
+
+        castles = [b for b in buildings if b.name == "castle"]
 
         # §9: raid sizing counts FIGHTERS — healers don't make an army raid-proof
         if castles and len(combatants_of(ctx.military)) <= raid_army_limit(getattr(ctx.player, "ai_personality", "balanced")):
-            econ = [b for b in ctx.enemy_buildings if b.name in self.ECONOMY_RAID_TARGETS]
+            econ = [b for b in buildings if b.name in self.ECONOMY_RAID_TARGETS]
             if econ:
                 best_econ = min(econ, key=score)
                 castle_threat = min(ctx.threat_at(c.x, c.y) for c in castles)
@@ -1106,24 +1509,61 @@ class MilitaryBrain:
             return min(castles, key=score)
 
         # Then the least-defended / nearest enemy building
-        if ctx.enemy_buildings:
-            return min(ctx.enemy_buildings, key=score)
+        if buildings:
+            return min(buildings, key=score)
 
         # §8.17.2: then enemy foundations — a base reduced to construction
         # sites (or a foundation-spam wall) is still standing enemy presence
-        sites = [s for s in getattr(ctx, "enemy_construction_sites", ()) if s.hp > 0]
+        sites = [s for s in getattr(ctx, "enemy_construction_sites", ()) if s.hp > 0 and available(s)]
         if sites:
             return min(sites, key=score)
 
         # Then nearest enemy unit
-        if ctx.enemy_units:
-            return min(ctx.enemy_units, key=score)
+        enemies = [u for u in ctx.enemy_units if available(u)]
+        if enemies:
+            return min(enemies, key=score)
         return None
 
     def _command_attack(self, unit, target, ctx):
         """Send a military unit to attack a target."""
+        pending = getattr(unit, "_pending_path_intent", None)
+        if pending and not getattr(ctx, "castle_under_attack", False):
+            # Keep an already queued attack while its target is alive.
+            # Defense can still redirect a move; castle emergencies can
+            # redirect any intent. Equivalent emergencies coalesce below.
+            if pending[0] == "interact" and pending[2] == "attack" and getattr(pending[1], "hp", 0) > 0:
+                return pending[1] is target
+        if getattr(unit, '_kite_remaining', 0) > 0:
+            return
         if getattr(unit, "building_only_attack", False) and not is_building_target(target):
             target = self._find_attack_target(ctx)
             if not target:
                 return
         self.game.selection_manager._attack_target(unit, target, self.game.pathfinder)
+        pending = getattr(unit, "_pending_path_intent", None)
+        return (getattr(unit, "current_target", None) is target
+                or bool(pending and pending[0] == "interact" and pending[1] is target))
+
+    def _release_stalled_pursuits(self, ctx, combatants):
+        """Abandon fruitless unit chases, leaving strategic target choice to
+        the next muster. Track progress in game seconds; do not interrupt
+        shots, successful approaches, flights, or emergency base defense.
+        Navigation's own watchdog still owns physical obstacle recovery.
+        """
+        now = getattr(self.game, 'sim_time_elapsed', 0.0)
+        released = 0
+        for unit in combatants:
+            target = unit.current_target
+            if (unit.in_combat or not unit.is_engaging or target is None
+                    or is_building_target(target) or getattr(unit, '_kite_remaining', 0) > 0):
+                unit._pursuit_progress = None
+                continue
+            distance = math.hypot(target.x-unit.x, target.y-unit.y)
+            old = getattr(unit, '_pursuit_progress', None)
+            if old is None or old[0] is not target or distance < old[2]-20 or target.hp < old[3]:
+                unit._pursuit_progress = (target, now, distance, target.hp)
+            elif now-old[1] >= 20 and released < 3:
+                unit.clear_all_movement_state()
+                unit._pursuit_progress = None
+                released += 1
+                self.game.stats_stalled_pursuits = getattr(self.game, 'stats_stalled_pursuits', 0)+1

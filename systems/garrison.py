@@ -46,9 +46,11 @@ def try_enter(game, unit, building) -> bool:
 
     worker_tasks = getattr(game, "worker_task_system", None)
     if worker_tasks is not None:
-        worker_tasks.cancel(unit)
+        worker_tasks.cancel(unit, preserve_safety=True)
     if hasattr(unit, "clear_all_movement_state"):
+        cargo = (getattr(unit, 'resource_type', None), getattr(unit, 'resource_amount', 0))
         unit.clear_all_movement_state()
+        unit.resource_type, unit.resource_amount = cargo
     unit.current_target = None
     unit.in_combat = False
     unit.is_engaging = False
@@ -61,6 +63,7 @@ def try_enter(game, unit, building) -> bool:
     if unit in game.units:
         game.units.remove(unit)
     unit.garrisoned_in = building
+    unit.in_world = False
     unit.status = "idle"
     garrison_list(building).append(unit)
     return True
@@ -68,15 +71,24 @@ def try_enter(game, unit, building) -> bool:
 
 def eject_all(game, building) -> list:
     """Empty the building; units reappear on a ring around it."""
-    units = list(garrison_list(building))
-    garrison_list(building).clear()
+    return eject_units(game, building, list(garrison_list(building)))
+
+
+def eject_units(game, building, units) -> list:
+    """Release just automatic evacuees without ejecting a manual garrison."""
     for index, unit in enumerate(units):
+        if unit not in garrison_list(building):
+            continue
+        garrison_list(building).remove(unit)
         _place_outside(game, building, unit, index)
         unit.garrisoned_in = None
         unit.status = "idle"
         unit.in_world = True
         if unit not in game.units:
             game.units.append(unit)
+        if getattr(game, 'sprite_manager', None) is not None:
+            from systems.ages import apply_unit_appearance
+            apply_unit_appearance(game, unit)
     return units
 
 

@@ -256,6 +256,13 @@ class FogOfWar:
             return True
         return self.is_explored(human, wx, wy)
 
+    def is_display_visible(self, wx: float, wy: float) -> bool:
+        """Current sight for world effects/audio, including effects without owners."""
+        if not self.enabled or self.reveal_display:
+            return True
+        human = self._display_player()
+        return human is None or self.is_visible(human, wx, wy)
+
     def record_resource_removed(self, resource) -> None:
         """A resource left the world. If the human viewer has seen the spot
         but can't see it right now, leave a ghost behind (the player still

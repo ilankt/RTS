@@ -5,13 +5,15 @@ built from scratch in **Python + Pygame**. Hex-tile procedural maps, a full
 economy/production/tech loop, and four AI personalities that you can fight or
 just sit back and spectate.
 
-![Battle](docs/media/battle.png)
+![Current gameplay and HUD](docs/media/gameplay-0.13.png)
 
 ## Features
 
 **Gameplay**
 - Full RTS loop: gather **gold / wood / food**, expand, tech up, and raze the enemy castle
-- **7 units** (worker, warrior, archer, spearman, cavalry, ram, healer) with
+- Advance through **Stone, Bronze and Iron Ages**, with new building artwork,
+  paid military-line upgrades, and two playable factions: Steppe and Highland
+- **9 unit lines**, including the faction-exclusive Horse Archer and Axeman, with
   slash/pierce/siege damage types vs light/heavy/fortified armor and
   counter-unit bonuses
 - **12 buildings** including production, defense towers, and the temple's
@@ -21,24 +23,28 @@ just sit back and spectate.
 - Fog of war with explored-terrain memory and last-seen resource ghosts
 - Formations, unit stances, attack-move, shift-queued orders, control groups,
   rally points, camera bookmarks, demolish, save/load
-- Enforced population cap, idle-worker alerts, and reactive onboarding hints
+- Enforced population cap, attack alarms with minimap pings, automatic worker
+  shelter and return to work, delayed idle-worker alerts, and reactive onboarding hints
   that fire when you're actually stuck
 - Adjustable game speed (1–5×), match setup with map-size choice
 
 **Presentation**
 - **Spatial audio**: hits, deaths, gathering and collapses are heard from the
-  camera's viewpoint — panned, distance-faded, silent off-screen — with
+  camera's viewpoint — panned, distance-faded, and silent off-screen or under fog — with
   per-unit barks and rotating variants so repeated sounds don't loop audibly
 - **Ambient world**: swaying trees, drifting cloud shadows and chimney smoke,
   all driven by one shared wind direction; wounded buildings smoke visibly
 - Blob shadows under every object, shaped from each sprite's own outline
+- Eight-direction unit animation, corrected horse gait, clearer portraits and
+  typography, and a HUD that scales with resolution
 
 **AI**
-- Utility-goal AI: every 0.5 s each AI scores 30+ goals (economy, military,
+- Utility-goal AI: on normal difficulty, every 0.5 s each AI scores 30+ goals (economy, military,
   tactical) against a snapshot of its situation and executes the best ones
 - Four personalities — **rusher, boomer, turtle, balanced** — weight those
   goals differently; armies muster at forward rally points and attack in waves
-- **Spectate AI Battle** mode: watch 2–4 AIs fight it out with the whole map revealed
+- Easy, normal and hard settings adjust decision cadence and attack readiness
+- **Spectate AI Battle** mode: watch 2–8 AIs fight it out with the whole map revealed
 
 **Engine**
 - Hex-tile terrain rendering with biome sprite variants over a square
@@ -51,12 +57,11 @@ just sit back and spectate.
 - Procedural island maps (Perlin noise): biomes, mountain ridges, forests as
   choppable props, with a guaranteed-reachable spawn layout
 
-## Screenshots
+## Graphics
 
-| | |
-|---|---|
-| ![Main menu](docs/media/menu.png) | ![Economy](docs/media/economy.png) |
-| ![Battle](docs/media/battle2.png) | ![Island overview](docs/media/island.png) |
+The Windows downloads include the current unit animations, faction portraits
+and all 30 age-specific building graphics. This preview was generated from the
+packaged files: **[View the age and faction artwork](docs/media/ages-and-factions.png)**.
 
 ## Getting Started
 
@@ -76,6 +81,12 @@ python main.py
 From the menu: **Start Game** for a match against the AI, or
 **Spectate AI Battle** to watch four AIs play each other.
 
+Choose a faction in Match Setup: **Steppe Clans** recruit Horse Archers at the
+Stable, and **Highland Clans** recruit Axemen at the Barracks. Both unlock in
+Bronze Age and retain the shared roster. Horse Archers are fast ranged raiders;
+Axemen hit sword infantry hard but are vulnerable to ranged fire. Blacksmith
+upgrades apply to both. AI faction choice is independent of AI personality.
+
 A prebuilt Windows package can be produced with [BUILD.md](BUILD.md).
 
 ## Controls
@@ -87,7 +98,7 @@ A prebuilt Windows package can be produced with [BUILD.md](BUILD.md).
 | WASD / arrows / edge scroll | Pan camera; mouse wheel zooms |
 | Ctrl+1–9 → 1–9 | Assign / recall control groups |
 | Q E R T / Z X C V | Command-card hotkeys (build, train, research) |
-| S / F / G | Cycle stance / formation / toggle gates |
+| S / F | Cycle stance / formation |
 | Tab | Cycle army units (or swap build tabs while building) |
 | Home | Jump to your castle |
 | B / N | Set / cycle camera bookmarks |
@@ -114,10 +125,9 @@ data/       units.json, buildings.json, techs.json — all game content
 
 ## Status
 
-Actively developed hobby project — currently **0.12.0-beta**
-([changelog](CHANGELOG.md)). The core game is fully playable end to end; current
-work focuses on performance at 200+ unit battles, remaining audio cues, and
-world/atmosphere polish.
+Actively developed hobby project — currently **0.13.0-beta**
+([changelog](CHANGELOG.md)). The core game is playable end to end. Large-map AI
+completion, crowded navigation and faction balance remain areas of active work.
 
 ## Credits
 

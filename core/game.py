@@ -1,3 +1,4 @@
+from ui import fonts as ui_fonts
 import pygame
 import math
 import traceback
@@ -91,6 +92,8 @@ class Game:
                 player = Player(f"AI {ai_number}", human=False, color=PLAYER_COLORS[i])
                 player.ai_personality = random.choice(ai_personalities)
                 self.players.append(player)
+        for i, player in enumerate(self.players):
+            player.faction = ('steppe', 'highland')[i % 2]
         self.spectator_mode = not any(player.human for player in self.players)
         if self.spectator_mode:
             self.camera.zoom = SPECTATOR_START_ZOOM
@@ -165,6 +168,7 @@ class Game:
         # Game over state: None, "victory", or "defeat"
         self.game_over_state = None
         self.winning_player = None
+        self.match_result_reason = None
         self.game_paused = False
 
         # Match statistics (§8.8 balance sim / §8.7 post-match summary):
@@ -202,6 +206,8 @@ class Game:
         # (highest score when TIMED_VICTORY_MINUTES elapse). Castle loss
         # always eliminates regardless of mode.
         self.victory_condition = "annihilation"
+        self.regulation_seconds = 2400.0
+        self.match_result_reason = None
         
         # Set up initial game state
         self.game_state.setup_game_objects()
@@ -590,7 +596,7 @@ class Game:
             self.building_system.update_construction(self.delta_time)
             self.production_manager.update(self.delta_time)
             self.research_manager.update(self.delta_time)
-            self.unit_watchdog.update()
+            self.unit_watchdog.update(self.delta_time)
             
             # Update combat system (for both units and buildings)
             self.combat_system.update_combat_units(self.delta_time)
@@ -763,7 +769,7 @@ class Game:
         # A fresh farm - the passive-food mechanic that confused testers.
         if "farm_passive" not in shown and owns("farm"):
             self._fire_reactive("farm_passive",
-                                "Farms make food on their own - no workers needed to gather it.")
+                                "Farms produce food automatically. Build more farms as recruitment grows; no workers needed.")
         # A drop-off building placed, but workers are standing idle.
         elif "dropoff_idle" not in shown and idle >= 1 and (owns("lumbermill") or owns("mine")):
             self._fire_reactive("dropoff_idle",
@@ -771,7 +777,7 @@ class Game:
         # Workers went idle mid-game - a resource node most likely ran dry.
         elif "workers_idle" not in shown and now > 30 and idle >= 2:
             self._fire_reactive("workers_idle",
-                                "Workers stop when a resource runs out. Press F1 to find them, then right-click a new resource.")
+                                "Press F1 to find idle workers, then right-click a resource. Gatherers switch to nearby trees automatically.")
 
     def _fire_reactive(self, hint_id, message):
         self._onboarding_shown.add(hint_id)
@@ -991,7 +997,9 @@ class Game:
 
     def _update_units(self, delta_time):
         """Update all units using the movement system (substepped per unit)"""
-        for unit in self.units:
+        for unit in list(self.units):
+            if not getattr(unit, 'in_world', True) or unit.hp <= 0:
+                continue
             step_px = unit.movement_speed * delta_time
             steps = 1 if step_px <= self.MAX_MOVEMENT_STEP_PX else math.ceil(step_px / self.MAX_MOVEMENT_STEP_PX)
             if steps == 1:
@@ -1201,6 +1209,12 @@ class Game:
             if self.game_over_state:
                 return
 
+        # Conquest takes precedence on the deadline tick. Draws are a
+        # separate terminal result and never a natural-completion success.
+        limit = getattr(self, 'regulation_seconds', 0)
+        regulation_due = (self.victory_condition == 'annihilation' and limit > 0
+                          and self.sim_time_elapsed >= limit)
+
         # Count castles per player
         castles_by_player = {}
         for building in self.buildings:
@@ -1219,7 +1233,10 @@ class Game:
                 self.winning_player = active_players[0] if active_players else None
                 self.game_over_state = "simulation_complete"
                 winner_name = self.winning_player.name if self.winning_player else "No player"
+                self.match_result_reason = 'conquest' if self.winning_player else 'mutual_elimination'
                 debug_log.log(f"AI simulation complete: {winner_name} remains", "GENERAL")
+            elif regulation_due:
+                self._declare_regulation_draw()
             return
 
         human_player = human_players[0]
@@ -1244,6 +1261,15 @@ class Game:
                 self._record_match_result()
                 return
     
+        if regulation_due:
+            self._declare_regulation_draw()
+
+    def _declare_regulation_draw(self):
+        self.winning_player = None
+        self.match_result_reason = None
+        self.game_over_state = 'draw'
+        self.match_result_reason = 'regulation_limit'
+
     def _cycle_selected_unit_stances(self):
         """Cycle stance for selected human combat units"""
         from entities.unit import (STANCE_AGGRESSIVE, STANCE_DEFENSIVE, 
@@ -1305,7 +1331,7 @@ class Game:
         panel = self._pause_panel_rect()
         theme.draw_panel_and_title(self.screen, "Paused", panel, title_dy=44)
 
-        font_option = pygame.font.Font(None, 36)
+        font_option = ui_fonts.screen_font(24)
         mouse_pos = pygame.mouse.get_pos()
         for i, (label, _action) in enumerate(self.PAUSE_OPTIONS):
             rect = self._pause_option_rect(i)
@@ -1379,6 +1405,7 @@ class Game:
         """Restart the game by reinitializing core state"""
         self.game_over_state = None
         self.winning_player = None
+        self.match_result_reason = None
         self._stinger_played = False
         self._human_combat_until = 0.0
         self.worker_task_system = WorkerTaskSystem(self)
@@ -1440,12 +1467,15 @@ class Game:
         self.screen.blit(overlay, (0, 0))
         
         # Title
-        font_large = pygame.font.Font(None, 72)
-        font_small = pygame.font.Font(None, 36)
+        font_large = ui_fonts.screen_font(56)
+        font_small = ui_fonts.screen_font(22)
         
         if self.game_over_state == "victory":
             title_text = "VICTORY!"
             title_color = (0, 255, 0)
+        elif self.game_over_state == 'draw':
+            title_text = 'DRAW — time limit'
+            title_color = (230, 230, 230)
         elif self.game_over_state == "simulation_complete":
             winner_name = self.winning_player.name if self.winning_player else "No Player"
             title_text = f"{winner_name} WINS"
@@ -1459,7 +1489,8 @@ class Game:
         self.screen.blit(title_surface, title_rect)
 
         # Post-match summary (§8.7): per-player stats from the match counters
-        font_stats = pygame.font.Font(None, 28)
+        font_stats = ui_fonts.screen_font(18)
+        font_columns = ui_fonts.screen_font(16, True)
         minutes = int(self.sim_time_elapsed // 60)
         seconds = int(self.sim_time_elapsed % 60)
         header = f"Match length: {minutes}:{seconds:02d} (game time)"
@@ -1470,7 +1501,7 @@ class Game:
         col_x = [SCREEN_WIDTH // 2 - 330, SCREEN_WIDTH // 2 - 110, SCREEN_WIDTH // 2 + 30, SCREEN_WIDTH // 2 + 150, SCREEN_WIDTH // 2 + 260]
         y = SCREEN_HEIGHT // 2 - 70
         for i, column in enumerate(columns):
-            col_surface = font_small.render(column, True, (150, 150, 150))
+            col_surface = font_columns.render(column, True, (180, 180, 180))
             self.screen.blit(col_surface, (col_x[i], y))
         y += 28
         for player in self.players:
@@ -1482,7 +1513,9 @@ class Game:
             values = [label, str(trained), str(built), str(army), str(tower_damage)]
             for i, value in enumerate(values):
                 color = player.color if i == 0 else (230, 230, 230)
-                cell_surface = font_stats.render(value, True, color)
+                cell_width = col_x[i+1] - col_x[i] - 12 if i+1 < len(col_x) else 120
+                cell_surface = font_stats.render(
+                    ui_fonts.fit_text(font_stats, value, cell_width), True, color)
                 self.screen.blit(cell_surface, (col_x[i], y))
             y += 30
 

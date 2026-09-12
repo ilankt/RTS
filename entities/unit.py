@@ -34,13 +34,14 @@ class Unit(GameObject):
     def __init__(self, name, size, hp, movement_speed, attack, animations, x=0, y=0, radius=0, player=None, can_build=False, can_attack=False,
                  min_damage=0, max_damage=0, attack_type="slash", armor_type="light", armor_value=0, attack_speed=1.0, attack_range=32,
                  display_name=None, role="", requires=None, buildable=True, strong_against=None, weak_against=None,
-                 building_only_attack=False):
+                 building_only_attack=False, counter_multiplier=None):
         super().__init__(name, size, hp, None, x, y, radius, player)  # Units don't have a single sprite
         self.display_name = display_name or name.replace("_", " ").title()
         self.role = role
         self.requires = requires or []
         self.buildable = buildable
         self.strong_against = strong_against or []
+        self.counter_multiplier = counter_multiplier
         self.weak_against = weak_against or []
         self.movement_speed = movement_speed
         self.attack = attack  # Keep for backward compatibility
@@ -109,6 +110,9 @@ class Unit(GameObject):
         self.facing_left = False
         self.facing_direction = 2  # E, SE, S, SW, W, NW, N, NE
         self._facing_position = (self.x, self.y)
+        self._facing_vector = None
+        self._facing_candidate = None
+        self._facing_candidate_time = 0.0
 
         # Group-move flow field (Phase 5)
         self.flow_field = None
@@ -126,9 +130,23 @@ class Unit(GameObject):
             getattr(a, "direction_count", 1) == 8 for a in self.animations.values()
         )
 
-    def face_vector(self, dx, dy):
+    def face_vector(self, dx, dy, delta_time=None):
         if dx * dx + dy * dy <= 0.0001:
             return
+        stabilize = delta_time is not None
+        if stabilize:
+            # Every directional sprite needs the same protection against
+            # steering/collision nudges flipping rows from frame to frame.
+            # Filter heading in game time, then require a sustained new row.
+            length = math.hypot(dx, dy)
+            vector = (dx / length, dy / length)
+            first = self._facing_vector is None
+            if not first:
+                alpha = 1.0 - math.exp(-max(0.0, delta_time) / 0.10)
+                vector = tuple(old + alpha * (new - old)
+                               for old, new in zip(self._facing_vector, vector))
+            self._facing_vector = vector
+            dx, dy = vector
         angle = math.atan2(dy, dx)
         sector = math.pi / 4
         # Retain the current row near its boundary: tiny steering corrections
@@ -136,7 +154,17 @@ class Unit(GameObject):
         # so the same rule works across N/NE/E as in every other direction.
         difference = (angle - self.facing_direction * sector + math.pi) % math.tau - math.pi
         if abs(difference) > sector / 2 + FACING_HYSTERESIS:
-            self.facing_direction = int(math.floor(angle / sector + 0.5)) % 8
+            candidate = int(math.floor(angle / sector + 0.5)) % 8
+            if stabilize and not first:
+                if candidate != self._facing_candidate:
+                    self._facing_candidate = candidate
+                    self._facing_candidate_time = 0.0
+                self._facing_candidate_time += max(0.0, delta_time)
+                if self._facing_candidate_time < 0.10:
+                    return
+            self.facing_direction = candidate
+        self._facing_candidate = None
+        self._facing_candidate_time = 0.0
 
     def update_animation(self, delta_time=None):
         previous_x, previous_y = self._facing_position
@@ -148,15 +176,15 @@ class Unit(GameObject):
         elif self.status == "attack":
             target = self.current_target
         if target is not None:
-            self.face_vector(target.x - self.x, target.y - self.y)
+            self.face_vector(target.x - self.x, target.y - self.y, delta_time)
         elif self.status == "run":
-            self.face_vector(self.x - previous_x, self.y - previous_y)
+            self.face_vector(self.x - previous_x, self.y - previous_y, delta_time)
         self._facing_position = (self.x, self.y)
         # Use build animation if building, otherwise use current status
         animation_status = "build" if self.is_building and "build" in self.animations else self.status
         
         # Special case for archer - use "shoot" instead of "attack"
-        if animation_status == "attack" and self.name == "archer" and "shoot" in self.animations:
+        if animation_status == "attack" and "shoot" in self.animations:
             animation_status = "shoot"
         
         if animation_status in self.animations:
@@ -177,7 +205,7 @@ class Unit(GameObject):
         animation_status = "build" if self.is_building and "build" in self.animations else self.status
         
         # Special case for archer - use "shoot" instead of "attack"
-        if animation_status == "attack" and self.name == "archer" and "shoot" in self.animations:
+        if animation_status == "attack" and "shoot" in self.animations:
             animation_status = "shoot"
         
         if animation_status in self.animations:
@@ -194,6 +222,9 @@ class Unit(GameObject):
         (§9: a stale flow_field silently overrides combat approach — that
         was the armies-march-past-blindly bug). Status, targets, and nav
         metadata stay with the caller."""
+        self._pending_path_seq = None
+        self._pending_path_intent = None
+        self._flow_command_token = None
         self.destination = None
         self.path = None
         self.path_index = 0
@@ -203,6 +234,10 @@ class Unit(GameObject):
 
     def stop(self):
         """Stop the unit from moving or performing actions"""
+        tasks = getattr(self, '_worker_task_system', None)
+        if tasks is not None:
+            tasks.cancel(self)
+            tasks.safety.manual_order(self)
         self.release_movement()
         self.command_queue = []
         self.attack_move_target = None  # §8.14: Stop cancels an attack-move
@@ -413,7 +448,8 @@ class Unit(GameObject):
     def start_attack(self, target):
         """Begin attacking a target"""
         self.current_target = target
-        self.face_vector(target.x - self.x, target.y - self.y)
+        if not any(getattr(a, 'direction_count', 1) == 8 for a in self.animations.values()):
+            self.face_vector(target.x - self.x, target.y - self.y)
         self.in_combat = True
         self.is_engaging = False  # No longer pursuing, now attacking
         self.status = "attack"
@@ -459,7 +495,7 @@ class Unit(GameObject):
         # wall-clock last_attack_time stamp remains solely so the projectile
         # system can detect "a new attack happened".
         self._attack_cooldown = getattr(self, "_attack_cooldown", 0.0) - delta_time
-        if self._attack_cooldown <= 0:
+        while self._attack_cooldown < -1e-9:
             if self.attack_speed <= 0:
                 # Non-combat unit (worker/healer) wedged into combat state
                 # somehow — never divide by zero, just stand down (§8.12)
@@ -471,7 +507,7 @@ class Unit(GameObject):
             damage = self.calculate_damage(self.current_target)
             self.current_target.hp -= damage
             self.last_attack_time = pygame.time.get_ticks() / 1000.0
-            self._attack_cooldown = 1.0 / effective_stat(self,'attack_speed')
+            self._attack_cooldown += 1.0 / effective_stat(self,'attack_speed')
             
             if DEBUG_MOVEMENT:
                 debug_log.log(f"{self.name} attacks {self.current_target.name} for {damage} damage!", "GENERAL")
@@ -484,3 +520,5 @@ class Unit(GameObject):
                 self.in_combat = False
                 self.is_engaging = False
                 self.status = "idle"
+                self._attack_cooldown = max(0.0, self._attack_cooldown)
+                break

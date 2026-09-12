@@ -7,7 +7,7 @@ RESOURCE_COLORS = {
     "gold": (255, 195, 60),
     "wood": (70, 160, 60),
 }
-PING_DURATION_MS = 2000
+PING_DURATION_MS = 8000
 
 
 class Minimap:
@@ -200,10 +200,11 @@ class Minimap:
             if age > PING_DURATION_MS:
                 continue
             alive.append((mini_x, mini_y, started))
-            progress = age / PING_DURATION_MS
+            progress = (age % 1200) / 1200
             radius = px(3) + int(progress * px(10))
             pygame.draw.circle(self.surface, (255, 60, 60), (mini_x, mini_y), radius,
-                               max(1, px(1)))
+                               max(2, px(2)))
+            pygame.draw.circle(self.surface, (255, 210, 110), (mini_x, mini_y), px(2))
         self._pings = alive
 
     def draw(self, screen):

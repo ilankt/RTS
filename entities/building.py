@@ -72,8 +72,8 @@ class Building(GameObject):
         """Get list of units this building can produce"""
         production_map = {
             "castle": ["worker"],
-            "barracks": ["warrior", "archer", "spearman"],
-            "stable": ["cavalry"],
+            "barracks": ["warrior", "archer", "spearman", "axeman"],
+            "stable": ["cavalry", "horse_archer"],
             "siege_workshop": ["ram"],
             "temple": ["healer"],
         }
@@ -135,16 +135,18 @@ class Building(GameObject):
         # Attack cadence runs on GAME time (see Unit.update_combat) so tower
         # DPS keeps pace with the rest of the sim at any game speed.
         self._attack_cooldown = getattr(self, "_attack_cooldown", 0.0) - delta_time
-        if self._attack_cooldown <= 0:
+        while self._attack_cooldown < -1e-9:
             # Perform attack
             damage = self.calculate_damage(self.current_target)
             self.current_target.hp -= damage
             self.last_attack_time = pygame.time.get_ticks() / 1000.0
             # §8.9 garrison: each sheltered unit speeds tower fire +15%
             speed = self.attack_speed * (1.0 + 0.15 * len(getattr(self, "garrison", ())))
-            self._attack_cooldown = 1.0 / speed
+            self._attack_cooldown += 1.0 / speed
             
             # Check if target is destroyed
             if self.current_target.hp <= 0:
                 self.current_target = None
                 self.in_combat = False
+                self._attack_cooldown = max(0.0, self._attack_cooldown)
+                break

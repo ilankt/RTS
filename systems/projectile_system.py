@@ -264,7 +264,9 @@ class ProjectileSystem:
         projectile = None
         
         if hasattr(attacker, 'name'):
-            if attacker.name == "archer":
+            if attacker.name == "horse_archer":
+                projectile = Arrow(start_x, start_y, target_x, target_y, 300, damage, attacker)
+            elif attacker.name == "archer":
                 template = getattr(self.game, 'game_data', {}).get('units', {}).get('archer')
                 from systems.ages import unit_variant
                 variant=unit_variant('archer',attacker.player)
@@ -275,7 +277,7 @@ class ProjectileSystem:
                 projectile = CannonBall(start_x, start_y, target_x, target_y, 200, damage, attacker)
             elif attacker.name == 'ram':
                 projectile=BallistaBolt(start_x,start_y,target_x,target_y,260,damage,attacker)
-            elif attacker.name in ("warrior", "spearman", "cavalry"):
+            elif attacker.name in ("warrior", "spearman", "cavalry", "axeman"):
                 # Melee and ram attacks don't use projectiles.
                 return
             else:

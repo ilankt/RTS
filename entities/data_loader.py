@@ -90,6 +90,7 @@ def load_game_data():
             strong_against=u.get('strong_against', []),
             weak_against=u.get('weak_against', []),
             building_only_attack=u.get('building_only_attack', False),
+            counter_multiplier=u.get('counter_multiplier'),
         )
 
         game_data["units"][u["name"]].projectile_type = u.get("projectile_type", "arrow")

@@ -1,3 +1,4 @@
+from ui import fonts as ui_fonts
 import pygame
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
 from core.version import GAME_VERSION
@@ -14,9 +15,9 @@ class MainMenu:
             pygame.font.init()
 
         self.screen = screen
-        self.font_large = pygame.font.Font(None, 64)
-        self.font_medium = pygame.font.Font(None, 36)
-        self.font_small = pygame.font.Font(None, 24)
+        self.font_large = ui_fonts.screen_font(50)
+        self.font_medium = ui_fonts.screen_font(24)
+        self.font_small = ui_fonts.screen_font(19)
         
         self.options = [
             ("Start Game", "start"),

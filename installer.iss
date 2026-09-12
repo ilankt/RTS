@@ -12,10 +12,10 @@
 
 #define MyAppName "RTS"
 ; build_installer.bat passes the real version via /DMyAppVersion (read from
-; core/version.py). This fallback is used only when ISCC is run by hand;
-; keep it in sync with core/version.py's GAME_VERSION.
+; core/version.py). Reject an unversioned manual build rather than silently
+; stamping a release with an obsolete fallback.
 #ifndef MyAppVersion
-  #define MyAppVersion "0.9.0-beta"
+  #error "Pass /DMyAppVersion from core/version.py or use build_installer.bat."
 #endif
 #define MyAppPublisher "Ilan Kachler"
 #define MyAppExeName "RTS.exe"

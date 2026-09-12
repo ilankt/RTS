@@ -50,12 +50,16 @@ class MovementSystem:
         """Main movement update for a single unit"""
         # Update animation with delta_time
         unit.update_animation(delta_time)
+        unit._kite_remaining = max(0.0, getattr(unit, '_kite_remaining', 0.0) - delta_time)
         worker_task_system = getattr(self.game, "worker_task_system", None)
         worker_task_owned = bool(worker_task_system and worker_task_system.owns(unit))
         
         # Update combat if applicable
         if hasattr(unit, 'update_combat'):
-            unit.update_combat(delta_time)
+            # CombatSystem owns damage and cooldowns. Movement used to tick
+            # attacks a second time, bypassing alerts and damage accounting.
+            if getattr(self.game, 'combat_system', None) is None:
+                unit.update_combat(delta_time)
             self._handle_combat_movement(unit)
         
         # Flow-field followers: shared field until the personal-slot handoff

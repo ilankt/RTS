@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-import time
 from typing import Dict, Iterable, Optional, Tuple
 
 from core.config import DROP_OFF_BUILDINGS
@@ -42,6 +41,7 @@ REPATH_COOLDOWN = 0.75
 NO_PROGRESS_REROLL_TIME = 3.0
 NO_PROGRESS_TIMEOUT = 5.0
 FAILED_PATH_COOLDOWN = 2.0
+MAX_GATHER_RETRY_COOLDOWN = 12.0
 SLOT_COUNT = 24
 SLOT_EXTRA_RINGS = (0.0, 8.0, 16.0, 24.0, 40.0)
 # §8.11 stuck-worker fix: the stationary phases (DROPPING_OFF / BUILDING)
@@ -79,6 +79,7 @@ class WorkerTask:
     blocked_contact_points: list = None
     stall_time: float = 0.0            # §8.11: stationary-phase wedge timer
     last_build_progress: float = -1.0  # §8.11: detects frozen construction
+    recovery_attempts: int = 0
 
 
 class WorkerTaskSystem:
@@ -90,6 +91,8 @@ class WorkerTaskSystem:
         self._slots: Dict[Tuple[int, str], Dict[object, Point]] = {}
         self._failed_path_until: Dict[Tuple[int, int, str], float] = {}
         self._task_time = 0.0
+        from systems.worker_safety import WorkerSafety
+        self.safety = WorkerSafety(self)
 
     # ------------------------------------------------------------------
     # Public command API
@@ -167,10 +170,13 @@ class WorkerTaskSystem:
         self.cancel(worker)
         return self.game.pathfinder.issue_move(worker, world_pos)
 
-    def cancel(self, worker) -> None:
+    def cancel(self, worker, preserve_safety=False) -> None:
+        worker._worker_task_system = self
+        if not preserve_safety:
+            self.safety.forget(worker)
         task = self.tasks.pop(worker, None)
+        self._release_worker_slots(worker)
         if task:
-            self._release_worker_slots(worker)
             # Release the site too: update_construction advances any site
             # whose .builder has the global is_building flag set, so a stale
             # builder pointer made an abandoned site build in lockstep with
@@ -190,6 +196,8 @@ class WorkerTaskSystem:
             self.tasks.pop(worker, None)
 
     def owns(self, worker) -> bool:
+        if worker in self.safety.trips:
+            return True
         task = self.tasks.get(worker)
         return bool(task and task.phase not in (IDLE, FAILED))
 
@@ -202,6 +210,19 @@ class WorkerTaskSystem:
             return False
         task.repath_cooldown = 0.0
         return self._repath_current_phase(task)
+
+    def recover_stuck_worker(self, worker) -> bool:
+        """Keep the player's job when the movement watchdog intervenes."""
+        task = self.tasks.get(worker)
+        if task is None:
+            return False
+        if task.phase in MOVING_PHASES:
+            self._clear_motion(worker)
+            if not self._reroll_current_phase(task):
+                self._set_failed(task, 'movement_no_progress')
+        # FAILED harvest tasks already own a delayed retry. Never replace
+        # them with an unrelated move or discard their resource/cargo.
+        return True
 
     # ------------------------------------------------------------------
     # Game loop hooks
@@ -221,7 +242,7 @@ class WorkerTaskSystem:
     def _flee_from_attackers(self) -> None:
         """§8.12 + §8.17: AI workers flee when hit OR when enemy military is
         sighted nearby, running to shelter instead of gathering while being
-        murdered. Human workers stay under player control."""
+        attacked. Human worker evacuation is handled by WorkerSafety."""
         frame = getattr(self.game, "frame_counter", 0)
         for worker in self.game.units:
             if worker.name != "worker" or worker.hp <= 0:
@@ -268,8 +289,8 @@ class WorkerTaskSystem:
                     shelter, best_sq = building, d_sq
             if shelter is not None:
                 self.cancel(worker)
-                worker.garrison_target = shelter
                 self.game.pathfinder.issue_move(worker, (shelter.x, shelter.y))
+                worker.garrison_target = shelter
             else:
                 self.assign_move(worker, self._find_refuge(worker, attacker))
 
@@ -288,10 +309,12 @@ class WorkerTaskSystem:
 
     def update_pre_movement(self, delta_time: float) -> None:
         self._task_time += delta_time
+        self.safety.update()
         self._flee_from_attackers()
         self._remove_dead_worker_tasks()
         for task in list(self.tasks.values()):
             if task.phase == FAILED:
+                self._retry_gather(task, delta_time)
                 continue
             task.elapsed += delta_time
             task.repath_cooldown = max(0.0, task.repath_cooldown - delta_time)
@@ -431,7 +454,10 @@ class WorkerTaskSystem:
             return
         task.out_of_range_time = 0.0
 
+        before = worker.resource_amount
         result = self.game.gathering_manager.gather_resource_tick(worker, resource, delta_time)
+        if worker.resource_amount > before:
+            task.recovery_attempts = 0
         if result == "full":
             worker.is_gathering = False
             worker.previous_gathering_target = resource
@@ -575,7 +601,13 @@ class WorkerTaskSystem:
             task.build_contact_point = None
 
         task.contact_point = None
-        return self._repath_current_phase(task)
+        accepted = self._repath_current_phase(task)
+        if accepted:
+            # Give the new approach its own progress window. Previously it
+            # inherited the old stalled timer and failed almost immediately.
+            task.no_progress_time = 0.0
+            task.last_progress_pos = (task.worker.x, task.worker.y)
+        return accepted
 
     def _reserve_slot(self, worker, target, mode: str, avoid_points: Iterable[Point] = ()) -> Optional[Point]:
         if target is None:
@@ -656,12 +688,12 @@ class WorkerTaskSystem:
         if target is None:
             return False
         until = self._failed_path_until.get(self._path_failure_key(worker, target, mode), 0)
-        return until > time.monotonic()
+        return until > self._task_time
 
     def _remember_path_failure(self, worker, target, mode: str) -> None:
         if target is None:
             return
-        self._failed_path_until[self._path_failure_key(worker, target, mode)] = time.monotonic() + FAILED_PATH_COOLDOWN
+        self._failed_path_until[self._path_failure_key(worker, target, mode)] = self._task_time + FAILED_PATH_COOLDOWN
 
     # ------------------------------------------------------------------
     # Validation, progress, and compatibility fields
@@ -809,6 +841,12 @@ class WorkerTaskSystem:
                 delattr(worker, attr)
 
     def _clear_motion(self, worker) -> None:
+        worker._pending_path_seq = None
+        worker._pending_path_intent = None
+        worker._flow_command_token = None
+        worker.flow_field = None
+        worker.flow_slot_target = None
+        worker.garrison_target = None
         worker.path = None
         worker.path_index = 0
         worker.path_target = None
@@ -821,7 +859,7 @@ class WorkerTaskSystem:
     # current one runs dry ("move to a close tree nearby, don't idle").
     RESOURCE_CONTINUE_RADIUS = 400.0
 
-    def _find_continuation_resource(self, depleted_resource, player=None):
+    def _find_continuation_resource(self, depleted_resource, player=None, worker=None):
         """Nearest live same-type node near the one that just ran dry.
         Prefers un-crowded nodes so continuation doesn't stack a node past
         the saturation cap. Rare event (a few per minute) — linear scan."""
@@ -835,6 +873,8 @@ class WorkerTaskSystem:
         best_key = None
         for res in self.game.resources:
             if res is depleted_resource or res.name != name:
+                continue
+            if worker is not None and self.recently_failed(worker, res):
                 continue
             if not getattr(res, "in_world", True) or getattr(res, "amount_remaining", 0) <= 0:
                 continue
@@ -879,6 +919,9 @@ class WorkerTaskSystem:
         worker.status = "idle"
 
     def _set_failed(self, task: WorkerTask, reason: str) -> bool:
+        task.stall_time = 0.0
+        if task.resource is not None:
+            self._remember_path_failure(task.worker, task.resource, 'gather')
         if task.kind == 'build' and self._valid_site(task.construction_site):
             site = task.construction_site
             site._build_failures = min(3, getattr(site, '_build_failures', 0) + 1)
@@ -897,6 +940,30 @@ class WorkerTaskSystem:
         worker.worker_task_failed_reason = reason
         debug_log.log(f"Worker task failed: {task.kind} reason={reason}", "WORKER_TASK")
         return False
+
+    def _retry_gather(self, task, delta_time):
+        """Recover transient human harvest failures without inventing a new job."""
+        if task.kind != 'gather' or task.resource is None:
+            return
+        task.stall_time += delta_time
+        retry_delay = min(MAX_GATHER_RETRY_COOLDOWN,
+                          FAILED_PATH_COOLDOWN * (1 + task.recovery_attempts))
+        if task.stall_time < retry_delay:
+            return
+        task.stall_time = 0.0
+        replacement = self._find_continuation_resource(
+            task.resource, task.worker.player, worker=task.worker)
+        if replacement is None and self._valid_resource(task.resource):
+            replacement = task.resource
+        if replacement is not None:
+            self.assign_gather(task.worker, replacement)
+            renewed = self.tasks.get(task.worker)
+            if renewed is not None:
+                renewed.recovery_attempts = task.recovery_attempts + 1
+        elif getattr(task.worker, 'resource_amount', 0) > 0:
+            self.assign_dropoff(task.worker)
+        else:
+            task.recovery_attempts += 1
 
     def _fail_new_task(self, worker, reason: str) -> bool:
         if worker is None:

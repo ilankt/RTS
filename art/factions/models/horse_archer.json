@@ -1,0 +1,22 @@
+{
+  "unit": "horse_archer",
+  "actions": [
+    "idle",
+    "run",
+    "shoot"
+  ],
+  "frames_per_direction": 16,
+  "timeline_stride": 17,
+  "fps": 20,
+  "ground_anchor": [
+    0.5,
+    0.6875770092010498
+  ],
+  "render_scale": 1.5609756097560978,
+  "notes": "Approved bay horse and trot; seated archer with leather cap, team cloth and quiver. Shooting stops the horse.",
+  "action_events": {
+    "shoot": {
+      "release_frame": 10
+    }
+  }
+}

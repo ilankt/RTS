@@ -1,15 +1,16 @@
 """Global build-queue strip (§8.2.1 Phase C, AoE4 model).
 
 A slim overlay on the left edge of the map view listing every unit and tech
-the human player has in production anywhere: icon, name, live progress bar,
-and a +N badge for queued extras. Click a row to jump the camera to (and
-select) the producer; Ctrl+click cancels the in-progress item with the
-standard refund rules (50% for in-progress work).
+the human player has in production anywhere: active progress and ordered
+waiting units. Only adjacent units of the same type share a count. Click a
+row to select the producer; Ctrl+click cancels its displayed item (50% refund
+for active work, full refund for waiting units).
 
 The plan drafted this "docked under the minimap", but the command card's
 fixed grid owns that space — the left edge is where AoE4 docks its global
 queue too.
 """
+from ui import fonts as ui_fonts
 import pygame
 
 from core.config import TOP_BAR_HEIGHT, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT, px
@@ -18,12 +19,12 @@ from ui.fonts import fit_text
 
 class GlobalQueueStrip:
     # Design px at UI scale 1.0; __init__ re-binds them scaled (§8.2.2).
-    ROW_W = 170
+    ROW_W = 192
     ROW_H = 26
     ROW_GAP = 3
     ICON = 20
     MAX_ROWS = 8
-    X = 8
+    X = 32  # clear the decorative map frame so it cannot cover unit icons
     TOP = TOP_BAR_HEIGHT + 170  # below the alert-toast stack
 
     def __init__(self, game, icon_loader, tech_icons):
@@ -36,7 +37,7 @@ class GlobalQueueStrip:
         self.ICON = px(self.ICON)
         self.X = px(self.X)
         self.TOP = TOP_BAR_HEIGHT + px(170)
-        self.name_font = pygame.font.Font(None, px(16))
+        self.name_font = ui_fonts.font(12)
         self._icon_cache = {}
         self._rows = []  # [(screen rect, item)]
 
@@ -74,14 +75,22 @@ class GlobalQueueStrip:
             info = self.game.production_manager.get_production_info(building)
             if info:
                 from systems.ages import display_name
-                template = self.game.game_data.get('units', {}).get(info['unit_type'])
-                items.append({
-                    'building': building, 'kind': 'unit',
-                    'key': info['unit_type'],
-                    'label': display_name(info['unit_type'], human, getattr(template, 'display_name', None)),
-                    'progress': info['progress'],
-                    'queued': len(getattr(building, 'production_queue', ()) or ()),
-                })
+                sequence = [info['unit_type']] + list(getattr(building, 'production_queue', ()) or ())
+                groups = []
+                for index, key in enumerate(sequence):
+                    if groups and groups[-1]['key'] == key:
+                        groups[-1]['count'] += 1
+                        groups[-1]['queued'] += 1
+                        continue
+                    template = self.game.game_data.get('units', {}).get(key)
+                    groups.append({
+                        'building': building, 'kind': 'unit', 'key': key,
+                        'label': display_name(key, human, getattr(template, 'display_name', None)),
+                        'progress': info['progress'] if index == 0 else None,
+                        'count': 1, 'queued': 0 if index == 0 else 1,
+                        'queue_index': None if index == 0 else index-1,
+                    })
+                items.extend(groups)
             research = None
             if hasattr(self.game, 'research_manager'):
                 research = self.game.research_manager.get_research_info(building)
@@ -114,8 +123,11 @@ class GlobalQueueStrip:
             icon = self._icon(item['kind'], item['key'])
             if icon is not None:
                 row.blit(icon, (px(3), (self.ROW_H - self.ICON) // 2 - px(1)))
-            # The +N badge survives truncation — the name gives way, not it
-            suffix = f" +{item['queued']}" if item['queued'] else ""
+            waiting = item['progress'] is None
+            if waiting:
+                suffix = (f" ×{item['count']}" if item.get('count', 1) > 1 else '') + ' queued'
+            else:
+                suffix = f" +{item['queued']}" if item['queued'] else ''
             text_x = self.ICON + px(8)
             avail = self.ROW_W - text_x - px(4) - self.name_font.size(suffix)[0]
             label = fit_text(self.name_font, item['label'], avail) + suffix
@@ -125,9 +137,10 @@ class GlobalQueueStrip:
             # Progress bar along the bottom edge
             bar_h = max(2, px(3))
             bar_y = self.ROW_H - bar_h - px(2)
-            bar_w = int((self.ROW_W - px(4)) * min(1.0, item['progress']))
-            pygame.draw.rect(row, (60, 60, 60), (px(2), bar_y, self.ROW_W - px(4), bar_h))
-            pygame.draw.rect(row, color, (px(2), bar_y, bar_w, bar_h))
+            if not waiting:
+                bar_w = int((self.ROW_W - px(4)) * min(1.0, item['progress']))
+                pygame.draw.rect(row, (60, 60, 60), (px(2), bar_y, self.ROW_W - px(4), bar_h))
+                pygame.draw.rect(row, color, (px(2), bar_y, bar_w, bar_h))
             if hovered:
                 pygame.draw.rect(row, (220, 220, 220), row.get_rect(), 1)
 
@@ -141,14 +154,18 @@ class GlobalQueueStrip:
 
     def handle_click(self, pos):
         """Click = jump camera to + select the producer; Ctrl+click = cancel
-        the in-progress item (50% refund). Returns True when consumed."""
+        the displayed active/waiting item. Returns True when consumed."""
         for rect, item in self._rows:
             if not rect.collidepoint(pos):
                 continue
             keys = pygame.key.get_pressed()
             if keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]:
                 if item['kind'] == 'unit':
-                    ok, _ = self.game.production_manager.cancel_production(item['building'])
+                    if item.get('queue_index') is not None:
+                        ok, _ = self.game.production_manager.cancel_queued(
+                            item['building'], item['key'], queue_index=item['queue_index'])
+                    else:
+                        ok, _ = self.game.production_manager.cancel_production(item['building'])
                 else:
                     ok, _ = self.game.research_manager.cancel_research(item['building'])
                 self._feedback(ok)

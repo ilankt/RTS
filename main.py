@@ -110,6 +110,10 @@ def create_game_from_setup(setup):
     else:
         game = Game(mode="human_1v1", player_count=player_count,
                     map_size=(tiles, tiles))
+    from systems.factions import normalize_faction
+    for player in game.players:
+        selected = setup.get('faction', 'steppe') if player.human else setup.get('ai_faction', 'random')
+        player.faction = random.choice(('steppe', 'highland')) if selected == 'random' else normalize_faction(selected)
     if setup.get("personality", "random") != "random":
         for player in game.players:
             if not player.human:

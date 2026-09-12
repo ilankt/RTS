@@ -1,0 +1,22 @@
+{
+  "unit": "axeman",
+  "actions": [
+    "idle",
+    "run",
+    "attack"
+  ],
+  "frames_per_direction": 16,
+  "timeline_stride": 17,
+  "fps": 20,
+  "ground_anchor": [
+    0.5,
+    0.6965087652206421
+  ],
+  "render_scale": 1.1707317073170733,
+  "notes": "Two-handed single-bit axe, exposed arms, fur shoulders and team-color tunic. Forward chopping edge and attached grips.",
+  "action_events": {
+    "attack": {
+      "impact_frame": 8
+    }
+  }
+}

@@ -101,9 +101,16 @@ class ProductionManager:
             )
             return
 
-    def cancel_queued(self, building, unit_type):
-        """Remove the last queued unit of a type, refunding its full cost."""
-        for i in range(len(building.production_queue) - 1, -1, -1):
+    def cancel_queued(self, building, unit_type, queue_index=None):
+        """Remove a waiting unit, refunding its full cost.
+
+        Cards remove the last of a type; queue rows identify an exact position.
+        """
+        indices = (range(len(building.production_queue) - 1, -1, -1)
+                   if queue_index is None else [queue_index])
+        for i in indices:
+            if not 0 <= i < len(building.production_queue):
+                continue
             if building.production_queue[i] != unit_type:
                 continue
             building.production_queue.pop(i)
@@ -172,6 +179,7 @@ class ProductionManager:
             strong_against=unit_data.get('strong_against', []),
             weak_against=unit_data.get('weak_against', []),
             building_only_attack=unit_data.get('building_only_attack', False),
+            counter_multiplier=unit_data.get('counter_multiplier'),
         )
         
         # Set up animations using sprite manager

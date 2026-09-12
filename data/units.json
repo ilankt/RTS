@@ -147,7 +147,8 @@
     ],
     "buildable": true,
     "strong_against": [
-      "cavalry"
+      "cavalry",
+      "horse_archer"
     ],
     "weak_against": [
       "ram"
@@ -196,7 +197,8 @@
     "buildable": true,
     "strong_against": [
       "archer",
-      "worker"
+      "worker",
+      "horse_archer"
     ],
     "weak_against": [
       "spearman",
@@ -240,7 +242,7 @@
   {
     "name": "ram",
     "display_name": "Ballista",
-    "role": "Long-range siege support",
+    "role": "High-damage siege support; fragile, keep behind your army",
     "requires": [
       "siege_workshop"
     ],
@@ -259,7 +261,7 @@
       1.25,
       1.25
     ],
-    "hp": 300,
+    "hp": 120,
     "movement_speed": 28,
     "attack": 45,
     "can_attack": true,
@@ -273,7 +275,7 @@
     "min_damage": 85,
     "max_damage": 115,
     "attack_type": "siege",
-    "armor_type": "siege",
+    "armor_type": "light",
     "armor_value": 0,
     "attack_speed": 0.45,
     "attack_range": 280,
@@ -334,5 +336,111 @@
       0.5,
       0.730059
     ]
+  },
+  {
+    "display_name": "Horse Archer",
+    "role": "Steppe ranged cavalry: fast raider; vulnerable to spears",
+    "requires": [
+      "stable"
+    ],
+    "hp": 190,
+    "movement_speed": 90,
+    "min_damage": 14,
+    "max_damage": 18,
+    "attack_range": 180,
+    "attack_speed": 1.0,
+    "attack_type": "pierce",
+    "armor_type": "light",
+    "armor_value": 1,
+    "costs": {
+      "gold": 100,
+      "wood": 60,
+      "food": 130
+    },
+    "build_time": 13,
+    "strong_against": [
+      "worker",
+      "axeman"
+    ],
+    "weak_against": [
+      "spearman",
+      "cavalry",
+      "watchtower"
+    ],
+    "collision_radius": 14,
+    "name": "horse_archer",
+    "size": [
+      1,
+      1
+    ],
+    "can_build": false,
+    "can_attack": true,
+    "buildable": true,
+    "animations": {
+      "idle": "assets/sprites/Units/Factions/horse_archer/idle.png",
+      "run": "assets/sprites/Units/Factions/horse_archer/run.png",
+      "shoot": "assets/sprites/Units/Factions/horse_archer/shoot.png"
+    },
+    "animation_directions": 8,
+    "animation_fps": 20,
+    "ground_anchor": [
+      0.5,
+      0.6875770092010498
+    ],
+    "render_scale": 1.5609756097560978,
+    "icon": "assets/ui/Units/Factions/horse_archer.png",
+    "projectile_type": "arrow"
+  },
+  {
+    "display_name": "Axeman",
+    "role": "Highland shock infantry: breaks sword infantry; vulnerable to ranged fire",
+    "requires": [
+      "barracks"
+    ],
+    "hp": 220,
+    "movement_speed": 52,
+    "min_damage": 28,
+    "max_damage": 34,
+    "attack_range": 48,
+    "attack_speed": 1.0,
+    "attack_type": "slash",
+    "armor_type": "light",
+    "armor_value": 1,
+    "costs": {
+      "gold": 75,
+      "food": 90
+    },
+    "build_time": 10,
+    "strong_against": [
+      "warrior"
+    ],
+    "weak_against": [
+      "archer",
+      "horse_archer"
+    ],
+    "collision_radius": 8,
+    "name": "axeman",
+    "size": [
+      1,
+      1
+    ],
+    "can_build": false,
+    "can_attack": true,
+    "buildable": true,
+    "animations": {
+      "idle": "assets/sprites/Units/Factions/axeman/idle.png",
+      "run": "assets/sprites/Units/Factions/axeman/run.png",
+      "attack": "assets/sprites/Units/Factions/axeman/attack.png"
+    },
+    "animation_directions": 8,
+    "animation_fps": 20,
+    "ground_anchor": [
+      0.5,
+      0.6965087652206421
+    ],
+    "render_scale": 1.1707317073170733,
+    "icon": "assets/ui/Units/Factions/axeman.png",
+    "projectile_type": "arrow",
+    "counter_multiplier": 3.25
   }
 ]

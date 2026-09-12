@@ -1,3 +1,4 @@
+from ui import fonts as ui_fonts
 import pygame
 import json
 
@@ -131,7 +132,7 @@ class IconLoader:
                     placeholder.fill((100, 100, 150))
                     pygame.draw.rect(placeholder, (150, 150, 200), (0, 0, size, size), 2)
                     # Add text label
-                    font = pygame.font.Font(None, px(20))
+                    font = ui_fonts.font(16)
                     text = font.render(unit_name[:4].upper(), True, (255, 255, 255))
                     text_rect = text.get_rect(center=(size // 2, size // 2))
                     placeholder.blit(text, text_rect)

@@ -203,9 +203,8 @@ class _TrainCompositionUnitGoal(Goal):
     def _target_fraction(self, ctx):
         # Signature army composition per personality (§7.2), pulled toward
         # whatever counters the enemy's current army (reactive counters).
-        from systems.ai.utility.personality import composition_target
-
-        base = composition_target(getattr(ctx.player, "ai_personality", "balanced"), self.unit_name)
+        from systems.factions import army_composition
+        base = army_composition(ctx.player).get(self.unit_name, 0)
         return min(self.TARGET_FRACTION_CAP, base + self._counter_boost(ctx))
 
     def _starved_sibling_exists(self, ctx):
@@ -215,10 +214,8 @@ class _TrainCompositionUnitGoal(Goal):
         the resources the army actually needs — the battery showed every
         personality collapsing to the cheapest-gold unit (spearman 33-34 %,
         signature comps never realized) precisely through this leak."""
-        from systems.ai.utility.personality import COMPOSITION_TARGETS, composition_target
-
-        personality = getattr(ctx.player, "ai_personality", "balanced")
-        table = COMPOSITION_TARGETS.get(personality, COMPOSITION_TARGETS["balanced"])
+        from systems.factions import army_composition
+        table = army_composition(ctx.player)
         for name in table:
             if name == self.unit_name:
                 continue
@@ -227,14 +224,17 @@ class _TrainCompositionUnitGoal(Goal):
                 continue  # never bank for a sibling locked behind the next age
             if ctx.can_afford(name):
                 continue
-            producer = "stable" if name == "cavalry" else "barracks"
+            producer = "stable" if name in ("cavalry", "horse_archer") else "barracks"
             if not ctx.buildings.get(producer):
                 continue  # can't train it anyway — banking would be pointless
-            if _military_fraction(ctx, name) < composition_target(personality, name):
+            if _military_fraction(ctx, name) < table[name]:
                 return True
         return False
 
     def score(self, ctx):
+        from systems.ages import availability
+        if not availability(ctx.player, self.unit_name)[0]:
+            return 0
         if not ctx.has_pop_space():
             return 0
         if not ctx.can_afford(self.unit_name):
@@ -243,6 +243,28 @@ class _TrainCompositionUnitGoal(Goal):
         if not building:
             return 0
         target_fraction = self._target_fraction(ctx)
+        # Near an affordable composition purchase, let the most underfilled
+        # line save its last resources. Otherwise even under-target cheap
+        # infantry continually spend the Horse Archer's gold. Defense wins.
+        if len(ctx.military) >= 4 and not getattr(ctx, 'enemies_near_base', ()):
+            from systems.factions import army_composition
+            table = army_composition(ctx.player)
+            my_gap = target_fraction - _military_fraction(ctx, self.unit_name)
+            resources = getattr(ctx, 'resources', {})
+            for name, share in table.items():
+                if name == self.unit_name or share - _military_fraction(ctx, name) <= my_gap:
+                    continue
+                if not availability(ctx.player, name)[0]:
+                    continue
+                producer = 'stable' if name in ('cavalry', 'horse_archer') else 'barracks'
+                if not ctx.find_idle_production_building(producer):
+                    continue
+                costs = ctx.game.game_data.get('costs', {}).get(name, {})
+                # Only a real, small resource shortfall; never bank for an
+                # age-budget veto or a resource with no stock at all.
+                if (costs and any(resources.get(r, 0) < c for r, c in costs.items())
+                        and all(resources.get(r, 0) >= .75*c for r, c in costs.items())):
+                    return 0
         # If no military yet, every trainable unit scores the same baseline
         # so personality / cost differences pick one. Once an army exists, push
         # whichever type is under-represented.
@@ -430,7 +452,7 @@ class ResearchForgedBladesGoal(ResearchTechGoal):
     base_score = 55
 
     def _score(self, ctx):
-        melee = sum(1 for u in ctx.military if u.name in ("warrior", "spearman", "cavalry"))
+        melee = sum(1 for u in ctx.military if u.name in ("warrior", "spearman", "cavalry", "axeman"))
         return self.base_score + melee * 4 if melee >= 2 else 0
 
 
@@ -440,7 +462,7 @@ class ResearchFletchingGoal(ResearchTechGoal):
     base_score = 55
 
     def _score(self, ctx):
-        archers = sum(1 for u in ctx.military if u.name == "archer")
+        archers = sum(1 for u in ctx.military if u.name in ("archer", "horse_archer"))
         towers = len(ctx.buildings.get("watchtower", []))
         return self.base_score + archers * 5 + towers * 5 if archers or towers else 0
 
@@ -472,3 +494,14 @@ class ResearchSiegeEngineeringGoal(ResearchTechGoal):
     def _score(self, ctx):
         rams = sum(1 for u in ctx.military if u.name == "ram")
         return self.base_score + rams * 8 if ctx.buildings.get("siege_workshop") else 0
+
+
+class TrainHorseArcherGoal(TrainCavalryGoal):
+    name = "train_horse_archer"
+    unit_name = "horse_archer"
+
+
+class TrainAxemanGoal(TrainCavalryGoal):
+    name = "train_axeman"
+    unit_name = "axeman"
+    production_building = "barracks"

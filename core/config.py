@@ -232,7 +232,7 @@ GATHERING_RATES = {
     "gold": 1,     # Resources per second
     "wood": 1.6,   # 2 → 1.6 (2026-07-25 balance package: forests got much
                    # bigger the same week; user judged 2/s too loose)
-    "food": 3      # Food per second from farms
+    "food": 3      # Legacy food-node rate; passive farms use FARM_FOOD_* below
 }
 
 # Gold 10→20 (2026-07-14 aggression re-tune, diagnosed via instrumented
@@ -249,8 +249,8 @@ WORKER_CAPACITY = {
 DROP_OFF_DELAY = 0.5  # Seconds to wait during resource drop-off
 
 # Farm food generation configuration
-FARM_FOOD_AMOUNT = 10  # Amount of food generated per cycle
-FARM_FOOD_INTERVAL = 10.0  # Seconds between food generation
+FARM_FOOD_AMOUNT = 5  # Passive food per farm payout (1.25 food/s)
+FARM_FOOD_INTERVAL = 4.0  # Game seconds; smaller payouts shorten food droughts
 
 RESOURCE_LIMITS = {
     "gold": 1000,

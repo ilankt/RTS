@@ -3,6 +3,19 @@ from systems.ai.utility.goal import Goal
 from systems.ai.utility.actions import start_construction, queue_unit
 
 
+class TrainClosingPackageGoal(Goal):
+    name = 'train_closing_package'
+    category = 'military'
+
+    def score(self, ctx):
+        name = getattr(ctx, 'closing_unit', None)
+        return 110 if name and ctx.has_pop_space() and ctx.can_afford(name) else 0
+
+    def execute(self, ctx):
+        name = getattr(ctx, 'closing_unit', None)
+        return bool(name and queue_unit(ctx, ctx.closing_producer, name))
+
+
 class RebuildCastleGoal(Goal):
     """§8.12: losing the castle is no longer game over — with surviving
     workers and a saved-up stockpile the AI rebuilds. Outranks everything
@@ -91,6 +104,13 @@ class BuildMarketGoal(Goal):
 
         res = ctx.resources
         gold = res.get("gold", 0)
+        closing = getattr(ctx, 'closing_reserve', {})
+        if closing and gold < closing.get('gold', 0):
+            surplus = {r: res.get(r, 0) - closing.get(r, 0) - (50 if r == 'food' else 0)
+                       for r in MARKET_TRADEABLE}
+            resource = max(surplus, key=surplus.get)
+            if surplus[resource] >= 100:
+                return 80
         surplus = max(res.get(r, 0) for r in MARKET_TRADEABLE)
         shortage = min(res.get(r, 0) for r in MARKET_TRADEABLE)
         if surplus >= 400 or (gold >= 400 and shortage < 60):
@@ -132,6 +152,13 @@ class MarketTradeGoal(Goal):
 
         res = ctx.resources
         gold = res.get("gold", 0)
+        closing = getattr(ctx, 'closing_reserve', {})
+        if closing and gold < closing.get('gold', 0):
+            surplus = {r: res.get(r, 0) - closing.get(r, 0) - (50 if r == 'food' else 0)
+                       for r in MARKET_TRADEABLE}
+            resource = max(surplus, key=surplus.get)
+            if surplus[resource] >= 100:
+                return ('sell', resource)
         if gold >= self.BUY_GOLD_MIN:
             for resource in MARKET_TRADEABLE:
                 if res.get(resource, 0) < self.BUY_SHORTAGE:

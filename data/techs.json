@@ -156,6 +156,10 @@
         "cavalry": {
           "min_damage": 1.06,
           "max_damage": 1.06
+        },
+        "axeman": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
         }
       }
     },
@@ -187,6 +191,10 @@
           "max_damage": 1.05
         },
         "cavalry": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
+        },
+        "axeman": {
           "min_damage": 1.06,
           "max_damage": 1.06
         }
@@ -222,6 +230,10 @@
         "cavalry": {
           "min_damage": 1.06,
           "max_damage": 1.06
+        },
+        "axeman": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
         }
       }
     },
@@ -244,10 +256,17 @@
         "archer": {
           "min_damage": 1.06,
           "max_damage": 1.06
+        },
+        "horse_archer": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
         }
       },
       "unit_stat_bonuses": {
         "archer": {
+          "attack_range": 10
+        },
+        "horse_archer": {
           "attack_range": 10
         }
       },
@@ -279,10 +298,17 @@
         "archer": {
           "min_damage": 1.06,
           "max_damage": 1.06
+        },
+        "horse_archer": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
         }
       },
       "unit_stat_bonuses": {
         "archer": {
+          "attack_range": 10
+        },
+        "horse_archer": {
           "attack_range": 10
         }
       },
@@ -314,10 +340,17 @@
         "archer": {
           "min_damage": 1.06,
           "max_damage": 1.06
+        },
+        "horse_archer": {
+          "min_damage": 1.06,
+          "max_damage": 1.06
         }
       },
       "unit_stat_bonuses": {
         "archer": {
+          "attack_range": 10
+        },
+        "horse_archer": {
           "attack_range": 10
         }
       },
@@ -354,6 +387,12 @@
         },
         "cavalry": {
           "armor_value": 1
+        },
+        "axeman": {
+          "armor_value": 1
+        },
+        "horse_archer": {
+          "armor_value": 1
         }
       }
     },
@@ -386,6 +425,12 @@
           "armor_value": 1
         },
         "cavalry": {
+          "armor_value": 1
+        },
+        "axeman": {
+          "armor_value": 1
+        },
+        "horse_archer": {
           "armor_value": 1
         }
       }
@@ -420,6 +465,12 @@
         },
         "cavalry": {
           "armor_value": 1
+        },
+        "axeman": {
+          "armor_value": 1
+        },
+        "horse_archer": {
+          "armor_value": 1
         }
       }
     },
@@ -445,14 +496,9 @@
           "min_damage": 1.08,
           "max_damage": 1.08
         }
-      },
-      "unit_stat_bonuses": {
-        "ram": {
-          "armor_value": 1
-        }
       }
     },
-    "tooltip": "Ballistae deal more siege damage and gain +1 armor."
+    "tooltip": "Ballistae deal 8% more siege damage. They remain fragile and need protection."
   },
   {
     "id": "siege_engineering_2",
@@ -524,7 +570,7 @@
   },
   {
     "id": "swordsman_training",
-    "display_name": "Bronze Swordsmen",
+    "display_name": "Upgrade to Bronze Swordsman",
     "building": "barracks",
     "required_age": 2,
     "costs": {
@@ -542,12 +588,12 @@
         }
       }
     },
-    "tooltip": "All existing and future Clubmen become Swordsmen: +5 damage and +1 armor.",
+    "tooltip": "Clubman becomes Bronze Swordsman. Upgrades all your existing and future units in this line. +5 damage, +1 armor.",
     "icon": "assets/ui/Units/Ages/bronze_swordsman.png"
   },
   {
     "id": "archer_training",
-    "display_name": "Upgrade to Archers",
+    "display_name": "Upgrade to Archer",
     "building": "barracks",
     "required_age": 2,
     "costs": {
@@ -565,7 +611,7 @@
         }
       }
     },
-    "tooltip": "All existing and future slingers become Archers: +3 damage and +20 range.",
+    "tooltip": "Slinger becomes Archer. Upgrades all your existing and future units in this line. +3 damage, +20 range.",
     "icon": "assets/ui/Units/Ages/archer.png"
   },
   {
@@ -609,7 +655,7 @@
       }
     },
     "icon": "assets/ui/Units/Ages/bronze_spearman.png",
-    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+    "tooltip": "Wooden Spearman becomes Bronze Spearman. Upgrades all your existing and future units in this line. +3 damage, +1 armor."
   },
   {
     "id": "iron_swordsman_training",
@@ -635,7 +681,7 @@
       }
     },
     "icon": "assets/ui/Units/Ages/iron_swordsman.png",
-    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+    "tooltip": "Bronze Swordsman becomes Iron Swordsman. Upgrades all your existing and future units in this line. +4 damage, +2 armor."
   },
   {
     "id": "crossbow_training",
@@ -662,7 +708,7 @@
       }
     },
     "icon": "assets/ui/Units/Ages/crossbowman.png",
-    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+    "tooltip": "Archer becomes Crossbowman. Upgrades all your existing and future units in this line. +6 damage, +15 range, -0.2 attacks/s."
   },
   {
     "id": "pikeman_training",
@@ -689,7 +735,7 @@
       }
     },
     "icon": "assets/ui/Units/Ages/pikeman.png",
-    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+    "tooltip": "Bronze Spearman becomes Pikeman. Upgrades all your existing and future units in this line. +4 damage, +1 armor, +14 range."
   },
   {
     "id": "heavy_cavalry_training",
@@ -713,7 +759,7 @@
       }
     },
     "icon": "assets/ui/Units/Ages/heavy_cavalry.png",
-    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+    "tooltip": "Mounted Spearman becomes Heavy Cavalry. Upgrades all your existing and future units in this line. +5 damage, +2 armor."
   },
   {
     "id": "priest_training",
@@ -736,7 +782,7 @@
       }
     },
     "icon": "assets/ui/Units/Ages/priest.png",
-    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+    "tooltip": "Healer becomes Priest. Upgrades all your existing and future units in this line. +1 armor."
   },
   {
     "id": "heavy_ballista_training",
@@ -760,6 +806,6 @@
       }
     },
     "icon": "assets/ui/Units/Ages/heavy_ballista.png",
-    "tooltip": "Paid global line upgrade. Applies to existing and future units; preserves wounds and orders."
+    "tooltip": "Ballista becomes Heavy Ballista. Upgrades all your existing and future units in this line. +18 damage, +30 range."
   }
 ]

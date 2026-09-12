@@ -2,7 +2,9 @@ from core.config import HUMAN_STARTING_RESOURCES, AI_STARTING_RESOURCES, PLAYER_
 
 
 class Player:
-    def __init__(self, name, human, color=(255, 255, 255)):
+    def __init__(self, name, human, color=(255, 255, 255), faction='steppe'):
+        from systems.factions import normalize_faction
+        self.faction = normalize_faction(faction)
         self.name = name
         self.human = human
         self.color = color

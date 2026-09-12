@@ -2,6 +2,7 @@
 screen — splash-art backdrop, dark scrim panels, gold titles with drop
 shadows, and label/value rows with adjuster arrows.
 """
+from ui import fonts as ui_fonts
 import pygame
 
 from core.config import SCREEN_WIDTH, SCREEN_HEIGHT
@@ -74,7 +75,7 @@ def draw_splash(screen, caption=None):
     else:
         screen.fill((20, 20, 30))
     if caption:
-        font = pygame.font.Font(None, 40)
+        font = ui_fonts.screen_font(31)
         text = font.render(caption, True, (240, 225, 170))
         rect = text.get_rect(center=(screen.get_width() // 2,
                                      screen.get_height() - 80))
@@ -171,7 +172,7 @@ def draw_panel_and_title(screen, title, panel_rect, title_dy=52):
     """Scrim panel + shadowed gold title inside its top."""
     draw_panel(screen, panel_rect)
 
-    font = pygame.font.Font(None, 56)
+    font = ui_fonts.screen_font(44)
     shadow = font.render(title, True, TITLE_SHADOW)
     text = font.render(title, True, TITLE_COLOR)
     rect = text.get_rect(center=(panel_rect.centerx, panel_rect.y + title_dy))
@@ -237,7 +238,9 @@ def draw_setting_row(screen, rect, label, value, selected, font):
     _draw_row_chrome(screen, rect, 'selected' if selected else 'normal')
 
     # Keep text clear of the frame's ornate end caps
-    label_surface = font.render(label, True,
+    value = ui_fonts.fit_text(font, value, rect.width - 200)
+    label_width = rect.width - SETTING_VALUE_INSET - font.size(value)[0] - 38 - 32
+    label_surface = font.render(ui_fonts.fit_text(font, label, label_width), True,
                                 LABEL_COLOR if selected else MUTED_COLOR)
     screen.blit(label_surface, (rect.x + 38,
                                 rect.centery - label_surface.get_height() // 2))
@@ -271,12 +274,12 @@ def draw_action_row(screen, rect, label, selected, font, primary=False):
     _draw_row_chrome(screen, rect, variant)
 
     color = (240, 240, 220) if selected or primary else LABEL_COLOR
-    text = font.render(label, True, color)
+    text = font.render(ui_fonts.fit_text(font, label, rect.width - 76), True, color)
     screen.blit(text, text.get_rect(center=rect.center))
 
 
 def draw_hint(screen, text, y=None):
-    font = pygame.font.Font(None, 24)
+    font = ui_fonts.screen_font(19)
     surface = font.render(text, True, (185, 185, 185))
     rect = surface.get_rect(center=(screen.get_width() // 2,
                                     y if y is not None else screen.get_height() - 34))
