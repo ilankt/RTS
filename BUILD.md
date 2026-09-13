@@ -41,6 +41,31 @@ Both are git-ignored.
 
 ## Adjusting
 
+### Updating the field manual and player wiki
+
+The explanations live in `help/topics.json`. Unit and building costs, stats,
+artwork, technologies, configuration values and default hotkeys are read from
+the game itself. After changing these or the version, regenerate both outputs:
+
+```bash
+pip install Pillow
+python tools/generate_help.py
+```
+
+Commit `help/index.html` and `docs/wiki/` with their sources. The generated HTML
+works offline and is included in Windows builds. Native GitHub wiki publication
+uses the same Markdown pages, with `.md` removed from local page links. After
+cloning `https://github.com/ilankt/RTS.wiki.git`, prepare that checkout with
+`python tools/generate_help.py --wiki-dir <path-to-wiki-checkout>`, review its
+diff, then commit and push from the wiki checkout.
+The installer builder regenerates the manual before packaging.
+
+### Packaging options
+
+For an isolated build, pass `--distpath <folder>` and `--workpath <folder>` to
+PyInstaller. Pass `/DMyBuildDir=<absolute-path-to-RTS-folder>` to Inno Setup to
+package that folder instead of `dist\RTS`.
+
 - **Version**: update `GAME_VERSION` in `core/version.py`. The menu, executable
   metadata and installer use it. Update `README.md`, `DOWNLOAD.md`,
   `CHANGELOG.md` and the field manual for the public release.

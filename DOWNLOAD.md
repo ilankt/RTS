@@ -1,22 +1,27 @@
 # Download
 
-Latest version: **0.13.0-beta** — Windows 64-bit.
-[What's new in this version](CHANGELOG.md#0130-beta--2026-09-12)
+Latest version: **0.13.1-beta** — Windows 64-bit.
+[What's new in this version](CHANGELOG.md#0131-beta--2026-09-13)
 
 | Download | What you get |
 |---|---|
-| **[Installer](https://github.com/ilankt/RTS/releases/download/v0.13.0-beta/RTS_Setup_0.13.0-beta.exe)** — `RTS_Setup_0.13.0-beta.exe` | Familiar setup wizard. Installs per-user (no admin prompt), adds a Start-menu shortcut and an uninstaller. |
-| **[Portable](https://github.com/ilankt/RTS/releases/download/v0.13.0-beta/RTS_0.13.0-beta_win64_portable.zip)** — `RTS_0.13.0-beta_win64_portable.zip` | No installation: unzip anywhere and run `RTS.exe`. |
-| **[SHA-256 checksums](https://github.com/ilankt/RTS/releases/download/v0.13.0-beta/SHA256SUMS.txt)** | Verify the installer and portable download. |
-| **[Source code](https://github.com/ilankt/RTS/archive/refs/heads/main.zip)** — `src.zip` | The latest source. Runs on any OS with Python 3.10+ — see [Getting Started](README.md#getting-started). |
+| **[Installer](https://github.com/ilankt/RTS/releases/download/v0.13.1-beta/RTS_Setup_0.13.1-beta.exe)** — `RTS_Setup_0.13.1-beta.exe` | Familiar setup wizard. Installs per-user (no admin prompt), adds a Start-menu shortcut and an uninstaller. |
+| **[Portable](https://github.com/ilankt/RTS/releases/download/v0.13.1-beta/RTS_0.13.1-beta_win64_portable.zip)** — `RTS_0.13.1-beta_win64_portable.zip` | No installation: unzip anywhere and run `RTS.exe`. |
+| **[SHA-256 checksums](https://github.com/ilankt/RTS/releases/download/v0.13.1-beta/SHA256SUMS.txt)** | Verify the installer and portable download. |
+| **[Source code](https://github.com/ilankt/RTS/archive/refs/heads/main.zip)** — `src.zip` | The latest source. Runs on any OS with Python 3.10+ — see [Getting Started](README.md#run-from-source). |
 
 All releases: <https://github.com/ilankt/RTS/releases> ·
 Full version history: **[CHANGELOG.md](CHANGELOG.md)**
 
-Upgrading from 0.12.0-beta or earlier? The installer replaces the old version in place, and
+Upgrading from an earlier version? The installer replaces the old version in place, and
 your saves and settings are kept (they live outside the install folder).
 Older saves are migrated when loaded. Ballista health is adjusted proportionally
 to the new balance values.
+
+**[Watch the trailer](https://www.youtube.com/watch?v=9bWxDqkOkM8)** · **[Read the player wiki](https://github.com/ilankt/RTS/wiki)**
+
+Both Windows packages include the current graphics and updated offline field
+manual. Open **Help** from the main menu or pause menu to read it.
 
 Good to know:
 

@@ -295,7 +295,7 @@
   {
     "name": "healer",
     "display_name": "Healer",
-    "role": "Deferred support unit",
+    "role": "Automatically heals wounded nearby allies; keep behind your army",
     "requires": [
       "temple"
     ],

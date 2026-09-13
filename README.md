@@ -1,141 +1,101 @@
 # RTS
 
-A classic real-time strategy game — in the spirit of Age of Empires and Warcraft —
-built from scratch in **Python + Pygame**. Hex-tile procedural maps, a full
-economy/production/tech loop, and four AI personalities that you can fight or
-just sit back and spectate.
+Build a settlement. Advance through three ages. Lead cavalry, infantry, healers
+and siege into battle.
 
-![Current gameplay and HUD](docs/media/gameplay-0.13.png)
+A classic single-player real-time strategy game inspired by Age of Empires and
+Warcraft, built in Python and Pygame. Play against the AI on procedural island
+maps, or watch rival AI armies fight in spectator mode.
 
-## Features
+**[Download for Windows](DOWNLOAD.md)** · **[Player wiki](https://github.com/ilankt/RTS/wiki)** · **[Watch the trailer](https://www.youtube.com/watch?v=9bWxDqkOkM8)** · **[Report a bug](https://github.com/ilankt/RTS/issues)**
 
-**Gameplay**
-- Full RTS loop: gather **gold / wood / food**, expand, tech up, and raze the enemy castle
-- Advance through **Stone, Bronze and Iron Ages**, with new building artwork,
-  paid military-line upgrades, and two playable factions: Steppe and Highland
-- **9 unit lines**, including the faction-exclusive Horse Archer and Axeman, with
-  slash/pierce/siege damage types vs light/heavy/fortified armor and
-  counter-unit bonuses
-- **12 buildings** including production, defense towers, and the temple's
-  auto-healing support unit
-- **6 blacksmith technologies** (gathering, armor, melee/ranged/siege damage),
-  each a three-level chain
-- Fog of war with explored-terrain memory and last-seen resource ghosts
-- Formations, unit stances, attack-move, shift-queued orders, control groups,
-  rally points, camera bookmarks, demolish, save/load
-- Enforced population cap, attack alarms with minimap pings, automatic worker
-  shelter and return to work, delayed idle-worker alerts, and reactive onboarding hints
-  that fire when you're actually stuck
-- Adjustable game speed (1–5×), match setup with map-size choice
+[![Watch the 42-second RTS gameplay trailer](docs/media/trailer-preview.jpg)](https://www.youtube.com/watch?v=9bWxDqkOkM8)
 
-**Presentation**
-- **Spatial audio**: hits, deaths, gathering and collapses are heard from the
-  camera's viewpoint — panned, distance-faded, and silent off-screen or under fog — with
-  per-unit barks and rotating variants so repeated sounds don't loop audibly
-- **Ambient world**: swaying trees, drifting cloud shadows and chimney smoke,
-  all driven by one shared wind direction; wounded buildings smoke visibly
-- Blob shadows under every object, shaped from each sprite's own outline
-- Eight-direction unit animation, corrected horse gait, clearer portraits and
-  typography, and a HUD that scales with resolution
+*Watch 42 seconds of settlement building, exploration, age advancement and combined-arms combat—with the game's music and sound effects.*
 
-**AI**
-- Utility-goal AI: on normal difficulty, every 0.5 s each AI scores 30+ goals (economy, military,
-  tactical) against a snapshot of its situation and executes the best ones
-- Four personalities — **rusher, boomer, turtle, balanced** — weight those
-  goals differently; armies muster at forward rally points and attack in waves
-- Easy, normal and hard settings adjust decision cadence and attack readiness
-- **Spectate AI Battle** mode: watch 2–8 AIs fight it out with the whole map revealed
+## Build, explore, conquer
 
-**Engine**
-- Hex-tile terrain rendering with biome sprite variants over a square
-  navigation grid for movement
-- Jump Point Search pathfinding with incremental obstacle updates, per-frame
-  time budgets, and cross-frame resumable searches — no frame ever stalls on a
-  cross-map path
-- Shared flow fields for large group moves; context-steering collision
-  avoidance with right-of-way rules
-- Procedural island maps (Perlin noise): biomes, mountain ridges, forests as
-  choppable props, with a guaranteed-reachable spawn layout
+- **Three ages:** grow from a Stone Age Town Center to an Iron Age Castle.
+  Buildings and Workers change appearance as you advance; research military
+  upgrades to equip the rest of your army.
+- **Two factions:** Steppe Clans add fast Horse Archers; Highland Clans add
+  Axemen that break through sword infantry. Both share seven core unit lines.
+- **An economy to protect:** harvest wood and gold, build Farms for automatic
+  food income, expand with 12 building types, and invest in six research families.
+- **Armies with different jobs:** hold the line with infantry, raid with cavalry,
+  keep healers close, and protect fragile, high-damage Ballistas.
+- **Battlefield control:** fog of war, formations, stances, attack-move, queued
+  orders, control groups, rally points and save/load.
+- **Protect your settlement:** attack alarms and minimap pings help you respond,
+  while threatened Workers take shelter and return to work after danger passes.
+- **AI opponents:** Easy, Normal and Hard difficulty; Rusher, Boomer, Turtle and
+  Balanced personalities; spectator battles with up to eight AI players.
 
-## Graphics
+## Screenshots
 
-The Windows downloads include the current unit animations, faction portraits
-and all 30 age-specific building graphics. This preview was generated from the
-packaged files: **[View the age and faction artwork](docs/media/ages-and-factions.png)**.
+| Start a settlement | Advance to Bronze Age |
+|---|---|
+| [![Stone Age settlement and economy](docs/media/stone-age.jpg)](docs/media/stone-age.jpg) | [![Bronze Age Town Hall and refreshed buildings](docs/media/bronze-age.jpg)](docs/media/bronze-age.jpg) |
 
-## Getting Started
+| Lead a mixed army | Enter the game |
+|---|---|
+| [![Cavalry, infantry, Ballistas and healers in battle](docs/media/combined-arms.jpg)](docs/media/combined-arms.jpg) | [![RTS main menu](docs/media/main-menu.jpg)](docs/media/main-menu.jpg) |
 
-**Just want to play?** Grab the Windows installer or portable zip from the
-**[Download page](DOWNLOAD.md)** — no Python required. What changed recently is
-in the **[Changelog](CHANGELOG.md)**.
+*Captured from the game for the trailer. The combat showcase uses an arranged
+skirmish running the real combat systems. [See the age and faction artwork](docs/media/ages-and-factions.png).*
 
-To run from source, you need **Python 3.10+** (developed on 3.12).
+## Your first match
+
+Download the **[Windows installer or portable ZIP](DOWNLOAD.md)**—no Python required.
+Choose **Start Game**, a small map and one Easy opponent while learning.
+
+1. Select Workers and right-click trees or gold deposits.
+2. Build Farms early. They produce food automatically; Workers do not gather food.
+3. Add Houses and a Barracks, recruit a mixed army, and scout before expanding.
+4. Open your Town Center's **Upgrades** tab when you are ready for Bronze Age.
+
+The **Help** button in the main menu or pause menu opens the illustrated offline
+field manual. The same guide is available in the **[player wiki](https://github.com/ilankt/RTS/wiki)**,
+including [ages and upgrades](https://github.com/ilankt/RTS/wiki/Ages-and-Upgrades),
+[unit costs and roles](https://github.com/ilankt/RTS/wiki/Units), [economy advice](https://github.com/ilankt/RTS/wiki/Economy)
+and [controls](https://github.com/ilankt/RTS/wiki/Controls-and-Saving).
+
+## Status and feedback
+
+Currently **0.13.1-beta**. This is an actively developed hobby game with
+AI-assisted development and artwork. The Windows downloads include the current
+unit animations, faction portraits and all 30 age-specific building graphics.
+
+The core game is playable end to end. Large battles, crowded navigation, AI
+completion and faction balance remain areas of active work. If something goes
+wrong, [open an issue](https://github.com/ilankt/RTS/issues) with the version,
+match settings and steps to reproduce it. Screenshots and saves help.
+
+**[Latest release](https://github.com/ilankt/RTS/releases/latest)** · **[Version history](CHANGELOG.md)**
+
+## Run from source
+
+Python 3.10+ is required; development uses Python 3.12.
 
 ```bash
 git clone https://github.com/ilankt/RTS.git
 cd RTS
-pip install -r requirements.txt   # pygame, perlin-noise
+pip install -r requirements.txt
 python main.py
 ```
 
-From the menu: **Start Game** for a match against the AI, or
-**Spectate AI Battle** to watch four AIs play each other.
+Run `python main.py --spectate` to start an AI spectator match directly.
+See [BUILD.md](BUILD.md) for Windows packaging and regenerating the manual/wiki.
 
-Choose a faction in Match Setup: **Steppe Clans** recruit Horse Archers at the
-Stable, and **Highland Clans** recruit Axemen at the Barracks. Both unlock in
-Bronze Age and retain the shared roster. Horse Archers are fast ranged raiders;
-Axemen hit sword infantry hard but are vulnerable to ranged fire. Blacksmith
-upgrades apply to both. AI faction choice is independent of AI personality.
-
-A prebuilt Windows package can be produced with [BUILD.md](BUILD.md).
-
-## Controls
-
-| Input | Action |
-|---|---|
-| Left click / drag | Select units (Shift = add to selection) |
-| Right click | Move / gather / attack / repair (Shift = queue orders) |
-| WASD / arrows / edge scroll | Pan camera; mouse wheel zooms |
-| Ctrl+1–9 → 1–9 | Assign / recall control groups |
-| Q E R T / Z X C V | Command-card hotkeys (build, train, research) |
-| S / F | Cycle stance / formation |
-| Tab | Cycle army units (or swap build tabs while building) |
-| Home | Jump to your castle |
-| B / N | Set / cycle camera bookmarks |
-| F1 / F2 | Select idle worker / all production buildings |
-| F5 / F9 | Quick save / load |
-| [ / ] | Game speed down / up |
-
-All hotkeys are rebindable (`keybindings.json`, editable in-game via Settings).
-
-**Debug:** F3 pathfinding overlay · F4 AI goal-score panel · F6 toggle fog.
-
-## Project Layout
-
-```
-core/       main loop, config, game state
-entities/   units, buildings, resources, players (data-driven from data/*.json)
-systems/    pathfinding, movement, collision, combat, fog, rendering, ...
-systems/ai/ utility-goal AI: goals, personalities, military/worker/scout brains
-managers/   selection, sprites, sound, save/load
-ui/         HUD, command card, minimap, menus
-world/      hex map generation + camera
-data/       units.json, buildings.json, techs.json — all game content
-```
-
-## Status
-
-Actively developed hobby project — currently **0.13.0-beta**
-([changelog](CHANGELOG.md)). The core game is playable end to end. Large-map AI
-completion, crowded navigation and faction balance remain areas of active work.
+The engine uses hex-tile terrain, a square navigation grid with Jump Point
+Search, shared flow fields for group movement, and a utility-goal AI. Game
+content lives in `data/`; the main code is organized under `core/`, `entities/`,
+`systems/`, `managers/`, `ui/` and `world/`.
 
 ## Credits
 
-Sound effects courtesy of [Pixabay](https://pixabay.com/sound-effects/) and
-[Kenney](https://kenney.nl) — see [CREDITS.md](CREDITS.md).
+Created by Ilan Kachler, with sound effects from
+[Pixabay](https://pixabay.com/sound-effects/) and [Kenney](https://kenney.nl).
+See [CREDITS.md](CREDITS.md) for attribution.
 
-## Disclaimer
-
-Provided **“as is”**, without warranty of any kind; the author accepts no
-liability for any damages arising from its use. Download and run at your own
-risk — full text on the [Download page](DOWNLOAD.md#disclaimer).
+Provided as is; see the [download disclaimer](DOWNLOAD.md#disclaimer).

@@ -17,6 +17,9 @@
 #ifndef MyAppVersion
   #error "Pass /DMyAppVersion from core/version.py or use build_installer.bat."
 #endif
+#ifndef MyBuildDir
+  #define MyBuildDir "dist\RTS"
+#endif
 #define MyAppPublisher "Ilan Kachler"
 #define MyAppExeName "RTS.exe"
 
@@ -45,7 +48,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; Ship the entire one-folder PyInstaller output (exe + _internal payload).
-Source: "dist\RTS\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "{#MyBuildDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

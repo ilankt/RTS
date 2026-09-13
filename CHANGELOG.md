@@ -8,6 +8,18 @@ with a Windows installer and a portable zip — see the
 
 ---
 
+## 0.13.1-beta — 2026-09-13
+
+- Rebuilt the offline field manual with current unit and building artwork,
+  searchable rosters, readable layouts, and guides to ages, factions, economy,
+  combat, worker shelter, controls, saving and victory conditions.
+- Added a player wiki on GitHub, generated from the same explanations and game
+  data as the in-game manual.
+- Added the gameplay trailer and a screenshot gallery to the repository.
+- Corrected the Healer's outdated description. Gameplay balance is unchanged.
+- Refreshed the Windows installer and portable download with the new manual
+  and the complete current graphics set.
+
 ## 0.13.0-beta — 2026-09-12
 
 Three ages, two factions, new unit and building artwork, stronger AI coordination,

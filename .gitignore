@@ -53,6 +53,7 @@ assets/sfx_incoming/
 /tests/
 /tools/*
 !/tools/make_icon.py
+!/tools/generate_help.py
 screenshots/
 playtest_screenshots/
 assets_backup/

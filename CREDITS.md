@@ -39,9 +39,11 @@ UI click and selection sounds from **[Kenney](https://kenney.nl/assets?q=audio)*
 | Victory and defeat stingers | Generated with **Google Gemini** |
 | Ambient outdoor bed | **[Pixabay](https://pixabay.com/sound-effects/)** |
 
-## Everything else
+## Development and artwork
 
-All game code, art and design are the work of the project author.
+RTS is created and directed by Ilan Kachler, using AI assistance for game
+development and artwork. The project combines generated assets, authored
+systems, procedural tools and iterative playtesting.
 
 ---
 

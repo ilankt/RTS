@@ -7,4 +7,4 @@ it to Inno Setup as ``/DMyAppVersion``. Update the number here only.
 
 Kept import-free on purpose so it's cheap to read from the build script.
 """
-GAME_VERSION = "0.13.0-beta"
+GAME_VERSION = "0.13.1-beta"

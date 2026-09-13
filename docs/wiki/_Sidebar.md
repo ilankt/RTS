@@ -1,0 +1,11 @@
+[RTS player wiki](Home.md)
+
+- [Getting Started](Getting-Started.md)
+- [Ages and Upgrades](Ages-and-Upgrades.md)
+- [Factions](Factions.md)
+- [Units](Units.md)
+- [Buildings](Buildings.md)
+- [Economy](Economy.md)
+- [Combat and Worker Safety](Combat-and-Worker-Safety.md)
+- [Controls and Saving](Controls-and-Saving.md)
+- [Troubleshooting](Troubleshooting.md)

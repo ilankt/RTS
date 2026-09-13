@@ -31,7 +31,7 @@ echo Building RTS %APP_VERSION%
 
 echo.
 echo === [1/4] Ensuring PyInstaller is installed ===
-%PY% -m pip install --disable-pip-version-check --quiet pyinstaller
+%PY% -m pip install --disable-pip-version-check --quiet pyinstaller Pillow
 if errorlevel 1 (
   echo ERROR: could not install PyInstaller. Is Python on PATH^?
   exit /b 1
@@ -46,6 +46,11 @@ if errorlevel 1 echo WARNING: icon generation failed - using default exe icon.
 
 echo.
 echo === [3/4] Building the app with PyInstaller ===
+%PY% tools\generate_help.py
+if errorlevel 1 (
+  echo ERROR: field manual generation failed.
+  exit /b 1
+)
 REM Wipe previous output so nothing stale ever ships.
 if exist build rmdir /s /q build
 if exist dist  rmdir /s /q dist
